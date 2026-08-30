@@ -63,7 +63,7 @@ jobs:
           manifest.write_text(texto, encoding="utf-8")
           PY
           sed -i 's/archive: \^4.2.0/archive: \^4.0.9/' pubspec.yaml
-          sed -i 's/file_picker: \^8.1.7/file_picker: \^12.1.2/' pubspec.yaml
+          sed -i 's/file_picker: \^8.1.7/file_picker: \^11.0.3/' pubspec.yaml
           flutter pub get
 
       - name: Gerar APK de teste
