@@ -39,7 +39,7 @@ jobs:
       - name: Preparar Android
         working-directory: app/Auditar_SST_v1_5_dashboard
         run: |
-          flutter create --platforms=android --org br.com.auditar --project-name auditar_sst .
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
 
           python3 - <<'PY'
           from pathlib import Path
