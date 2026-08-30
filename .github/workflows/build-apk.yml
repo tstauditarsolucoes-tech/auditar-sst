@@ -63,9 +63,9 @@ jobs:
           manifest.write_text(texto, encoding="utf-8")
           PY
           sed -i 's/archive: \^4.2.0/archive: \^4.0.9/' pubspec.yaml
-          sed -i 's/file_picker: \^8.1.7/file_picker: \^11.0.3/' pubspec.yaml
-          sed -i 's/FilePicker\.platform\.pickFiles(/FilePicker.pickFiles(/g' lib/services/backup_service.dart
+          sed -i 's/file_picker: \^8.1.7/file_picker: \^10.3.8/' pubspec.yaml
           flutter pub get
+          
 
       - name: Gerar APK de teste
         working-directory: app/Auditar_SST_v1_5_dashboard
