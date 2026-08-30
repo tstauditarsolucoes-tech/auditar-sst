@@ -62,7 +62,7 @@ jobs:
 
           manifest.write_text(texto, encoding="utf-8")
           PY
-
+        sed -i 's/archive: \^4.2.0/archive: \^4.0.9/' pubspec.yaml
           flutter pub get
 
       - name: Gerar APK de teste
