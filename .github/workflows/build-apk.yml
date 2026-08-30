@@ -1,0 +1,78 @@
+name: Gerar APK Auditar SST
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Compilar APK Android
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Baixar arquivos
+        uses: actions/checkout@v4
+
+      - name: Extrair projeto
+        run: |
+          mkdir -p app
+          unzip -q Auditar_SST_v1.5_dashboard_completo.zip -d app
+
+      - name: Instalar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Instalar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Preparar Android
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          flutter create --platforms=android --org br.com.auditar --project-name auditar_sst .
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          texto = manifest.read_text(encoding="utf-8")
+
+          permissoes = [
+              '<uses-permission android:name="android.permission.CAMERA" />',
+              '<uses-permission android:name="android.permission.INTERNET" />',
+          ]
+
+          for permissao in permissoes:
+              if permissao not in texto:
+                  texto = texto.replace(
+                      "<application",
+                      permissao + "\n    <application",
+                      1
+                  )
+
+          manifest.write_text(texto, encoding="utf-8")
+          PY
+
+          flutter pub get
+
+      - name: Gerar APK de teste
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: flutter build apk --debug
+
+      - name: Disponibilizar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-APK-TESTE
+          path: app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
