@@ -64,6 +64,7 @@ jobs:
           PY
           sed -i 's/archive: \^4.2.0/archive: \^4.0.9/' pubspec.yaml
           sed -i 's/file_picker: \^8.1.7/file_picker: \^11.0.3/' pubspec.yaml
+          sed -i 's/FilePicker\.platform\.pickFiles(/FilePicker.pickFiles(/g' lib/services/backup_service.dart
           flutter pub get
 
       - name: Gerar APK de teste
