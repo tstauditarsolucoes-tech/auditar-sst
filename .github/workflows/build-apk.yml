@@ -73,7 +73,17 @@ jobs:
 
       - name: Gerar APK de teste
         working-directory: app/Auditar_SST_v1_5_dashboard
-        run: flutter build apk --debug
+        env:
+          AUDITAR_APPS_SCRIPT_URL: ${{ vars.AUDITAR_APPS_SCRIPT_URL }}
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if [ -z "$AUDITAR_APPS_SCRIPT_URL" ] || [ -z "$AUDITAR_SYNC_KEY" ]; then
+            echo "::error::Configure AUDITAR_APPS_SCRIPT_URL e AUDITAR_SYNC_KEY nas configurações do repositório."
+            exit 1
+          fi
+          flutter build apk --debug \
+            --dart-define=AUDITAR_APPS_SCRIPT_URL="$AUDITAR_APPS_SCRIPT_URL" \
+            --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
@@ -86,7 +96,7 @@ jobs:
       - name: Empacotar código-fonte corrigido
         run: |
           cd app
-          zip -qr ../Auditar-SST-Codigo-Fonte-v3.20.4.zip Auditar_SST_v1_5_dashboard \
+          zip -qr ../Auditar-SST-Codigo-Fonte-v3.20.6.zip Auditar_SST_v1_5_dashboard \
             -x "Auditar_SST_v1_5_dashboard/build/*" \
                "Auditar_SST_v1_5_dashboard/.dart_tool/*" \
                "Auditar_SST_v1_5_dashboard/android/.gradle/*"
@@ -94,7 +104,7 @@ jobs:
       - name: Disponibilizar código-fonte corrigido
         uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-Codigo-Fonte-v3.20.4
-          path: Auditar-SST-Codigo-Fonte-v3.20.4.zip
+          name: Auditar-SST-Codigo-Fonte-v3.20.6
+          path: Auditar-SST-Codigo-Fonte-v3.20.6.zip
           if-no-files-found: error
           retention-days: 14
