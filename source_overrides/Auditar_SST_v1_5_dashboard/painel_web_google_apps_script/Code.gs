@@ -179,7 +179,9 @@ function uploadReportToDrive_(request) {
   const mimeType = String(request.mimeType || '').trim().toLowerCase();
   const encoded = String(request.contentBase64 || '').trim();
   const fileName = safeDriveName_(request.fileName, 'Relatorio SST.pdf');
+  const companyId = String(request.companyId || '').trim();
   const companyName = safeDriveName_(request.companyName, 'Sem empresa');
+  const companyCnpj = normalizeDigits_(request.companyCnpj);
 
   if (mimeType !== 'application/pdf' || !/\.pdf$/i.test(fileName)) {
     return {ok: false, message: 'Somente relatórios PDF podem ser enviados.'};
@@ -202,7 +204,12 @@ function uploadReportToDrive_(request) {
   }
 
   const root = ensureDriveRootFolder_();
-  const companyFolder = findOrCreateDriveFolder_(root, companyName);
+  const companyFolder = findOrCreateCompanyDriveFolder_(
+    root,
+    companyName,
+    companyCnpj,
+    companyId
+  );
   const existing = companyFolder.getFilesByName(fileName);
   if (existing.hasNext()) {
     const file = existing.next();
@@ -231,6 +238,70 @@ function ensureDriveRootFolder_() {
 function findOrCreateDriveFolder_(parent, name) {
   const folders = parent.getFoldersByName(name);
   return folders.hasNext() ? folders.next() : parent.createFolder(name);
+}
+
+function findOrCreateCompanyDriveFolder_(root, companyName, companyCnpj, companyId) {
+  const cnpj = normalizeDigits_(companyCnpj);
+  const identity = cnpj.length === 14
+    ? 'cnpj:' + cnpj
+    : companyId
+      ? 'id:' + companyId
+      : 'name:' + String(companyName || '').toLowerCase();
+  const marker = 'Auditar SST | ' + identity;
+  const expectedName = cnpj.length === 14
+    ? safeDriveName_(companyName + ' - CNPJ ' + formatCnpj_(cnpj), 'Empresa')
+    : safeDriveName_(companyName, 'Sem empresa');
+  const folders = root.getFolders();
+  let legacyFolder = null;
+
+  while (folders.hasNext()) {
+    const folder = folders.next();
+    const folderName = String(folder.getName() || '');
+    let description = '';
+    try {
+      description = String(folder.getDescription() || '');
+    } catch (_) {}
+
+    if (description.indexOf(marker) >= 0) {
+      return prepareCompanyDriveFolder_(folder, expectedName, marker);
+    }
+
+    if (cnpj.length === 14 && normalizeDigits_(folderName).indexOf(cnpj) >= 0) {
+      return prepareCompanyDriveFolder_(folder, expectedName, marker);
+    }
+
+    if (!legacyFolder && folderName === companyName && description.indexOf('Auditar SST |') < 0) {
+      legacyFolder = folder;
+    }
+  }
+
+  if (legacyFolder) {
+    return prepareCompanyDriveFolder_(legacyFolder, expectedName, marker);
+  }
+
+  return prepareCompanyDriveFolder_(root.createFolder(expectedName), expectedName, marker);
+}
+
+function prepareCompanyDriveFolder_(folder, expectedName, marker) {
+  if (folder.getName() !== expectedName) folder.setName(expectedName);
+  let description = '';
+  try {
+    description = String(folder.getDescription() || '').trim();
+  } catch (_) {}
+  if (description.indexOf(marker) < 0) {
+    folder.setDescription((description ? description + '\n' : '') + marker);
+  }
+  return folder;
+}
+
+function formatCnpj_(cnpj) {
+  const digits = normalizeDigits_(cnpj);
+  if (digits.length !== 14) return digits;
+  return digits.substring(0, 2) + '.' +
+    digits.substring(2, 5) + '.' +
+    digits.substring(5, 8) + '-' +
+    digits.substring(8, 12) + '-' +
+    digits.substring(12, 14);
 }
 
 function safeDriveName_(value, fallback) {

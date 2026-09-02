@@ -48,7 +48,9 @@ COMO FUNCIONA O GOOGLE DRIVE
 - Não é necessário entrar com uma Conta Google no celular.
 - O aplicativo usa a URL permanente e a chave da Central Online já salvas.
 - Os relatórios são enviados para o Drive da conta que publicou o Apps Script.
-- A estrutura criada é: Auditar SST > Nome da empresa > Relatório PDF.
+- A estrutura criada é: Auditar SST > Nome da empresa - CNPJ > Relatório PDF.
+- O CNPJ identifica a pasta da empresa. Sem CNPJ, o código interno do cadastro
+  mantém uma pasta exclusiva, inclusive se existirem empresas com o mesmo nome.
 - Sem internet, o PDF permanece no celular e entra na fila de sincronização.
 
 COMO A EMPRESA USA O LINK

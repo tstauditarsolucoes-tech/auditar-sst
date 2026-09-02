@@ -1,0 +1,17 @@
+AUDITAR SST 3.20.5 - PASTAS EXCLUSIVAS POR EMPRESA NO GOOGLE DRIVE
+
+- Cada empresa recebe uma pasta exclusiva dentro de Auditar SST.
+- Com CNPJ cadastrado, a pasta aparece como Nome da empresa - CNPJ.
+- O CNPJ é usado para localizar sempre a mesma pasta, mesmo se o nome mudar.
+- Sem CNPJ, o código interno do cadastro mantém as empresas separadas.
+- Pastas antigas que tinham somente o nome são reaproveitadas no primeiro envio.
+- Relatórios pendentes consultam o cadastro atualizado antes do envio.
+
+ESTRUTURA NO GOOGLE DRIVE
+
+Auditar SST
+  Nome da empresa - CNPJ
+    Relatório PDF
+
+Para ativar, atualize o Code.gs da Central Online e implante uma nova versão da
+publicação web, mantendo a mesma URL terminada em /exec.

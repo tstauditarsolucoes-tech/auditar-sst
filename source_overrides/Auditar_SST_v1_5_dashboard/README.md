@@ -61,7 +61,7 @@ Aplicativo Android offline para inspeções, checklists, não conformidades, pla
 
 O aplicativo usa a mesma Central Online do painel gerencial para arquivar PDFs em:
 
-Auditar SST / Nome da empresa / Relatório.pdf
+Auditar SST / Nome da empresa - CNPJ / Relatório.pdf
 
 Recursos previstos no código:
 
@@ -73,7 +73,7 @@ Recursos previstos no código:
 - Ao voltar para o aplicativo, ele também tenta sincronizar pendências.
 - Botão manual “Sincronizar pendentes”.
 
-Não é necessário entrar com uma Conta Google no celular nem cadastrar OAuth Android. A URL permanente e a chave do Google Apps Script já configuradas no aplicativo autorizam o envio. O Apps Script cria a pasta no Drive da conta que publicou a Central Online.
+Não é necessário entrar com uma Conta Google no celular nem cadastrar OAuth Android. A URL permanente e a chave do Google Apps Script já configuradas no aplicativo autorizam o envio. O Apps Script cria a pasta no Drive da conta que publicou a Central Online. O CNPJ identifica a pasta da empresa; quando não houver CNPJ, o código interno do cadastro mantém a pasta exclusiva.
 
 ## Backup completo v2
 

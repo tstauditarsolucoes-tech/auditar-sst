@@ -157,7 +157,9 @@ class DriveService {
   static Future<String> _uploadLocalPdf({
     required String localPath,
     required String fileName,
+    required String companyId,
     required String companyName,
+    required String companyCnpj,
     required bool interactive,
   }) async {
     final file = File(localPath);
@@ -179,7 +181,9 @@ class DriveService {
       'drive_upload',
       payload: <String, Object?>{
         'fileName': fileName,
+        'companyId': companyId,
         'companyName': companyName,
+        'companyCnpj': companyCnpj,
         'mimeType': 'application/pdf',
         'contentBase64': base64Encode(bytes),
       },
@@ -233,7 +237,9 @@ class DriveService {
     final localPath = await ReportFileService.savePdfLocally(inspectionId);
 
     final fileName = File(localPath).uri.pathSegments.last;
+    final companyId = '${header['company_id'] ?? ''}'.trim();
     final companyName = '${header['company_name'] ?? 'Sem empresa'}';
+    final companyCnpj = '${header['company_cnpj'] ?? ''}'.trim();
 
     final queueId = previous == null ? const Uuid().v4() : '${previous['id']}';
 
@@ -241,7 +247,9 @@ class DriveService {
       await _uploadLocalPdf(
         localPath: localPath,
         fileName: fileName,
+        companyId: companyId,
         companyName: companyName,
+        companyCnpj: companyCnpj,
         interactive: interactive,
       );
 
@@ -290,12 +298,19 @@ class DriveService {
 
     for (final row in rows) {
       final id = '${row['id']}';
+      final inspectionId = '${row['inspection_id'] ?? ''}'.trim();
+      final header = inspectionId.isEmpty
+          ? null
+          : await db.getInspectionHeader(inspectionId);
 
       try {
         await _uploadLocalPdf(
           localPath: '${row['local_path']}',
           fileName: '${row['file_name']}',
-          companyName: '${row['company_name'] ?? 'Sem empresa'}',
+          companyId: '${header?['company_id'] ?? ''}'.trim(),
+          companyName:
+              '${header?['company_name'] ?? row['company_name'] ?? 'Sem empresa'}',
+          companyCnpj: '${header?['company_cnpj'] ?? ''}'.trim(),
           interactive: interactive,
         );
 

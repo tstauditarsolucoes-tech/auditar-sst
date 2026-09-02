@@ -449,7 +449,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 8),
                   const Text(
                     'Os relatórios ficam salvos no celular e são enviados para '
-                    'Auditar SST → Nome da empresa no Google Drive.',
+                    'Auditar SST → Nome da empresa - CNPJ no Google Drive.',
                   ),
                   const SizedBox(height: 6),
                   const Text(
