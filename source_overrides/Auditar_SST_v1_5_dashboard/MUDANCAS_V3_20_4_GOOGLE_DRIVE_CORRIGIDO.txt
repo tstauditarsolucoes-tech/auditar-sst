@@ -1,0 +1,24 @@
+AUDITAR SST v3.20.4
+
+GOOGLE DRIVE CORRIGIDO
+
+- Removido o login Google incompleto que gerava o erro
+  "serverClientId must be provided on Android".
+- O Drive agora usa a Central Online do Google Apps Script já configurada.
+- Não é necessário cadastrar OAuth Android nem entrar em uma Conta Google
+  no celular.
+- A pasta "Auditar SST" é criada no Drive da conta que publicou a Central
+  Online.
+- Cada relatório continua organizado em:
+  Auditar SST > Nome da empresa > Relatório PDF.
+- O envio manual, o envio automático e a fila offline foram mantidos.
+- O servidor evita duplicar um relatório que já possui o mesmo nome na pasta.
+- Limite de 20 MB por relatório enviado automaticamente.
+
+ATUALIZAÇÃO NECESSÁRIA NO APPS SCRIPT
+
+1. Substituir Code.gs pelo arquivo desta versão.
+2. Executar configurarGoogleDrive() uma vez.
+3. Autorizar o acesso ao Google Drive.
+4. Criar uma nova versão da implantação, mantendo a mesma URL /exec.
+5. No aplicativo, tocar em Configurações > Conectar Google Drive.

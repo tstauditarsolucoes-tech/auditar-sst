@@ -24,6 +24,10 @@ jobs:
           mkdir -p app
           unzip -q Auditar_SST_v1.5_dashboard_completo.zip -d app
 
+      - name: Aplicar correções mais recentes
+        run: |
+          cp -R source_overrides/Auditar_SST_v1_5_dashboard/. app/Auditar_SST_v1_5_dashboard/
+
       - name: Instalar Java
         uses: actions/setup-java@v4
         with:
@@ -76,5 +80,18 @@ jobs:
         with:
           name: Auditar-SST-APK-TESTE
           path: app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Empacotar código-fonte corrigido
+        run: |
+          cd app
+          zip -qr ../Auditar-SST-Codigo-Fonte-v3.20.4.zip Auditar_SST_v1_5_dashboard
+
+      - name: Disponibilizar código-fonte corrigido
+        uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-Codigo-Fonte-v3.20.4
+          path: Auditar-SST-Codigo-Fonte-v3.20.4.zip
           if-no-files-found: error
           retention-days: 14

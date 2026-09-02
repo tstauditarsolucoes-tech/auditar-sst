@@ -1,0 +1,149 @@
+AUDITAR SST - PAINEL GERENCIAL + VOTACAO CIPA
+CONFIGURACAO GRATUITA (SEM SERVIDOR PROPRIO)
+
+Esta mesma publicação do Google Apps Script atende:
+- Painel Gerencial individual de cada empresa;
+- Visão executiva responsiva para celular e computador;
+- Situação geral e lista das prioridades que exigem ação;
+- Indicadores e detalhes de treinamentos obrigatórios e periódicos;
+- Não conformidades, planos de ação, setores e vistorias recentes;
+- Votação CIPA pelo navegador;
+- QR Code único por eleição;
+- Contagem de participação em tempo quase real;
+- Bloqueio de código já utilizado;
+- Apuração somente após o encerramento;
+- Relatório mensal em PDF por empresa;
+- Alertas de treinamentos próximos do vencimento;
+- Alertas de exames periódicos;
+- Aviso de treinamento obrigatório sem registro.
+- Conexão segura do Assistente IA usado pelo técnico no aplicativo.
+- Arquivamento dos relatórios PDF no Google Drive, separados por empresa.
+
+COMO ATIVAR UMA ÚNICA VEZ
+1. Crie uma Planilha Google chamada "Auditar SST - Dados Online".
+2. Abra Extensões > Apps Script.
+3. Substitua Code.gs pelo arquivo desta pasta.
+4. Crie dois arquivos HTML: Index e Votacao.
+5. Cole Index.html em Index e Votacao.html em Votacao.
+6. Execute a função setupAuditar() uma vez e autorize o acesso solicitado pelo Google.
+   A autorização inclui o envio de e-mails e o acesso à pasta "Auditar SST" no Google Drive.
+7. Copie a CHAVE DE SINCRONIZACAO mostrada no registro de execução.
+8. Clique em Implantar > Nova implantação > Aplicativo da Web.
+9. Execute como: você. Acesso: qualquer pessoa com o link (conforme opções disponíveis na sua conta).
+10. Copie a URL terminada em /exec.
+11. No Auditar SST, abra Configurações e informe:
+    - URL do aplicativo web;
+    - Chave de sincronização.
+12. Salve.
+
+SE O PAINEL JÁ ESTAVA PUBLICADO
+1. Substitua Code.gs e Index.html pelos arquivos desta versão.
+2. Execute a função configurarGoogleDrive() uma vez e autorize o acesso solicitado.
+3. No Apps Script, clique em Implantar > Gerenciar implantações.
+4. Edite a implantação e selecione "Nova versão".
+5. Implante novamente, mantendo a mesma URL /exec.
+6. No aplicativo, abra Configurações e toque em CONECTAR GOOGLE DRIVE.
+
+COMO FUNCIONA O GOOGLE DRIVE
+- Não é necessário entrar com uma Conta Google no celular.
+- O aplicativo usa a URL permanente e a chave da Central Online já salvas.
+- Os relatórios são enviados para o Drive da conta que publicou o Apps Script.
+- A estrutura criada é: Auditar SST > Nome da empresa > Relatório PDF.
+- Sem internet, o PDF permanece no celular e entra na fila de sincronização.
+
+COMO A EMPRESA USA O LINK
+- O link abre sem instalar o aplicativo.
+- A primeira tela mostra a situação geral e as prioridades mais urgentes.
+- As abas separam Treinamentos e exames, NCs e ações e Vistorias.
+- O botão Imprimir permite salvar uma visão do painel em PDF pelo navegador.
+- Quando os dados estiverem há mais de 48 horas sem atualização, o painel avisa.
+
+COMO ATIVAR O ASSISTENTE IA
+O Assistente IA é opcional. O restante do aplicativo continua funcionando
+normalmente sem ele e sem internet.
+
+1. Crie uma chave gratuita da Gemini API em:
+   https://aistudio.google.com/apikey
+2. No projeto do Google Apps Script, abra Configurações do projeto.
+3. Em Propriedades do script, adicione:
+   - Nome: GEMINI_API_KEY
+   - Valor: sua chave da Gemini API
+4. Opcionalmente, adicione:
+   - Nome: AUDITAR_AI_MODEL
+   - Valor: gemini-3-flash-preview
+5. Salve e gere uma nova versão da implantação web.
+6. Execute verificarAssistenteIA() para confirmar a configuração sem mostrar
+   a chave no registro.
+
+O Gemini 3 Flash possui nível gratuito sujeito às cotas definidas pelo Google.
+Não é necessário colocar a chave dentro do aplicativo. Se a cota gratuita for
+atingida, aguarde a renovação do limite e tente novamente.
+
+SEGURANCA DA CHAVE
+- Nunca cole a chave no código do aplicativo, no GitHub ou em Code.gs.
+- A chave fica somente nas Propriedades do script.
+- Acompanhe as cotas no Google AI Studio.
+- Se precisar desativar a IA, apague GEMINI_API_KEY das Propriedades do script.
+
+COMO A IA FUNCIONA NO APLICATIVO
+- Marque um item como Não Conforme ou Parcial.
+- Tire ou escolha as fotos da evidência.
+- Toque em ANALISAR FOTOS COM IA.
+- O aplicativo reduz e recodifica as fotos, descartando metadados, antes do envio.
+- A IA usa no máximo quatro fotos e prepara uma sugestão de descrição, risco,
+  ação imediata, recomendação, prioridade e pontos que precisam ser conferidos.
+- Nada é aplicado automaticamente: o técnico escolhe USAR E EDITAR.
+- Na revisão final, SUGERIR CONCLUSÃO COM IA prepara um texto usando somente
+  os resultados, NCs e planos de ação registrados na vistoria.
+- O técnico deve revisar todo texto antes de gerar o relatório PDF.
+- Na empresa, IMPORTAR LISTA DO RH permite enviar um PDF atualizado com Nome
+  e Cargo. A IA reconhece a listagem e o aplicativo mostra a comparação antes
+  de incluir, atualizar ou retirar trabalhadores da lista ativa.
+- A retirada não apaga treinamentos, exames ou histórico do trabalhador.
+- Em Treinamentos, TREINAMENTO EM LOTE registra ou renova o mesmo treinamento
+  para vários participantes. A validade pode ser calculada pela matriz do cargo.
+- ATUALIZAR PERIÓDICOS POR PDF reconhece nome, último exame e próximo exame,
+  mostra uma conferência e atualiza os trabalhadores encontrados.
+
+PRIVACIDADE NO USO DA IA
+- As fotos só são enviadas quando o técnico toca no botão de análise.
+- Evite enviar rostos, crachás, documentos, telas com nomes ou dados pessoais.
+- A conclusão usa dados técnicos da vistoria e não envia CPF ou dados médicos.
+- No nível gratuito da Gemini API, o Google informa que entradas e respostas
+  podem ser usadas para melhorar seus produtos. Use somente com autorização
+  adequada e não envie informações pessoais, médicas ou confidenciais.
+- Para importar funcionários, prefira um PDF contendo somente Nome, Cargo e
+  Setor. Evite listas com CPF, salário, endereço ou dados médicos.
+- Para atualizar periódicos, use somente documento autorizado contendo nome e
+  datas. Não envie diagnóstico, resultado clínico ou outros dados médicos.
+
+COMO FUNCIONAM OS ENVIOS
+- O aplicativo envia os dados atualizados quando a empresa é sincronizada no Painel Gerencial.
+- O Google verifica os prazos automaticamente todos os dias, por volta das 8h.
+- Os alertas são enviados em 30, 15 e 7 dias, no vencimento e semanalmente enquanto estiver vencido.
+- Falta de treinamento obrigatório e periódico sem data geram lembrete mensal.
+- O relatório mensal é enviado no dia escolhido no cadastro de cada empresa.
+- Para testar manualmente, execute processAutomaticNotifications() no Apps Script.
+- No Painel Gerencial da empresa, ENVIAR E-MAIL DE TESTE envia uma mensagem real
+  aos endereços cadastrados sem consumir ou bloquear os alertas automáticos.
+- Os envios realizados ficam registrados na aba EmailEnvios para evitar mensagens repetidas.
+
+PRIVACIDADE DOS DADOS SST
+- Para montar os avisos, o painel recebe nome, cargo, treinamento e datas de vencimento.
+- CPF e arquivo de ASO não são enviados ao painel nem incluídos nos e-mails.
+- Cada empresa continua separada por token individual.
+
+Depois disso não é necessário criar um Apps Script novo para cada empresa ou eleição.
+O Auditar SST gera tokens diferentes para separar cada empresa e cada votação.
+
+PRIVACIDADE DA CIPA
+- O QR Code da eleição é único e pode ficar exposto no estabelecimento.
+- Cada trabalhador recebe um código individual.
+- No backend, o código é convertido em hash antes de ser salvo.
+- A lista que marca "já votou" fica separada da tabela de cédulas.
+- A cédula não grava nome, CPF nem código do trabalhador.
+- Durante a votação, o app recebe apenas total de aptos, total de votos e percentual de participação.
+- Os votos por candidato só são retornados após o encerramento da eleição.
+
+IMPORTANTE
+Google Apps Script e Google Sheets possuem cotas e limites de uso definidos pelo Google. Para o volume normal de eleições de pequenas e médias empresas, a arquitetura foi pensada para ser leve, mas é recomendável acompanhar as cotas se o uso crescer muito.

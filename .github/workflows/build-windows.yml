@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - "Auditar_SST_v1.5_dashboard_completo.zip"
+      - "source_overrides/**"
       - ".github/workflows/build-windows.yml"
 
 permissions:
@@ -27,6 +28,11 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path app | Out-Null
           Expand-Archive -Path "Auditar_SST_v1.5_dashboard_completo.zip" -DestinationPath app -Force
+
+      - name: Aplicar correções mais recentes
+        shell: pwsh
+        run: |
+          Copy-Item -Path "source_overrides/Auditar_SST_v1_5_dashboard/*" -Destination "app/Auditar_SST_v1_5_dashboard" -Recurse -Force
 
       - name: Instalar Flutter
         uses: subosito/flutter-action@v2
