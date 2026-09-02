@@ -86,7 +86,10 @@ jobs:
       - name: Empacotar código-fonte corrigido
         run: |
           cd app
-          zip -qr ../Auditar-SST-Codigo-Fonte-v3.20.4.zip Auditar_SST_v1_5_dashboard
+          zip -qr ../Auditar-SST-Codigo-Fonte-v3.20.4.zip Auditar_SST_v1_5_dashboard \
+            -x "Auditar_SST_v1_5_dashboard/build/*" \
+               "Auditar_SST_v1_5_dashboard/.dart_tool/*" \
+               "Auditar_SST_v1_5_dashboard/android/.gradle/*"
 
       - name: Disponibilizar código-fonte corrigido
         uses: actions/upload-artifact@v4
