@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f766e" />
+  <meta name="description" content="Auditar EPI - registro e comprovante de entrega de equipamentos de proteção individual." />
+  <title>Auditar EPI</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <header class="topbar">
+    <div>
+      <div class="brand">AUDITAR <span>EPI</span></div>
+      <div class="subtitle">Registro de entrega de equipamentos</div>
+    </div>
+    <button class="icon-btn" id="btnBackup" title="Backup dos dados" aria-label="Backup dos dados">⇩</button>
+  </header>
+
+  <main class="app-shell">
+    <section id="home" class="view active">
+      <div class="hero-card">
+        <div>
+          <p class="eyebrow">CONTROLE DE EPI</p>
+          <h1>Entrega rápida, assinatura na tela e histórico organizado.</h1>
+        </div>
+        <button class="primary big" data-go="delivery">＋ Nova entrega</button>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat"><strong id="statCompanies">0</strong><span>Empresas</span></div>
+        <div class="stat"><strong id="statWorkers">0</strong><span>Colaboradores</span></div>
+        <div class="stat"><strong id="statEpis">0</strong><span>EPIs</span></div>
+        <div class="stat"><strong id="statDeliveries">0</strong><span>Entregas</span></div>
+      </div>
+
+      <div class="menu-grid">
+        <button class="menu-card" data-go="companies"><span>🏢</span><b>Empresas</b><small>Cadastro por CNPJ</small></button>
+        <button class="menu-card" data-go="workers"><span>👷</span><b>Colaboradores</b><small>Cargo, setor e CPF</small></button>
+        <button class="menu-card" data-go="epis"><span>🦺</span><b>EPIs</b><small>CA, modelo e tamanho</small></button>
+        <button class="menu-card" data-go="history"><span>📋</span><b>Histórico</b><small>Entregas e comprovantes</small></button>
+      </div>
+
+      <div class="notice">
+        <b>Versão inicial</b>
+        <p>Os dados ficam salvos neste aparelho. A sincronização com Google Drive será adicionada na próxima etapa.</p>
+      </div>
+    </section>
+
+    <section id="companies" class="view">
+      <div class="view-head"><button class="back" data-go="home">←</button><div><h2>Empresas</h2><p>Cadastre as empresas atendidas.</p></div></div>
+      <form id="companyForm" class="card form-grid">
+        <label>Nome da empresa<input id="companyName" required placeholder="Ex.: Cerâmica Livramento" /></label>
+        <label>CNPJ<input id="companyCnpj" inputmode="numeric" placeholder="00.000.000/0000-00" /></label>
+        <button class="primary" type="submit">Salvar empresa</button>
+      </form>
+      <div id="companyList" class="list"></div>
+    </section>
+
+    <section id="workers" class="view">
+      <div class="view-head"><button class="back" data-go="home">←</button><div><h2>Colaboradores</h2><p>Cadastre quem receberá EPI.</p></div></div>
+      <form id="workerForm" class="card form-grid">
+        <label>Empresa<select id="workerCompany" required></select></label>
+        <label>Nome completo<input id="workerName" required /></label>
+        <label>CPF<input id="workerCpf" inputmode="numeric" placeholder="000.000.000-00" /></label>
+        <label>Matrícula<input id="workerReg" /></label>
+        <label>Cargo<input id="workerRole" /></label>
+        <label>Setor<input id="workerSector" /></label>
+        <button class="primary" type="submit">Salvar colaborador</button>
+      </form>
+      <div class="filter-row"><select id="workerFilterCompany"></select></div>
+      <div id="workerList" class="list"></div>
+    </section>
+
+    <section id="epis" class="view">
+      <div class="view-head"><button class="back" data-go="home">←</button><div><h2>EPIs</h2><p>Cadastre os equipamentos usados nas entregas.</p></div></div>
+      <form id="epiForm" class="card form-grid">
+        <label>EPI<input id="epiName" required placeholder="Ex.: Óculos de segurança" /></label>
+        <label>CA<input id="epiCa" inputmode="numeric" /></label>
+        <label>Fabricante / Modelo<input id="epiModel" /></label>
+        <label>Tamanho / Numeração<input id="epiSize" /></label>
+        <label>Troca prevista (dias)<input id="epiCycle" type="number" min="0" placeholder="Opcional" /></label>
+        <button class="primary" type="submit">Salvar EPI</button>
+      </form>
+      <div id="epiList" class="list"></div>
+    </section>
+
+    <section id="delivery" class="view">
+      <div class="view-head"><button class="back" data-go="home">←</button><div><h2>Nova entrega</h2><p>Registre vários EPIs e colha uma assinatura.</p></div></div>
+      <div class="card form-grid">
+        <label>Empresa<select id="deliveryCompany"></select></label>
+        <label>Colaborador<select id="deliveryWorker"></select></label>
+        <label>Motivo<select id="deliveryReason"><option>Primeira entrega</option><option>Substituição por desgaste</option><option>Substituição por dano</option><option>Perda</option><option>Outro</option></select></label>
+        <label>Responsável pela entrega<input id="deliveryResponsible" placeholder="Nome do responsável" /></label>
+        <label>Observação<textarea id="deliveryNotes" rows="2" placeholder="Opcional"></textarea></label>
+      </div>
+
+      <div class="card">
+        <div class="section-title"><h3>EPIs entregues</h3><button class="secondary" id="btnAddItem" type="button">＋ Adicionar EPI</button></div>
+        <div id="deliveryItems" class="delivery-items"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title"><div><h3>Assinatura do colaborador</h3><p>Assine dentro do quadro.</p></div><button class="secondary" id="btnClearSignature" type="button">Limpar</button></div>
+        <canvas id="signature" height="190"></canvas>
+        <p class="signature-hint">Ao salvar, a assinatura fica vinculada a esta entrega.</p>
+      </div>
+
+      <button id="btnSaveDelivery" class="primary big full">✓ Finalizar entrega</button>
+    </section>
+
+    <section id="history" class="view">
+      <div class="view-head"><button class="back" data-go="home">←</button><div><h2>Histórico</h2><p>Consulte entregas já registradas.</p></div></div>
+      <div class="card filter-grid">
+        <label>Empresa<select id="historyCompany"></select></label>
+        <label>Buscar colaborador<input id="historySearch" placeholder="Digite o nome" /></label>
+      </div>
+      <div id="historyList" class="list"></div>
+    </section>
+
+    <section id="receipt" class="view print-area">
+      <div class="view-head no-print"><button class="back" data-go="history">←</button><div><h2>Comprovante</h2><p>Revise e imprima ou salve em PDF.</p></div></div>
+      <article id="receiptContent" class="receipt-paper"></article>
+      <div class="receipt-actions no-print">
+        <button class="secondary" data-go="history">Voltar</button>
+        <button class="primary" id="btnPrint">🖨️ Imprimir / PDF</button>
+      </div>
+    </section>
+  </main>
+
+  <template id="deliveryItemTemplate">
+    <div class="delivery-item">
+      <label>EPI<select class="item-epi"></select></label>
+      <label>Qtd.<input class="item-qty" type="number" min="1" value="1" /></label>
+      <button type="button" class="danger item-remove" aria-label="Remover EPI">×</button>
+    </div>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
