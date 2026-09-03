@@ -28,17 +28,17 @@ jobs:
       - name: Preparar interface Gestão
         shell: pwsh
         env:
-          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+          AUDITAR_EPI_SYNC_KEY: ${{ secrets.AUDITAR_EPI_SYNC_KEY }}
         run: |
-          if (-not $env:AUDITAR_SYNC_KEY) {
-            Write-Error 'Configure AUDITAR_SYNC_KEY nos segredos do repositório.'
+          if (-not $env:AUDITAR_EPI_SYNC_KEY) {
+            Write-Error 'Configure AUDITAR_EPI_SYNC_KEY nos segredos do repositório.'
             exit 1
           }
           Remove-Item -Recurse -Force 'auditar-epi-windows/app' -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Path 'auditar-epi-windows/app' | Out-Null
           Copy-Item -Recurse -Force 'auditar-epi-gestao/*' 'auditar-epi-windows/app/'
-          $escaped = $env:AUDITAR_SYNC_KEY | ConvertTo-Json -Compress
-          $config = "try{if(!localStorage.getItem('auditarEpiSyncKey'))localStorage.setItem('auditarEpiSyncKey',$escaped);}catch(e){}"
+          $escaped = $env:AUDITAR_EPI_SYNC_KEY | ConvertTo-Json -Compress
+          $config = "try{localStorage.setItem('auditarEpiSyncKey',$escaped);}catch(e){}"
           Set-Content -Path 'auditar-epi-windows/app/compiled-config.js' -Value $config -Encoding UTF8
           $indexPath = 'auditar-epi-windows/app/index.html'
           $html = Get-Content $indexPath -Raw
