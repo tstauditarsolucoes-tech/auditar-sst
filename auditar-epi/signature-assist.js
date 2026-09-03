@@ -80,6 +80,12 @@
     modalCanvas.addEventListener('pointermove',move);
     ['pointerup','pointerleave','pointercancel'].forEach(n=>modalCanvas.addEventListener(n,end));
 
+    let directDrawing=false, directMoved=false;
+    original.addEventListener('pointerdown',()=>{ directDrawing=true; directMoved=false; });
+    original.addEventListener('pointermove',()=>{ if(directDrawing) directMoved=true; });
+    original.addEventListener('pointerup',()=>{ if(directDrawing && directMoved) setStatus(true); directDrawing=false; });
+    original.addEventListener('pointercancel',()=>{ directDrawing=false; });
+
     $('#btnClearSignature')?.addEventListener('click',()=>setStatus(false));
     document.addEventListener('click',e=>{
       if(e.target.closest('[data-go="delivery"]')) setTimeout(()=>setStatus(false),20);
