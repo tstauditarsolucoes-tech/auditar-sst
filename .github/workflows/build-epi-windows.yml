@@ -38,7 +38,7 @@ jobs:
           New-Item -ItemType Directory -Path 'auditar-epi-windows/app' | Out-Null
           Copy-Item -Recurse -Force 'auditar-epi-gestao/*' 'auditar-epi-windows/app/'
           $escaped = $env:AUDITAR_EPI_SYNC_KEY | ConvertTo-Json -Compress
-          $config = "try{localStorage.setItem('auditarEpiSyncKey',$escaped);}catch(e){}"
+          $config = "try{localStorage.setItem('auditarEpiCentralKey',$escaped);}catch(e){}"
           Set-Content -Path 'auditar-epi-windows/app/compiled-config.js' -Value $config -Encoding UTF8
           $indexPath = 'auditar-epi-windows/app/index.html'
           $html = Get-Content $indexPath -Raw
