@@ -75,7 +75,7 @@ jobs:
           PY
           sed -i 's/archive: \^4.2.0/archive: \^4.0.9/' pubspec.yaml
           sed -i 's/file_picker: \^8.1.7/file_picker: \^10.3.8/' pubspec.yaml
-          sed -i 's/Auditar SST • versão 3.20.3/Auditar SST • versão 3.21.1/' lib/screens/home_screen.dart
+          sed -i 's/Auditar SST • versão 3.20.3/Auditar SST • versão 3.21.2/' lib/screens/home_screen.dart
           flutter pub get
           
 
@@ -102,7 +102,7 @@ jobs:
       - name: Empacotar código-fonte corrigido
         run: |
           cd app
-          zip -qr ../Auditar-SST-Codigo-Fonte-v3.21.1.zip Auditar_SST_v1_5_dashboard \
+          zip -qr ../Auditar-SST-Codigo-Fonte-v3.21.2.zip Auditar_SST_v1_5_dashboard \
             -x "Auditar_SST_v1_5_dashboard/build/*" \
                "Auditar_SST_v1_5_dashboard/.dart_tool/*" \
                "Auditar_SST_v1_5_dashboard/android/.gradle/*"
@@ -110,7 +110,7 @@ jobs:
       - name: Disponibilizar código-fonte corrigido
         uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-Codigo-Fonte-v3.21.1
-          path: Auditar-SST-Codigo-Fonte-v3.21.1.zip
+          name: Auditar-SST-Codigo-Fonte-v3.21.2
+          path: Auditar-SST-Codigo-Fonte-v3.21.2.zip
           if-no-files-found: error
           retention-days: 14
