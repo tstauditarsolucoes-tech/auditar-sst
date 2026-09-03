@@ -4,8 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0f766e" />
-  <meta name="description" content="Auditar EPI - registro e comprovante de entrega de equipamentos de proteção individual." />
-  <title>Auditar EPI</title>
+  <meta name="description" content="Auditar EPI Campo - registro rápido de entrega de equipamentos de proteção individual." />
+  <title>Auditar EPI Campo</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="import-workers.css" />
@@ -17,7 +17,7 @@
   <header class="topbar">
     <div>
       <div class="brand">AUDITAR <span>EPI</span></div>
-      <div class="subtitle">Registro de entrega de equipamentos</div>
+      <div class="subtitle">Campo • entrega rápida</div>
     </div>
     <button class="icon-btn" id="btnBackup" title="Backup dos dados" aria-label="Backup dos dados">⇩</button>
   </header>
@@ -26,8 +26,8 @@
     <section id="home" class="view active">
       <div class="hero-card">
         <div>
-          <p class="eyebrow">CONTROLE DE EPI</p>
-          <h1>Entrega rápida, assinatura na tela e histórico organizado.</h1>
+          <p class="eyebrow">AUDITAR EPI • CAMPO</p>
+          <h1>Entrega rápida, assinatura na tela e sincronização com a Gestão.</h1>
         </div>
         <button class="primary big" data-go="delivery">＋ Nova entrega</button>
       </div>
@@ -49,8 +49,8 @@
       </div>
 
       <div class="notice">
-        <b>Versão inicial</b>
-        <p>Os dados ficam salvos neste aparelho. A sincronização com Google Drive será adicionada na próxima etapa.</p>
+        <b>Offline-first</b>
+        <p>Você pode registrar a entrega sem internet. Quando a conexão voltar, o app sincroniza com a versão Gestão no computador.</p>
       </div>
     </section>
 
@@ -210,5 +210,6 @@
   <script src="ai-workers.js"></script>
   <script src="stock.js"></script>
   <script src="signature-assist.js"></script>
+  <script src="cloud-sync.js"></script>
 </body>
 </html>
