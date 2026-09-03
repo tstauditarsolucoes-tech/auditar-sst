@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#0f766e">
   <title>Auditar EPI • Gestão</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="indicators.css">
 </head>
 <body>
   <div id="toast" class="toast"></div>
@@ -30,6 +31,8 @@
       </div>
       <nav>
         <button class="nav active" data-view="dashboard">▦ <span>Visão geral</span></button>
+        <button class="nav" data-view="indicators">📊 <span>Indicadores</span></button>
+        <button class="nav" data-view="pending">⚠️ <span>Precisa de atenção</span></button>
         <button class="nav" data-view="stock">📦 <span>Estoque</span></button>
         <button class="nav" data-view="epis">🦺 <span>EPIs</span></button>
         <button class="nav" data-view="workers">👷 <span>Trabalhadores</span></button>
@@ -46,7 +49,7 @@
       <header class="topbar">
         <div>
           <h1 id="viewTitle">Visão geral</h1>
-          <p id="viewSub">Acompanhe entregas e estoque do Auditar EPI.</p>
+          <p id="viewSub">Veja rapidamente como está o controle de EPI.</p>
         </div>
         <div class="top-actions">
           <label class="company-filter">Empresa<select id="globalCompany"></select></label>
@@ -56,21 +59,100 @@
 
       <section id="dashboard" class="view active">
         <div class="cards four">
-          <article class="metric"><span>Entregas hoje</span><strong id="mToday">0</strong><small>registros</small></article>
-          <article class="metric"><span>Trabalhadores</span><strong id="mWorkers">0</strong><small>ativos</small></article>
-          <article class="metric"><span>EPIs controlados</span><strong id="mEpis">0</strong><small>itens</small></article>
-          <article class="metric warning"><span>Estoque baixo</span><strong id="mLow">0</strong><small>itens</small></article>
+          <article class="metric"><span>EPIs entregues este mês</span><strong id="mToday">0</strong><small>unidades</small></article>
+          <article class="metric"><span>Entregas neste mês</span><strong id="mWorkers">0</strong><small>registros</small></article>
+          <article class="metric text"><span>EPI que mais saiu</span><strong id="mEpis">—</strong><small>mais entregue no mês</small></article>
+          <article class="metric warning"><span>Estoque baixo</span><strong id="mLow">0</strong><small>itens para conferir</small></article>
         </div>
         <div class="grid-2">
           <article class="panel">
-            <div class="panel-head"><div><h2>Estoque que precisa atenção</h2><p>Itens no mínimo ou abaixo.</p></div><button class="link" data-view="stock">Ver estoque →</button></div>
+            <div class="panel-head"><div><h2>⚠️ Estoque que precisa atenção</h2><p>Itens no mínimo ou abaixo.</p></div><button class="link" data-view="stock">Ver estoque →</button></div>
             <div id="dashboardLow" class="table-wrap"></div>
           </article>
           <article class="panel">
-            <div class="panel-head"><div><h2>Últimas entregas</h2><p>Registros vindos do campo.</p></div><button class="link" data-view="deliveries">Ver todas →</button></div>
+            <div class="panel-head"><div><h2>📋 Últimas entregas</h2><p>Registros recebidos do celular.</p></div><button class="link" data-view="deliveries">Ver todas →</button></div>
             <div id="dashboardDeliveries" class="list"></div>
           </article>
         </div>
+      </section>
+
+      <section id="indicators" class="view">
+        <div class="simple-filter">
+          <label>Período para analisar
+            <select id="indicatorPeriod">
+              <option value="month">Este mês</option>
+              <option value="3m">Últimos 3 meses</option>
+              <option value="6m">Últimos 6 meses</option>
+              <option value="year">Este ano</option>
+              <option value="all">Todo o histórico</option>
+            </select>
+          </label>
+          <p>Use o filtro de empresa no canto superior para ver uma empresa específica.</p>
+        </div>
+        <div class="cards four">
+          <article class="metric"><span>EPIs entregues</span><strong id="kUnits">0</strong><small>unidades no período</small></article>
+          <article class="metric"><span>Entregas registradas</span><strong id="kDeliveries">0</strong><small>registros no período</small></article>
+          <article class="metric text"><span>EPI que mais saiu</span><strong id="kTopEpi">—</strong><small>maior consumo</small></article>
+          <article class="metric text"><span>Quem recebeu mais</span><strong id="kTopWorker">—</strong><small>maior quantidade recebida</small></article>
+        </div>
+        <div class="grid-2">
+          <article class="panel">
+            <div class="panel-head"><div><h2>🦺 EPIs que mais saíram</h2><p>Top 5 por quantidade.</p></div></div>
+            <div id="topEpis"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><div><h2>👷 Quem mais recebeu EPI</h2><p>Serve para acompanhamento, não significa irregularidade.</p></div></div>
+            <div id="topWorkers"></div>
+          </article>
+        </div>
+        <div class="grid-2" style="margin-top:16px">
+          <article class="panel">
+            <div class="panel-head"><div><h2>📈 Saída nos últimos 6 meses</h2><p>Ajuda a perceber aumento ou queda no consumo.</p></div></div>
+            <div id="monthConsumption"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><div><h2>🔄 Por que os EPIs foram entregues</h2><p>Quantidade separada pelo motivo informado.</p></div></div>
+            <div id="reasonList"></div>
+          </article>
+        </div>
+        <article class="panel full">
+          <div class="panel-head"><div><h2>🏭 Consumo por setor</h2><p>Mostra quais setores estão usando mais EPI.</p></div></div>
+          <div id="sectorList"></div>
+        </article>
+      </section>
+
+      <section id="pending" class="view">
+        <p class="section-note">Esta tela mostra somente o que merece sua conferência. Nem todo alerta significa problema.</p>
+        <div class="cards four">
+          <article class="metric warning"><span>Estoque baixo</span><strong id="pLow">0</strong><small>itens</small></article>
+          <article class="metric attention"><span>Saldo negativo</span><strong id="pNegative">0</strong><small>corrigir estoque</small></article>
+          <article class="metric warning"><span>Sem entrega registrada</span><strong id="pNoDelivery">0</strong><small>colaboradores</small></article>
+          <article class="metric warning"><span>EPI sem CA informado</span><strong id="pMissingCa">0</strong><small>cadastros</small></article>
+        </div>
+        <div class="grid-2">
+          <article class="panel">
+            <div class="panel-head"><div><h2>📦 Estoque baixo</h2><p>O que pode precisar de compra ou conferência.</p></div></div>
+            <div id="pendingStock" class="table-wrap"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><div><h2>👷 Colaboradores sem entrega</h2><p>Pessoas ativas que ainda não têm entrega registrada.</p></div></div>
+            <div id="pendingWorkers" class="table-wrap"></div>
+          </article>
+        </div>
+        <div class="grid-2" style="margin-top:16px">
+          <article class="panel">
+            <div class="panel-head"><div><h2>🦺 EPI sem CA informado</h2><p>Cadastros que precisam ser completados.</p></div></div>
+            <div id="pendingCa" class="table-wrap"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><div><h2>✍️ Entregas sem assinatura</h2><p>Registros que precisam ser conferidos.</p></div></div>
+            <div id="pendingSignature" class="table-wrap"></div>
+          </article>
+        </div>
+        <article class="panel full">
+          <div class="panel-head"><div><h2>⏱️ Troca antes do prazo cadastrado</h2><p>Ajuda a identificar EPI sendo substituído mais cedo que o previsto.</p></div></div>
+          <div id="earlyReplacement" class="table-wrap"></div>
+        </article>
       </section>
 
       <section id="stock" class="view">
@@ -121,5 +203,6 @@
 
   <script src="app.js"></script>
   <script src="central-config.js"></script>
+  <script src="indicators.js"></script>
 </body>
 </html>
