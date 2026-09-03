@@ -9,6 +9,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="import-workers.css" />
+  <link rel="stylesheet" href="stock.css" />
 </head>
 <body>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -43,6 +44,7 @@
         <button class="menu-card" data-go="workers"><span>👷</span><b>Colaboradores</b><small>Consultar e cadastrar</small></button>
         <button class="menu-card" data-go="importWorkers"><span>📥</span><b>Importar funcionários</b><small>PDF, Excel ou CSV + IA</small></button>
         <button class="menu-card" data-go="epis"><span>🦺</span><b>EPIs</b><small>CA, modelo e tamanho</small></button>
+        <button class="menu-card" data-go="stock"><span>📦</span><b>Estoque</b><small>Entrada e baixa automática</small></button>
         <button class="menu-card" data-go="history"><span>📋</span><b>Histórico</b><small>Entregas e comprovantes</small></button>
       </div>
 
@@ -108,6 +110,44 @@
       <div id="epiList" class="list"></div>
     </section>
 
+    <section id="stock" class="view">
+      <div class="view-head"><button class="back" data-go="home">←</button><div><h2>Estoque de EPI</h2><p>Registre entradas. As entregas baixam o saldo automaticamente.</p></div></div>
+
+      <div class="card stock-toolbar">
+        <label>Empresa<select id="stockCompany"></select></label>
+        <div class="stock-stats">
+          <div class="stock-stat"><strong id="stockStatItems">0</strong><span>Itens controlados</span></div>
+          <div class="stock-stat"><strong id="stockStatUnits">0</strong><span>Unidades em saldo</span></div>
+          <div class="stock-stat"><strong id="stockStatLow">0</strong><span>Estoque baixo</span></div>
+        </div>
+      </div>
+
+      <div class="card stock-form">
+        <div class="section-title"><div><h3>Movimentar estoque</h3><p>Use “Saldo inicial / ajuste” na primeira conferência física.</p></div><button class="secondary" type="button" data-go="epis">＋ Cadastrar EPI</button></div>
+        <div class="stock-form-grid">
+          <label>Operação<select id="stockOperation"><option value="SET">Saldo inicial / ajuste</option><option value="IN">Entrada de estoque</option></select></label>
+          <label>EPI<select id="stockEpi"></select></label>
+          <label>Quantidade<input id="stockQty" type="number" min="0" inputmode="numeric" placeholder="Ex.: 25" /></label>
+          <label>Alerta quando chegar em<input id="stockMinimum" type="number" min="0" inputmode="numeric" value="5" /></label>
+        </div>
+        <div id="stockCurrentBalance" class="stock-current"></div>
+        <label>Observação<input id="stockNote" placeholder="Ex.: Compra NF 1234 (opcional)" /></label>
+        <p class="stock-note">A entrega ao trabalhador não ganha nenhuma etapa nova: ao finalizar a entrega, a quantidade é retirada deste estoque automaticamente.</p>
+        <div class="stock-actions"><button id="btnStockSave" class="primary" type="button">✓ Registrar movimentação</button><button id="btnStockExport" class="secondary" type="button">⇩ Backup estoque</button></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title"><div><h3>Saldo atual</h3><p>EPIs com estoque baixo aparecem primeiro.</p></div></div>
+        <input id="stockSearch" placeholder="Buscar EPI, CA ou tamanho" />
+        <div id="stockList" style="margin-top:10px"></div>
+      </div>
+
+      <div class="card">
+        <div class="stock-section-title"><h3>Últimas movimentações</h3><small>Entradas, ajustes e entregas</small></div>
+        <div id="stockHistory"></div>
+      </div>
+    </section>
+
     <section id="delivery" class="view">
       <div class="view-head"><button class="back" data-go="home">←</button><div><h2>Nova entrega</h2><p>Encontre o trabalhador e registre em poucos toques.</p></div></div>
       <div class="card form-grid">
@@ -168,5 +208,6 @@
   <script src="app.js"></script>
   <script src="import-workers.js"></script>
   <script src="ai-workers.js"></script>
+  <script src="stock.js"></script>
 </body>
 </html>
