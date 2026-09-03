@@ -35,4 +35,11 @@
     script.dataset.epiTools='1';
     document.head.appendChild(script);
   }
+
+  if(!document.querySelector('script[data-company-branding-gestao]')){
+    const script=document.createElement('script');
+    script.src='company-branding-gestao.js';
+    script.dataset.companyBrandingGestao='1';
+    document.head.appendChild(script);
+  }
 })();
