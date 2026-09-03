@@ -1,10 +1,10 @@
 (() => {
   const APP_KEY='auditarEpiV1';
   const STOCK_KEY='auditarEpiStockV1';
-  const KEY_STORE='auditarEpiSyncKey';
+  const KEY_STORE='auditarEpiCentralKey';
   const DEVICE_STORE='auditarEpiDeviceId';
   const REV_STORE='auditarEpiServerRevision';
-  const ENDPOINT='https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec';
+  const ENDPOINT='https://script.google.com/macros/s/AKfycbxqMnKiTlAJTFv3-odS2dB1NRcSD8wwvtNxxa-zCFhTM6GeNZszib_1N6eT9wSnOnOyjg/exec';
   let syncing=false, pushTimer=null, lastSyncAt=0;
 
   const $=(s,root=document)=>root.querySelector(s);
@@ -49,7 +49,7 @@
   async function manualSync(){
     let key=(localStorage.getItem(KEY_STORE)||'').trim();
     if(!key){
-      key=(prompt('Cole a chave de sincronização do Auditar SST. Ela ficará salva neste aparelho.')||'').trim();
+      key=(prompt('Cole a chave de sincronização do Auditar EPI. Ela ficará salva neste aparelho.')||'').trim();
       if(!key) return;
       localStorage.setItem(KEY_STORE,key);
     }
@@ -86,7 +86,6 @@
         location.reload();
         return true;
       }
-      // Mesmo sem recarregar, conserva a cópia mesclada para a próxima abertura.
       localStorage.setItem(APP_KEY,remoteApp);
       localStorage.setItem(STOCK_KEY,remoteStock);
       if(manual) showToast('Dados sincronizados com a Gestão.');
