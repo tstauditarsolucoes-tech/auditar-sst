@@ -1,0 +1,83 @@
+name: Gerar APK Auditar EPI Campo
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'auditar-epi/**'
+      - 'auditar-epi-mobile/**'
+      - '.github/workflows/build-epi-android.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Baixar arquivos
+        uses: actions/checkout@v4
+
+      - name: Instalar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar interface Campo
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if [ -z "$AUDITAR_SYNC_KEY" ]; then
+            echo "::error::Configure AUDITAR_SYNC_KEY nos segredos do repositório."
+            exit 1
+          fi
+          rm -rf auditar-epi-mobile/www
+          mkdir -p auditar-epi-mobile/www
+          cp -R auditar-epi/. auditar-epi-mobile/www/
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path('auditar-epi-mobile/www')
+          key = os.environ['AUDITAR_SYNC_KEY']
+          (root/'compiled-config.js').write_text(
+              "try{if(!localStorage.getItem('auditarEpiSyncKey'))localStorage.setItem('auditarEpiSyncKey'," + json.dumps(key) + ");}catch(e){}\n",
+              encoding='utf-8'
+          )
+          index = root/'index.html'
+          text = index.read_text(encoding='utf-8')
+          text = text.replace('<script src="cloud-sync.js"></script>', '<script src="compiled-config.js"></script>\n  <script src="cloud-sync.js"></script>')
+          index.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Instalar Capacitor
+        working-directory: auditar-epi-mobile
+        run: npm install
+
+      - name: Criar projeto Android
+        working-directory: auditar-epi-mobile
+        run: |
+          npx cap add android
+          npx cap sync android
+
+      - name: Compilar APK
+        working-directory: auditar-epi-mobile/android
+        run: ./gradlew assembleDebug
+
+      - name: Renomear APK
+        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Auditar-EPI-Campo.apk
+
+      - name: Disponibilizar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-EPI-Campo-APK
+          path: Auditar-EPI-Campo.apk
+          if-no-files-found: error
+          retention-days: 14
