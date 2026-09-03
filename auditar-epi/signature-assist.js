@@ -132,6 +132,7 @@
     $('#btnClearSignature')?.addEventListener('click',()=>setStatus(false));
     document.addEventListener('click',e=>{
       if(e.target.closest('[data-go="delivery"]')) setTimeout(()=>setStatus(false),20);
+      if(e.target.closest('#bioUseSign')) setTimeout(()=>openModal(),0);
     });
 
     window.AuditarSignature={
