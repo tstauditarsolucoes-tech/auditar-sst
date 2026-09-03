@@ -24,6 +24,7 @@ class _SyncCoordinatorState extends State<SyncCoordinator>
     with WidgetsBindingObserver {
   StreamSubscription<List<ConnectivityResult>>? _subscription;
   Timer? _automaticTimer;
+  Timer? _maintenanceTimer;
   bool _syncing = false;
 
   @override
@@ -35,8 +36,14 @@ class _SyncCoordinatorState extends State<SyncCoordinator>
         .onConnectivityChanged
         .listen(_handleConnectivity);
 
-    // Mantém celular e PC atualizados durante o uso, sem exigir botão manual.
+    // Verifica os dados com frequência enquanto celular e PC estão abertos.
     _automaticTimer = Timer.periodic(
+      const Duration(seconds: 20),
+      (_) => _trySync(deviceOnly: true),
+    );
+
+    // Tarefas mais pesadas permanecem em um intervalo separado.
+    _maintenanceTimer = Timer.periodic(
       const Duration(minutes: 2),
       (_) => _trySync(),
     );
@@ -51,6 +58,7 @@ class _SyncCoordinatorState extends State<SyncCoordinator>
     WidgetsBinding.instance.removeObserver(this);
     _subscription?.cancel();
     _automaticTimer?.cancel();
+    _maintenanceTimer?.cancel();
     super.dispose();
   }
 
@@ -71,7 +79,7 @@ class _SyncCoordinatorState extends State<SyncCoordinator>
     }
   }
 
-  Future<void> _trySync() async {
+  Future<void> _trySync({bool deviceOnly = false}) async {
     if (_syncing) return;
 
     final connectivity = await Connectivity().checkConnectivity();
@@ -87,8 +95,10 @@ class _SyncCoordinatorState extends State<SyncCoordinator>
       } catch (_) {
         // O aplicativo segue offline e tenta novamente automaticamente.
       }
-      await _syncManagementPanelsIfNeeded();
-      await _syncDriveIfNeeded();
+      if (!deviceOnly) {
+        await _syncManagementPanelsIfNeeded();
+        await _syncDriveIfNeeded();
+      }
     } finally {
       _syncing = false;
     }

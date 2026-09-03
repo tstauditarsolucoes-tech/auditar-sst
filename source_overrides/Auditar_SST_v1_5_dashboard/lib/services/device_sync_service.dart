@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -66,6 +67,10 @@ class DeviceSyncService {
   };
 
   static bool _running = false;
+  static final StreamController<DeviceSyncResult> _events =
+      StreamController<DeviceSyncResult>.broadcast();
+
+  static Stream<DeviceSyncResult> get events => _events.stream;
 
   static bool get isWindows => Platform.isWindows;
 
@@ -172,10 +177,13 @@ class DeviceSyncService {
             : 'Enviados: $sent • Recebidos: $received',
       );
       await appDb.setSetting(_lastErrorSetting, '');
-      return DeviceSyncResult(sent: sent, received: received);
+      final result = DeviceSyncResult(sent: sent, received: received);
+      _events.add(result);
+      return result;
     } catch (error) {
       await appDb.setSetting(_lastStatusSetting, 'Sincronização pendente');
       await appDb.setSetting(_lastErrorSetting, _friendlyError(error));
+      _events.add(const DeviceSyncResult(skipped: true));
       rethrow;
     } finally {
       _running = false;
@@ -187,7 +195,7 @@ class DeviceSyncService {
     final last = DateTime.tryParse(value)?.toUtc();
     if (last == null) return true;
     return DateTime.now().toUtc().difference(last) >=
-        const Duration(seconds: 45);
+        const Duration(seconds: 15);
   }
 
   static Future<String> _deviceId(AppDatabase db) async {

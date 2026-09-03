@@ -1,0 +1,21 @@
+AUDITAR SST v3.21.2
+
+SINCRONIZACAO AUTOMATICA CONTINUA
+
+- Corrigido o controlador de sincronização, que era encerrado após a tela de
+  abertura do aplicativo.
+- Celular e computador verificam automaticamente as alterações a cada
+  aproximadamente 20 segundos enquanto permanecem abertos e com internet.
+- A verificação também acontece ao abrir o app, ao voltar para ele e quando a
+  conexão com a internet retorna.
+- A tela de Configurações atualiza sozinha o horário e o resultado da última
+  sincronização, sem depender do botão "Sincronizar agora".
+- A tela inicial atualiza os indicadores quando recebe dados do outro aparelho.
+- Painel gerencial e Google Drive continuam em intervalos separados para não
+  sobrecarregar a Central Online.
+- Mantidas a URL e a chave integradas nas versões Android e Windows.
+
+Observação: o Google Apps Script não oferece conexão instantânea por WebSocket.
+Com a central gratuita atual, a atualização ocorre em até cerca de 20 segundos.
+
+Versão: 3.21.2+71.

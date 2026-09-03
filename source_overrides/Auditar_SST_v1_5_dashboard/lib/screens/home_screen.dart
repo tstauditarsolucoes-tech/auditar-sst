@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../brand.dart';
 import '../database.dart';
+import '../services/device_sync_service.dart';
 import '../widgets/auditar_brand_logo.dart';
 import '../widgets/responsive_wrap.dart';
 import 'action_plan_screen.dart';
@@ -27,6 +30,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  StreamSubscription<DeviceSyncResult>? _deviceSyncSubscription;
   final ScrollController _mobileScrollController = ScrollController();
   final GlobalKey _modulesKey = GlobalKey();
 
@@ -125,11 +129,15 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _deviceSyncSubscription = DeviceSyncService.events.listen((result) {
+      if (mounted && result.received > 0) _refresh();
+    });
     _refresh();
   }
 
   @override
   void dispose() {
+    _deviceSyncSubscription?.cancel();
     _mobileScrollController.dispose();
     super.dispose();
   }
@@ -273,7 +281,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 18),
           const Center(
             child: Text(
-              'Auditar SST • versão 3.21.1',
+              'Auditar SST • versão 3.21.2',
               style: TextStyle(fontSize: 10.5, color: Colors.black45),
             ),
           ),
@@ -407,7 +415,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 20),
                 const Center(
                   child: Text(
-                    'Auditar SST para Windows • versão 3.21.1',
+                    'Auditar SST para Windows • versão 3.21.2',
                     style: TextStyle(fontSize: 11, color: Colors.black45),
                   ),
                 ),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../database.dart';
@@ -14,6 +16,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  StreamSubscription<DeviceSyncResult>? _deviceSyncSubscription;
   final technician = TextEditingController();
   final appName = TextEditingController();
   final footer = TextEditingController();
@@ -34,17 +37,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
+    _deviceSyncSubscription = DeviceSyncService.events.listen((_) {
+      if (mounted && !deviceSyncBusy) _loadSyncStatus();
+    });
     _load();
   }
 
   @override
   void dispose() {
+    _deviceSyncSubscription?.cancel();
     technician.dispose();
     appName.dispose();
     footer.dispose();
     panelEndpoint.dispose();
     panelSyncKey.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadSyncStatus() async {
+    final db = AppDatabase.instance;
+    final pending = await db.pendingDriveUploadsCount();
+    final syncStatus = await db.getSetting(
+      'last_device_sync_status',
+      fallback: 'Aguardando a primeira sincronização',
+    );
+    final syncLastSuccess = await db.getSetting(
+      'last_device_sync_success',
+      fallback: '',
+    );
+    final syncError = await db.getSetting(
+      'last_device_sync_error',
+      fallback: '',
+    );
+    if (!mounted) return;
+    setState(() {
+      drivePending = pending;
+      deviceSyncStatus = syncStatus;
+      deviceSyncLastSuccess = syncLastSuccess;
+      deviceSyncError = syncError;
+    });
   }
 
   Future<void> _load() async {
@@ -523,9 +554,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                   const SizedBox(height: 8),
                   const Text(
-                    'Com internet, o aplicativo verifica as alterações ao '
-                    'abrir, ao voltar para a tela e durante o uso. Sem '
-                    'internet, a coleta continua salva para o próximo envio.',
+                    'Com internet, o aplicativo verifica automaticamente as '
+                    'alterações a cada cerca de 20 segundos enquanto estiver '
+                    'aberto. Sem internet, a coleta continua salva para o '
+                    'próximo envio.',
                     style: TextStyle(fontSize: 12.5, height: 1.35),
                   ),
                   const SizedBox(height: 12),

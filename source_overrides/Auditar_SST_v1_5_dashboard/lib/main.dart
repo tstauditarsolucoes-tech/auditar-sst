@@ -139,7 +139,10 @@ class AuditarSstApp extends StatelessWidget {
           labelStyle: TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
-      home: const SyncCoordinator(child: SplashScreen()),
+      builder: (context, child) => SyncCoordinator(
+        child: child ?? const SizedBox.shrink(),
+      ),
+      home: const SplashScreen(),
     );
   }
 }
