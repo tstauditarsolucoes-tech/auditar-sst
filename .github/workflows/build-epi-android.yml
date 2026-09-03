@@ -63,7 +63,7 @@ jobs:
 
       - name: Instalar Capacitor
         working-directory: auditar-epi-mobile
-        run: npm install
+        run: npm install --no-audit --no-fund
 
       - name: Criar projeto Android
         working-directory: auditar-epi-mobile
