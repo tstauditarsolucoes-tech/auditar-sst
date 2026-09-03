@@ -53,9 +53,9 @@ jobs:
           Set-Content pubspec.yaml $pubspec -Encoding UTF8
 
           $homePath = 'lib/screens/home_screen.dart'
-          $home = Get-Content $homePath -Raw
-          $home = $home.Replace('Auditar SST • versão 3.20.3', 'Auditar SST • versão 3.21.0')
-          Set-Content $homePath $home -Encoding UTF8
+          $homeContent = Get-Content $homePath -Raw
+          $homeContent = $homeContent.Replace('Auditar SST • versão 3.20.3', 'Auditar SST • versão 3.21.0')
+          Set-Content $homePath $homeContent -Encoding UTF8
 
           flutter pub get
           flutter doctor -v
