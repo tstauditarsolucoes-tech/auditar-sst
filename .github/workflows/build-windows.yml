@@ -59,15 +59,12 @@ jobs:
         shell: pwsh
         working-directory: app/Auditar_SST_v1_5_dashboard
         env:
-          AUDITAR_APPS_SCRIPT_URL: ${{ vars.AUDITAR_APPS_SCRIPT_URL }}
           AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
         run: |
-          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_APPS_SCRIPT_URL) -or
-              [string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) {
-            throw "Configure AUDITAR_APPS_SCRIPT_URL e AUDITAR_SYNC_KEY nas configurações do repositório."
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) {
+            throw "Configure AUDITAR_SYNC_KEY nos segredos do repositório."
           }
           flutter build windows --release `
-            --dart-define=AUDITAR_APPS_SCRIPT_URL="$env:AUDITAR_APPS_SCRIPT_URL" `
             --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
 
       - name: Preparar pacote para PC

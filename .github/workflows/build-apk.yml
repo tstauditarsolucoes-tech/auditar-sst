@@ -74,15 +74,13 @@ jobs:
       - name: Gerar APK de teste
         working-directory: app/Auditar_SST_v1_5_dashboard
         env:
-          AUDITAR_APPS_SCRIPT_URL: ${{ vars.AUDITAR_APPS_SCRIPT_URL }}
           AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
         run: |
-          if [ -z "$AUDITAR_APPS_SCRIPT_URL" ] || [ -z "$AUDITAR_SYNC_KEY" ]; then
-            echo "::error::Configure AUDITAR_APPS_SCRIPT_URL e AUDITAR_SYNC_KEY nas configurações do repositório."
+          if [ -z "$AUDITAR_SYNC_KEY" ]; then
+            echo "::error::Configure AUDITAR_SYNC_KEY nos segredos do repositório."
             exit 1
           fi
           flutter build apk --debug \
-            --dart-define=AUDITAR_APPS_SCRIPT_URL="$AUDITAR_APPS_SCRIPT_URL" \
             --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
 
       - name: Disponibilizar APK

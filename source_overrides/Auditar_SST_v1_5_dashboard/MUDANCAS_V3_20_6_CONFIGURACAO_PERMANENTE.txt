@@ -15,8 +15,8 @@ CONFIGURAÇÃO PERMANENTE DA CENTRAL ONLINE
 
 CONFIGURAÇÃO DO GITHUB ACTIONS
 
-Variável do repositório:
-  AUDITAR_APPS_SCRIPT_URL
-
 Segredo do repositório:
   AUDITAR_SYNC_KEY
+
+A URL permanente do Apps Script já está incluída no aplicativo. O parâmetro
+AUDITAR_APPS_SCRIPT_URL continua disponível apenas para uma futura troca de URL.
