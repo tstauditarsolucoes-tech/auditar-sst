@@ -7,6 +7,13 @@
   const ENDPOINT='https://script.google.com/macros/s/AKfycbxqMnKiTlAJTFv3-odS2dB1NRcSD8wwvtNxxa-zCFhTM6GeNZszib_1N6eT9wSnOnOyjg/exec';
   let syncing=false, pushTimer=null, lastSyncAt=0;
 
+  if(!document.querySelector('script[data-company-branding]')){
+    const brand=document.createElement('script');
+    brand.src='company-branding.js';
+    brand.dataset.companyBranding='1';
+    document.head.appendChild(brand);
+  }
+
   const $=(s,root=document)=>root.querySelector(s);
   const uid=()=>`campo_${Date.now()}_${Math.random().toString(36).slice(2,10)}`;
   const readJson=(key,fallback)=>{ try{return {...fallback,...JSON.parse(localStorage.getItem(key)||'{}')};}catch{return fallback;} };
