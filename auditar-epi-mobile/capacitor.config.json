@@ -1,0 +1,9 @@
+{
+  "appId": "br.com.auditar.epi",
+  "appName": "Auditar EPI Campo",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "android": {
+    "allowMixedContent": false
+  }
+}
