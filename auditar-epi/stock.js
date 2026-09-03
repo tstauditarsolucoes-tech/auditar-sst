@@ -220,7 +220,104 @@
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`Auditar_EPI_Estoque_${new Date().toISOString().slice(0,10)}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),500);
   }
 
+  function applyPracticalLayout(){
+    if($('#practicalLayoutStyle')) return;
+
+    const style=document.createElement('style');
+    style.id='practicalLayoutStyle';
+    style.textContent=`
+      #home .hero-card{padding:18px;border-radius:20px;gap:14px}
+      #home .hero-card h1{font-size:20px;line-height:1.18}
+      #home .hero-card .eyebrow{margin-bottom:5px}
+      #home .hero-card .primary{width:100%;min-height:62px;font-size:18px;border-radius:16px}
+      #home .stats-grid{grid-template-columns:repeat(4,1fr);margin:10px 0;gap:6px}
+      #home .stat{padding:9px 3px;border-radius:12px}
+      #home .stat strong{font-size:18px}
+      #home .stat span{font-size:9px}
+      .home-section-title{font-size:12px;font-weight:900;color:#4d6663;margin:16px 2px 8px;text-transform:uppercase;letter-spacing:.06em}
+      .quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+      .quick-card{border:1px solid var(--line);background:#fff;border-radius:16px;padding:15px;text-align:left;color:var(--text);min-height:96px;box-shadow:var(--shadow)}
+      .quick-card span{font-size:25px;display:block;margin-bottom:7px}.quick-card b{display:block;font-size:15px}.quick-card small{display:block;color:var(--muted);font-size:11px;margin-top:3px}
+      .quick-card.wide{grid-column:1/-1;display:grid;grid-template-columns:44px 1fr;align-items:center;min-height:72px}.quick-card.wide span{margin:0}.quick-card.wide div{min-width:0}
+      .home-config{margin-top:12px;background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+      .home-config summary{list-style:none;padding:15px;font-weight:850;cursor:pointer;display:flex;align-items:center;justify-content:space-between}.home-config summary::-webkit-details-marker{display:none}
+      .home-config summary:after{content:'⌄';font-size:18px;color:var(--muted)}.home-config[open] summary:after{content:'⌃'}
+      .home-config-body{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 12px 12px}
+      .config-btn{border:0;background:var(--soft);color:var(--brand);border-radius:13px;padding:13px 10px;font-weight:800;text-align:left}
+      .bottom-nav{position:fixed;z-index:70;left:50%;bottom:8px;transform:translateX(-50%);width:min(94%,720px);display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:6px;background:rgba(255,255,255,.97);border:1px solid var(--line);border-radius:18px;box-shadow:0 10px 35px rgba(0,0,0,.14);backdrop-filter:blur(12px)}
+      .bottom-nav button{border:0;background:transparent;border-radius:12px;min-height:52px;color:#536d69;font-size:10px;font-weight:800;padding:5px 2px}.bottom-nav button span{display:block;font-size:20px;margin-bottom:2px}.bottom-nav .nav-primary{background:var(--brand);color:#fff}
+      .delivery-more{margin-top:2px;border:1px solid var(--line);border-radius:13px;background:#fafcfc}.delivery-more summary{padding:12px 13px;font-size:12px;font-weight:850;color:var(--brand);cursor:pointer}.delivery-more-body{display:grid;gap:12px;padding:0 12px 12px}.delivery-more-body label{display:grid;gap:6px;font-size:12px;font-weight:800;color:#4d6663}
+      #delivery .view-head{margin-bottom:10px}#delivery>.card{margin-bottom:10px}#delivery #btnSaveDelivery{position:sticky;bottom:76px;z-index:30;box-shadow:0 8px 25px rgba(15,118,110,.25)}
+      @media(max-width:520px){#home .stats-grid{grid-template-columns:repeat(4,1fr)}.quick-grid{grid-template-columns:1fr 1fr}.bottom-nav{bottom:6px}.app-shell{padding-bottom:118px}}
+      @media print{.bottom-nav{display:none!important}}
+    `;
+    document.head.appendChild(style);
+
+    const home=$('#home');
+    const menu=home?.querySelector('.menu-grid');
+    if(home && menu && !$('#homeQuickActions')){
+      const buttons={};
+      [...menu.querySelectorAll('[data-go]')].forEach(btn=>buttons[btn.dataset.go]=btn);
+
+      const title=document.createElement('div');
+      title.className='home-section-title'; title.textContent='Acesso rápido';
+      const quick=document.createElement('div');
+      quick.id='homeQuickActions'; quick.className='quick-grid';
+
+      const make=(go,icon,titleText,sub,wide=false)=>{
+        const b=document.createElement('button');
+        b.type='button'; b.dataset.go=go; b.className='quick-card'+(wide?' wide':'');
+        b.innerHTML=wide?`<span>${icon}</span><div><b>${titleText}</b><small>${sub}</small></div>`:`<span>${icon}</span><b>${titleText}</b><small>${sub}</small>`;
+        return b;
+      };
+
+      quick.append(
+        make('workers','👷','Colaboradores','Buscar trabalhador e ficha'),
+        make('history','📋','Histórico','Entregas e comprovantes'),
+        make('stock','📦','Estoque','Entrada e saldo automático'),
+        make('importWorkers','📥','Importar','Cadastrar vários de uma vez')
+      );
+
+      const config=document.createElement('details');
+      config.className='home-config';
+      config.innerHTML='<summary>⚙️ Cadastros e configurações</summary><div class="home-config-body"></div>';
+      const body=config.querySelector('.home-config-body');
+      body.append(
+        make('companies','🏢','Empresas','Cadastro por CNPJ'),
+        make('epis','🦺','EPIs','CA, modelo e tamanho')
+      );
+      [...body.children].forEach(x=>{x.className='config-btn';});
+
+      menu.replaceWith(title,quick,config);
+    }
+
+    if(!$('#bottomNav')){
+      const nav=document.createElement('nav'); nav.id='bottomNav'; nav.className='bottom-nav';
+      nav.innerHTML=`
+        <button type="button" data-go="home"><span>⌂</span>Início</button>
+        <button type="button" data-go="delivery" class="nav-primary"><span>＋</span>Entrega</button>
+        <button type="button" data-go="workers"><span>👷</span>Fichas</button>
+        <button type="button" data-go="history"><span>📋</span>Histórico</button>`;
+      document.body.appendChild(nav);
+    }
+
+    const deliveryCard=$('#delivery .card.form-grid');
+    if(deliveryCard && !$('#deliveryMore')){
+      const responsible=$('#deliveryResponsible')?.closest('label');
+      const notes=$('#deliveryNotes')?.closest('label');
+      if(responsible || notes){
+        const more=document.createElement('details'); more.id='deliveryMore'; more.className='delivery-more';
+        more.innerHTML='<summary>＋ Mais opções (responsável e observação)</summary><div class="delivery-more-body"></div>';
+        const body=more.querySelector('.delivery-more-body');
+        if(responsible) body.appendChild(responsible);
+        if(notes) body.appendChild(notes);
+        deliveryCard.appendChild(more);
+      }
+    }
+  }
+
   document.addEventListener('DOMContentLoaded',()=>{
+    applyPracticalLayout();
     initializeStock();
     syncNewDeliveries();
     fillCompanies(); renderStock();
