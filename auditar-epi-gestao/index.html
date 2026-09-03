@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0f766e">
+  <title>Auditar EPI • Gestão</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="toast" class="toast"></div>
+  <div id="connectOverlay" class="overlay">
+    <div class="connect-card">
+      <div class="logo">AUDITAR <span>EPI</span></div>
+      <h1>Gestão no computador</h1>
+      <p>Conecte esta tela à mesma central usada pelo aplicativo de campo.</p>
+      <label>Chave de sincronização
+        <input id="connectKey" type="password" autocomplete="off" placeholder="Cole a chave do Auditar SST">
+      </label>
+      <button id="btnConnect" class="primary">☁️ Conectar e sincronizar</button>
+      <small>A chave fica salva somente neste computador.</small>
+    </div>
+  </div>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="logo">AUDITAR <span>EPI</span></div>
+        <small>GESTÃO</small>
+      </div>
+      <nav>
+        <button class="nav active" data-view="dashboard">▦ <span>Visão geral</span></button>
+        <button class="nav" data-view="stock">📦 <span>Estoque</span></button>
+        <button class="nav" data-view="epis">🦺 <span>EPIs</span></button>
+        <button class="nav" data-view="workers">👷 <span>Trabalhadores</span></button>
+        <button class="nav" data-view="deliveries">📋 <span>Entregas</span></button>
+        <button class="nav" data-view="companies">🏢 <span>Empresas</span></button>
+      </nav>
+      <div class="sidebar-foot">
+        <div id="syncDot" class="sync-dot"></div>
+        <div><b id="syncStatus">Não conectado</b><small id="syncTime">—</small></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h1 id="viewTitle">Visão geral</h1>
+          <p id="viewSub">Acompanhe entregas e estoque do Auditar EPI.</p>
+        </div>
+        <div class="top-actions">
+          <label class="company-filter">Empresa<select id="globalCompany"></select></label>
+          <button id="btnRefresh" class="secondary">↻ Atualizar</button>
+        </div>
+      </header>
+
+      <section id="dashboard" class="view active">
+        <div class="cards four">
+          <article class="metric"><span>Entregas hoje</span><strong id="mToday">0</strong><small>registros</small></article>
+          <article class="metric"><span>Trabalhadores</span><strong id="mWorkers">0</strong><small>ativos</small></article>
+          <article class="metric"><span>EPIs controlados</span><strong id="mEpis">0</strong><small>itens</small></article>
+          <article class="metric warning"><span>Estoque baixo</span><strong id="mLow">0</strong><small>itens</small></article>
+        </div>
+        <div class="grid-2">
+          <article class="panel">
+            <div class="panel-head"><div><h2>Estoque que precisa atenção</h2><p>Itens no mínimo ou abaixo.</p></div><button class="link" data-view="stock">Ver estoque →</button></div>
+            <div id="dashboardLow" class="table-wrap"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><div><h2>Últimas entregas</h2><p>Registros vindos do campo.</p></div><button class="link" data-view="deliveries">Ver todas →</button></div>
+            <div id="dashboardDeliveries" class="list"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="stock" class="view">
+        <div class="split-head">
+          <div><h2>Estoque de EPI</h2><p>Entradas e ajustes feitos aqui refletem no aplicativo de campo.</p></div>
+          <button id="btnStockEntry" class="primary">＋ Nova movimentação</button>
+        </div>
+        <div class="cards three compact">
+          <article class="metric"><span>Itens</span><strong id="sItems">0</strong></article>
+          <article class="metric"><span>Unidades em saldo</span><strong id="sUnits">0</strong></article>
+          <article class="metric warning"><span>Estoque baixo</span><strong id="sLow">0</strong></article>
+        </div>
+        <article class="panel">
+          <div class="filters"><input id="stockSearch" placeholder="Buscar EPI, CA, modelo ou tamanho"></div>
+          <div id="stockTable" class="table-wrap"></div>
+        </article>
+      </section>
+
+      <section id="epis" class="view">
+        <div class="split-head"><div><h2>Cadastro de EPIs</h2><p>Cadastre no computador para aparecer no celular.</p></div><button id="btnNewEpi" class="primary">＋ Novo EPI</button></div>
+        <article class="panel"><div class="filters"><input id="epiSearch" placeholder="Buscar EPI, CA, modelo ou tamanho"></div><div id="epiTable" class="table-wrap"></div></article>
+      </section>
+
+      <section id="workers" class="view">
+        <div class="split-head"><div><h2>Trabalhadores</h2><p>Cadastro compartilhado com a versão Campo.</p></div><button id="btnNewWorker" class="primary">＋ Novo trabalhador</button></div>
+        <article class="panel"><div class="filters"><input id="workerSearch" placeholder="Buscar nome, CPF, matrícula, cargo ou setor"></div><div id="workerTable" class="table-wrap"></div></article>
+      </section>
+
+      <section id="deliveries" class="view">
+        <div class="split-head"><div><h2>Entregas registradas</h2><p>Histórico sincronizado do celular.</p></div><span class="badge" id="deliveryCount">0 registros</span></div>
+        <article class="panel"><div class="filters"><input id="deliverySearch" placeholder="Buscar trabalhador ou EPI"></div><div id="deliveryTable" class="table-wrap"></div></article>
+      </section>
+
+      <section id="companies" class="view">
+        <div class="split-head"><div><h2>Empresas</h2><p>Empresas disponíveis no Campo e na Gestão.</p></div><button id="btnNewCompany" class="primary">＋ Nova empresa</button></div>
+        <article class="panel"><div id="companyTable" class="table-wrap"></div></article>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="formDialog">
+    <form method="dialog" id="dynamicForm">
+      <div class="dialog-head"><div><h2 id="dialogTitle">Cadastro</h2><p id="dialogSub"></p></div><button value="cancel" class="x">×</button></div>
+      <div id="dialogFields" class="form-grid"></div>
+      <div class="dialog-actions"><button value="cancel" class="secondary">Cancelar</button><button id="dialogSave" value="default" class="primary">Salvar</button></div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
