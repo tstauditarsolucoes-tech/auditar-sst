@@ -52,6 +52,11 @@ jobs:
           $pubspec = $pubspec -replace 'file_picker: \^8\.1\.7', 'file_picker: ^10.3.8'
           Set-Content pubspec.yaml $pubspec -Encoding UTF8
 
+          $homePath = 'lib/screens/home_screen.dart'
+          $home = Get-Content $homePath -Raw
+          $home = $home.Replace('Auditar SST • versão 3.20.3', 'Auditar SST • versão 3.21.0')
+          Set-Content $homePath $home -Encoding UTF8
+
           flutter pub get
           flutter doctor -v
 

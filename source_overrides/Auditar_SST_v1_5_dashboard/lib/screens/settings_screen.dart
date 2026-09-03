@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../database.dart';
 import '../services/backup_service.dart';
+import '../services/device_sync_service.dart';
 import '../services/drive_service.dart';
 import '../services/web_service_config.dart';
 
@@ -25,6 +26,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String driveEmail = '';
   int drivePending = 0;
   bool driveBusy = false;
+  bool deviceSyncBusy = false;
+  String deviceSyncStatus = '';
+  String deviceSyncLastSuccess = '';
+  String deviceSyncError = '';
 
   @override
   void initState() {
@@ -86,6 +91,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
 
     final pending = await db.pendingDriveUploadsCount();
+    final syncStatus = await db.getSetting(
+      'last_device_sync_status',
+      fallback: 'Aguardando a primeira sincronização',
+    );
+    final syncLastSuccess = await db.getSetting(
+      'last_device_sync_success',
+      fallback: '',
+    );
+    final syncError = await db.getSetting(
+      'last_device_sync_error',
+      fallback: '',
+    );
 
     if (!mounted) return;
 
@@ -94,8 +111,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
       driveAutoUpload = autoUpload == 'true';
       driveEmail = email;
       drivePending = pending;
+      deviceSyncStatus = syncStatus;
+      deviceSyncLastSuccess = syncLastSuccess;
+      deviceSyncError = syncError;
       loading = false;
     });
+  }
+
+  String _formatSyncDate(String value) {
+    final parsed = DateTime.tryParse(value)?.toLocal();
+    if (parsed == null) return '';
+    String two(int number) => number.toString().padLeft(2, '0');
+    return '${two(parsed.day)}/${two(parsed.month)}/${parsed.year} '
+        '${two(parsed.hour)}:${two(parsed.minute)}';
+  }
+
+  Future<void> _syncDevices() async {
+    setState(() => deviceSyncBusy = true);
+    try {
+      final result = await DeviceSyncService.synchronize(force: true);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result.sent == 0 && result.received == 0
+                ? 'Celular e computador já estão atualizados.'
+                : 'Sincronização concluída: ${result.sent} enviado(s) e '
+                    '${result.received} recebido(s).',
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Não foi possível sincronizar agora. Os dados continuam salvos '
+            'e uma nova tentativa será feita automaticamente.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => deviceSyncBusy = false);
+      await _load();
+    }
   }
 
   String? _appsScriptUrlError(String value) {
@@ -407,6 +466,81 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: _save,
             icon: const Icon(Icons.save),
             label: const Text('Salvar configurações'),
+          ),
+          const SizedBox(height: 28),
+          Text(
+            'Sincronização celular e computador',
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 6),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.sync_rounded,
+                        color: Color(0xFF178A3D),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Sincronização automática ativa • '
+                          '${DeviceSyncService.platformLabel}',
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(deviceSyncStatus),
+                  if (deviceSyncLastSuccess.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      'Última conclusão: '
+                      '${_formatSyncDate(deviceSyncLastSuccess)}',
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ],
+                  if (deviceSyncError.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      'Pendente: $deviceSyncError',
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: Colors.deepOrange,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Com internet, o aplicativo verifica as alterações ao '
+                    'abrir, ao voltar para a tela e durante o uso. Sem '
+                    'internet, a coleta continua salva para o próximo envio.',
+                    style: TextStyle(fontSize: 12.5, height: 1.35),
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: deviceSyncBusy ? null : _syncDevices,
+                    icon: const Icon(Icons.sync),
+                    label: const Text('Sincronizar agora'),
+                  ),
+                  if (deviceSyncBusy) ...[
+                    const SizedBox(height: 10),
+                    const LinearProgressIndicator(),
+                  ],
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 28),
           Text(

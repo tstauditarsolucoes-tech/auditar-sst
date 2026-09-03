@@ -18,6 +18,7 @@ Esta mesma publicação do Google Apps Script atende:
 - Aviso de treinamento obrigatório sem registro.
 - Conexão segura do Assistente IA usado pelo técnico no aplicativo.
 - Arquivamento dos relatórios PDF no Google Drive, separados por empresa.
+- Sincronização automática dos cadastros e coletas entre celular e computador.
 
 COMO ATIVAR UMA ÚNICA VEZ
 1. Crie uma Planilha Google chamada "Auditar SST - Dados Online".
@@ -38,11 +39,24 @@ COMO ATIVAR UMA ÚNICA VEZ
 
 SE O PAINEL JÁ ESTAVA PUBLICADO
 1. Substitua Code.gs e Index.html pelos arquivos desta versão.
-2. Execute a função configurarGoogleDrive() uma vez e autorize o acesso solicitado.
+2. Execute a função setupAuditar() uma vez. A chave já existente será mantida
+   e a aba SincronizacaoDispositivos será criada automaticamente.
 3. No Apps Script, clique em Implantar > Gerenciar implantações.
 4. Edite a implantação e selecione "Nova versão".
 5. Implante novamente, mantendo a mesma URL /exec.
-6. No aplicativo, abra Configurações e toque em CONECTAR GOOGLE DRIVE.
+6. Abra o aplicativo no celular e no computador. A sincronização será iniciada
+   automaticamente; em Configurações também existe "Sincronizar agora".
+
+COMO FUNCIONA A SINCRONIZACAO CELULAR E COMPUTADOR
+- O computador é a fonte principal dos cadastros de empresas, unidades,
+  setores, trabalhadores, treinamentos e modelos de checklist.
+- O celular envia as vistorias, respostas, não conformidades, planos de ação e
+  registros realizados em campo.
+- As alterações são verificadas ao abrir o aplicativo, quando a internet volta
+  e periodicamente durante o uso.
+- Se estiver sem internet, nada é perdido: o aplicativo tenta novamente.
+- Não feche o programa imediatamente após uma coleta grande. Aguarde alguns
+  instantes com internet para concluir o primeiro envio.
 
 COMO FUNCIONA O GOOGLE DRIVE
 - Não é necessário entrar com uma Conta Google no celular.
