@@ -136,3 +136,11 @@
     startupSync();
   });
 })();
+
+(() => {
+  if(document.querySelector('script[data-facial-assist]')) return;
+  const s=document.createElement('script');
+  s.src='facial-assist.js';
+  s.dataset.facialAssist='1';
+  document.body.appendChild(s);
+})();
