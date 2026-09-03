@@ -1,0 +1,12 @@
+{
+  "name": "Auditar EPI",
+  "short_name": "Auditar EPI",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4f7f7",
+  "theme_color": "#0f766e",
+  "description": "Registro e comprovante de entrega de EPI.",
+  "icons": [
+    {"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
