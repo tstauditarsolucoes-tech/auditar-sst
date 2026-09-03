@@ -1,4 +1,4 @@
-const CACHE='auditar-epi-v3-stock';
+const CACHE='auditar-epi-v4-layout';
 const ASSETS=['./','./index.html','./styles.css','./import-workers.css','./stock.css','./app.js','./import-workers.js','./ai-workers.js','./stock.js','./manifest.webmanifest','./icon.svg'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
