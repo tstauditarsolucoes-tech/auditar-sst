@@ -179,6 +179,13 @@ function doPost(e) {
       return jsonResponse_(getCipaParticipation_(String(request.electionToken || '')));
     }
 
+    // Mantém a sincronização do Auditar EPI quando EpiSync.gs também estiver
+    // instalado nesta mesma Central Online.
+    if (request.action === 'epi_sync_merge') {
+      if (request.syncKey !== expectedKey) return jsonResponse_({ok: false, message: 'Chave de sincronização inválida.'});
+      return jsonResponse_(epiSyncMerge_(request));
+    }
+
     return jsonResponse_({ok: false, message: 'Requisição inválida.'});
   } catch (err) {
     return jsonResponse_({ok: false, message: String(err)});
