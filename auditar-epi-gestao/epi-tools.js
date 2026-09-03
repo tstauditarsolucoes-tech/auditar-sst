@@ -57,7 +57,6 @@
     const old=$('#btnNewEpi');if(!old||old.dataset.easy==='1')return;
     const btn=old.cloneNode(true);btn.dataset.easy='1';btn.textContent='＋ Cadastrar EPI';old.replaceWith(btn);btn.addEventListener('click',()=>{addDialog();$('#quickEpiDialog').showModal();setTimeout(()=>$('#qeName')?.focus(),50);});
   }
-  document.addEventListener('DOMContentLoaded',()=>{
-    ensureStyles();replaceEpiButton();addCaPanel();addDialog();
-  });
+  function init(){ensureStyles();replaceEpiButton();addCaPanel();addDialog();}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
