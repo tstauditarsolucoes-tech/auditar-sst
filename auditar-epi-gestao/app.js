@@ -1,6 +1,6 @@
 (() => {
-  const ENDPOINT='https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec';
-  const KEY_STORE='auditarEpiSyncKey';
+  const ENDPOINT='https://script.google.com/macros/s/AKfycbxqMnKiTlAJTFv3-odS2dB1NRcSD8wwvtNxxa-zCFhTM6GeNZszib_1N6eT9wSnOnOyjg/exec';
+  const KEY_STORE='auditarEpiCentralKey';
   const CACHE_STORE='auditarEpiGestaoCacheV1';
   const DEVICE_STORE='auditarEpiGestaoDeviceId';
   let data=blank();
@@ -9,7 +9,7 @@
 
   const $=(s,root=document)=>root.querySelector(s);
   const $$=(s,root=document)=>[...root.querySelectorAll(s)];
-  const esc=(v='')=>String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  const esc=(v='')=>String(v).replace(/[&<>'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]));
   const norm=(v='')=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
   const digits=(v='')=>String(v).replace(/\D/g,'');
   const uid=p=>`${p}_${Date.now()}_${Math.random().toString(36).slice(2,9)}`;
@@ -81,7 +81,6 @@
     const today=new Date().toISOString().slice(0,10);
     $('#mToday').textContent=deliveries.filter(d=>String(d.createdAt||'').slice(0,10)===today).length;
     $('#mWorkers').textContent=data.app.workers.filter(w=>w.active!==false&&companyMatch(w.companyId)).length;
-    const allowedCompanies=new Set(data.app.companies.filter(c=>companyMatch(c.id)).map(c=>c.id));
     const epiUsed=new Set();stockRows().forEach(r=>epiUsed.add(r.epiId));
     $('#mEpis').textContent=selectedCompany()?epiUsed.size:data.app.epis.length;
     const low=stockRows().filter(r=>r.saldo<=r.min).sort((a,b)=>a.saldo-b.saldo);
