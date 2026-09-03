@@ -5,6 +5,13 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - 'auditar-epi/**'
+      - 'auditar-epi-gestao/**'
+      - 'auditar-epi-mobile/**'
+      - 'auditar-epi-windows/**'
+      - '.github/workflows/build-epi-android.yml'
+      - '.github/workflows/build-epi-windows.yml'
 
 permissions:
   contents: read
