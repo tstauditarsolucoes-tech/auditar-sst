@@ -27,7 +27,7 @@
       <div class="hero-card">
         <div>
           <p class="eyebrow">AUDITAR EPI • CAMPO</p>
-          <h1>Entrega rápida, assinatura na tela e sincronização com a Gestão.</h1>
+          <h1>Entrega rápida, assinatura ou biometria facial e sincronização com a Gestão.</h1>
         </div>
         <button class="primary big" data-go="delivery">＋ Nova entrega</button>
       </div>
@@ -41,7 +41,7 @@
 
       <div class="menu-grid">
         <button class="menu-card" data-go="companies"><span>🏢</span><b>Empresas</b><small>Cadastro por CNPJ</small></button>
-        <button class="menu-card" data-go="workers"><span>👷</span><b>Colaboradores</b><small>Consultar e cadastrar</small></button>
+        <button class="menu-card" data-go="workers"><span>👷</span><b>Colaboradores</b><small>Cadastro e biometria facial</small></button>
         <button class="menu-card" data-go="importWorkers"><span>📥</span><b>Importar funcionários</b><small>PDF, Excel ou CSV + IA</small></button>
         <button class="menu-card" data-go="epis"><span>🦺</span><b>EPIs</b><small>CA, modelo e tamanho</small></button>
         <button class="menu-card" data-go="stock"><span>📦</span><b>Estoque</b><small>Entrada e baixa automática</small></button>
@@ -50,7 +50,7 @@
 
       <div class="notice">
         <b>Offline-first</b>
-        <p>Você pode registrar a entrega sem internet. Quando a conexão voltar, o app sincroniza com a versão Gestão no computador.</p>
+        <p>Você pode registrar a entrega sem internet. A biometria precisa carregar o motor facial pelo menos uma vez com internet; a assinatura continua disponível como alternativa.</p>
       </div>
     </section>
 
@@ -65,7 +65,7 @@
     </section>
 
     <section id="workers" class="view">
-      <div class="view-head"><button class="back" data-go="home">←</button><div><h2>Colaboradores</h2><p>Consulte ou cadastre manualmente.</p></div></div>
+      <div class="view-head"><button class="back" data-go="home">←</button><div><h2>Colaboradores</h2><p>Cadastre o trabalhador e, se desejar, o rosto para verificação biométrica.</p></div></div>
       <div class="worker-import-actions"><button class="secondary wide" type="button" data-go="importWorkers">📥 Importar lista de funcionários</button></div>
       <form id="workerForm" class="card form-grid">
         <label>Empresa<select id="workerCompany" required></select></label>
@@ -112,7 +112,6 @@
 
     <section id="stock" class="view">
       <div class="view-head"><button class="back" data-go="home">←</button><div><h2>Estoque de EPI</h2><p>Registre entradas. As entregas baixam o saldo automaticamente.</p></div></div>
-
       <div class="card stock-toolbar">
         <label>Empresa<select id="stockCompany"></select></label>
         <div class="stock-stats">
@@ -121,7 +120,6 @@
           <div class="stock-stat"><strong id="stockStatLow">0</strong><span>Estoque baixo</span></div>
         </div>
       </div>
-
       <div class="card stock-form">
         <div class="section-title"><div><h3>Movimentar estoque</h3><p>Use “Saldo inicial / ajuste” na primeira conferência física.</p></div><button class="secondary" type="button" data-go="epis">＋ Cadastrar EPI</button></div>
         <div class="stock-form-grid">
@@ -135,13 +133,11 @@
         <p class="stock-note">A entrega ao trabalhador não ganha nenhuma etapa nova: ao finalizar a entrega, a quantidade é retirada deste estoque automaticamente.</p>
         <div class="stock-actions"><button id="btnStockSave" class="primary" type="button">✓ Registrar movimentação</button><button id="btnStockExport" class="secondary" type="button">⇩ Backup estoque</button></div>
       </div>
-
       <div class="card">
         <div class="section-title"><div><h3>Saldo atual</h3><p>EPIs com estoque baixo aparecem primeiro.</p></div></div>
         <input id="stockSearch" placeholder="Buscar EPI, CA ou tamanho" />
         <div id="stockList" style="margin-top:10px"></div>
       </div>
-
       <div class="card">
         <div class="stock-section-title"><h3>Últimas movimentações</h3><small>Entradas, ajustes e entregas</small></div>
         <div id="stockHistory"></div>
@@ -161,18 +157,15 @@
         <label>Responsável pela entrega<input id="deliveryResponsible" placeholder="Nome do responsável" /></label>
         <label>Observação<textarea id="deliveryNotes" rows="2" placeholder="Opcional"></textarea></label>
       </div>
-
       <div class="card">
         <div class="section-title"><h3>EPIs entregues</h3><button class="secondary" id="btnAddItem" type="button">＋ Adicionar EPI</button></div>
         <div id="deliveryItems" class="delivery-items"></div>
       </div>
-
       <div class="card">
         <div class="section-title"><div><h3>Assinatura do colaborador</h3><p>Assine dentro do quadro.</p></div><button class="secondary" id="btnClearSignature" type="button">Limpar</button></div>
         <canvas id="signature" height="190"></canvas>
-        <p class="signature-hint">Ao salvar, a assinatura fica vinculada a esta entrega.</p>
+        <p class="signature-hint">Ao salvar, a confirmação fica vinculada a esta entrega.</p>
       </div>
-
       <button id="btnSaveDelivery" class="primary big full">✓ Finalizar entrega</button>
     </section>
 
@@ -205,11 +198,13 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/dist/human.js"></script>
   <script src="app.js"></script>
   <script src="import-workers.js"></script>
   <script src="ai-workers.js"></script>
   <script src="stock.js"></script>
   <script src="signature-assist.js"></script>
+  <script src="biometric-face.js"></script>
   <script src="cloud-sync.js"></script>
 </body>
 </html>
