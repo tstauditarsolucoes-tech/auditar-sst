@@ -1,0 +1,64 @@
+name: Gerar Windows Auditar EPI Gestão
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'auditar-epi-gestao/**'
+      - 'auditar-epi-windows/**'
+      - '.github/workflows/build-epi-windows.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Baixar arquivos
+        uses: actions/checkout@v4
+
+      - name: Instalar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Preparar interface Gestão
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if (-not $env:AUDITAR_SYNC_KEY) {
+            Write-Error 'Configure AUDITAR_SYNC_KEY nos segredos do repositório.'
+            exit 1
+          }
+          Remove-Item -Recurse -Force 'auditar-epi-windows/app' -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path 'auditar-epi-windows/app' | Out-Null
+          Copy-Item -Recurse -Force 'auditar-epi-gestao/*' 'auditar-epi-windows/app/'
+          $escaped = $env:AUDITAR_SYNC_KEY | ConvertTo-Json -Compress
+          $config = "try{if(!localStorage.getItem('auditarEpiSyncKey'))localStorage.setItem('auditarEpiSyncKey',$escaped);}catch(e){}"
+          Set-Content -Path 'auditar-epi-windows/app/compiled-config.js' -Value $config -Encoding UTF8
+          $indexPath = 'auditar-epi-windows/app/index.html'
+          $html = Get-Content $indexPath -Raw
+          $html = $html.Replace('<script src="app.js"></script>', '<script src="compiled-config.js"></script>' + "`r`n  " + '<script src="app.js"></script>')
+          Set-Content -Path $indexPath -Value $html -Encoding UTF8
+
+      - name: Instalar dependências
+        working-directory: auditar-epi-windows
+        run: npm install
+
+      - name: Gerar aplicativo Windows
+        working-directory: auditar-epi-windows
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run dist
+
+      - name: Disponibilizar aplicativo
+        uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-EPI-Gestao-Windows
+          path: auditar-epi-windows/dist/*.exe
+          if-no-files-found: error
+          retention-days: 14
