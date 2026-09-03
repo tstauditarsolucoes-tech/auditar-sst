@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../database.dart';
 import '../services/backup_service.dart';
 import '../services/drive_service.dart';
+import '../services/web_service_config.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -536,53 +537,87 @@ class _SettingsScreenState extends State<SettingsScreen> {
             'Configuração única usada para publicar os links individuais das empresas. Depois de configurada, cada empresa terá seu próprio endereço de consulta.',
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: panelEndpoint,
-            keyboardType: TextInputType.url,
-            autocorrect: false,
-            decoration: const InputDecoration(
-              labelText: 'URL do Google Apps Script',
-              hintText: 'https://script.google.com/macros/s/.../exec',
-              prefixIcon: Icon(Icons.language_rounded),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: panelSyncKey,
-            obscureText: true,
-            autocorrect: false,
-            enableSuggestions: false,
-            decoration: const InputDecoration(
-              labelText: 'Chave de sincronização',
-              hintText: 'Chave criada na configuração do painel',
-              prefixIcon: Icon(Icons.key_rounded),
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Card(
-            child: Padding(
-              padding: EdgeInsets.all(12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.info_outline_rounded),
-                  SizedBox(width: 9),
-                  Expanded(
-                    child: Text(
-                      'Use sempre a URL permanente da implantação, terminada em /exec. Não copie links script.googleusercontent.com, porque eles são temporários e podem expirar.',
-                      style: TextStyle(fontSize: 12.5),
+          if (WebServiceConfig.isEmbedded)
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(14),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.verified_rounded,
+                      color: Color(0xFF178A3D),
                     ),
-                  ),
-                ],
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Central online configurada',
+                            style: TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          SizedBox(height: 5),
+                          Text(
+                            'A URL e a chave já vêm configuradas no aplicativo. Não é necessário preencher novamente ao atualizar ou instalar em outro aparelho.',
+                            style: TextStyle(fontSize: 12.5, height: 1.35),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else ...[
+            TextField(
+              controller: panelEndpoint,
+              keyboardType: TextInputType.url,
+              autocorrect: false,
+              decoration: const InputDecoration(
+                labelText: 'URL do Google Apps Script',
+                hintText: 'https://script.google.com/macros/s/.../exec',
+                prefixIcon: Icon(Icons.language_rounded),
               ),
             ),
-          ),
-          const SizedBox(height: 10),
-          FilledButton.icon(
-            onPressed: _save,
-            icon: const Icon(Icons.save_outlined),
-            label: const Text('Salvar painel web'),
-          ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: panelSyncKey,
+              obscureText: true,
+              autocorrect: false,
+              enableSuggestions: false,
+              decoration: const InputDecoration(
+                labelText: 'Chave de sincronização',
+                hintText: 'Chave criada na configuração do painel',
+                prefixIcon: Icon(Icons.key_rounded),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline_rounded),
+                    SizedBox(width: 9),
+                    Expanded(
+                      child: Text(
+                        'Use sempre a URL permanente da implantação, terminada em /exec. Não copie links script.googleusercontent.com, porque eles são temporários e podem expirar.',
+                        style: TextStyle(fontSize: 12.5),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            FilledButton.icon(
+              onPressed: _save,
+              icon: const Icon(Icons.save_outlined),
+              label: const Text('Salvar painel web'),
+            ),
+          ],
           const SizedBox(height: 14),
           const Card(
             child: Padding(
