@@ -66,7 +66,7 @@ class DeviceSyncService {
     },
   };
 
-  static bool _running = false;
+  static Future<DeviceSyncResult>? _activeSync;
   static final StreamController<DeviceSyncResult> _events =
       StreamController<DeviceSyncResult>.broadcast();
 
@@ -84,10 +84,21 @@ class DeviceSyncService {
   // como fonte principal.
   static Set<String> get _outboundTables => _allTables;
 
-  static Future<DeviceSyncResult> synchronize({bool force = false}) async {
-    if (_running) return const DeviceSyncResult(skipped: true);
-    _running = true;
+  static Future<DeviceSyncResult> synchronize({bool force = false}) {
+    final active = _activeSync;
+    if (active != null) return active;
 
+    late final Future<DeviceSyncResult> operation;
+    operation = _synchronizeOnce(force: force).whenComplete(() {
+      if (identical(_activeSync, operation)) _activeSync = null;
+    });
+    _activeSync = operation;
+    return operation;
+  }
+
+  static Future<DeviceSyncResult> _synchronizeOnce({
+    required bool force,
+  }) async {
     final appDb = AppDatabase.instance;
     try {
       final endpoint = (await appDb.getSetting(
@@ -185,8 +196,6 @@ class DeviceSyncService {
       await appDb.setSetting(_lastErrorSetting, _friendlyError(error));
       _events.add(const DeviceSyncResult(skipped: true));
       rethrow;
-    } finally {
-      _running = false;
     }
   }
 
@@ -400,10 +409,17 @@ class DeviceSyncService {
   ) async {
     final response = await AppsScriptHttp.postJson(endpoint, payload);
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw StateError('A Central Online não respondeu corretamente.');
+      throw StateError(
+        'A Central Online respondeu com erro ${response.statusCode}.',
+      );
     }
 
-    final decoded = jsonDecode(response.body);
+    dynamic decoded;
+    try {
+      decoded = jsonDecode(response.body);
+    } catch (_) {
+      throw StateError('A Central Online retornou uma resposta inválida.');
+    }
     if (decoded is! Map) {
       throw StateError('Resposta inválida da Central Online.');
     }
