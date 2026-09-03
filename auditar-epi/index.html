@@ -8,6 +8,7 @@
   <title>Auditar EPI</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="import-workers.css" />
 </head>
 <body>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -39,7 +40,8 @@
 
       <div class="menu-grid">
         <button class="menu-card" data-go="companies"><span>🏢</span><b>Empresas</b><small>Cadastro por CNPJ</small></button>
-        <button class="menu-card" data-go="workers"><span>👷</span><b>Colaboradores</b><small>Cargo, setor e CPF</small></button>
+        <button class="menu-card" data-go="workers"><span>👷</span><b>Colaboradores</b><small>Consultar e cadastrar</small></button>
+        <button class="menu-card" data-go="importWorkers"><span>📥</span><b>Importar funcionários</b><small>PDF, Excel ou CSV</small></button>
         <button class="menu-card" data-go="epis"><span>🦺</span><b>EPIs</b><small>CA, modelo e tamanho</small></button>
         <button class="menu-card" data-go="history"><span>📋</span><b>Histórico</b><small>Entregas e comprovantes</small></button>
       </div>
@@ -61,7 +63,8 @@
     </section>
 
     <section id="workers" class="view">
-      <div class="view-head"><button class="back" data-go="home">←</button><div><h2>Colaboradores</h2><p>Cadastre quem receberá EPI.</p></div></div>
+      <div class="view-head"><button class="back" data-go="home">←</button><div><h2>Colaboradores</h2><p>Consulte ou cadastre manualmente.</p></div></div>
+      <div class="worker-import-actions"><button class="secondary wide" type="button" data-go="importWorkers">📥 Importar lista de funcionários</button></div>
       <form id="workerForm" class="card form-grid">
         <label>Empresa<select id="workerCompany" required></select></label>
         <label>Nome completo<input id="workerName" required /></label>
@@ -73,6 +76,23 @@
       </form>
       <div class="filter-row"><select id="workerFilterCompany"></select></div>
       <div id="workerList" class="list"></div>
+    </section>
+
+    <section id="importWorkers" class="view">
+      <div class="view-head"><button class="back" data-go="workers">←</button><div><h2>Importar funcionários</h2><p>Cadastre vários trabalhadores de uma vez.</p></div></div>
+      <div class="card form-grid">
+        <label>1. Empresa<select id="importCompany"></select></label>
+        <div class="import-drop">
+          <b>2. Selecione a lista de funcionários</b>
+          <input id="importFile" type="file" accept=".pdf,.xlsx,.xls,.csv,.txt" />
+          <p class="import-help">Aceita PDF, Excel, CSV e TXT. O app procura Nome, CPF, Matrícula, Cargo e Setor.</p>
+        </div>
+        <div class="import-status">
+          <strong id="importCount">Nenhum arquivo selecionado</strong>
+          <button id="btnCommitImport" class="primary" type="button" disabled>✓ Cadastrar funcionários</button>
+        </div>
+      </div>
+      <div id="importPreview" class="card"><div class="empty">A prévia dos funcionários aparecerá aqui antes de cadastrar.</div></div>
     </section>
 
     <section id="epis" class="view">
@@ -89,10 +109,14 @@
     </section>
 
     <section id="delivery" class="view">
-      <div class="view-head"><button class="back" data-go="home">←</button><div><h2>Nova entrega</h2><p>Registre vários EPIs e colha uma assinatura.</p></div></div>
+      <div class="view-head"><button class="back" data-go="home">←</button><div><h2>Nova entrega</h2><p>Encontre o trabalhador e registre em poucos toques.</p></div></div>
       <div class="card form-grid">
         <label>Empresa<select id="deliveryCompany"></select></label>
-        <label>Colaborador<select id="deliveryWorker"></select></label>
+        <div class="worker-search-box">
+          <label>Buscar trabalhador<input id="deliveryWorkerSearch" autocomplete="off" placeholder="Digite nome, CPF ou matrícula" /></label>
+          <small id="deliveryWorkerCount">Selecione a empresa</small>
+          <label>Colaborador<select id="deliveryWorker"></select></label>
+        </div>
         <label>Motivo<select id="deliveryReason"><option>Primeira entrega</option><option>Substituição por desgaste</option><option>Substituição por dano</option><option>Perda</option><option>Outro</option></select></label>
         <label>Responsável pela entrega<input id="deliveryResponsible" placeholder="Nome do responsável" /></label>
         <label>Observação<textarea id="deliveryNotes" rows="2" placeholder="Opcional"></textarea></label>
@@ -139,6 +163,9 @@
     </div>
   </template>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="app.js"></script>
+  <script src="import-workers.js"></script>
 </body>
 </html>
