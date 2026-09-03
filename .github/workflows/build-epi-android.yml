@@ -69,6 +69,7 @@ jobs:
           python3 - <<'PY'
           import re
           from pathlib import Path
+
           manifest = Path('android/app/src/main/AndroidManifest.xml')
           text = manifest.read_text(encoding='utf-8')
           permission = '<uses-permission android:name="android.permission.CAMERA" />'
@@ -81,6 +82,60 @@ jobs:
                   count=1
               )
           manifest.write_text(text, encoding='utf-8')
+
+          java_dir = Path('android/app/src/main/java/br/com/auditar/epi')
+          java_dir.mkdir(parents=True, exist_ok=True)
+
+          (java_dir/'ScreenOrientationPlugin.java').write_text(r'''package br.com.auditar.epi;
+
+          import android.content.pm.ActivityInfo;
+          import com.getcapacitor.Plugin;
+          import com.getcapacitor.PluginCall;
+          import com.getcapacitor.PluginMethod;
+          import com.getcapacitor.annotation.CapacitorPlugin;
+
+          @CapacitorPlugin(name = "ScreenOrientation")
+          public class ScreenOrientationPlugin extends Plugin {
+              @PluginMethod
+              public void lock(PluginCall call) {
+                  String orientation = call.getString("orientation", "portrait");
+                  final int requested;
+                  if (orientation.startsWith("landscape")) {
+                      requested = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE;
+                  } else if (orientation.startsWith("portrait")) {
+                      requested = ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT;
+                  } else {
+                      requested = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
+                  }
+                  getActivity().runOnUiThread(() -> {
+                      getActivity().setRequestedOrientation(requested);
+                      call.resolve();
+                  });
+              }
+
+              @PluginMethod
+              public void unlock(PluginCall call) {
+                  getActivity().runOnUiThread(() -> {
+                      getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+                      call.resolve();
+                  });
+              }
+          }
+          ''', encoding='utf-8')
+
+          (java_dir/'MainActivity.java').write_text(r'''package br.com.auditar.epi;
+
+          import android.os.Bundle;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  registerPlugin(ScreenOrientationPlugin.class);
+                  super.onCreate(savedInstanceState);
+              }
+          }
+          ''', encoding='utf-8')
           PY
 
       - name: Compilar APK
