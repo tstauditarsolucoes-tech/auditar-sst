@@ -16,6 +16,8 @@ SINCRONIZACAO AUTOMATICA ENTRE CELULAR E COMPUTADOR
 - Exclusões também são sincronizadas.
 - A tela Configurações mostra o estado e a última conclusão, além de manter um
   botão "Sincronizar agora" como alternativa manual.
+- O banco local usa a implementação SQLite própria do Windows, permitindo que
+  a versão de computador mantenha e sincronize os dados normalmente.
 - Fotos, logos, assinaturas, certificados e ASOs não usam caminhos locais de
   outro aparelho. Esses arquivos continuam no armazenamento protegido do
   aparelho e nos fluxos de relatório/Google Drive.

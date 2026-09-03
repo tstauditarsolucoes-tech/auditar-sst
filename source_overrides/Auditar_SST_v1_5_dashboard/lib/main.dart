@@ -1,4 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'brand.dart';
 import 'screens/splash_screen.dart';
@@ -7,6 +11,10 @@ import 'services/web_service_config.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (Platform.isWindows) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
   await WebServiceConfig.applyEmbeddedConfiguration();
   runApp(const AuditarSstApp());
 }
