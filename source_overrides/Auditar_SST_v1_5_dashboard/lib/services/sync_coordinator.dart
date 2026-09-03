@@ -120,17 +120,22 @@ class _SyncCoordinatorState extends State<SyncCoordinator>
 
     final lastValue = await db.getSetting('last_automatic_panel_sync');
     final last = DateTime.tryParse(lastValue);
-    if (last != null && DateTime.now().difference(last).inHours < 6) return;
+    if (last != null &&
+        DateTime.now().difference(last) < const Duration(minutes: 5)) {
+      return;
+    }
 
     final companies = await db.getCompanies();
     var attempted = false;
+    var allSuccessful = true;
     for (final company in companies) {
       final panel = await db.ensureManagementPanel(company.id);
       if ((panel['enabled'] as int? ?? 1) != 1) continue;
       attempted = true;
-      await ManagementPanelService.syncCompany(company);
+      final result = await ManagementPanelService.syncCompany(company);
+      if (!result.success) allSuccessful = false;
     }
-    if (attempted) {
+    if (attempted && allSuccessful) {
       await db.setSetting(
         'last_automatic_panel_sync',
         DateTime.now().toIso8601String(),
