@@ -162,15 +162,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       final result = await DeviceSyncService.synchronize(force: true);
       if (!mounted) return;
+      final message = result.skipped
+          ? 'A sincronização automática já está em andamento. '
+              'Aguarde alguns segundos.'
+          : result.sent == 0 && result.received == 0
+              ? 'Celular e computador já estão atualizados.'
+              : 'Sincronização concluída: ${result.sent} enviado(s) e '
+                  '${result.received} recebido(s).';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            result.sent == 0 && result.received == 0
-                ? 'Celular e computador já estão atualizados.'
-                : 'Sincronização concluída: ${result.sent} enviado(s) e '
-                    '${result.received} recebido(s).',
-          ),
-        ),
+        SnackBar(content: Text(message)),
       );
     } catch (_) {
       if (!mounted) return;
@@ -250,6 +250,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'management_panel_sync_key',
       panelSyncKey.text.trim(),
     );
+    await db.setSetting('last_automatic_panel_sync', '');
 
     if (!mounted) return;
 

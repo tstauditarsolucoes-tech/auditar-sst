@@ -54,7 +54,7 @@ jobs:
 
           $homePath = 'lib/screens/home_screen.dart'
           $homeContent = Get-Content $homePath -Raw
-          $homeContent = $homeContent.Replace('Auditar SST • versão 3.20.3', 'Auditar SST • versão 3.21.2')
+          $homeContent = $homeContent.Replace('Auditar SST • versão 3.20.3', 'Auditar SST • versão 3.21.3')
           Set-Content $homePath $homeContent -Encoding UTF8
 
           flutter pub get

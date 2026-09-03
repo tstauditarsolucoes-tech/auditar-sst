@@ -281,7 +281,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 18),
           const Center(
             child: Text(
-              'Auditar SST • versão 3.21.2',
+              'Auditar SST • versão 3.21.3',
               style: TextStyle(fontSize: 10.5, color: Colors.black45),
             ),
           ),
@@ -415,7 +415,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 20),
                 const Center(
                   child: Text(
-                    'Auditar SST para Windows • versão 3.21.2',
+                    'Auditar SST para Windows • versão 3.21.3',
                     style: TextStyle(fontSize: 11, color: Colors.black45),
                   ),
                 ),

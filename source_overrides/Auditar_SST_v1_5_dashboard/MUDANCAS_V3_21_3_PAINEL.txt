@@ -1,0 +1,21 @@
+AUDITAR SST v3.21.3
+
+CORRECAO DO PAINEL GERENCIAL E DAS MENSAGENS DE SINCRONIZACAO
+
+- O aplicativo volta a publicar automaticamente o painel de cada empresa.
+- A publicação do painel é verificada a cada poucos minutos.
+- Quando a publicação falha, o aplicativo não registra a tentativa como
+  concluída e tenta novamente automaticamente.
+- Ao salvar a URL e a chave, o painel é preparado novamente sem aguardar o
+  intervalo anterior.
+- O botão de sincronização agora aguarda uma tentativa automática que já
+  esteja em andamento.
+- Removida a mensagem incorreta de que os aparelhos estavam atualizados
+  quando a Central Online havia falhado.
+- As mensagens de falha agora informam se a Central respondeu com erro HTTP
+  ou com uma resposta inválida.
+
+Mantidas a URL permanente e a chave incorporadas nas versões Android e
+Windows.
+
+Versão: 3.21.3+72.
