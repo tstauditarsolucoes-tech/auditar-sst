@@ -28,4 +28,11 @@
     const input=document.getElementById('connectKey');
     if(input) input.placeholder='Cole a chave do Auditar EPI';
   });
+
+  if(!document.querySelector('script[data-epi-tools]')){
+    const script=document.createElement('script');
+    script.src='epi-tools.js';
+    script.dataset.epiTools='1';
+    document.head.appendChild(script);
+  }
 })();
