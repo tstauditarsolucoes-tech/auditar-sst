@@ -33,10 +33,10 @@ jobs:
 
       - name: Preparar interface Campo
         env:
-          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+          AUDITAR_EPI_SYNC_KEY: ${{ secrets.AUDITAR_EPI_SYNC_KEY }}
         run: |
-          if [ -z "$AUDITAR_SYNC_KEY" ]; then
-            echo "::error::Configure AUDITAR_SYNC_KEY nos segredos do repositório."
+          if [ -z "$AUDITAR_EPI_SYNC_KEY" ]; then
+            echo "::error::Configure AUDITAR_EPI_SYNC_KEY nos segredos do repositório."
             exit 1
           fi
           rm -rf auditar-epi-mobile/www
@@ -46,9 +46,9 @@ jobs:
           import json, os
           from pathlib import Path
           root = Path('auditar-epi-mobile/www')
-          key = os.environ['AUDITAR_SYNC_KEY']
+          key = os.environ['AUDITAR_EPI_SYNC_KEY']
           (root/'compiled-config.js').write_text(
-              "try{if(!localStorage.getItem('auditarEpiSyncKey'))localStorage.setItem('auditarEpiSyncKey'," + json.dumps(key) + ");}catch(e){}\n",
+              "try{localStorage.setItem('auditarEpiCentralKey'," + json.dumps(key) + ");}catch(e){}\n",
               encoding='utf-8'
           )
           index = root/'index.html'
