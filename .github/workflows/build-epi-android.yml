@@ -67,15 +67,19 @@ jobs:
           npx cap add android
           npx cap sync android
           python3 - <<'PY'
+          import re
           from pathlib import Path
           manifest = Path('android/app/src/main/AndroidManifest.xml')
           text = manifest.read_text(encoding='utf-8')
           permission = '<uses-permission android:name="android.permission.CAMERA" />'
           feature = '<uses-feature android:name="android.hardware.camera.front" android:required="false" />'
           if permission not in text:
-              text = text.replace('<manifest ', '<manifest ', 1)
-              pos = text.find('>') + 1
-              text = text[:pos] + '\n    ' + permission + '\n    ' + feature + text[pos:]
+              text = re.sub(
+                  r'(<manifest\b[^>]*>)',
+                  r'\1\n    ' + permission + '\n    ' + feature,
+                  text,
+                  count=1
+              )
           manifest.write_text(text, encoding='utf-8')
           PY
 
