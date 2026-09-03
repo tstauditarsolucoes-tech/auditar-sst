@@ -3,6 +3,16 @@ const CIPA_ELECTIONS_SHEET = 'CipaEleicoes';
 const CIPA_VOTERS_SHEET = 'CipaEleitores';
 const CIPA_VOTES_SHEET = 'CipaVotos';
 const EMAIL_LOG_SHEET = 'EmailEnvios';
+const DEVICE_SYNC_SHEET = 'SincronizacaoDispositivos';
+const DEVICE_SYNC_VERSION_PROPERTY = 'AUDITAR_DEVICE_SYNC_VERSION';
+const DEVICE_SYNC_MASTER_TABLES = [
+  'companies', 'worksites', 'sectors', 'workers', 'training_controls',
+  'training_requirements', 'checklist_templates', 'checklist_items',
+  'cipa_elections', 'cipa_candidates', 'cipa_voters'
+];
+const DEVICE_SYNC_FIELD_TABLES = [
+  'inspections', 'answers', 'non_conformities', 'action_plans', 'sst_records'
+];
 const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models/';
 const DRIVE_ROOT_FOLDER = 'Auditar SST';
 const DRIVE_MAX_REPORT_BYTES = 20 * 1024 * 1024;
@@ -27,6 +37,10 @@ function setupAuditar() {
   ]);
   ensureSheet_(ss, EMAIL_LOG_SHEET, [
     'event_key', 'company_id', 'type', 'sent_at', 'recipients'
+  ]);
+  ensureSheet_(ss, DEVICE_SYNC_SHEET, [
+    'table_name', 'record_id', 'deleted', 'server_version',
+    'source_device', 'source_platform', 'updated_at', 'payload_json'
   ]);
   ensureDriveRootFolder_();
 
@@ -130,6 +144,16 @@ function doPost(e) {
       return jsonResponse_({ok: true, message: 'Painel atualizado.'});
     }
 
+    if (request.action === 'device_sync_push') {
+      if (request.syncKey !== expectedKey) return jsonResponse_({ok: false, message: 'Chave de sincronização inválida.'});
+      return jsonResponse_(pushDeviceChanges_(request));
+    }
+
+    if (request.action === 'device_sync_pull') {
+      if (request.syncKey !== expectedKey) return jsonResponse_({ok: false, message: 'Chave de sincronização inválida.'});
+      return jsonResponse_(pullDeviceChanges_(request));
+    }
+
     if (request.action === 'ai_assistant') {
       if (request.syncKey !== expectedKey) return jsonResponse_({ok: false, message: 'Chave de sincronização inválida.'});
       return jsonResponse_(runAiAssistant_(request.payload || {}));
@@ -159,6 +183,171 @@ function doPost(e) {
   } catch (err) {
     return jsonResponse_({ok: false, message: String(err)});
   }
+}
+
+function pushDeviceChanges_(request) {
+  const deviceId = String(request.deviceId || '').trim();
+  const platform = String(request.platform || '').trim().toLowerCase();
+  const changes = Array.isArray(request.changes) ? request.changes : [];
+  if (!deviceId) return {ok: false, message: 'Dispositivo não identificado.'};
+  if (platform !== 'android' && platform !== 'windows') {
+    return {ok: false, message: 'Plataforma de sincronização inválida.'};
+  }
+  if (changes.length > 250) {
+    return {ok: false, message: 'Envie no máximo 250 alterações por lote.'};
+  }
+
+  const allowed = DEVICE_SYNC_MASTER_TABLES.concat(DEVICE_SYNC_FIELD_TABLES);
+  const prepared = changes.map(change => {
+    const table = String((change && change.table) || '').trim();
+    const recordId = String((change && change.id) || '').trim();
+    const deleted = Boolean(change && change.deleted);
+    if (allowed.indexOf(table) < 0 || !recordId || recordId.length > 200) {
+      throw new Error('Alteração não permitida: ' + table + '.');
+    }
+    const payload = deleted ? '' : JSON.stringify((change && change.payload) || {});
+    if (!deleted && payload.length > 45000) {
+      throw new Error('O registro ' + table + '/' + recordId + ' é grande demais para sincronizar.');
+    }
+    return {table: table, recordId: recordId, deleted: deleted, payload: payload};
+  });
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const sheet = ensureDeviceSyncStorage_();
+    const lastRow = sheet.getLastRow();
+    const existing = lastRow >= 2
+      ? sheet.getRange(2, 1, lastRow - 1, 8).getValues()
+      : [];
+    const rowByKey = {};
+    const valueByKey = {};
+    let maxStoredVersion = 0;
+    existing.forEach((row, index) => {
+      const key = String(row[0]) + '\n' + String(row[1]);
+      rowByKey[key] = index + 2;
+      valueByKey[key] = row;
+      maxStoredVersion = Math.max(maxStoredVersion, Number(row[3]) || 0);
+    });
+
+    const props = PropertiesService.getScriptProperties();
+    let version = Math.max(
+      Number(props.getProperty(DEVICE_SYNC_VERSION_PROPERTY)) || 0,
+      maxStoredVersion
+    );
+    const newRows = [];
+    prepared.forEach(change => {
+      version += 1;
+      const key = change.table + '\n' + change.recordId;
+      const current = valueByKey[key];
+      const pcOwnsMaster = platform === 'android' &&
+        DEVICE_SYNC_MASTER_TABLES.indexOf(change.table) >= 0 &&
+        current && String(current[5] || '').toLowerCase() === 'windows';
+      const values = pcOwnsMaster
+        ? [
+            current[0], current[1], current[2], version,
+            current[4], current[5], new Date().toISOString(), current[7]
+          ]
+        : [
+            change.table,
+            change.recordId,
+            change.deleted,
+            version,
+            deviceId,
+            platform,
+            new Date().toISOString(),
+            change.payload
+          ];
+      const rowNumber = rowByKey[key];
+      if (rowNumber) {
+        sheet.getRange(rowNumber, 1, 1, values.length).setValues([values]);
+        valueByKey[key] = values;
+      } else {
+        newRows.push(values);
+        rowByKey[key] = lastRow + newRows.length;
+        valueByKey[key] = values;
+      }
+    });
+    if (newRows.length) {
+      sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, 8).setValues(newRows);
+    }
+    props.setProperty(DEVICE_SYNC_VERSION_PROPERTY, String(version));
+    return {
+      ok: true,
+      accepted: prepared.length,
+      version: version,
+      message: 'Alterações recebidas.'
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function pullDeviceChanges_(request) {
+  const deviceId = String(request.deviceId || '').trim();
+  if (!deviceId) return {ok: false, message: 'Dispositivo não identificado.'};
+
+  const sheet = ensureDeviceSyncStorage_();
+  const lastRow = sheet.getLastRow();
+  const rows = lastRow >= 2
+    ? sheet.getRange(2, 1, lastRow - 1, 8).getValues()
+    : [];
+  const props = PropertiesService.getScriptProperties();
+  const storedVersion = Number(props.getProperty(DEVICE_SYNC_VERSION_PROPERTY)) || 0;
+  const maxRowVersion = rows.reduce(
+    (current, row) => Math.max(current, Number(row[3]) || 0),
+    0
+  );
+  const currentVersion = Math.max(storedVersion, maxRowVersion);
+  let since = Math.max(0, Number(request.sinceVersion) || 0);
+  if (since > currentVersion) since = 0;
+  const limit = Math.max(1, Math.min(500, Number(request.limit) || 300));
+
+  const pending = rows
+    .filter(row => (Number(row[3]) || 0) > since)
+    .sort((a, b) => (Number(a[3]) || 0) - (Number(b[3]) || 0));
+  const selected = pending.slice(0, limit);
+  const changes = selected.map(row => {
+    const deleted = row[2] === true || String(row[2]).toLowerCase() === 'true';
+    let payload = null;
+    if (!deleted) {
+      try {
+        payload = JSON.parse(String(row[7] || '{}'));
+      } catch (_) {
+        payload = {};
+      }
+    }
+    return {
+      table: String(row[0] || ''),
+      id: String(row[1] || ''),
+      deleted: deleted,
+      serverVersion: Number(row[3]) || 0,
+      sourceDevice: String(row[4] || ''),
+      sourcePlatform: String(row[5] || ''),
+      updatedAt: String(row[6] || ''),
+      payload: payload
+    };
+  });
+  const nextVersion = changes.length
+    ? changes[changes.length - 1].serverVersion
+    : currentVersion;
+  return {
+    ok: true,
+    version: currentVersion,
+    nextVersion: nextVersion,
+    hasMore: pending.length > selected.length,
+    changes: changes
+  };
+}
+
+function ensureDeviceSyncStorage_() {
+  const spreadsheetId = PropertiesService.getScriptProperties().getProperty('AUDITAR_SPREADSHEET_ID');
+  if (!spreadsheetId) throw new Error('Execute setupAuditar() primeiro.');
+  const ss = SpreadsheetApp.openById(spreadsheetId);
+  return ensureSheet_(ss, DEVICE_SYNC_SHEET, [
+    'table_name', 'record_id', 'deleted', 'server_version',
+    'source_device', 'source_platform', 'updated_at', 'payload_json'
+  ]);
 }
 
 function connectGoogleDrive_() {

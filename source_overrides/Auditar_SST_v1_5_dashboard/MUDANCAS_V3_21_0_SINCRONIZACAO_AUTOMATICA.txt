@@ -1,0 +1,27 @@
+AUDITAR SST v3.21.0
+
+SINCRONIZACAO AUTOMATICA ENTRE CELULAR E COMPUTADOR
+
+- O aplicativo verifica alterações ao abrir, ao voltar para a tela, quando a
+  internet retorna e a cada dois minutos durante o uso.
+- O celular continua offline-first: coletas sem internet permanecem salvas e
+  entram automaticamente no próximo envio.
+- O computador publica os cadastros, trabalhadores, modelos e perguntas de
+  checklist usados no celular. Se o computador estiver vazio, ele também
+  recebe automaticamente os cadastros que já existiam no celular.
+- O celular envia vistorias, respostas, não conformidades, planos de ação e
+  demais registros de campo para o computador.
+- Cada alteração é identificada pelo ID original e pela versão registrada na
+  central, evitando a criação de cópias duplicadas.
+- Exclusões também são sincronizadas.
+- A tela Configurações mostra o estado e a última conclusão, além de manter um
+  botão "Sincronizar agora" como alternativa manual.
+- Fotos, logos, assinaturas, certificados e ASOs não usam caminhos locais de
+  outro aparelho. Esses arquivos continuam no armazenamento protegido do
+  aparelho e nos fluxos de relatório/Google Drive.
+
+ATIVACAO DA CENTRAL
+
+Antes de usar esta versão, atualize Code.gs no projeto existente do Google
+Apps Script e publique uma nova versão da mesma implantação /exec. Não crie
+outra implantação nem troque a URL.
