@@ -20,6 +20,7 @@ function epiSyncMerge_(request) {
     const incoming = normalizeEpiSnapshot_(request && request.payload);
     const stored = readEpiSnapshot_();
     const merged = mergeEpiSnapshots_(stored, incoming);
+    ensureDeliveryStockMovements_(merged);
     merged.revision = Math.max(Number(stored.revision || 0), Number(incoming.revision || 0)) + 1;
     merged.updatedAt = new Date().toISOString();
     merged.version = EPI_SYNC_VERSION;
@@ -100,6 +101,58 @@ function mergeEpiSnapshots_(server, client) {
       minimums: Object.assign({}, server.stock.minimums, client.stock.minimums)
     }
   };
+}
+
+/**
+ * Segurança adicional: toda entrega registrada gera exatamente uma saída por EPI.
+ * Se o celular já enviou a saída, ela é preservada; se fechou antes de enviar,
+ * o servidor cria a saída automaticamente.
+ */
+function ensureDeliveryStockMovements_(snapshot) {
+  const data = normalizeEpiSnapshot_(snapshot);
+  const existing = {};
+  data.stock.movements.forEach(function(m) {
+    const deliveryId = String(m && m.deliveryId || '').trim();
+    const epiId = String(m && m.epiId || '').trim();
+    if (deliveryId && epiId && String(m.type || '') === 'OUT') {
+      existing[deliveryId + '::' + epiId] = true;
+    }
+  });
+
+  data.app.deliveries.forEach(function(d) {
+    const deliveryId = String(d && d.id || '').trim();
+    const companyId = String(d && d.companyId || '').trim();
+    if (!deliveryId || !companyId) return;
+    const totals = {};
+    (Array.isArray(d.items) ? d.items : []).forEach(function(item) {
+      const epiId = String(item && item.epiId || '').trim();
+      const qty = Math.max(0, Number(item && item.qty || 0));
+      if (!epiId || !qty) return;
+      totals[epiId] = (totals[epiId] || 0) + qty;
+    });
+    Object.keys(totals).forEach(function(epiId) {
+      const key = deliveryId + '::' + epiId;
+      if (existing[key]) return;
+      data.stock.movements.push({
+        id: 'sm_delivery_' + deliveryId + '_' + epiId,
+        type: 'OUT',
+        delta: -totals[epiId],
+        companyId: companyId,
+        epiId: epiId,
+        deliveryId: deliveryId,
+        workerId: String(d.workerId || ''),
+        note: 'Baixa automática da entrega',
+        createdAt: String(d.createdAt || new Date().toISOString()),
+        updatedAt: String(d.createdAt || new Date().toISOString())
+      });
+      const minKey = companyId + '::' + epiId;
+      if (data.stock.minimums[minKey] == null) data.stock.minimums[minKey] = 5;
+      existing[key] = true;
+    });
+    data.stock.processedDeliveryIds.push(deliveryId);
+  });
+  data.stock.processedDeliveryIds = uniqueStrings_(data.stock.processedDeliveryIds);
+  snapshot.stock = data.stock;
 }
 
 function mergeRecordsById_(a, b) {
