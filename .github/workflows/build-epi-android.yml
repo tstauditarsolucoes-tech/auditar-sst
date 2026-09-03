@@ -9,6 +9,10 @@ on:
       - 'auditar-epi-mobile/**'
       - '.github/workflows/build-epi-android.yml'
 
+concurrency:
+  group: auditar-epi-android
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
