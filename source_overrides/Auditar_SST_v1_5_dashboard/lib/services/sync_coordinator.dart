@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 
+import '../brand.dart';
 import '../database.dart';
 import 'device_sync_service.dart';
 import 'drive_service.dart';
@@ -26,6 +27,9 @@ class _SyncCoordinatorState extends State<SyncCoordinator>
   Timer? _automaticTimer;
   Timer? _maintenanceTimer;
   bool _syncing = false;
+  bool _online = true;
+  String _statusLabel = 'Verificando sincronização…';
+  _SyncTone _statusTone = _SyncTone.neutral;
 
   @override
   void initState() {
@@ -36,13 +40,11 @@ class _SyncCoordinatorState extends State<SyncCoordinator>
         .onConnectivityChanged
         .listen(_handleConnectivity);
 
-    // Verifica os dados com frequência enquanto celular e PC estão abertos.
     _automaticTimer = Timer.periodic(
       const Duration(seconds: 20),
       (_) => _trySync(deviceOnly: true),
     );
 
-    // Tarefas mais pesadas permanecem em um intervalo separado.
     _maintenanceTimer = Timer.periodic(
       const Duration(minutes: 2),
       (_) => _trySync(),
@@ -69,32 +71,87 @@ class _SyncCoordinatorState extends State<SyncCoordinator>
     }
   }
 
+  void _setStatus({
+    required bool online,
+    required String label,
+    required _SyncTone tone,
+  }) {
+    if (!mounted) return;
+    setState(() {
+      _online = online;
+      _statusLabel = label;
+      _statusTone = tone;
+    });
+  }
+
   void _handleConnectivity(List<ConnectivityResult> results) {
     final hasNetwork = results.any(
       (result) => result != ConnectivityResult.none,
     );
 
-    if (hasNetwork) {
-      _trySync();
+    if (!hasNetwork) {
+      _setStatus(
+        online: false,
+        label: 'Offline • dados salvos neste aparelho',
+        tone: _SyncTone.offline,
+      );
+      return;
     }
+
+    _setStatus(
+      online: true,
+      label: 'Conexão disponível • sincronizando',
+      tone: _SyncTone.syncing,
+    );
+    _trySync();
   }
 
   Future<void> _trySync({bool deviceOnly = false}) async {
     if (_syncing) return;
 
     final connectivity = await Connectivity().checkConnectivity();
-    if (!connectivity.any((result) => result != ConnectivityResult.none)) {
+    final hasNetwork = connectivity.any(
+      (result) => result != ConnectivityResult.none,
+    );
+    if (!hasNetwork) {
+      _setStatus(
+        online: false,
+        label: 'Offline • dados salvos neste aparelho',
+        tone: _SyncTone.offline,
+      );
       return;
     }
 
     _syncing = true;
+    _setStatus(
+      online: true,
+      label: 'Sincronizando…',
+      tone: _SyncTone.syncing,
+    );
 
     try {
+      DeviceSyncResult? result;
       try {
-        await DeviceSyncService.synchronize();
+        result = await DeviceSyncService.synchronize();
       } catch (_) {
-        // O aplicativo segue offline e tenta novamente automaticamente.
+        _setStatus(
+          online: true,
+          label: 'Sincronização pendente • nova tentativa automática',
+          tone: _SyncTone.warning,
+        );
       }
+
+      if (result != null) {
+        final changes = result.sent + result.received;
+        _setStatus(
+          online: true,
+          label: changes > 0
+              ? 'Sincronizado • $changes atualização(ões)'
+              : 'Sincronizado',
+          tone: _SyncTone.ok,
+        );
+      }
+
       if (!deviceOnly) {
         await _syncManagementPanelsIfNeeded();
         await _syncDriveIfNeeded();
@@ -164,7 +221,6 @@ class _SyncCoordinatorState extends State<SyncCoordinator>
     if (pending == 0) return;
 
     try {
-      // Não abre tela de login. Usa apenas autenticação leve já autorizada.
       await DriveService.syncPending(interactive: false);
     } catch (_) {
       // Os itens continuam na fila para a próxima tentativa.
@@ -172,5 +228,110 @@ class _SyncCoordinatorState extends State<SyncCoordinator>
   }
 
   @override
-  Widget build(BuildContext context) => widget.child;
+  Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    if (media.viewInsets.bottom > 0) return widget.child;
+
+    final isMobile = media.size.width < 900;
+    return Stack(
+      children: [
+        widget.child,
+        Positioned(
+          right: isMobile ? 12 : 18,
+          bottom: isMobile ? 74 : 16,
+          child: IgnorePointer(
+            child: _SyncIndicator(
+              label: _statusLabel,
+              tone: _statusTone,
+              online: _online,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+enum _SyncTone { neutral, syncing, ok, warning, offline }
+
+class _SyncIndicator extends StatelessWidget {
+  final String label;
+  final _SyncTone tone;
+  final bool online;
+
+  const _SyncIndicator({
+    required this.label,
+    required this.tone,
+    required this.online,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final (Color background, Color foreground, IconData icon) = switch (tone) {
+      _SyncTone.ok => (
+          AuditarBrand.greenSoft,
+          AuditarBrand.greenDark,
+          Icons.cloud_done_outlined,
+        ),
+      _SyncTone.syncing => (
+          AuditarBrand.navySoft,
+          AuditarBrand.navy,
+          Icons.sync_rounded,
+        ),
+      _SyncTone.warning => (
+          const Color(0xFFFFF4E1),
+          const Color(0xFF9A5A00),
+          Icons.cloud_sync_outlined,
+        ),
+      _SyncTone.offline => (
+          const Color(0xFFF1F3F5),
+          const Color(0xFF5F6670),
+          Icons.cloud_off_outlined,
+        ),
+      _ => (
+          const Color(0xFFF1F3F5),
+          const Color(0xFF5F6670),
+          online ? Icons.cloud_outlined : Icons.cloud_off_outlined,
+        ),
+    };
+
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 285),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: background.withValues(alpha: .96),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: foreground.withValues(alpha: .18)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x180E1A43),
+              blurRadius: 10,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 15, color: foreground),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: foreground,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
