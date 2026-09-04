@@ -6,4 +6,5 @@
   <rect x="180" y="254" width="67" height="52" rx="20" fill="none" stroke="#fff" stroke-width="12"/><rect x="265" y="254" width="67" height="52" rx="20" fill="none" stroke="#fff" stroke-width="12"/><path d="M247 274h18" stroke="#fff" stroke-width="12" stroke-linecap="round"/>
   <path d="M188 332 225 306l31 31 31-31 37 26-15 75H203l-15-75Z" fill="#fff"/><path d="M225 309v96M287 309v96M256 338v68" stroke="#0FA88E" stroke-width="10" stroke-linecap="round" opacity=".82"/>
   <circle cx="350" cy="367" r="51" fill="#1F2937" stroke="#fff" stroke-width="9"/><path d="m326 367 15 16 34-39" fill="none" stroke="#fff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Gestão EPI: identidade oficial -->
 </svg>
