@@ -168,6 +168,11 @@ void main() {
   late _FakeCentral central;
 
   setUpAll(() async {
+    // flutter_test bloqueia HttpClient por padrão; neste teste a Central é um
+    // servidor local controlado pelo próprio teste, então liberamos somente
+    // esse tráfego local para exercitar o mesmo cliente HTTP usado no app.
+    HttpOverrides.global = null;
+
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
 
