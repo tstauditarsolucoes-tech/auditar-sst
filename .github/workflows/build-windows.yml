@@ -12,6 +12,7 @@ on:
       - "tools/patch_management_snapshot.py"
       - "tools/patch_resume_vistoria.py"
       - "tools/patch_multiuser.py"
+      - "tools/patch_checklist_v324.py"
       - ".github/workflows/build-windows.yml"
   push:
     branches:
@@ -24,6 +25,7 @@ on:
       - "tools/patch_management_snapshot.py"
       - "tools/patch_resume_vistoria.py"
       - "tools/patch_multiuser.py"
+      - "tools/patch_checklist_v324.py"
       - ".github/workflows/build-windows.yml"
 
 permissions:
@@ -50,6 +52,7 @@ jobs:
           python tools/prepare_sst_source.py app/Auditar_SST_v1_5_dashboard
           python tools/patch_resume_vistoria.py app/Auditar_SST_v1_5_dashboard
           python tools/patch_multiuser.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_checklist_v324.py app/Auditar_SST_v1_5_dashboard
 
       - name: Instalar Flutter
         uses: subosito/flutter-action@v2
@@ -136,6 +139,7 @@ jobs:
           Build: RELEASE
           Build number: $env:BUILD_NUMBER
           Multiusuário: habilitado
+          Checklist inteligente de campo: habilitado
 
           1. Mantenha todos os arquivos desta pasta juntos.
           2. Abra "Auditar SST.exe".
