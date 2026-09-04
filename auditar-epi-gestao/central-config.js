@@ -55,6 +55,7 @@
   loadScript('epi-tools.js','epi-tools');
   loadScript('epi-photo-ca-gestao.js','epi-photo-ca-gestao');
   loadScript('company-branding-gestao.js','company-branding-gestao');
+  loadScript('worker-link-pc-fix.js','worker-link-pc-fix');
   loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js','xlsx-lib');
   loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js','pdfjs-lib');
   loadScript('https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/dist/human.js','human-lib');
