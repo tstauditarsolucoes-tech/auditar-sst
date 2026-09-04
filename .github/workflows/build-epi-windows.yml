@@ -3,7 +3,7 @@ name: Gerar Windows Gestão EPI
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [teste-pc-base-funcional-exata]
     paths:
       - 'auditar-epi-gestao/**'
       - 'auditar-epi-windows/**'
