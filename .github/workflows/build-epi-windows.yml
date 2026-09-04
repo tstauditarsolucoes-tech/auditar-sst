@@ -29,6 +29,8 @@ jobs:
         shell: pwsh
         run: |
           node --check 'auditar-epi-gestao/campo-pc.js'
+          node --check 'auditar-epi-gestao/ai-import-pc.js'
+          node --check 'auditar-epi-gestao/worker-link-pc-fix.js'
           node --check 'auditar-epi-gestao/central-config.js'
           node --check 'auditar-epi-windows/main.js'
 
