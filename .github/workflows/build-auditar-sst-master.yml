@@ -41,9 +41,12 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'Secret AUDITAR_SYNC_KEY nao configurado.' }
           $path = 'auditar-sst-master-windows/app/app.js'
           $content = Get-Content -Raw $path
-          if (-not $content.Contains('__AUDITAR_SYNC_KEY__')) { throw 'Marcador da chave nao encontrado.' }
-          $content = $content.Replace('__AUDITAR_SYNC_KEY__', $env:AUDITAR_SYNC_KEY)
+          $marker = "const BOOTSTRAP_KEY='__AUDITAR_SYNC_KEY__';"
+          if (-not $content.Contains($marker)) { throw 'Marcador da chave nao encontrado.' }
+          $replacement = "const BOOTSTRAP_KEY='" + $env:AUDITAR_SYNC_KEY + "';"
+          $content = $content.Replace($marker, $replacement)
           Set-Content -Path $path -Value $content -Encoding UTF8
+          if ($content.Contains("const BOOTSTRAP_KEY='__AUDITAR_SYNC_KEY__';")) { throw 'A chave nao foi inserida.' }
 
       - name: Gerar icone
         shell: pwsh
