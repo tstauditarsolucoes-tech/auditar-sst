@@ -3,8 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#0f766e">
-  <title>Auditar EPI • Gestão</title>
+  <meta name="theme-color" content="#0FA88E">
+  <title>Gestão EPI • Gestão</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="indicators.css">
 </head>
@@ -12,11 +13,11 @@
   <div id="toast" class="toast"></div>
   <div id="connectOverlay" class="overlay">
     <div class="connect-card">
-      <div class="logo">AUDITAR <span>EPI</span></div>
+      <div class="logo">GESTÃO <span>EPI</span></div>
       <h1>Gestão no computador</h1>
       <p>Conecte esta tela à mesma central usada pelo aplicativo de campo.</p>
       <label>Chave de sincronização
-        <input id="connectKey" type="password" autocomplete="off" placeholder="Cole a chave do Auditar EPI">
+        <input id="connectKey" type="password" autocomplete="off" placeholder="Chave da central Gestão EPI">
       </label>
       <button id="btnConnect" class="primary">☁️ Conectar e sincronizar</button>
       <small>A chave fica salva somente neste computador.</small>
@@ -26,7 +27,7 @@
   <div class="layout">
     <aside class="sidebar">
       <div class="sidebar-brand">
-        <div class="logo">AUDITAR <span>EPI</span></div>
+        <div class="logo">GESTÃO <span>EPI</span></div>
         <small>GESTÃO</small>
       </div>
       <nav>
@@ -96,29 +97,14 @@
           <article class="metric text"><span>Quem recebeu mais</span><strong id="kTopWorker">—</strong><small>maior quantidade recebida</small></article>
         </div>
         <div class="grid-2">
-          <article class="panel">
-            <div class="panel-head"><div><h2>🦺 EPIs que mais saíram</h2><p>Top 5 por quantidade.</p></div></div>
-            <div id="topEpis"></div>
-          </article>
-          <article class="panel">
-            <div class="panel-head"><div><h2>👷 Quem mais recebeu EPI</h2><p>Serve para acompanhamento, não significa irregularidade.</p></div></div>
-            <div id="topWorkers"></div>
-          </article>
+          <article class="panel"><div class="panel-head"><div><h2>🦺 EPIs que mais saíram</h2><p>Top 5 por quantidade.</p></div></div><div id="topEpis"></div></article>
+          <article class="panel"><div class="panel-head"><div><h2>👷 Quem mais recebeu EPI</h2><p>Serve para acompanhamento, não significa irregularidade.</p></div></div><div id="topWorkers"></div></article>
         </div>
         <div class="grid-2" style="margin-top:16px">
-          <article class="panel">
-            <div class="panel-head"><div><h2>📈 Saída nos últimos 6 meses</h2><p>Ajuda a perceber aumento ou queda no consumo.</p></div></div>
-            <div id="monthConsumption"></div>
-          </article>
-          <article class="panel">
-            <div class="panel-head"><div><h2>🔄 Por que os EPIs foram entregues</h2><p>Quantidade separada pelo motivo informado.</p></div></div>
-            <div id="reasonList"></div>
-          </article>
+          <article class="panel"><div class="panel-head"><div><h2>📈 Saída nos últimos 6 meses</h2><p>Ajuda a perceber aumento ou queda no consumo.</p></div></div><div id="monthConsumption"></div></article>
+          <article class="panel"><div class="panel-head"><div><h2>🔄 Por que os EPIs foram entregues</h2><p>Quantidade separada pelo motivo informado.</p></div></div><div id="reasonList"></div></article>
         </div>
-        <article class="panel full">
-          <div class="panel-head"><div><h2>🏭 Consumo por setor</h2><p>Mostra quais setores estão usando mais EPI.</p></div></div>
-          <div id="sectorList"></div>
-        </article>
+        <article class="panel full"><div class="panel-head"><div><h2>🏭 Consumo por setor</h2><p>Mostra quais setores estão usando mais EPI.</p></div></div><div id="sectorList"></div></article>
       </section>
 
       <section id="pending" class="view">
@@ -130,76 +116,30 @@
           <article class="metric warning"><span>EPI sem CA informado</span><strong id="pMissingCa">0</strong><small>cadastros</small></article>
         </div>
         <div class="grid-2">
-          <article class="panel">
-            <div class="panel-head"><div><h2>📦 Estoque baixo</h2><p>O que pode precisar de compra ou conferência.</p></div></div>
-            <div id="pendingStock" class="table-wrap"></div>
-          </article>
-          <article class="panel">
-            <div class="panel-head"><div><h2>👷 Colaboradores sem entrega</h2><p>Pessoas ativas que ainda não têm entrega registrada.</p></div></div>
-            <div id="pendingWorkers" class="table-wrap"></div>
-          </article>
+          <article class="panel"><div class="panel-head"><div><h2>📦 Estoque baixo</h2><p>O que pode precisar de compra ou conferência.</p></div></div><div id="pendingStock" class="table-wrap"></div></article>
+          <article class="panel"><div class="panel-head"><div><h2>👷 Colaboradores sem entrega</h2><p>Pessoas ativas que ainda não têm entrega registrada.</p></div></div><div id="pendingWorkers" class="table-wrap"></div></article>
         </div>
         <div class="grid-2" style="margin-top:16px">
-          <article class="panel">
-            <div class="panel-head"><div><h2>🦺 EPI sem CA informado</h2><p>Cadastros que precisam ser completados.</p></div></div>
-            <div id="pendingCa" class="table-wrap"></div>
-          </article>
-          <article class="panel">
-            <div class="panel-head"><div><h2>✍️ Entregas sem assinatura</h2><p>Registros que precisam ser conferidos.</p></div></div>
-            <div id="pendingSignature" class="table-wrap"></div>
-          </article>
+          <article class="panel"><div class="panel-head"><div><h2>🦺 EPI sem CA informado</h2><p>Cadastros que precisam ser completados.</p></div></div><div id="pendingCa" class="table-wrap"></div></article>
+          <article class="panel"><div class="panel-head"><div><h2>✍️ Entregas sem assinatura</h2><p>Registros que precisam ser conferidos.</p></div></div><div id="pendingSignature" class="table-wrap"></div></article>
         </div>
-        <article class="panel full">
-          <div class="panel-head"><div><h2>⏱️ Troca antes do prazo cadastrado</h2><p>Ajuda a identificar EPI sendo substituído mais cedo que o previsto.</p></div></div>
-          <div id="earlyReplacement" class="table-wrap"></div>
-        </article>
+        <article class="panel full"><div class="panel-head"><div><h2>⏱️ Troca antes do prazo cadastrado</h2><p>Ajuda a identificar EPI sendo substituído mais cedo que o previsto.</p></div></div><div id="earlyReplacement" class="table-wrap"></div></article>
       </section>
 
       <section id="stock" class="view">
-        <div class="split-head">
-          <div><h2>Estoque de EPI</h2><p>Entradas e ajustes feitos aqui refletem no aplicativo de campo.</p></div>
-          <button id="btnStockEntry" class="primary">＋ Nova movimentação</button>
-        </div>
-        <div class="cards three compact">
-          <article class="metric"><span>Itens</span><strong id="sItems">0</strong></article>
-          <article class="metric"><span>Unidades em saldo</span><strong id="sUnits">0</strong></article>
-          <article class="metric warning"><span>Estoque baixo</span><strong id="sLow">0</strong></article>
-        </div>
-        <article class="panel">
-          <div class="filters"><input id="stockSearch" placeholder="Buscar EPI, CA, modelo ou tamanho"></div>
-          <div id="stockTable" class="table-wrap"></div>
-        </article>
+        <div class="split-head"><div><h2>Estoque de EPI</h2><p>Entradas e ajustes feitos aqui refletem no aplicativo de campo.</p></div><button id="btnStockEntry" class="primary">＋ Nova movimentação</button></div>
+        <div class="cards three compact"><article class="metric"><span>Itens</span><strong id="sItems">0</strong></article><article class="metric"><span>Unidades em saldo</span><strong id="sUnits">0</strong></article><article class="metric warning"><span>Estoque baixo</span><strong id="sLow">0</strong></article></div>
+        <article class="panel"><div class="filters"><input id="stockSearch" placeholder="Buscar EPI, CA, modelo ou tamanho"></div><div id="stockTable" class="table-wrap"></div></article>
       </section>
 
-      <section id="epis" class="view">
-        <div class="split-head"><div><h2>Cadastro de EPIs</h2><p>Cadastre no computador para aparecer no celular.</p></div><button id="btnNewEpi" class="primary">＋ Novo EPI</button></div>
-        <article class="panel"><div class="filters"><input id="epiSearch" placeholder="Buscar EPI, CA, modelo ou tamanho"></div><div id="epiTable" class="table-wrap"></div></article>
-      </section>
-
-      <section id="workers" class="view">
-        <div class="split-head"><div><h2>Trabalhadores</h2><p>Cadastro compartilhado com a versão Campo.</p></div><button id="btnNewWorker" class="primary">＋ Novo trabalhador</button></div>
-        <article class="panel"><div class="filters"><input id="workerSearch" placeholder="Buscar nome, CPF, matrícula, cargo ou setor"></div><div id="workerTable" class="table-wrap"></div></article>
-      </section>
-
-      <section id="deliveries" class="view">
-        <div class="split-head"><div><h2>Entregas registradas</h2><p>Histórico sincronizado do celular.</p></div><span class="badge" id="deliveryCount">0 registros</span></div>
-        <article class="panel"><div class="filters"><input id="deliverySearch" placeholder="Buscar trabalhador ou EPI"></div><div id="deliveryTable" class="table-wrap"></div></article>
-      </section>
-
-      <section id="companies" class="view">
-        <div class="split-head"><div><h2>Empresas</h2><p>Empresas disponíveis no Campo e na Gestão.</p></div><button id="btnNewCompany" class="primary">＋ Nova empresa</button></div>
-        <article class="panel"><div id="companyTable" class="table-wrap"></div></article>
-      </section>
+      <section id="epis" class="view"><div class="split-head"><div><h2>Cadastro de EPIs</h2><p>Cadastre no computador para aparecer no celular.</p></div><button id="btnNewEpi" class="primary">＋ Novo EPI</button></div><article class="panel"><div class="filters"><input id="epiSearch" placeholder="Buscar EPI, CA, modelo ou tamanho"></div><div id="epiTable" class="table-wrap"></div></article></section>
+      <section id="workers" class="view"><div class="split-head"><div><h2>Trabalhadores</h2><p>Cadastro compartilhado com a versão Campo.</p></div><button id="btnNewWorker" class="primary">＋ Novo trabalhador</button></div><article class="panel"><div class="filters"><input id="workerSearch" placeholder="Buscar nome, CPF, matrícula, cargo ou setor"></div><div id="workerTable" class="table-wrap"></div></article></section>
+      <section id="deliveries" class="view"><div class="split-head"><div><h2>Entregas registradas</h2><p>Histórico sincronizado do celular.</p></div><span class="badge" id="deliveryCount">0 registros</span></div><article class="panel"><div class="filters"><input id="deliverySearch" placeholder="Buscar trabalhador ou EPI"></div><div id="deliveryTable" class="table-wrap"></div></article></section>
+      <section id="companies" class="view"><div class="split-head"><div><h2>Empresas</h2><p>Empresas disponíveis no Campo e na Gestão.</p></div><button id="btnNewCompany" class="primary">＋ Nova empresa</button></div><article class="panel"><div id="companyTable" class="table-wrap"></div></article></section>
     </main>
   </div>
 
-  <dialog id="formDialog">
-    <form method="dialog" id="dynamicForm">
-      <div class="dialog-head"><div><h2 id="dialogTitle">Cadastro</h2><p id="dialogSub"></p></div><button value="cancel" class="x">×</button></div>
-      <div id="dialogFields" class="form-grid"></div>
-      <div class="dialog-actions"><button value="cancel" class="secondary">Cancelar</button><button id="dialogSave" value="default" class="primary">Salvar</button></div>
-    </form>
-  </dialog>
+  <dialog id="formDialog"><form method="dialog" id="dynamicForm"><div class="dialog-head"><div><h2 id="dialogTitle">Cadastro</h2><p id="dialogSub"></p></div><button value="cancel" class="x">×</button></div><div id="dialogFields" class="form-grid"></div><div class="dialog-actions"><button value="cancel" class="secondary">Cancelar</button><button id="dialogSave" value="default" class="primary">Salvar</button></div></form></dialog>
 
   <script src="app.js"></script>
   <script src="central-config.js"></script>
