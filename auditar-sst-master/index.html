@@ -1,102 +1,35 @@
 <!doctype html>
 <html lang="pt-BR">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#0e1a43">
-  <title>Auditar SST • Painel Mestre</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0e1a43"><title>Auditar SST • Painel Mestre</title><link rel="stylesheet" href="styles.css"></head>
 <body>
-  <div id="toast" class="toast"></div>
-
-  <div id="loginOverlay" class="overlay">
-    <div class="login-card">
-      <div class="mark"></div>
-      <div class="kicker">AUDITAR SST</div>
-      <h1>Painel Mestre</h1>
-      <p>Acesso administrativo para controlar usuários do aplicativo de vistoria.</p>
-      <label>Usuário<input id="loginUser" autocomplete="username" autocapitalize="none" placeholder="Seu usuário"></label>
-      <label>Senha<input id="loginPass" type="password" autocomplete="current-password" placeholder="Sua senha"></label>
-      <button id="btnLogin" class="primary full">Entrar</button>
-      <div id="loginError" class="error"></div>
-    </div>
+<div id="toast" class="toast"></div>
+<div id="loginOverlay" class="overlay">
+  <div class="login-card">
+    <div class="mark"></div><div class="kicker">AUDITAR SST</div>
+    <h1 id="loginTitle">Painel Mestre</h1><p id="loginText">Acesso administrativo para controlar usuários do aplicativo de vistoria.</p>
+    <label id="setupNameWrap" class="hidden">Seu nome<input id="setupName" autocomplete="name" placeholder="Nome do administrador"></label>
+    <label>Usuário<input id="loginUser" autocomplete="username" autocapitalize="none" placeholder="Seu usuário"></label>
+    <label>Senha<input id="loginPass" type="password" autocomplete="current-password" placeholder="Sua senha"></label>
+    <button id="btnLogin" class="primary full">Entrar</button><div id="loginError" class="error"></div>
   </div>
-
-  <div class="layout">
-    <aside class="sidebar">
-      <div class="brand"><div class="brand-icon"></div><div><b>AUDITAR SST</b><small>PAINEL MESTRE</small></div></div>
-      <nav>
-        <button class="nav active" data-view="dashboard">▦ <span>Visão geral</span></button>
-        <button class="nav" data-view="users">👤 <span>Usuários</span></button>
-        <button class="nav" data-view="companies">🏢 <span>Empresas</span></button>
-      </nav>
-      <div class="sidebar-note">Este aplicativo é exclusivo da administração. Técnicos continuam usando somente o Auditar SST de campo.</div>
-      <div class="sidebar-foot"><div><b id="adminDisplay">Administrador</b><small>Acesso mestre</small></div><button id="btnLogout">Sair</button></div>
-    </aside>
-
-    <main class="main">
-      <header class="topbar">
-        <div><h1 id="viewTitle">Visão geral</h1><p id="viewSub">Controle central dos acessos do Auditar SST.</p></div>
-        <div class="top-actions"><button id="btnRefresh" class="secondary">↻ Atualizar</button><button id="btnNewUserTop" class="primary">＋ Novo usuário</button></div>
-      </header>
-
-      <section id="dashboard" class="view active">
-        <div class="metrics">
-          <article><span>Usuários</span><strong id="mUsers">0</strong><small>cadastrados</small></article>
-          <article class="good"><span>Ativos</span><strong id="mActive">0</strong><small>com acesso liberado</small></article>
-          <article class="trial"><span>Técnicos SST</span><strong id="mTechs">0</strong><small>usuários de campo</small></article>
-          <article class="warn"><span>Bloqueados</span><strong id="mBlocked">0</strong><small>sem acesso</small></article>
-        </div>
-        <div class="grid-2">
-          <article class="panel"><div class="panel-head"><div><h2>Controle de acesso</h2><p>Crie usuários e escolha quais empresas cada técnico pode visualizar.</p></div></div><div id="accessSummary"></div></article>
-          <article class="panel"><div class="panel-head"><div><h2>Usuários recentes</h2><p>Resumo rápido dos acessos cadastrados.</p></div></div><div id="recentUsers"></div></article>
-        </div>
-      </section>
-
-      <section id="users" class="view">
-        <div class="split-head"><div><h2>Usuários e acessos</h2><p>Crie, bloqueie, redefina senha e libere empresas.</p></div><button id="btnNewUser" class="primary">＋ Novo usuário</button></div>
-        <article class="panel">
-          <div class="filters"><input id="userSearch" placeholder="Buscar nome, usuário ou perfil"><select id="userFilter"><option value="">Todos</option><option value="active">Ativos</option><option value="inactive">Bloqueados</option><option value="tecnico">Técnicos SST</option><option value="admin">Administradores</option></select></div>
-          <div id="usersTable" class="table-wrap"></div>
-        </article>
-      </section>
-
-      <section id="companies" class="view">
-        <div class="split-head"><div><h2>Empresas disponíveis</h2><p>Empresas sincronizadas pela Central Online e disponíveis para permissões.</p></div></div>
-        <article class="panel"><div class="filters"><input id="companySearch" placeholder="Buscar empresa"></div><div id="companiesTable" class="table-wrap"></div></article>
-      </section>
-    </main>
-  </div>
-
-  <dialog id="userDialog">
-    <form method="dialog" id="userForm">
-      <div class="dialog-head"><div><h2 id="userDialogTitle">Novo usuário</h2><p id="userDialogSub">Crie um acesso individual para o Auditar SST.</p></div><button value="cancel" class="x">×</button></div>
-      <input id="uId" type="hidden"><input id="uEmailExisting" type="hidden">
-      <div class="form-grid">
-        <label class="full">Nome<input id="uName" required placeholder="Nome do técnico"></label>
-        <label>Usuário<input id="uUsername" required autocomplete="off" placeholder="Ex.: luan"></label>
-        <label>Perfil<select id="uRole"><option value="tecnico">Técnico SST</option><option value="admin">Administrador</option></select></label>
-        <label class="full">Senha <span id="passwordHint">inicial</span><div class="input-action"><input id="uPassword" type="text" autocomplete="off" placeholder="Mínimo 8 caracteres"><button id="btnGeneratePass" type="button" class="soft">Gerar senha</button></div></label>
-        <label class="switch full"><input id="uActive" type="checkbox" checked><span>Usuário ativo</span></label>
-        <div id="companyAccessWrap" class="full">
-          <label class="switch"><input id="uAllCompanies" type="checkbox"><span>Acesso a todas as empresas</span></label>
-          <div id="companyPickerWrap"><div class="separator"><b>Empresas liberadas</b><small>Marque somente as empresas que este técnico poderá acessar.</small></div><input id="companyPickerSearch" placeholder="Buscar empresa"><div id="companyPicker" class="company-picker"></div></div>
-        </div>
-      </div>
-      <div id="userFormError" class="error"></div>
-      <div class="dialog-actions"><button value="cancel" class="secondary">Cancelar</button><button id="btnSaveUser" type="button" class="primary">Salvar usuário</button></div>
-    </form>
-  </dialog>
-
-  <dialog id="credentialDialog">
-    <form method="dialog">
-      <div class="dialog-head"><div><h2>Usuário criado</h2><p>Entregue estes dados ao técnico.</p></div><button value="cancel" class="x">×</button></div>
-      <div class="credential-box"><span>Usuário</span><b id="createdUsername"></b><span>Senha</span><b id="createdPassword"></b></div>
-      <div class="dialog-actions"><button id="btnCopyCredentials" type="button" class="secondary">Copiar acesso</button><button value="ok" class="primary">Concluir</button></div>
-    </form>
-  </dialog>
-
-  <script src="app.js"></script>
-</body>
-</html>
+</div>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand"><div class="brand-icon"></div><div><b>AUDITAR SST</b><small>PAINEL MESTRE</small></div></div>
+    <nav><button class="nav active" data-view="dashboard">▦ <span>Visão geral</span></button><button class="nav" data-view="users">👤 <span>Usuários</span></button><button class="nav" data-view="companies">🏢 <span>Empresas</span></button></nav>
+    <div class="sidebar-note">Este aplicativo é exclusivo da administração. Técnicos continuam usando somente o Auditar SST de campo.</div>
+    <div class="sidebar-foot"><div><b id="adminDisplay">Administrador</b><small>Acesso mestre</small></div><button id="btnLogout">Sair</button></div>
+  </aside>
+  <main class="main">
+    <header class="topbar"><div><h1 id="viewTitle">Visão geral</h1><p id="viewSub">Controle central dos acessos do Auditar SST.</p></div><div class="top-actions"><button id="btnRefresh" class="secondary">↻ Atualizar</button><button id="btnNewUserTop" class="primary">＋ Novo usuário</button></div></header>
+    <section id="dashboard" class="view active">
+      <div class="metrics"><article><span>Usuários</span><strong id="mUsers">0</strong><small>cadastrados</small></article><article class="good"><span>Ativos</span><strong id="mActive">0</strong><small>com acesso liberado</small></article><article class="trial"><span>Técnicos SST</span><strong id="mTechs">0</strong><small>usuários de campo</small></article><article class="warn"><span>Bloqueados</span><strong id="mBlocked">0</strong><small>sem acesso</small></article></div>
+      <div class="grid-2"><article class="panel"><div class="panel-head"><div><h2>Controle de acesso</h2><p>Crie usuários e escolha quais empresas cada técnico pode visualizar.</p></div></div><div id="accessSummary"></div></article><article class="panel"><div class="panel-head"><div><h2>Usuários recentes</h2><p>Resumo rápido dos acessos cadastrados.</p></div></div><div id="recentUsers"></div></article></div>
+    </section>
+    <section id="users" class="view"><div class="split-head"><div><h2>Usuários e acessos</h2><p>Crie, bloqueie, redefina senha e libere empresas.</p></div><button id="btnNewUser" class="primary">＋ Novo usuário</button></div><article class="panel"><div class="filters"><input id="userSearch" placeholder="Buscar nome, usuário ou perfil"><select id="userFilter"><option value="">Todos</option><option value="active">Ativos</option><option value="inactive">Bloqueados</option><option value="tecnico">Técnicos SST</option><option value="admin">Administradores</option></select></div><div id="usersTable" class="table-wrap"></div></article></section>
+    <section id="companies" class="view"><div class="split-head"><div><h2>Empresas disponíveis</h2><p>Empresas sincronizadas pela Central Online e disponíveis para permissões.</p></div></div><article class="panel"><div class="filters"><input id="companySearch" placeholder="Buscar empresa"></div><div id="companiesTable" class="table-wrap"></div></article></section>
+  </main>
+</div>
+<dialog id="userDialog"><form method="dialog" id="userForm"><div class="dialog-head"><div><h2 id="userDialogTitle">Novo usuário</h2><p id="userDialogSub">Crie um acesso individual para o Auditar SST.</p></div><button value="cancel" class="x">×</button></div><input id="uId" type="hidden"><input id="uEmailExisting" type="hidden"><div class="form-grid"><label class="full">Nome<input id="uName" required placeholder="Nome do técnico"></label><label>Usuário<input id="uUsername" required autocomplete="off" placeholder="Ex.: luan"></label><label>Perfil<select id="uRole"><option value="tecnico">Técnico SST</option><option value="admin">Administrador</option></select></label><label class="full">Senha <span id="passwordHint">inicial</span><div class="input-action"><input id="uPassword" type="text" autocomplete="off" placeholder="Mínimo 8 caracteres"><button id="btnGeneratePass" type="button" class="soft">Gerar senha</button></div></label><label class="switch full"><input id="uActive" type="checkbox" checked><span>Usuário ativo</span></label><div id="companyAccessWrap" class="full"><label class="switch"><input id="uAllCompanies" type="checkbox"><span>Acesso a todas as empresas</span></label><div id="companyPickerWrap"><div class="separator"><b>Empresas liberadas</b><small>Marque somente as empresas que este técnico poderá acessar.</small></div><input id="companyPickerSearch" placeholder="Buscar empresa"><div id="companyPicker" class="company-picker"></div></div></div></div><div id="userFormError" class="error"></div><div class="dialog-actions"><button value="cancel" class="secondary">Cancelar</button><button id="btnSaveUser" type="button" class="primary">Salvar usuário</button></div></form></dialog>
+<dialog id="credentialDialog"><form method="dialog"><div class="dialog-head"><div><h2>Usuário criado</h2><p>Entregue estes dados ao técnico.</p></div><button value="cancel" class="x">×</button></div><div class="credential-box"><span>Usuário</span><b id="createdUsername"></b><span>Senha</span><b id="createdPassword"></b></div><div class="dialog-actions"><button id="btnCopyCredentials" type="button" class="secondary">Copiar acesso</button><button value="ok" class="primary">Concluir</button></div></form></dialog>
+<script src="app.js"></script></body></html>
