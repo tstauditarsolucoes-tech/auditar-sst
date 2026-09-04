@@ -67,7 +67,7 @@
 
   <dialog id="clientDialog">
     <form method="dialog" id="clientForm">
-      <div class="dialog-head"><div><h2>Novo cliente</h2><p>Crie a empresa compradora e o primeiro administrador.</p></div><button value="cancel" class="x">×</button></div>
+      <div class="dialog-head"><div><h2>Novo cliente</h2><p>Crie a empresa compradora, a empresa operacional e o primeiro administrador.</p></div><button value="cancel" class="x">×</button></div>
       <div class="form-grid">
         <label class="full">Empresa<input id="cName" required placeholder="Razão social ou nome fantasia"></label>
         <label>CNPJ<input id="cCnpj" placeholder="Opcional"></label>
@@ -80,7 +80,7 @@
         <label>Usuário<input id="cAdminUser" required value="admin"></label>
         <label class="full">Senha inicial<input id="cAdminPass" type="password" required minlength="6" placeholder="Mínimo 6 caracteres"></label>
       </div>
-      <div class="dialog-actions"><button value="cancel" class="secondary">Cancelar</button><button id="btnCreateClient" type="button" class="primary">Criar cliente</button></div>
+      <div class="dialog-actions"><button value="cancel" class="secondary">Cancelar</button><button id="btnCreateClient" type="button" class="primary">Criar cliente + empresa</button></div>
     </form>
   </dialog>
 
@@ -94,6 +94,15 @@
         <label>Máx. usuários<input id="lMaxUsers" type="number" min="1"></label>
         <label>Máx. dispositivos<input id="lMaxDevices" type="number" min="1"></label>
       </div>
+
+      <div class="separator" style="margin-top:18px"><b>Empresas disponíveis no PC e no Campo</b><small>Cadastre aqui. Depois basta sincronizar os aplicativos.</small></div>
+      <div class="form-grid" style="margin-top:12px">
+        <label class="full">Nome da empresa<input id="lCompanyName" placeholder="Razão social ou nome fantasia"></label>
+        <label>CNPJ<input id="lCompanyCnpj" placeholder="Opcional"></label>
+        <div style="display:flex;align-items:end"><button id="btnAddTenantCompany" type="button" class="secondary" style="width:100%;min-height:46px">＋ Cadastrar empresa</button></div>
+      </div>
+      <div id="tenantCompanyList" class="device-list"></div>
+
       <div id="deviceList" class="device-list"></div>
       <div class="dialog-actions"><button id="btnMigrateLegacy" type="button" class="secondary danger-soft">Migrar dados atuais</button><button id="btnSaveLicense" type="button" class="primary">Salvar</button></div>
     </form>
