@@ -37,7 +37,7 @@ jobs:
 
     steps:
       - name: Baixar arquivos
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Montar fonte atual do Auditar SST
         run: |
@@ -50,7 +50,7 @@ jobs:
           python3 tools/patch_resume_vistoria.py app/Auditar_SST_v1_5_dashboard
 
       - name: Instalar Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -66,6 +66,12 @@ jobs:
         shell: bash
         run: |
           flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+
+          # O Flutter cria um teste de exemplo para "MyApp". O Auditar usa
+          # AuditarSstApp, então removemos somente esse teste genérico.
+          if [ -f test/widget_test.dart ] && grep -q "MyApp" test/widget_test.dart; then
+            rm test/widget_test.dart
+          fi
 
           APP_VERSION="$(awk '/^version:/{print $2}' pubspec.yaml | cut -d+ -f1)"
           BUILD_NUMBER="$(awk '/^version:/{print $2}' pubspec.yaml | cut -d+ -f2)"
@@ -116,7 +122,7 @@ jobs:
           if [ -d test ] && find test -type f -name '*_test.dart' -print -quit | grep -q .; then
             flutter test
           else
-            echo "Nenhum teste automatizado encontrado; etapa registrada sem falha."
+            echo "Nenhum teste automatizado do projeto encontrado; etapa concluída sem falha."
           fi
 
       - name: Compilar APK release
