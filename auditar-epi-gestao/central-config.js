@@ -52,6 +52,7 @@
 
   function loadScript(src,attr){if(document.querySelector(`script[data-${attr}]`))return;const script=document.createElement('script');script.src=src;script.async=false;script.setAttribute(`data-${attr}`,'1');document.head.appendChild(script);}
   loadScript('auth-gestao.js','auth-gestao');
+  loadScript('login-uppercase-gestao.js','login-uppercase-gestao');
   loadScript('epi-tools.js','epi-tools');
   loadScript('epi-photo-ca-gestao.js','epi-photo-ca-gestao');
   loadScript('company-branding-gestao.js','company-branding-gestao');
