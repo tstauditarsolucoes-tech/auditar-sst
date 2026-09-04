@@ -1,11 +1,11 @@
 {
-  "name": "Auditar EPI",
-  "short_name": "Auditar EPI",
+  "name": "Gestão EPI",
+  "short_name": "Gestão EPI",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#f4f7f7",
   "theme_color": "#0f766e",
-  "description": "Registro e comprovante de entrega de EPI.",
+  "description": "Controle, entrega e gestão de equipamentos de proteção individual.",
   "icons": [
     {"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
   ]
