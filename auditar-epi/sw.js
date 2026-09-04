@@ -1,4 +1,4 @@
-const CACHE='auditar-epi-v12-login';
+const CACHE='gestao-epi-v13-comercial';
 const ASSETS=['./','./index.html','./styles.css','./import-workers.css','./stock.css','./app.js','./import-workers.js','./ai-workers.js','./stock.js','./signature-assist.js','./biometric-face.js','./liveness-face.js','./company-branding.js','./auth.js','./cloud-sync.js','./manifest.webmanifest','./icon.svg'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
