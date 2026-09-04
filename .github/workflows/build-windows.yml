@@ -34,7 +34,7 @@ jobs:
 
     steps:
       - name: Baixar arquivos
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Montar fonte atual do Auditar SST
         shell: pwsh
@@ -59,6 +59,11 @@ jobs:
         run: |
           flutter config --enable-windows-desktop
           flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+
+          # Remove apenas o teste de exemplo que o Flutter cria para "MyApp".
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String -Path 'test/widget_test.dart' -Pattern 'MyApp' -Quiet)) {
+            Remove-Item 'test/widget_test.dart' -Force
+          }
 
           $match = Select-String -Path pubspec.yaml -Pattern '^version:\s*([0-9.]+)\+([0-9]+)'
           if (!$match) { throw 'Versão não encontrada no pubspec.yaml.' }
@@ -89,7 +94,7 @@ jobs:
           if ($tests) {
             flutter test
           } else {
-            Write-Host 'Nenhum teste automatizado encontrado; etapa registrada sem falha.'
+            Write-Host 'Nenhum teste automatizado do projeto encontrado; etapa concluída sem falha.'
           }
 
       - name: Compilar versão Windows
