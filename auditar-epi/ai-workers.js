@@ -28,18 +28,18 @@
         </div>
         <div id="aiWorkersStatus" style="margin-top:8px;font-size:13px"></div>
         <div id="aiWorkersConfig" style="display:none;margin-top:10px">
-          <label>Chave de sincronização do Auditar SST
-            <input id="aiSyncKey" type="password" autocomplete="off" placeholder="Cole a chave uma única vez neste aparelho">
+          <label>Chave de ativação da IA
+            <input id="aiSyncKey" type="password" autocomplete="off" placeholder="Informe a chave uma única vez neste aparelho">
           </label>
           <button id="btnSaveAiKey" type="button" class="primary" style="margin-top:8px">Salvar e ativar IA</button>
-          <small style="display:block;margin-top:6px">A chave fica salva somente neste aparelho. A chave da Gemini continua protegida no Apps Script.</small>
+          <small style="display:block;margin-top:6px">A chave fica salva somente neste aparelho. A chave do serviço de IA continua protegida no servidor.</small>
         </div>
       </div>`;
     drop.appendChild(box);
     $('#btnAiWorkers')?.addEventListener('click', runAi);
     $('#btnSaveAiKey')?.addEventListener('click',()=>{
       const value=clean($('#aiSyncKey')?.value);
-      if(!value) return toast('Cole a chave de sincronização.');
+      if(!value) return toast('Informe a chave de ativação.');
       localStorage.setItem(KEY_STORE,value);
       $('#aiWorkersConfig').style.display='none';
       setStatus('IA ativada neste aparelho.');
@@ -113,7 +113,7 @@
     const syncKey=clean(localStorage.getItem(KEY_STORE)||'');
     if(!syncKey){
       $('#aiWorkersConfig').style.display='block';
-      setStatus('Para proteger a IA, informe a chave de sincronização uma única vez neste aparelho.');
+      setStatus('Para proteger a IA, informe a chave de ativação uma única vez neste aparelho.');
       return;
     }
     const btn=$('#btnAiWorkers'); btn.disabled=true; btn.textContent='✨ Lendo com IA…';
