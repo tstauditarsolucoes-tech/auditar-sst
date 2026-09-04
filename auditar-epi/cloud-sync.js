@@ -8,6 +8,9 @@
   if(!document.querySelector('script[data-company-branding]')){
     const brand=document.createElement('script');brand.src='company-branding.js';brand.dataset.companyBranding='1';document.head.appendChild(brand);
   }
+  if(!document.querySelector('script[data-mobile-layout-fix]')){
+    const fix=document.createElement('script');fix.src='mobile-layout-fix.js';fix.dataset.mobileLayoutFix='1';document.head.appendChild(fix);
+  }
 
   const $=(s,root=document)=>root.querySelector(s);
   const readJson=(key,fallback)=>{try{return {...fallback,...JSON.parse(localStorage.getItem(key)||'{}')};}catch{return fallback;}};
