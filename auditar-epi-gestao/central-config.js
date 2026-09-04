@@ -60,4 +60,5 @@
   loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js','pdfjs-lib');
   loadScript('https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/dist/human.js','human-lib');
   loadScript('campo-pc.js','campo-pc');
+  loadScript('ai-import-pc.js','ai-import-pc');
 })();
