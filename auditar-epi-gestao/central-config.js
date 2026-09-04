@@ -5,15 +5,15 @@
   const NEW_ENDPOINT='https://script.google.com/macros/s/AKfycbxqMnKiTlAJTFv3-odS2dB1NRcSD8wwvtNxxa-zCFhTM6GeNZszib_1N6eT9wSnOnOyjg/exec';
 
   /*
-    IMPORTANTE: este arquivo é carregado diretamente pelo index.html antes do app.js.
-    A autenticação comercial precisa entrar na página de forma síncrona para o painel
-    nunca ficar visível sem Código da empresa + Usuário + Senha.
+    Este arquivo é carregado diretamente pelo index.html antes do app.js.
+    O login comercial entra de forma síncrona para o painel nunca ficar
+    liberado antes da autenticação da empresa.
   */
   if(!document.querySelector('script[data-auth-gestao]')){
-    document.write('<script src="auth-gestao.js" data-auth-gestao="1"><\\/script>');
+    document.write('<script src="auth-gestao.js" data-auth-gestao="1"></script>');
   }
   if(!document.querySelector('script[data-login-uppercase-gestao]')){
-    document.write('<script src="login-uppercase-gestao.js" data-login-uppercase-gestao="1"><\\/script>');
+    document.write('<script src="login-uppercase-gestao.js" data-login-uppercase-gestao="1"></script>');
   }
 
   const nativeGet=Storage.prototype.getItem;
