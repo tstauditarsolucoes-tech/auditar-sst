@@ -115,10 +115,12 @@ function commercialCompanyNormExt_(value) {
 function commercialTenantAiAssistantExt_(request) {
   var session = commercialRequireTenantRole_(request.authToken,['admin','campo']);
   if (!session.ok) return session;
+
   var payload = request.payload && typeof request.payload === 'object' ? request.payload : {};
   if (String(payload.mode || '') !== 'employee_pdf_import') {
     return {ok:false,message:'Modo de IA não suportado.'};
   }
+
   var documentData = String(payload.document || '');
   if (!/^data:application\/pdf;base64,/i.test(documentData)) {
     return {ok:false,message:'Envie um PDF válido para a IA.'};
@@ -130,22 +132,42 @@ function commercialTenantAiAssistantExt_(request) {
   var props = PropertiesService.getScriptProperties();
   var workerKey = String(props.getProperty('GESTAO_EPI_AI_WORKER_KEY') || props.getProperty('AUDITAR_SYNC_KEY') || '').trim();
   var workerUrl = String(props.getProperty('GESTAO_EPI_AI_WORKER_URL') || GESTAO_EPI_AI_WORKER_DEFAULT_URL).trim();
+  var workerFailure = null;
+
   if (workerKey && workerUrl) {
     try {
       var proxied = commercialProxyAiWorkerExt_(workerUrl,workerKey,payload);
       if (proxied && proxied.ok) return proxied;
-    } catch (_) {}
+      workerFailure = {
+        ok:false,
+        code:String(proxied && proxied.code || 'AI_WORKER_REJECTED'),
+        workerConfigured:true,
+        message:'A chave da IA foi encontrada na Central, mas o serviço de IA respondeu: ' + String(proxied && proxied.message || 'não foi possível concluir a análise do PDF.')
+      };
+    } catch (workerError) {
+      workerFailure = {
+        ok:false,
+        code:'AI_WORKER_UNREACHABLE',
+        workerConfigured:true,
+        message:'A chave da IA foi encontrada na Central, mas não foi possível acessar o serviço de IA: ' + String(workerError)
+      };
+    }
   }
 
   var geminiKey = String(props.getProperty('GEMINI_API_KEY') || props.getProperty('GOOGLE_AI_API_KEY') || '').trim();
   if (geminiKey) {
-    return commercialGeminiEmployeePdfExt_(documentData,geminiKey,props);
+    var geminiResult = commercialGeminiEmployeePdfExt_(documentData,geminiKey,props);
+    if (geminiResult && geminiResult.ok) return geminiResult;
+    if (!workerFailure) return geminiResult;
   }
+
+  if (workerFailure) return workerFailure;
 
   return {
     ok:false,
     code:'AI_SERVER_NOT_CONFIGURED',
-    message:'A IA do servidor ainda não está configurada. Configure a chave da IA apenas no Apps Script; nenhuma chave será solicitada no PC.'
+    workerConfigured:false,
+    message:'A Central não encontrou a configuração da IA. Verifique somente se a propriedade GESTAO_EPI_AI_WORKER_KEY existe neste projeto do Apps Script.'
   };
 }
 
@@ -154,11 +176,28 @@ function commercialProxyAiWorkerExt_(url,key,payload) {
     method:'post',
     contentType:'text/plain;charset=utf-8',
     payload:JSON.stringify({action:'ai_assistant',syncKey:key,payload:payload}),
-    muteHttpExceptions:true
+    muteHttpExceptions:true,
+    followRedirects:true
   });
+
+  var status = Number(response.getResponseCode() || 0);
   var text = response.getContentText('UTF-8');
   var data;
-  try { data = JSON.parse(text || '{}'); } catch (_) { throw new Error('Resposta inválida do serviço de IA.'); }
+
+  try {
+    data = JSON.parse(text || '{}');
+  } catch (_) {
+    throw new Error('O serviço de IA retornou resposta inválida' + (status ? ' (HTTP ' + status + ')' : '') + '.');
+  }
+
+  if (status < 200 || status >= 300) {
+    return {
+      ok:false,
+      code:'AI_WORKER_HTTP_' + status,
+      message:String(data && data.message || ('HTTP ' + status))
+    };
+  }
+
   return data;
 }
 
