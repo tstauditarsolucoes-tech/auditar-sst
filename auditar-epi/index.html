@@ -4,8 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0f766e" />
-  <meta name="description" content="Auditar EPI Campo - registro rápido de entrega de equipamentos de proteção individual." />
-  <title>Auditar EPI Campo</title>
+  <meta name="description" content="Gestão EPI - controle, entrega e gestão de equipamentos de proteção individual." />
+  <title>Gestão EPI</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="import-workers.css" />
@@ -16,7 +16,7 @@
 
   <header class="topbar">
     <div>
-      <div class="brand">AUDITAR <span>EPI</span></div>
+      <div class="brand">GESTÃO <span>EPI</span></div>
       <div class="subtitle">Campo • entrega rápida</div>
     </div>
     <button class="icon-btn" id="btnBackup" title="Backup dos dados" aria-label="Backup dos dados">⇩</button>
@@ -26,7 +26,7 @@
     <section id="home" class="view active">
       <div class="hero-card">
         <div>
-          <p class="eyebrow">AUDITAR EPI • CAMPO</p>
+          <p class="eyebrow">GESTÃO EPI • CAMPO</p>
           <h1>Entrega rápida, assinatura ou biometria facial com prova de vida.</h1>
         </div>
         <button class="primary big" data-go="delivery">＋ Nova entrega</button>
@@ -57,7 +57,7 @@
     <section id="companies" class="view">
       <div class="view-head"><button class="back" data-go="home">←</button><div><h2>Empresas</h2><p>Cadastre as empresas atendidas.</p></div></div>
       <form id="companyForm" class="card form-grid">
-        <label>Nome da empresa<input id="companyName" required placeholder="Ex.: Cerâmica Livramento" /></label>
+        <label>Nome da empresa<input id="companyName" required placeholder="Ex.: Empresa Exemplo" /></label>
         <label>CNPJ<input id="companyCnpj" inputmode="numeric" placeholder="00.000.000/0000-00" /></label>
         <button class="primary" type="submit">Salvar empresa</button>
       </form>
