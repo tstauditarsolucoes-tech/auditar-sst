@@ -9,6 +9,7 @@ on:
       - "Auditar_SST_v1.5_dashboard_completo.zip"
       - "source_overrides/**"
       - "tools/prepare_sst_source.py"
+      - "tools/patch_management_snapshot.py"
       - "tools/patch_resume_vistoria.py"
       - ".github/workflows/build-windows.yml"
   push:
@@ -18,6 +19,7 @@ on:
       - "Auditar_SST_v1.5_dashboard_completo.zip"
       - "source_overrides/**"
       - "tools/prepare_sst_source.py"
+      - "tools/patch_management_snapshot.py"
       - "tools/patch_resume_vistoria.py"
       - ".github/workflows/build-windows.yml"
 
@@ -41,6 +43,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path app | Out-Null
           Expand-Archive -Path "Auditar_SST_v1.5_dashboard_completo.zip" -DestinationPath app -Force
           Copy-Item -Path "source_overrides/Auditar_SST_v1_5_dashboard/*" -Destination "app/Auditar_SST_v1_5_dashboard" -Recurse -Force
+          python tools/patch_management_snapshot.py app/Auditar_SST_v1_5_dashboard
           python tools/prepare_sst_source.py app/Auditar_SST_v1_5_dashboard
           python tools/patch_resume_vistoria.py app/Auditar_SST_v1_5_dashboard
 
@@ -143,6 +146,7 @@ jobs:
           if (!(Test-Path $iscc)) { throw 'Inno Setup não encontrado.' }
 
           $source = (Resolve-Path 'app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release').Path
+          New-Item -ItemType Directory -Force -Path 'dist/windows' | Out-Null
           $output = (Resolve-Path 'dist/windows').Path
           $iss = Join-Path $env:RUNNER_TEMP 'AuditarSST.iss'
 
