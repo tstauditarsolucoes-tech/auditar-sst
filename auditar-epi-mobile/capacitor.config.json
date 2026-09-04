@@ -1,6 +1,6 @@
 {
-  "appId": "br.com.auditar.epi",
-  "appName": "Auditar EPI Campo",
+  "appId": "br.com.gestao.epi",
+  "appName": "Gestão EPI",
   "webDir": "www",
   "bundledWebRuntime": false,
   "android": {
