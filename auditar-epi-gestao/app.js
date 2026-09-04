@@ -35,20 +35,34 @@
 
   function toast(msg){const el=$('#toast');if(!el)return;el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2600);}
   function setSync(kind,text){const dot=$('#syncDot');if(dot)dot.className='sync-dot '+kind;$('#syncStatus').textContent=text;if(kind==='ok')$('#syncTime').textContent='Atualizado '+new Intl.DateTimeFormat('pt-BR',{hour:'2-digit',minute:'2-digit'}).format(new Date());}
+  function authSessionReady(){
+    try{
+      const auth=window.GestaoEpiAuth;
+      if(!auth||typeof auth.api!=='function'||typeof auth.token!=='function'||!auth.token())return false;
+      if(typeof auth.user==='function'&&!auth.user())return false;
+      return true;
+    }catch(_){return false;}
+  }
 
   async function sync({silent=false}={}){
-    const key=(localStorage.getItem(KEY_STORE)||'').trim();
-    if(!key){showConnect();return false;}
     if(syncing)return false;
     if(!navigator.onLine){setSync('error','Sem internet');return false;}
+    if(!authSessionReady()){
+      setSync('busy','Aguardando acesso…');
+      return false;
+    }
     syncing=true;setSync('busy','Sincronizando…');
     try{
-      const res=await fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'epi_sync_merge',syncKey:key,deviceId:deviceId(),client:'gestao',payload:data})});
-      const json=await res.json();
+      const json=await window.GestaoEpiAuth.api('epi_sync_merge',{deviceId:deviceId(),client:'gestao',payload:data});
       if(!json?.ok)throw new Error(json?.message||'Falha na sincronização.');
       data=normalize(json.payload||{});saveCache();setSync('ok','Sincronizado');renderAll();hideConnect();if(!silent)toast('Dados sincronizados.');return true;
-    }catch(err){setSync('error','Falha na sync');if(!silent)toast(err.message||'Falha na sincronização.');return false;}
-    finally{syncing=false;}
+    }catch(err){
+      setSync('error','Falha na sync');
+      const detail=String(err?.message||'Falha na sincronização.');
+      const time=$('#syncTime');if(time){time.textContent=detail;time.title=detail;}
+      if(!silent)toast(detail);
+      return false;
+    } finally {syncing=false;}
   }
 
   function showConnect(){const o=$('#connectOverlay');if(o)o.classList.remove('hidden');}
@@ -174,13 +188,18 @@
     $('#btnNewCompany').addEventListener('click',newCompany);$('#btnNewEpi').addEventListener('click',newEpi);$('#btnNewWorker').addEventListener('click',newWorker);$('#btnStockEntry').addEventListener('click',()=>stockEntry());
     $('#dynamicForm').addEventListener('submit',e=>{e.preventDefault();});
     $('#dialogSave').addEventListener('click',e=>{e.preventDefault();if(dialogSaveHandler)dialogSaveHandler();});
-    window.addEventListener('online',()=>sync({silent:true}));window.addEventListener('offline',()=>setSync('error','Sem internet'));
+    window.addEventListener('online',()=>{if(authSessionReady())sync({silent:true});});window.addEventListener('offline',()=>setSync('error','Sem internet'));
   }
 
   document.addEventListener('DOMContentLoaded',()=>{
-    data=loadCache();bind();renderAll();
-    const key=(localStorage.getItem(KEY_STORE)||'').trim();
-    if(key){hideConnect();sync({silent:true});}else showConnect();
-    setInterval(()=>{if(!document.hidden&&navigator.onLine&&(localStorage.getItem(KEY_STORE)||'').trim())sync({silent:true});},20000);
+    data=loadCache();bind();renderAll();hideConnect();setSync('busy','Aguardando acesso…');
+    let attempts=0;
+    const waitForAuth=()=>{
+      if(authSessionReady()){sync({silent:true});return;}
+      attempts+=1;
+      if(attempts<120)setTimeout(waitForAuth,250);
+    };
+    setTimeout(waitForAuth,250);
+    setInterval(()=>{if(!document.hidden&&navigator.onLine&&authSessionReady())sync({silent:true});},20000);
   });
 })();
