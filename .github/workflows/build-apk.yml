@@ -1,38 +1,46 @@
-name: Gerar APK Auditar SST
+name: Gerar Android Auditar SST
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "Auditar_SST_v1.5_dashboard_completo.zip"
+      - "source_overrides/**"
+      - ".github/workflows/build-apk.yml"
   push:
     branches:
       - main
     paths-ignore:
-      - 'auditar-epi/**'
-      - 'auditar-epi-gestao/**'
-      - 'auditar-epi-mobile/**'
-      - 'auditar-epi-windows/**'
-      - '.github/workflows/build-epi-android.yml'
-      - '.github/workflows/build-epi-windows.yml'
+      - "auditar-epi/**"
+      - "auditar-epi-gestao/**"
+      - "auditar-epi-mobile/**"
+      - "auditar-epi-windows/**"
+      - "gestao-epi-master/**"
+      - "gestao-epi-master-windows/**"
+      - ".github/workflows/build-epi-android.yml"
+      - ".github/workflows/build-epi-windows.yml"
+      - ".github/workflows/build-gestao-epi-master.yml"
 
 permissions:
   contents: read
 
 jobs:
-  build:
-    name: Compilar APK Android
+  android-release:
+    name: Validar e compilar Android release
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
 
     steps:
       - name: Baixar arquivos
         uses: actions/checkout@v4
 
-      - name: Extrair projeto
+      - name: Montar fonte atual do Auditar SST
         run: |
+          rm -rf app
           mkdir -p app
           unzip -q Auditar_SST_v1.5_dashboard_completo.zip -d app
-
-      - name: Aplicar correções mais recentes
-        run: |
           cp -R source_overrides/Auditar_SST_v1_5_dashboard/. app/Auditar_SST_v1_5_dashboard/
 
       - name: Instalar Java
@@ -47,70 +55,123 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Preparar Android
+      - name: Preparar Android e versão
         working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: bash
         run: |
           flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
 
+          APP_VERSION="$(awk '/^version:/{print $2}' pubspec.yaml | cut -d+ -f1)"
+          BUILD_NUMBER="$(awk '/^version:/{print $2}' pubspec.yaml | cut -d+ -f2)"
+          echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
+
           python3 - <<'PY'
           from pathlib import Path
+          import os, re
 
           manifest = Path("android/app/src/main/AndroidManifest.xml")
-          texto = manifest.read_text(encoding="utf-8")
-
-          permissoes = [
+          text = manifest.read_text(encoding="utf-8")
+          for permission in (
               '<uses-permission android:name="android.permission.CAMERA" />',
               '<uses-permission android:name="android.permission.INTERNET" />',
-          ]
+          ):
+              if permission not in text:
+                  text = text.replace("<application", permission + "\n    <application", 1)
+          manifest.write_text(text, encoding="utf-8")
 
-          for permissao in permissoes:
-              if permissao not in texto:
-                  texto = texto.replace(
-                      "<application",
-                      permissao + "\n    <application",
-                      1
-                  )
-
-          manifest.write_text(texto, encoding="utf-8")
+          home = Path("lib/screens/home_screen.dart")
+          home_text = home.read_text(encoding="utf-8")
+          version = os.environ.get("APP_VERSION", "3.22.0")
+          home_text = re.sub(
+              r"Auditar SST • versão \d+\.\d+\.\d+",
+              f"Auditar SST • versão {version}",
+              home_text,
+          )
+          home_text = re.sub(
+              r"Auditar SST para Windows • versão \d+\.\d+\.\d+",
+              f"Auditar SST para Windows • versão {version}",
+              home_text,
+          )
+          home.write_text(home_text, encoding="utf-8")
           PY
-          sed -i 's/archive: \^4.2.0/archive: \^4.0.9/' pubspec.yaml
-          sed -i 's/file_picker: \^8.1.7/file_picker: \^10.3.8/' pubspec.yaml
-          sed -i 's/Auditar SST • versão 3.20.3/Auditar SST • versão 3.21.3/' lib/screens/home_screen.dart
-          flutter pub get
-          
 
-      - name: Gerar APK de teste
+          flutter pub get
+
+      - name: Análise estática
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Testes automatizados
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: bash
+        run: |
+          if [ -d test ] && find test -type f -name '*_test.dart' -print -quit | grep -q .; then
+            flutter test
+          else
+            echo "Nenhum teste automatizado encontrado; etapa registrada sem falha."
+          fi
+
+      - name: Compilar APK release
         working-directory: app/Auditar_SST_v1_5_dashboard
         env:
           AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        shell: bash
         run: |
           if [ -z "$AUDITAR_SYNC_KEY" ]; then
             echo "::error::Configure AUDITAR_SYNC_KEY nos segredos do repositório."
             exit 1
           fi
-          flutter build apk --debug \
+
+          flutter build apk --release \
             --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
 
-      - name: Disponibilizar APK
+          flutter build apk --release --split-per-abi \
+            --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Preparar artefatos Android
+        shell: bash
+        run: |
+          mkdir -p dist/android
+          OUT="app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk"
+          cp "$OUT/app-release.apk" "dist/android/Auditar-SST-v${APP_VERSION}.apk"
+
+          [ -f "$OUT/app-arm64-v8a-release.apk" ] && cp "$OUT/app-arm64-v8a-release.apk" "dist/android/Auditar-SST-v${APP_VERSION}-arm64-v8a.apk"
+          [ -f "$OUT/app-armeabi-v7a-release.apk" ] && cp "$OUT/app-armeabi-v7a-release.apk" "dist/android/Auditar-SST-v${APP_VERSION}-armeabi-v7a.apk"
+          [ -f "$OUT/app-x86_64-release.apk" ] && cp "$OUT/app-x86_64-release.apk" "dist/android/Auditar-SST-v${APP_VERSION}-x86_64.apk"
+
+          cat > dist/android/LEIA-ME.txt <<EOF
+          AUDITAR SST v${APP_VERSION} — ANDROID
+
+          Build: RELEASE
+          Build number: ${BUILD_NUMBER}
+
+          - O APK sem sufixo é a versão universal.
+          - Os APKs por arquitetura são menores e podem ser usados quando a arquitetura do aparelho for conhecida.
+          - A assinatura definitiva de distribuição deve usar uma chave Android permanente, mantida fora do repositório.
+          EOF
+
+      - name: Disponibilizar Android release
         uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-APK-TESTE
-          path: app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-debug.apk
+          name: Auditar-SST-Android-Release
+          path: dist/android/*
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
 
-      - name: Empacotar código-fonte corrigido
+      - name: Empacotar código-fonte da compilação
+        shell: bash
         run: |
           cd app
-          zip -qr ../Auditar-SST-Codigo-Fonte-v3.21.3.zip Auditar_SST_v1_5_dashboard \
+          zip -qr "../Auditar-SST-Codigo-Fonte-v${APP_VERSION}.zip" Auditar_SST_v1_5_dashboard \
             -x "Auditar_SST_v1_5_dashboard/build/*" \
                "Auditar_SST_v1_5_dashboard/.dart_tool/*" \
                "Auditar_SST_v1_5_dashboard/android/.gradle/*"
 
-      - name: Disponibilizar código-fonte corrigido
+      - name: Disponibilizar código-fonte compilado
         uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-Codigo-Fonte-v3.21.3
-          path: Auditar-SST-Codigo-Fonte-v3.21.3.zip
+          name: Auditar-SST-Codigo-Fonte
+          path: Auditar-SST-Codigo-Fonte-v*.zip
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
