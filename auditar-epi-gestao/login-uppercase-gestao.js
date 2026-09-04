@@ -6,10 +6,7 @@
       const style=document.createElement('style');
       style.id=STYLE_ID;
       style.textContent=`
-        #gestaoAuthOverlay .gestao-auth-card h1,
-        #gestaoAuthOverlay .gestao-auth-card > p,
-        #gestaoAuthOverlay .gestao-auth-card label,
-        #gestaoAuthOverlay #gestaoAuthSubmit{
+        #gestaoAuthOverlay .gestao-auth-card label{
           text-transform:uppercase;
         }
         #gestaoAuthOverlay #gestaoTenantCode,
@@ -38,12 +35,12 @@
     const user=document.getElementById('gestaoAuthUser');
     const pass=document.getElementById('gestaoAuthPass');
 
-    if(h1)h1.textContent='ENTRAR NO GESTÃO EPI';
-    if(p)p.textContent='ACESSO EXCLUSIVO DA EMPRESA LICENCIADA.';
+    if(h1)h1.textContent='Entrar no Gestão EPI';
+    if(p)p.textContent='Acesso exclusivo da empresa licenciada.';
     if(labels[0])labels[0].childNodes[0].nodeValue='CÓDIGO DA EMPRESA';
     if(labels[1])labels[1].childNodes[0].nodeValue='USUÁRIO';
     if(labels[2])labels[2].childNodes[0].nodeValue='SENHA';
-    if(btn&&!btn.disabled)btn.textContent='ENTRAR';
+    if(btn&&!btn.disabled)btn.textContent='Entrar';
     if(tenant)tenant.placeholder='EX.: EMPRESA-X';
     if(user)user.placeholder='SEU USUÁRIO';
     if(pass)pass.placeholder='SUA SENHA';
