@@ -59,13 +59,30 @@ jobs:
           permission = '<uses-permission android:name="android.permission.CAMERA" />'
           feature = '<uses-feature android:name="android.hardware.camera.front" android:required="false" />'
           if permission not in text:
-              text = re.sub(
-                  r'(<manifest\b[^>]*>)',
-                  r'\1\n    ' + permission + '\n    ' + feature,
-                  text,
-                  count=1
-              )
+              text = re.sub(r'(<manifest\b[^>]*>)', r'\1\n    ' + permission + '\n    ' + feature, text, count=1)
+
+          # Usa a identidade oficial Gestão EPI também no ícone nativo do Android.
+          text = re.sub(r'android:icon="[^"]+"', 'android:icon="@drawable/ic_gestao_epi"', text, count=1)
+          text = re.sub(r'android:roundIcon="[^"]+"', 'android:roundIcon="@drawable/ic_gestao_epi"', text, count=1)
           manifest.write_text(text, encoding='utf-8')
+
+          drawable = Path('android/app/src/main/res/drawable')
+          drawable.mkdir(parents=True, exist_ok=True)
+          (drawable/'ic_gestao_epi.xml').write_text(r'''<?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp" android:height="108dp"
+              android:viewportWidth="512" android:viewportHeight="512">
+              <path android:fillColor="#0FA88E" android:pathData="M0,0H512V512H0Z"/>
+              <path android:fillColor="@android:color/transparent" android:strokeColor="#FFFFFF" android:strokeWidth="24" android:strokeLineJoin="round" android:pathData="M256,74 L401,128 L401,240 C401,336 346,403 256,447 C166,403 111,336 111,240 L111,128 Z"/>
+              <path android:fillColor="#FFFFFF" android:pathData="M176,221 C180,172 210,139 246,130 L246,112 L266,112 L266,130 C302,139 332,172 336,221 Z"/>
+              <path android:fillColor="#FFFFFF" android:pathData="M174,215 H338 A14,14 0,0 1,352 229 A14,14 0,0 1,338 243 H174 A14,14 0,0 1,160 229 A14,14 0,0 1,174 215 Z"/>
+              <path android:fillColor="@android:color/transparent" android:strokeColor="#FFFFFF" android:strokeWidth="12" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M200,254 H227 C238,254 247,263 247,274 V286 C247,297 238,306 227,306 H200 C189,306 180,297 180,286 V274 C180,263 189,254 200,254 Z M285,254 H312 C323,254 332,263 332,274 V286 C332,297 323,306 312,306 H285 C274,306 265,297 265,286 V274 C265,263 274,254 285,254 Z M247,274 H265"/>
+              <path android:fillColor="#FFFFFF" android:pathData="M188,332 L225,306 L256,337 L287,306 L324,332 L309,407 L203,407 Z"/>
+              <path android:fillColor="@android:color/transparent" android:strokeColor="#0FA88E" android:strokeWidth="10" android:strokeLineCap="round" android:pathData="M225,309 V405 M287,309 V405 M256,338 V406"/>
+              <path android:fillColor="#1F2937" android:strokeColor="#FFFFFF" android:strokeWidth="9" android:pathData="M401,367 A51,51 0,1 1,299,367 A51,51 0,1 1,401,367"/>
+              <path android:fillColor="@android:color/transparent" android:strokeColor="#FFFFFF" android:strokeWidth="14" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M326,367 L341,383 L375,344"/>
+          </vector>
+          ''', encoding='utf-8')
 
           java_dir = Path('android/app/src/main/java/br/com/gestao/epi')
           java_dir.mkdir(parents=True, exist_ok=True)
@@ -84,25 +101,14 @@ jobs:
               public void lock(PluginCall call) {
                   String orientation = call.getString("orientation", "portrait");
                   final int requested;
-                  if (orientation.startsWith("landscape")) {
-                      requested = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE;
-                  } else if (orientation.startsWith("portrait")) {
-                      requested = ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT;
-                  } else {
-                      requested = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
-                  }
-                  getActivity().runOnUiThread(() -> {
-                      getActivity().setRequestedOrientation(requested);
-                      call.resolve();
-                  });
+                  if (orientation.startsWith("landscape")) requested = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE;
+                  else if (orientation.startsWith("portrait")) requested = ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT;
+                  else requested = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
+                  getActivity().runOnUiThread(() -> { getActivity().setRequestedOrientation(requested); call.resolve(); });
               }
-
               @PluginMethod
               public void unlock(PluginCall call) {
-                  getActivity().runOnUiThread(() -> {
-                      getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
-                      call.resolve();
-                  });
+                  getActivity().runOnUiThread(() -> { getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED); call.resolve(); });
               }
           }
           ''', encoding='utf-8')
