@@ -141,10 +141,15 @@
 
   <dialog id="formDialog"><form method="dialog" id="dynamicForm"><div class="dialog-head"><div><h2 id="dialogTitle">Cadastro</h2><p id="dialogSub"></p></div><button value="cancel" class="x">×</button></div><div id="dialogFields" class="form-grid"></div><div class="dialog-actions"><button value="cancel" class="secondary">Cancelar</button><button id="dialogSave" value="default" class="primary">Salvar</button></div></form></dialog>
 
-  <!-- A configuração comercial deve carregar antes do app legado para impedir
-       que a antiga tela de chave de sincronização seja exibida. -->
+  <!-- Ordem obrigatória: configuração comercial -> login -> aplicativo. -->
   <script src="central-config.js"></script>
+  <script src="auth-gestao.js"></script>
+  <script src="login-uppercase-gestao.js"></script>
   <script src="app.js"></script>
   <script src="indicators.js"></script>
+  <script src="epi-tools.js"></script>
+  <script src="epi-photo-ca-gestao.js"></script>
+  <script src="worker-link-gestao.js"></script>
+  <script src="company-branding-gestao.js"></script>
 </body>
 </html>
