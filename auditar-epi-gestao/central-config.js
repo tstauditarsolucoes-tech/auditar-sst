@@ -1,6 +1,9 @@
 (() => {
   const OLD_KEY='auditarEpiSyncKey';
   const CENTRAL_KEY='auditarEpiCentralKey';
+  const AUTH_TOKEN_KEY='gestaoEpiAuthToken';
+  const AUTH_USER_KEY='gestaoEpiAuthUser';
+  const AUTH_TENANT_KEY='gestaoEpiAuthTenant';
   const OLD_ENDPOINT='https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec';
   const NEW_ENDPOINT='https://script.google.com/macros/s/AKfycbxqMnKiTlAJTFv3-odS2dB1NRcSD8wwvtNxxa-zCFhTM6GeNZszib_1N6eT9wSnOnOyjg/exec';
 
@@ -8,8 +11,20 @@
   const nativeSet=Storage.prototype.setItem;
   const nativeRemove=Storage.prototype.removeItem;
 
+  // No PC a senha deve ser solicitada a cada nova abertura do programa.
+  // Mantemos apenas o código da empresa para facilitar o preenchimento.
+  try{
+    nativeRemove.call(localStorage,AUTH_TOKEN_KEY);
+    nativeRemove.call(localStorage,AUTH_USER_KEY);
+    nativeRemove.call(localStorage,AUTH_TENANT_KEY);
+  }catch(_){}
+
   Storage.prototype.getItem=function(key){
-    if(key===OLD_KEY||key===CENTRAL_KEY)return 'commercial-session';
+    if(key===OLD_KEY||key===CENTRAL_KEY){
+      // O painel antigo só enxerga uma "chave" depois que o login comercial
+      // criou uma sessão válida. Isso evita a sync antes do login.
+      return nativeGet.call(this,AUTH_TOKEN_KEY)?'commercial-session':'';
+    }
     return nativeGet.call(this,key);
   };
   Storage.prototype.setItem=function(key,value){
@@ -59,6 +74,7 @@
   loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js','xlsx-lib');
   loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js','pdfjs-lib');
   loadScript('https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/dist/human.js','human-lib');
+  loadScript('pc-stability.js','pc-stability');
   loadScript('campo-pc.js','campo-pc');
   loadScript('ai-import-pc.js','ai-import-pc');
 })();
