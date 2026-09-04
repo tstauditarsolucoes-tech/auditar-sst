@@ -11,16 +11,19 @@ on:
       - "tools/prepare_sst_source.py"
       - "tools/patch_management_snapshot.py"
       - "tools/patch_resume_vistoria.py"
+      - "tools/patch_multiuser.py"
       - ".github/workflows/build-windows.yml"
   push:
     branches:
       - main
+      - feature/multiuser-v3.23.0
     paths:
       - "Auditar_SST_v1.5_dashboard_completo.zip"
       - "source_overrides/**"
       - "tools/prepare_sst_source.py"
       - "tools/patch_management_snapshot.py"
       - "tools/patch_resume_vistoria.py"
+      - "tools/patch_multiuser.py"
       - ".github/workflows/build-windows.yml"
 
 permissions:
@@ -46,6 +49,7 @@ jobs:
           python tools/patch_management_snapshot.py app/Auditar_SST_v1_5_dashboard
           python tools/prepare_sst_source.py app/Auditar_SST_v1_5_dashboard
           python tools/patch_resume_vistoria.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_multiuser.py app/Auditar_SST_v1_5_dashboard
 
       - name: Instalar Flutter
         uses: subosito/flutter-action@v2
@@ -60,7 +64,6 @@ jobs:
           flutter config --enable-windows-desktop
           flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
 
-          # Remove apenas o teste de exemplo que o Flutter cria para "MyApp".
           if ((Test-Path 'test/widget_test.dart') -and (Select-String -Path 'test/widget_test.dart' -Pattern 'MyApp' -Quiet)) {
             Remove-Item 'test/widget_test.dart' -Force
           }
@@ -132,11 +135,14 @@ jobs:
 
           Build: RELEASE
           Build number: $env:BUILD_NUMBER
+          Multiusuário: habilitado
 
           1. Mantenha todos os arquivos desta pasta juntos.
           2. Abra "Auditar SST.exe".
-          3. O aplicativo funciona offline e sincroniza quando houver conexão.
-          4. Para uso normal, prefira o instalador Auditar-SST-Setup-v$env:APP_VERSION.exe.
+          3. A mesma conta pode ser usada no Windows e no Android.
+          4. O aplicativo funciona offline após o primeiro login e sincroniza quando houver conexão.
+          5. A Central Online (Apps Script) deve estar publicada com o módulo MultiUser.gs desta versão.
+          6. Para uso normal, prefira o instalador Auditar-SST-Setup-v$env:APP_VERSION.exe.
           "@ | Set-Content "$destino/LEIA-ME.txt" -Encoding UTF8
 
           Compress-Archive -Path "$destino/*" -DestinationPath "dist/windows/Auditar-SST-Windows-v$env:APP_VERSION-PORTATIL.zip" -Force
