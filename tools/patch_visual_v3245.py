@@ -48,7 +48,17 @@ old_build = """  @override\n  Widget build(BuildContext context) {\n    return S
 new_build = """  @override\n  Widget build(BuildContext context) {\n    final screenWidth = MediaQuery.sizeOf(context).width;\n    final desktopLayout = _useDesktopLayout(screenWidth);\n    return Scaffold(\n"""
 home = replace_once(home, old_build, new_build, 'estado de responsividade da home')
 home = home.replace('if (constraints.maxWidth >= 900) {', 'if (_useDesktopLayout(constraints.maxWidth)) {', 1)
-home = home.replace('bottomNavigationBar: MediaQuery.sizeOf(context).width < 900\n          ? NavigationBar(', 'bottomNavigationBar: desktopLayout\n          ? null\n          : NavigationBar(', 1)
+home = home.replace(
+    'bottomNavigationBar: MediaQuery.sizeOf(context).width < 900\n          ? NavigationBar(',
+    'bottomNavigationBar: desktopLayout\n          ? null\n          : NavigationBar(',
+    1,
+)
+# Fecha o novo ternário sem manter o ": null" da expressão antiga.
+home = home.replace(
+    """              ],\n            )\n          : null,\n""",
+    """              ],\n            ),\n""",
+    1,
+)
 home = home.replace('          width: 292,', "          width: MediaQuery.sizeOf(context).width < 1050 ? 238 : 276,", 1)
 home = home.replace('              padding: const EdgeInsets.fromLTRB(24, 22, 24, 32),', '              padding: EdgeInsets.fromLTRB(\n                MediaQuery.sizeOf(context).width < 1050 ? 18 : 24,\n                20,\n                MediaQuery.sizeOf(context).width < 1050 ? 18 : 24,\n                32,\n              ),', 1)
 home = home.replace("fontSize: 26,", "fontSize: 24,", 1)
