@@ -1,0 +1,102 @@
+(() => {
+  const ENDPOINT='https://script.google.com/macros/s/AKfycbxqMnKiTlAJTFv3-odS2dB1NRcSD8wwvtNxxa-zCFhTM6GeNZszib_1N6eT9wSnOnOyjg/exec';
+  const SYNC_KEY='auditarEpiCentralKey';
+  const TOKEN_KEY='gestaoEpiAuthToken';
+  const USER_KEY='gestaoEpiAuthUser';
+  const nativeFetch=window.fetch.bind(window);
+  let currentUser=null;
+  let setupMode=false;
+
+  const $=(s,r=document)=>r.querySelector(s);
+  const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+  const esc=(v='')=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const syncKey=()=>String(localStorage.getItem(SYNC_KEY)||'').trim();
+  const token=()=>String(localStorage.getItem(TOKEN_KEY)||'').trim();
+  const roleLabel=r=>r==='admin'?'Administrador':r==='campo'?'Campo':'Consulta';
+
+  async function api(action,extra={}){
+    const body={action,syncKey:syncKey(),...extra};
+    if(token()&&!body.authToken)body.authToken=token();
+    const res=await nativeFetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});
+    return res.json();
+  }
+
+  window.fetch=async function(input,init){
+    if(typeof input==='string'&&input===ENDPOINT&&init?.body){
+      try{const body=JSON.parse(init.body);if(body.action==='epi_sync_merge'&&!body.authToken)body.authToken=token();init={...init,body:JSON.stringify(body)};}catch(_){}
+    }
+    const res=await nativeFetch(input,init);
+    try{res.clone().json().then(j=>{if(j&&j.ok===false&&(j.code==='SESSION_EXPIRED'||j.code==='USER_DISABLED'))logout(false,j.message);}).catch(()=>{});}catch(_){}
+    return res;
+  };
+
+  function styles(){
+    if($('#gestaoAuthStyle'))return;
+    const s=document.createElement('style');s.id='gestaoAuthStyle';s.textContent=`
+      .gestao-auth-overlay{position:fixed;inset:0;z-index:30000;background:linear-gradient(135deg,#e8f5f3,#f7faf9);display:flex;align-items:center;justify-content:center;padding:24px}.gestao-auth-overlay.hidden{display:none}
+      .gestao-auth-card{width:min(430px,100%);background:#fff;border-radius:24px;padding:25px;box-shadow:0 30px 80px rgba(22,61,56,.18)}.gestao-auth-mark{width:62px;height:62px;border-radius:19px;background:#0f8f83;color:#fff;display:grid;place-items:center;font-size:29px;margin-bottom:14px}.gestao-auth-card h1{margin:0;color:#173d39}.gestao-auth-card>p{color:#617b77;font-size:13px;line-height:1.5}.gestao-auth-card label{display:block;font-size:12px;font-weight:850;color:#355b57;margin:11px 0}.gestao-auth-card input,.gestao-auth-card select{width:100%;box-sizing:border-box;min-height:49px;border:1px solid #cfdfdc;border-radius:13px;padding:0 13px;margin-top:5px}.gestao-auth-card>button{width:100%;min-height:52px;border:0;border-radius:14px;background:#0f766e;color:white;font-weight:900;font-size:15px}.gestao-auth-error{min-height:18px;margin-top:9px;color:#b42318;font-size:12px;font-weight:800}
+      .gestao-user-chip{display:flex;align-items:center;gap:10px;background:#f1f7f6;border:1px solid #d8e7e4;border-radius:13px;padding:7px 10px;font-size:11px;color:#355b57}.gestao-user-chip b{display:block}.gestao-user-chip button{border:0;background:transparent;color:#0f766e;font-weight:900;cursor:pointer}
+      .users-admin-btn{width:100%;margin:8px 0 12px;border:1px solid #2d5b56;background:#163e3a;color:#dff3f0;border-radius:10px;padding:10px;text-align:left;font-weight:850;cursor:pointer}
+      .users-modal{position:fixed;inset:0;z-index:29000;background:rgba(8,35,32,.75);display:none;align-items:center;justify-content:center;padding:24px}.users-modal.open{display:flex}.users-card{width:min(850px,100%);max-height:88vh;overflow:auto;background:#fff;border-radius:22px;padding:22px}.users-head{display:flex;justify-content:space-between;gap:15px;align-items:center}.users-head h2{margin:0}.users-close{border:0;background:#eef5f4;border-radius:10px;width:42px;height:42px;font-size:22px}.users-create{display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:9px;margin:18px 0}.users-create input,.users-create select{min-height:43px;border:1px solid #d2e1de;border-radius:10px;padding:0 10px}.users-create button{border:0;border-radius:10px;background:#0f766e;color:#fff;font-weight:900;padding:0 15px}.users-row{display:grid;grid-template-columns:1.3fr 1fr .8fr .7fr auto;gap:10px;align-items:center;padding:11px 0;border-top:1px solid #edf2f1;font-size:12px}.users-row small{color:#718682}.users-actions{display:flex;gap:6px}.users-actions button{border:0;border-radius:9px;padding:7px 9px;font-weight:850;cursor:pointer}.users-actions .danger{background:#fff0ee;color:#b42318}.users-actions .ok{background:#e9f8ef;color:#17653a}.users-actions .soft{background:#edf5f4;color:#355b57}@media(max-width:850px){.users-create{grid-template-columns:1fr 1fr}.users-row{grid-template-columns:1fr 1fr}.users-actions{grid-column:1/-1}}
+    `;document.head.appendChild(s);
+  }
+
+  function overlay(){
+    if($('#gestaoAuthOverlay'))return;
+    const d=document.createElement('div');d.id='gestaoAuthOverlay';d.className='gestao-auth-overlay';d.innerHTML=`<div class="gestao-auth-card"><div class="gestao-auth-mark">🦺</div><h1 id="gestaoAuthTitle">Entrar no Gestão EPI</h1><p id="gestaoAuthText">Acesso protegido por usuário e senha.</p><div id="gestaoAuthNameWrap" style="display:none"><label>Seu nome<input id="gestaoAuthName" autocomplete="name" placeholder="Ex.: Luan Sena"></label></div><label>Usuário<input id="gestaoAuthUser" autocomplete="username" autocapitalize="none"></label><label>Senha<input id="gestaoAuthPass" type="password" autocomplete="current-password"></label><button id="gestaoAuthSubmit" type="button">Entrar</button><div id="gestaoAuthError" class="gestao-auth-error"></div></div>`;
+    document.body.appendChild(d);$('#gestaoAuthSubmit').addEventListener('click',submit);$('#gestaoAuthPass').addEventListener('keydown',e=>{if(e.key==='Enter')submit();});
+  }
+
+  function show(setup=false,msg=''){setupMode=setup;overlay();$('#gestaoAuthOverlay').classList.remove('hidden');$('#gestaoAuthNameWrap').style.display=setup?'block':'none';$('#gestaoAuthTitle').textContent=setup?'Criar administrador':'Entrar no Gestão EPI';$('#gestaoAuthText').textContent=setup?'Primeiro acesso: crie o usuário administrador.':'Acesso protegido por usuário e senha.';$('#gestaoAuthSubmit').textContent=setup?'Criar administrador':'Entrar';$('#gestaoAuthError').textContent=msg||'';setTimeout(()=>$('#gestaoAuthUser')?.focus(),80);}
+  function hide(){$('#gestaoAuthOverlay')?.classList.add('hidden');}
+
+  async function submit(){
+    const username=($('#gestaoAuthUser')?.value||'').trim(),password=$('#gestaoAuthPass')?.value||'',err=$('#gestaoAuthError'),btn=$('#gestaoAuthSubmit');
+    if(!username||!password){err.textContent='Informe usuário e senha.';return;}
+    btn.disabled=true;btn.textContent='Aguarde…';err.textContent='';
+    try{const r=setupMode?await api('auth_bootstrap_admin',{username,password,name:($('#gestaoAuthName')?.value||'').trim()}):await api('auth_login',{username,password});if(!r?.ok)throw new Error(r?.message||'Falha no login.');save(r.token,r.user);hide();apply(r.user);}
+    catch(e){err.textContent=e.message||'Falha no login.';}finally{btn.disabled=false;btn.textContent=setupMode?'Criar administrador':'Entrar';}
+  }
+
+  function save(t,u){localStorage.setItem(TOKEN_KEY,t);localStorage.setItem(USER_KEY,JSON.stringify(u));currentUser=u;}
+  function clear(){localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(USER_KEY);currentUser=null;}
+
+  function apply(u){
+    currentUser=u;document.body.dataset.epiRole=u.role;userChip();
+    const admin=u.role==='admin';
+    ['#btnStockEntry','#btnNewEpi','#btnNewWorker','#btnNewCompany','#companyBrandPanel'].forEach(sel=>$$(`${sel}`).forEach(el=>el.style.display=admin?'':'none'));
+    if(admin)injectUsersButton();else $('#usersAdminButton')?.remove();
+    const obs=new MutationObserver(()=>{if(currentUser?.role!=='admin')$('#companyBrandPanel')&&($('#companyBrandPanel').style.display='none');});obs.observe(document.body,{childList:true,subtree:true});
+  }
+
+  function userChip(){
+    const actions=$('.top-actions')||$('.topbar');if(!actions)return;let c=$('#gestaoUserChip');if(!c){c=document.createElement('div');c.id='gestaoUserChip';c.className='gestao-user-chip';actions.appendChild(c);}c.innerHTML=`<span><b>👤 ${esc(currentUser?.name||currentUser?.username||'Usuário')}</b>${roleLabel(currentUser?.role)}</span><button id="gestaoLogout">Sair</button>`;$('#gestaoLogout').onclick=()=>logout(true);
+  }
+
+  function injectUsersButton(){
+    const side=$('.sidebar-foot')?.parentElement||$('.sidebar');if(!side||$('#usersAdminButton'))return;const b=document.createElement('button');b.id='usersAdminButton';b.className='users-admin-btn';b.type='button';b.textContent='👥 Usuários e acessos';b.onclick=openUsers;side.insertBefore(b,$('.sidebar-foot')||null);
+  }
+
+  function usersModal(){
+    if($('#usersModal'))return;
+    const d=document.createElement('div');d.id='usersModal';d.className='users-modal';d.innerHTML=`<div class="users-card"><div class="users-head"><div><h2>Usuários e acessos</h2><p>Crie, bloqueie ou redefina usuários do sistema.</p></div><button id="usersClose" class="users-close">×</button></div><div class="users-create"><input id="newUserName" placeholder="Nome"><input id="newUsername" placeholder="Usuário"><input id="newUserPass" type="password" placeholder="Senha (mín. 6)"><select id="newUserRole"><option value="campo">Campo</option><option value="consulta">Consulta</option><option value="admin">Administrador</option></select><button id="btnCreateUser">＋ Criar</button></div><div id="usersList"></div></div>`;document.body.appendChild(d);$('#usersClose').onclick=()=>d.classList.remove('open');$('#btnCreateUser').onclick=createUser;
+  }
+
+  async function openUsers(){usersModal();$('#usersModal').classList.add('open');await refreshUsers();}
+  async function refreshUsers(){const box=$('#usersList');box.innerHTML='Carregando…';const r=await api('auth_list_users');if(!r?.ok){box.innerHTML=`<div class="gestao-auth-error">${esc(r?.message||'Falha ao carregar usuários.')}</div>`;return;}box.innerHTML=(r.users||[]).map(u=>`<div class="users-row"><div><b>${esc(u.name||u.username)}</b><small>@${esc(u.username)}</small></div><div>${roleLabel(u.role)}</div><div>${u.active!==false?'Ativo':'Bloqueado'}</div><div>${u.lastLoginAt?new Date(u.lastLoginAt).toLocaleDateString('pt-BR'):'Nunca'}</div><div class="users-actions"><button class="${u.active!==false?'danger':'ok'}" data-user-toggle="${esc(u.username)}" data-active="${u.active!==false?'0':'1'}">${u.active!==false?'Bloquear':'Ativar'}</button><button class="soft" data-user-pass="${esc(u.username)}">Nova senha</button></div></div>`).join('');box.querySelectorAll('[data-user-toggle]').forEach(b=>b.onclick=()=>toggleUser(b.dataset.userToggle,b.dataset.active==='1'));box.querySelectorAll('[data-user-pass]').forEach(b=>b.onclick=()=>resetPass(b.dataset.userPass));}
+
+  async function createUser(){const name=$('#newUserName').value.trim(),username=$('#newUsername').value.trim(),password=$('#newUserPass').value,role=$('#newUserRole').value;if(!username||!password)return alert('Informe usuário e senha.');const r=await api('auth_create_user',{name,username,password,role});if(!r?.ok)return alert(r?.message||'Falha ao criar usuário.');$('#newUserName').value='';$('#newUsername').value='';$('#newUserPass').value='';await refreshUsers();}
+  async function toggleUser(username,active){const r=await api('auth_update_user',{username,active});if(!r?.ok)return alert(r?.message||'Falha ao atualizar usuário.');await refreshUsers();}
+  async function resetPass(username){const password=prompt('Digite a nova senha para '+username+' (mínimo 6 caracteres):');if(!password)return;const r=await api('auth_update_user',{username,password});if(!r?.ok)return alert(r?.message||'Falha ao alterar senha.');alert('Senha alterada.');}
+
+  function logout(showLogin=true,msg=''){clear();if(showLogin||msg)show(false,msg||'Você saiu do sistema.');}
+
+  async function init(){
+    styles();overlay();
+    if(!syncKey()){show(false,'A central ainda não está configurada neste computador.');return;}
+    try{const s=await api('auth_status');if(!s?.ok){show(false,s?.message||'Atualize a central para ativar o login.');return;}if(!s.configured){show(true);return;}if(token()){const me=await api('auth_me');if(me?.ok){hide();apply(me.user);return;}clear();}show(false);}catch(_){show(false,'Não foi possível conectar à central. Verifique a internet.');}
+  }
+
+  window.GestaoEpiAuth={api,token,user:()=>currentUser,logout};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
