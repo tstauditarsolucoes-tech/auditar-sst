@@ -32,6 +32,16 @@ jobs:
           New-Item -ItemType Directory -Path 'gestao-epi-master-windows/app' | Out-Null
           Copy-Item -Recurse -Force 'gestao-epi-master/*' 'gestao-epi-master-windows/app/'
 
+      - name: Gerar ícone do Painel Mestre
+        shell: pwsh
+        run: |
+          if (-not (Get-Command magick -ErrorAction SilentlyContinue)) {
+            choco install imagemagick.app -y --no-progress
+            $env:Path += ';C:\Program Files\ImageMagick-7.1.1-Q16-HDRI'
+          }
+          magick -background none 'gestao-epi-master-windows/app/icon.svg' -resize 512x512 'gestao-epi-master-windows/app-icon.png'
+          if (-not (Test-Path 'gestao-epi-master-windows/app-icon.png')) { throw 'Não foi possível gerar o ícone do Painel Mestre.' }
+
       - name: Instalar dependências
         working-directory: gestao-epi-master-windows
         run: npm install
