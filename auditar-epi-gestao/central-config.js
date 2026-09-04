@@ -26,20 +26,19 @@
 
   document.addEventListener('DOMContentLoaded',()=>{
     const input=document.getElementById('connectKey');
-    if(input) input.placeholder='Cole a chave do Auditar EPI';
+    if(input) input.placeholder='Cole a chave da central Gestão EPI';
   });
 
-  if(!document.querySelector('script[data-epi-tools]')){
+  function loadScript(src,attr){
+    if(document.querySelector(`script[data-${attr}]`)) return;
     const script=document.createElement('script');
-    script.src='epi-tools.js';
-    script.dataset.epiTools='1';
+    script.src=src;
+    script.async=false;
+    script.setAttribute(`data-${attr}`,'1');
     document.head.appendChild(script);
   }
 
-  if(!document.querySelector('script[data-company-branding-gestao]')){
-    const script=document.createElement('script');
-    script.src='company-branding-gestao.js';
-    script.dataset.companyBrandingGestao='1';
-    document.head.appendChild(script);
-  }
+  loadScript('auth-gestao.js','auth-gestao');
+  loadScript('epi-tools.js','epi-tools');
+  loadScript('company-branding-gestao.js','company-branding-gestao');
 })();
