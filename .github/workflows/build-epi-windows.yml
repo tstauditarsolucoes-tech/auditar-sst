@@ -1,4 +1,4 @@
-name: Gerar Windows Auditar EPI Gestão
+name: Gerar Windows Gestão EPI
 
 on:
   workflow_dispatch:
@@ -27,23 +27,10 @@ jobs:
 
       - name: Preparar interface Gestão
         shell: pwsh
-        env:
-          AUDITAR_EPI_SYNC_KEY: ${{ secrets.AUDITAR_EPI_SYNC_KEY }}
         run: |
-          if (-not $env:AUDITAR_EPI_SYNC_KEY) {
-            Write-Error 'Configure AUDITAR_EPI_SYNC_KEY nos segredos do repositório.'
-            exit 1
-          }
           Remove-Item -Recurse -Force 'auditar-epi-windows/app' -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Path 'auditar-epi-windows/app' | Out-Null
           Copy-Item -Recurse -Force 'auditar-epi-gestao/*' 'auditar-epi-windows/app/'
-          $escaped = $env:AUDITAR_EPI_SYNC_KEY | ConvertTo-Json -Compress
-          $config = "try{localStorage.setItem('auditarEpiCentralKey',$escaped);}catch(e){}"
-          Set-Content -Path 'auditar-epi-windows/app/compiled-config.js' -Value $config -Encoding UTF8
-          $indexPath = 'auditar-epi-windows/app/index.html'
-          $html = Get-Content $indexPath -Raw
-          $html = $html.Replace('<script src="app.js"></script>', '<script src="compiled-config.js"></script>' + "`r`n  " + '<script src="app.js"></script>')
-          Set-Content -Path $indexPath -Value $html -Encoding UTF8
 
       - name: Instalar dependências
         working-directory: auditar-epi-windows
@@ -58,7 +45,7 @@ jobs:
       - name: Disponibilizar aplicativo
         uses: actions/upload-artifact@v4
         with:
-          name: Auditar-EPI-Gestao-Windows
+          name: Gestao-EPI-Gestao-Windows
           path: auditar-epi-windows/dist/*.exe
           if-no-files-found: error
           retention-days: 14
