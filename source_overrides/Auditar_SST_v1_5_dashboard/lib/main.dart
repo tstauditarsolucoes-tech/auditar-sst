@@ -14,6 +14,12 @@ Future<void> main() async {
   if (Platform.isWindows) {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
+
+    // No primeiro acesso do Windows, a pasta padrão do SQLite pode ainda
+    // não existir. Criá-la antes de autenticar evita o erro SQLite 14
+    // (unable to open database file) ao abrir/migrar o banco do usuário.
+    final dbPath = await getDatabasesPath();
+    await Directory(dbPath).create(recursive: true);
   }
   await WebServiceConfig.applyEmbeddedConfiguration();
   runApp(const AuditarSstApp());

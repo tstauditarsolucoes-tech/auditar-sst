@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Destaca e abre diretamente a vistoria em andamento na home."""
+"""Destaca a vistoria em andamento e preserva a navegação nas telas da empresa."""
 from __future__ import annotations
 
 import sys
@@ -80,6 +80,41 @@ def patch_home(path: Path) -> None:
     path.write_text(text, encoding="utf-8")
 
 
+def patch_company_detail(path: Path) -> None:
+    """Mantém a posição da rolagem quando o usuário abre um módulo e volta."""
+    text = path.read_text(encoding="utf-8")
+
+    text = replace_once(
+        text,
+        "  Future<void> _load() async {\n    if (mounted) setState(() => loading = true);",
+        "  Future<void> _load({bool showLoading = true}) async {\n    if (showLoading && mounted) setState(() => loading = true);",
+        "carregamento sem desmontar a tela da empresa",
+    )
+
+    text = replace_once(
+        text,
+        """  Future<void> _open(Widget page) async {\n    await Navigator.of(context).push(\n      MaterialPageRoute(builder: (_) => page),\n    );\n    await _load();\n  }""",
+        """  Future<void> _open(Widget page) async {\n    await Navigator.of(context).push(\n      MaterialPageRoute(builder: (_) => page),\n    );\n    await _load(showLoading: false);\n  }""",
+        "retorno para a mesma posição após abrir um módulo",
+    )
+
+    text = replace_once(
+        text,
+        """    return RefreshIndicator(\n      onRefresh: _load,\n      child: ListView(\n        padding: const EdgeInsets.fromLTRB(14, 14, 14, 26),""",
+        """    return RefreshIndicator(\n      onRefresh: _load,\n      child: ListView(\n        key: PageStorageKey<String>('company_${widget.company.id}_overview'),\n        padding: const EdgeInsets.fromLTRB(14, 14, 14, 26),""",
+        "memória de rolagem da visão geral",
+    )
+
+    text = replace_once(
+        text,
+        """    return RefreshIndicator(\n      onRefresh: _load,\n      child: ListView(\n        padding: const EdgeInsets.all(14),\n        children: [\n          ResponsiveWrap(""",
+        """    return RefreshIndicator(\n      onRefresh: _load,\n      child: ListView(\n        key: PageStorageKey<String>('company_${widget.company.id}_actions'),\n        padding: const EdgeInsets.all(14),\n        children: [\n          ResponsiveWrap(""",
+        "memória de rolagem da aba de ações",
+    )
+
+    path.write_text(text, encoding="utf-8")
+
+
 def main() -> int:
     if len(sys.argv) != 2:
         print("Uso: patch_resume_vistoria.py <pasta-do-projeto>", file=sys.stderr)
@@ -87,7 +122,8 @@ def main() -> int:
     root = Path(sys.argv[1]).resolve()
     patch_home(root / "lib" / "screens" / "home_screen.dart")
     patch_history(root / "lib" / "screens" / "history_screen.dart")
-    print("Atalho de continuar vistoria aplicado.")
+    patch_company_detail(root / "lib" / "screens" / "company_detail_screen.dart")
+    print("Atalho de continuar vistoria e memória de navegação aplicados.")
     return 0
 
 
