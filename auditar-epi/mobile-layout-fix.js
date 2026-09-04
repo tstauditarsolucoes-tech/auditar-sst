@@ -17,14 +17,9 @@
       .epi-tenant-name{max-width:100%!important}
       input,select,textarea,button{max-width:100%}
 
-      /* Tela de login padronizada em CAIXA ALTA.
-         O text-transform altera somente a exibição; o valor real do usuário
-         continua intacto para não interferir na autenticação. */
-      .epi-auth-card h1,
-      .epi-auth-card>p,
-      .epi-auth-card label,
-      .epi-auth-card button,
-      .epi-auth-error{ text-transform:uppercase!important; }
+      /* Somente os campos de acesso ficam padronizados em caixa alta.
+         A senha mantém exatamente o valor digitado para não quebrar o login. */
+      .epi-auth-card label{ text-transform:uppercase!important; }
       #epiTenantCode,
       #epiAuthUser{ text-transform:uppercase!important; }
       #epiTenantCode::placeholder,
