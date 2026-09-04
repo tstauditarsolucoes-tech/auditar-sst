@@ -1,34 +1,19 @@
 {
   "name": "auditar-sst-painel-mestre",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Painel Mestre administrativo do Auditar SST",
   "main": "main.js",
   "private": true,
-  "scripts": {
-    "dist": "electron-builder --win portable --x64"
-  },
-  "devDependencies": {
-    "electron": "37.2.0",
-    "electron-builder": "26.0.12"
-  },
+  "scripts": {"dist": "electron-builder --win portable --x64"},
+  "devDependencies": {"electron": "37.2.0", "electron-builder": "26.0.12"},
   "build": {
     "appId": "br.com.auditar.sst.master",
     "productName": "Auditar SST Painel Mestre",
-    "files": [
-      "main.js",
-      "app/**/*"
-    ],
-    "directories": {
-      "output": "dist"
-    },
+    "files": ["main.js", "app/**/*"],
+    "directories": {"output": "dist"},
     "win": {
       "icon": "app-icon.png",
-      "target": [
-        {
-          "target": "portable",
-          "arch": ["x64"]
-        }
-      ],
+      "target": [{"target": "portable", "arch": ["x64"]}],
       "artifactName": "Auditar-SST-Painel-Mestre-${version}.exe"
     }
   }
