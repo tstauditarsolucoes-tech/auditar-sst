@@ -24,9 +24,16 @@
   const nativeFetch=window.fetch.bind(window);
   window.fetch=function(input,init){if(typeof input==='string'&&input===OLD_ENDPOINT)input=NEW_ENDPOINT;return nativeFetch(input,init);};
 
+  function applyNeutralBrand(){
+    document.title='Gestão EPI • Gestão';
+    document.querySelectorAll('.logo').forEach(el=>el.innerHTML='GESTÃO <span>EPI</span>');
+    const sidebar=document.querySelector('.sidebar-brand small');if(sidebar)sidebar.textContent='GESTÃO';
+  }
+
   document.addEventListener('DOMContentLoaded',()=>{
     const overlay=document.getElementById('connectOverlay');if(overlay)overlay.classList.add('hidden');
-    document.title='Gestão EPI • Gestão';
+    applyNeutralBrand();
+    setTimeout(applyNeutralBrand,300);
   });
 
   function loadScript(src,attr){if(document.querySelector(`script[data-${attr}]`))return;const script=document.createElement('script');script.src=src;script.async=false;script.setAttribute(`data-${attr}`,'1');document.head.appendChild(script);}
