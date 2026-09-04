@@ -30,35 +30,35 @@
       <div class="brand"><div class="brand-icon">🦺</div><div><b>GESTÃO EPI</b><small>PAINEL MESTRE</small></div></div>
       <nav>
         <button class="nav active" data-view="dashboard">▦ <span>Visão geral</span></button>
-        <button class="nav" data-view="clients">🏢 <span>Clientes e licenças</span></button>
+        <button class="nav" data-view="clients">🏢 <span>Clientes</span></button>
       </nav>
-      <div class="sidebar-note">Este painel controla quem pode usar o sistema. Os dados operacionais de cada cliente ficam separados.</div>
+      <div class="sidebar-note">Licença comercial de pagamento único. Cada cliente possui ambiente, usuários e dados separados.</div>
       <div class="sidebar-foot"><div><b id="masterDisplay">Administrador</b><small>Acesso proprietário</small></div><button id="btnLogout">Sair</button></div>
     </aside>
 
     <main class="main">
       <header class="topbar">
-        <div><h1 id="viewTitle">Visão geral</h1><p id="viewSub">Acompanhe clientes, licenças e acessos.</p></div>
+        <div><h1 id="viewTitle">Visão geral</h1><p id="viewSub">Acompanhe clientes e licenças permanentes.</p></div>
         <div class="top-actions"><button id="btnRefresh" class="secondary">↻ Atualizar</button><button id="btnNewClientTop" class="primary">＋ Novo cliente</button></div>
       </header>
 
       <section id="dashboard" class="view active">
         <div class="metrics">
           <article><span>Clientes</span><strong id="mClients">0</strong><small>cadastrados</small></article>
-          <article class="good"><span>Licenças ativas</span><strong id="mActive">0</strong><small>em uso</small></article>
-          <article class="trial"><span>Em teste</span><strong id="mTrial">0</strong><small>licenças trial</small></article>
-          <article class="warn"><span>Atenção</span><strong id="mAttention">0</strong><small>vencidas ou suspensas</small></article>
+          <article class="good"><span>Licenças permanentes</span><strong id="mActive">0</strong><small>ativas</small></article>
+          <article class="trial"><span>Dispositivos</span><strong id="mDevices">0</strong><small>autorizados</small></article>
+          <article class="warn"><span>Suspensas</span><strong id="mAttention">0</strong><small>acesso bloqueado</small></article>
         </div>
         <div class="grid-2">
-          <article class="panel"><div class="panel-head"><div><h2>Licenças próximas do vencimento</h2><p>Clientes com até 30 dias restantes.</p></div></div><div id="expiringList"></div></article>
+          <article class="panel"><div class="panel-head"><div><h2>Modelo comercial</h2><p>Venda única, sem mensalidade e sem vencimento automático.</p></div></div><div class="list-item"><div><b>Licença permanente</b><small>O acesso continua ativo até você suspender manualmente.</small></div><span class="badge active">Permanente</span></div></article>
           <article class="panel"><div class="panel-head"><div><h2>Clientes recentes</h2><p>Últimos clientes cadastrados.</p></div></div><div id="recentList"></div></article>
         </div>
       </section>
 
       <section id="clients" class="view">
-        <div class="split-head"><div><h2>Clientes e licenças</h2><p>Cada cliente possui ambiente, usuários e dados isolados.</p></div><button id="btnNewClient" class="primary">＋ Novo cliente</button></div>
+        <div class="split-head"><div><h2>Clientes</h2><p>Cada cliente possui uma licença permanente e dados isolados.</p></div><button id="btnNewClient" class="primary">＋ Novo cliente</button></div>
         <article class="panel">
-          <div class="filters"><input id="clientSearch" placeholder="Buscar empresa, CNPJ ou código"><select id="statusFilter"><option value="">Todos os status</option><option value="active">Ativa</option><option value="trial">Teste</option><option value="expired">Vencida</option><option value="suspended">Suspensa</option></select></div>
+          <div class="filters"><input id="clientSearch" placeholder="Buscar empresa, CNPJ ou código"><select id="statusFilter"><option value="">Todos os status</option><option value="active">Ativa</option><option value="suspended">Suspensa</option></select></div>
           <div id="clientsTable" class="table-wrap"></div>
         </article>
       </section>
@@ -72,9 +72,7 @@
         <label class="full">Empresa<input id="cName" required placeholder="Razão social ou nome fantasia"></label>
         <label>CNPJ<input id="cCnpj" placeholder="Opcional"></label>
         <label>Código de acesso<input id="cCode" required placeholder="Ex.: EMPRESA-X"></label>
-        <label>Plano<select id="cPlan"><option value="basico">Básico</option><option value="profissional" selected>Profissional</option><option value="premium">Premium</option></select></label>
-        <label>Status<select id="cStatus"><option value="trial">Teste</option><option value="active">Ativa</option></select></label>
-        <label>Validade<input id="cValidUntil" type="date"></label>
+        <div class="separator full"><b>Licença permanente</b><small>Pagamento único • sem mensalidade • sem vencimento automático</small></div>
         <label>Máx. usuários<input id="cMaxUsers" type="number" min="1" value="5"></label>
         <label>Máx. dispositivos<input id="cMaxDevices" type="number" min="1" value="3"></label>
         <div class="separator full"><b>Administrador inicial do cliente</b></div>
@@ -88,17 +86,16 @@
 
   <dialog id="licenseDialog">
     <form method="dialog">
-      <div class="dialog-head"><div><h2 id="licenseTitle">Gerenciar licença</h2><p id="licenseCode"></p></div><button value="cancel" class="x">×</button></div>
+      <div class="dialog-head"><div><h2 id="licenseTitle">Gerenciar cliente</h2><p id="licenseCode"></p></div><button value="cancel" class="x">×</button></div>
       <input id="licenseTenantId" type="hidden">
       <div class="form-grid">
-        <label>Plano<select id="lPlan"><option value="basico">Básico</option><option value="profissional">Profissional</option><option value="premium">Premium</option></select></label>
-        <label>Status<select id="lStatus"><option value="active">Ativa</option><option value="trial">Teste</option><option value="suspended">Suspensa</option></select></label>
-        <label>Validade<input id="lValidUntil" type="date"></label>
+        <label>Status<select id="lStatus"><option value="active">Ativa</option><option value="suspended">Suspensa</option></select></label>
+        <label>Tipo<input value="Licença permanente" disabled></label>
         <label>Máx. usuários<input id="lMaxUsers" type="number" min="1"></label>
         <label>Máx. dispositivos<input id="lMaxDevices" type="number" min="1"></label>
       </div>
       <div id="deviceList" class="device-list"></div>
-      <div class="dialog-actions"><button id="btnMigrateLegacy" type="button" class="secondary danger-soft">Migrar dados atuais</button><button id="btnSaveLicense" type="button" class="primary">Salvar licença</button></div>
+      <div class="dialog-actions"><button id="btnMigrateLegacy" type="button" class="secondary danger-soft">Migrar dados atuais</button><button id="btnSaveLicense" type="button" class="primary">Salvar</button></div>
     </form>
   </dialog>
 
