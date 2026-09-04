@@ -13,11 +13,13 @@ on:
       - "tools/patch_resume_vistoria.py"
       - "tools/patch_multiuser.py"
       - "tools/patch_checklist_v324.py"
+      - "tools/patch_quality_v3241.py"
       - ".github/workflows/build-windows.yml"
   push:
     branches:
       - main
       - feature/multiuser-v3.23.0
+      - feature/quality-v3.24.1
     paths:
       - "Auditar_SST_v1.5_dashboard_completo.zip"
       - "source_overrides/**"
@@ -26,6 +28,7 @@ on:
       - "tools/patch_resume_vistoria.py"
       - "tools/patch_multiuser.py"
       - "tools/patch_checklist_v324.py"
+      - "tools/patch_quality_v3241.py"
       - ".github/workflows/build-windows.yml"
 
 permissions:
@@ -53,6 +56,7 @@ jobs:
           python tools/patch_resume_vistoria.py app/Auditar_SST_v1_5_dashboard
           python tools/patch_multiuser.py app/Auditar_SST_v1_5_dashboard
           python tools/patch_checklist_v324.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_quality_v3241.py app/Auditar_SST_v1_5_dashboard
 
       - name: Instalar Flutter
         uses: subosito/flutter-action@v2
@@ -92,16 +96,10 @@ jobs:
         working-directory: app/Auditar_SST_v1_5_dashboard
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - name: Testes automatizados
+      - name: Testes automatizados obrigatórios
         shell: pwsh
         working-directory: app/Auditar_SST_v1_5_dashboard
-        run: |
-          $tests = Get-ChildItem -Path test -Filter '*_test.dart' -Recurse -ErrorAction SilentlyContinue
-          if ($tests) {
-            flutter test
-          } else {
-            Write-Host 'Nenhum teste automatizado do projeto encontrado; etapa concluída sem falha.'
-          }
+        run: flutter test
 
       - name: Compilar versão Windows
         shell: pwsh
@@ -140,6 +138,8 @@ jobs:
           Build number: $env:BUILD_NUMBER
           Multiusuário: habilitado
           Checklist inteligente de campo: habilitado
+          Validação forte de NC e testes automatizados: habilitados
+          Sessão local protegida: habilitada
 
           1. Mantenha todos os arquivos desta pasta juntos.
           2. Abra "Auditar SST.exe".

@@ -1,0 +1,77 @@
+name: Gerar Windows Auditar SST Painel Mestre
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/quality-v3.24.1
+    paths:
+      - 'auditar-sst-master/**'
+      - 'auditar-sst-master-windows/**'
+      - '.github/workflows/build-auditar-sst-master.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Baixar arquivos
+        uses: actions/checkout@v4
+
+      - name: Instalar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Preparar Painel Mestre
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force 'auditar-sst-master-windows/app' -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path 'auditar-sst-master-windows/app' | Out-Null
+          Copy-Item -Recurse -Force 'auditar-sst-master/*' 'auditar-sst-master-windows/app/'
+
+      - name: Inserir chave da Central para primeiro acesso
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'Secret AUDITAR_SYNC_KEY nao configurado.' }
+          $path = 'auditar-sst-master-windows/app/app.js'
+          $content = Get-Content -Raw $path
+          $marker = "const BOOTSTRAP_KEY='__AUDITAR_SYNC_KEY__';"
+          if (-not $content.Contains($marker)) { throw 'Marcador da chave nao encontrado.' }
+          $replacement = "const BOOTSTRAP_KEY='" + $env:AUDITAR_SYNC_KEY + "';"
+          $content = $content.Replace($marker, $replacement)
+          Set-Content -Path $path -Value $content -Encoding UTF8
+          if ($content.Contains("const BOOTSTRAP_KEY='__AUDITAR_SYNC_KEY__';")) { throw 'A chave nao foi inserida.' }
+
+      - name: Gerar icone
+        shell: pwsh
+        run: |
+          if (-not (Get-Command magick -ErrorAction SilentlyContinue)) {
+            choco install imagemagick.app -y --no-progress
+            $env:Path += ';C:\Program Files\ImageMagick-7.1.1-Q16-HDRI'
+          }
+          magick -background none 'auditar-sst-master-windows/app/icon.svg' -resize 512x512 'auditar-sst-master-windows/app-icon.png'
+          if (-not (Test-Path 'auditar-sst-master-windows/app-icon.png')) { throw 'Nao foi possivel gerar o icone.' }
+
+      - name: Instalar dependencias
+        working-directory: auditar-sst-master-windows
+        run: npm install
+
+      - name: Gerar aplicativo Windows
+        working-directory: auditar-sst-master-windows
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run dist
+
+      - name: Disponibilizar Painel Mestre
+        uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-Painel-Mestre-Windows
+          path: auditar-sst-master-windows/dist/*.exe
+          if-no-files-found: error
+          retention-days: 30

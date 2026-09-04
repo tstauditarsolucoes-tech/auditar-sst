@@ -13,11 +13,13 @@ on:
       - "tools/patch_resume_vistoria.py"
       - "tools/patch_multiuser.py"
       - "tools/patch_checklist_v324.py"
+      - "tools/patch_quality_v3241.py"
       - ".github/workflows/build-apk.yml"
   push:
     branches:
       - main
       - feature/multiuser-v3.23.0
+      - feature/quality-v3.24.1
     paths-ignore:
       - "auditar-epi/**"
       - "auditar-epi-gestao/**"
@@ -53,6 +55,7 @@ jobs:
           python3 tools/patch_resume_vistoria.py app/Auditar_SST_v1_5_dashboard
           python3 tools/patch_multiuser.py app/Auditar_SST_v1_5_dashboard
           python3 tools/patch_checklist_v324.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_quality_v3241.py app/Auditar_SST_v1_5_dashboard
 
       - name: Instalar Java
         uses: actions/setup-java@v5
@@ -118,15 +121,9 @@ jobs:
         working-directory: app/Auditar_SST_v1_5_dashboard
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - name: Testes automatizados
+      - name: Testes automatizados obrigatórios
         working-directory: app/Auditar_SST_v1_5_dashboard
-        shell: bash
-        run: |
-          if [ -d test ] && find test -type f -name '*_test.dart' -print -quit | grep -q .; then
-            flutter test
-          else
-            echo "Nenhum teste automatizado do projeto encontrado; etapa concluída sem falha."
-          fi
+        run: flutter test
 
       - name: Compilar APK release
         working-directory: app/Auditar_SST_v1_5_dashboard
@@ -163,6 +160,8 @@ jobs:
           Build number: ${BUILD_NUMBER}
           Multiusuário: habilitado
           Checklist inteligente de campo: habilitado
+          Validação forte de NC e testes automatizados: habilitados
+          Sessão local protegida: habilitada
 
           - O APK sem sufixo é a versão universal.
           - A mesma conta pode ser usada no Android e no Windows.

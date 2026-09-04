@@ -1,0 +1,111 @@
+name: Auditar SST v3.24.4 Windows SQLite
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/quality-v3.24.1
+    paths:
+      - "tools/patch_windows_db_v3244.py"
+      - ".github/workflows/build-v3244-windows-sqlite.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows v3.24.4
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte
+        shell: pwsh
+        run: |
+          Remove-Item app -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path app | Out-Null
+          Expand-Archive -Path "Auditar_SST_v1.5_dashboard_completo.zip" -DestinationPath app -Force
+          Copy-Item -Path "source_overrides/Auditar_SST_v1_5_dashboard/*" -Destination "app/Auditar_SST_v1_5_dashboard" -Recurse -Force
+          python tools/patch_management_snapshot.py app/Auditar_SST_v1_5_dashboard
+          python tools/prepare_sst_source.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_resume_vistoria.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_multiuser.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_checklist_v324.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_quality_v3241.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_auth_timeout_v3241.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_simple_login_v3242.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_sync_v3243.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_windows_db_v3244.py app/Auditar_SST_v1_5_dashboard
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Preparar Windows
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String -Path 'test/widget_test.dart' -Pattern 'MyApp' -Quiet)) { Remove-Item 'test/widget_test.dart' -Force }
+          flutter pub get
+      - name: Validar
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        run: |
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+      - name: Compilar Windows
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+      - name: Pacote portatil
+        shell: pwsh
+        run: |
+          $release = "app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release"
+          $exe = Get-ChildItem -Path $release -Filter *.exe | Select-Object -First 1
+          if ($exe.Name -ne 'Auditar SST.exe') { Rename-Item -Path $exe.FullName -NewName 'Auditar SST.exe' -Force }
+          New-Item -ItemType Directory -Force -Path dist/windows/portable | Out-Null
+          Copy-Item "$release/*" dist/windows/portable -Recurse -Force
+          Compress-Archive -Path "dist/windows/portable/*" -DestinationPath "dist/windows/Auditar-SST-Windows-v3.24.4-PORTATIL.zip" -Force
+      - name: Instalador
+        shell: pwsh
+        run: |
+          $iscc='C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (!(Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          $source=(Resolve-Path 'app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release').Path
+          $output=(Resolve-Path 'dist/windows').Path
+          $iss=Join-Path $env:RUNNER_TEMP 'AuditarSST.iss'
+          @"
+          [Setup]
+          AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}
+          AppName=Auditar SST
+          AppVersion=3.24.4
+          AppPublisher=Auditar Soluções
+          DefaultDirName={autopf}\Auditar SST
+          DefaultGroupName=Auditar SST
+          OutputDir=$output
+          OutputBaseFilename=Auditar-SST-Setup-v3.24.4
+          Compression=lzma2
+          SolidCompression=yes
+          WizardStyle=modern
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          UninstallDisplayIcon={app}\Auditar SST.exe
+          [Files]
+          Source: "$source\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          [Icons]
+          Name: "{group}\Auditar SST"; Filename: "{app}\Auditar SST.exe"
+          Name: "{autodesktop}\Auditar SST"; Filename: "{app}\Auditar SST.exe"
+          "@ | Set-Content $iss -Encoding UTF8
+          & $iscc $iss
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.24.4-Windows
+          path: |
+            dist/windows/Auditar-SST-Setup-v3.24.4.exe
+            dist/windows/Auditar-SST-Windows-v3.24.4-PORTATIL.zip
+          retention-days: 30
