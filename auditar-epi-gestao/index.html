@@ -11,7 +11,7 @@
 </head>
 <body>
   <div id="toast" class="toast"></div>
-  <div id="connectOverlay" class="overlay">
+  <div id="connectOverlay" class="overlay hidden" aria-hidden="true">
     <div class="connect-card">
       <div class="logo">GESTÃO <span>EPI</span></div>
       <h1>Gestão no computador</h1>
@@ -141,8 +141,10 @@
 
   <dialog id="formDialog"><form method="dialog" id="dynamicForm"><div class="dialog-head"><div><h2 id="dialogTitle">Cadastro</h2><p id="dialogSub"></p></div><button value="cancel" class="x">×</button></div><div id="dialogFields" class="form-grid"></div><div class="dialog-actions"><button value="cancel" class="secondary">Cancelar</button><button id="dialogSave" value="default" class="primary">Salvar</button></div></form></dialog>
 
-  <script src="app.js"></script>
+  <!-- A configuração comercial deve carregar antes do app legado para impedir
+       que a antiga tela de chave de sincronização seja exibida. -->
   <script src="central-config.js"></script>
+  <script src="app.js"></script>
   <script src="indicators.js"></script>
 </body>
 </html>
