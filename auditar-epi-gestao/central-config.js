@@ -55,5 +55,6 @@
   loadScript('login-uppercase-gestao.js','login-uppercase-gestao');
   loadScript('epi-tools.js','epi-tools');
   loadScript('epi-photo-ca-gestao.js','epi-photo-ca-gestao');
+  loadScript('worker-link-gestao.js','worker-link-gestao');
   loadScript('company-branding-gestao.js','company-branding-gestao');
 })();
