@@ -33,6 +33,18 @@ jobs:
           New-Item -ItemType Directory -Path 'auditar-sst-master-windows/app' | Out-Null
           Copy-Item -Recurse -Force 'auditar-sst-master/*' 'auditar-sst-master-windows/app/'
 
+      - name: Inserir chave da Central para primeiro acesso
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'Secret AUDITAR_SYNC_KEY nao configurado.' }
+          $path = 'auditar-sst-master-windows/app/app.js'
+          $content = Get-Content -Raw $path
+          if (-not $content.Contains('__AUDITAR_SYNC_KEY__')) { throw 'Marcador da chave nao encontrado.' }
+          $content = $content.Replace('__AUDITAR_SYNC_KEY__', $env:AUDITAR_SYNC_KEY)
+          Set-Content -Path $path -Value $content -Encoding UTF8
+
       - name: Gerar icone
         shell: pwsh
         run: |
