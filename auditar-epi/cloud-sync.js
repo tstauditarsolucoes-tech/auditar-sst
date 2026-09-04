@@ -11,6 +11,9 @@
   if(!document.querySelector('script[data-mobile-layout-fix]')){
     const fix=document.createElement('script');fix.src='mobile-layout-fix.js';fix.dataset.mobileLayoutFix='1';document.head.appendChild(fix);
   }
+  if(!document.querySelector('script[data-epi-photo-ca]')){
+    const photo=document.createElement('script');photo.src='epi-photo-ca.js';photo.dataset.epiPhotoCa='1';document.head.appendChild(photo);
+  }
 
   const $=(s,root=document)=>root.querySelector(s);
   const readJson=(key,fallback)=>{try{return {...fallback,...JSON.parse(localStorage.getItem(key)||'{}')};}catch{return fallback;}};
