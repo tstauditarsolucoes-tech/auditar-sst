@@ -67,10 +67,10 @@ jobs:
               )
           manifest.write_text(text, encoding='utf-8')
 
-          java_dir = Path('android/app/src/main/java/br/com/auditar/epi')
+          java_dir = Path('android/app/src/main/java/br/com/gestao/epi')
           java_dir.mkdir(parents=True, exist_ok=True)
 
-          (java_dir/'ScreenOrientationPlugin.java').write_text(r'''package br.com.auditar.epi;
+          (java_dir/'ScreenOrientationPlugin.java').write_text(r'''package br.com.gestao.epi;
 
           import android.content.pm.ActivityInfo;
           import com.getcapacitor.Plugin;
@@ -107,7 +107,7 @@ jobs:
           }
           ''', encoding='utf-8')
 
-          (java_dir/'MainActivity.java').write_text(r'''package br.com.auditar.epi;
+          (java_dir/'MainActivity.java').write_text(r'''package br.com.gestao.epi;
 
           import android.os.Bundle;
           import com.getcapacitor.BridgeActivity;
