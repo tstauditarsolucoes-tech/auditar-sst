@@ -81,7 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     if (firstAdmin) {
       if (name.text.trim().length < 3) {
-        setState(() => error = 'Informe o nome do administrador.');
+        setState(() => error = 'Informe o nome do responsável pelo acesso mestre.');
         return;
       }
       if (pass != confirmPassword.text) {
@@ -149,7 +149,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 18),
                         Text(
-                          firstAdmin ? 'Primeiro acesso' : 'Entrar no Auditar SST',
+                          firstAdmin ? 'Criar acesso mestre' : 'Entrar no Auditar SST',
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.w900,
@@ -159,8 +159,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 6),
                         Text(
                           firstAdmin
-                              ? 'Crie a conta administradora. Os dados atuais serão preservados nesta conta.'
-                              : 'Use a mesma conta no celular e no computador.',
+                              ? 'Este será o acesso mestre do Auditar SST, com controle total de empresas, usuários e configurações.'
+                              : 'Use o mesmo acesso no celular e no computador. Os dados desta conta serão sincronizados automaticamente.',
                           textAlign: TextAlign.center,
                           style: const TextStyle(color: Colors.black54, height: 1.35),
                         ),
@@ -244,7 +244,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           FilledButton.icon(
                             onPressed: busy ? null : _submit,
                             icon: Icon(firstAdmin ? Icons.admin_panel_settings_outlined : Icons.login_rounded),
-                            label: Text(firstAdmin ? 'Criar administrador' : 'Entrar'),
+                            label: Text(firstAdmin ? 'Criar acesso mestre' : 'Entrar'),
                           ),
                           if (error.isNotEmpty) ...[
                             const SizedBox(height: 8),
@@ -256,7 +256,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                           const SizedBox(height: 12),
                           Text(
-                            '${Platform.isWindows ? 'Computador' : 'Celular'} • acesso individual',
+                            '${Platform.isWindows ? 'Computador' : 'Celular'} • conta individual sincronizada',
                             textAlign: TextAlign.center,
                             style: const TextStyle(fontSize: 11.5, color: Colors.black45),
                           ),
