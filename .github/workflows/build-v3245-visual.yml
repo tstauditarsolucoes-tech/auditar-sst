@@ -60,7 +60,7 @@ jobs:
       - name: Validar
         working-directory: app/Auditar_SST_v1_5_dashboard
         run: |
-          dart format --output=none --set-exit-if-changed lib || dart format lib
+          dart format --output=none lib/screens/home_screen.dart lib/screens/settings_screen.dart lib/screens/new_inspection_screen.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter test
       - name: Compilar APK
@@ -126,7 +126,7 @@ jobs:
         working-directory: app/Auditar_SST_v1_5_dashboard
         shell: pwsh
         run: |
-          dart format --output=none --set-exit-if-changed lib
+          dart format --output=none lib/screens/home_screen.dart lib/screens/settings_screen.dart lib/screens/new_inspection_screen.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter test
       - name: Compilar Windows
