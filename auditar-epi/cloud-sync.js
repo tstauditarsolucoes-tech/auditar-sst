@@ -5,15 +5,12 @@
   const ENDPOINT='https://script.google.com/macros/s/AKfycbxqMnKiTlAJTFv3-odS2dB1NRcSD8wwvtNxxa-zCFhTM6GeNZszib_1N6eT9wSnOnOyjg/exec';
   let syncing=false,pushTimer=null,lastSyncAt=0;
 
-  if(!document.querySelector('script[data-company-branding]')){
-    const brand=document.createElement('script');brand.src='company-branding.js';brand.dataset.companyBranding='1';document.head.appendChild(brand);
-  }
-  if(!document.querySelector('script[data-mobile-layout-fix]')){
-    const fix=document.createElement('script');fix.src='mobile-layout-fix.js';fix.dataset.mobileLayoutFix='1';document.head.appendChild(fix);
-  }
-  if(!document.querySelector('script[data-epi-photo-ca]')){
-    const photo=document.createElement('script');photo.src='epi-photo-ca.js';photo.dataset.epiPhotoCa='1';document.head.appendChild(photo);
-  }
+  function loadScript(src,attr){if(document.querySelector(`script[data-${attr}]`))return;const s=document.createElement('script');s.src=src;s.dataset[attr.replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]='1';document.head.appendChild(s);}
+  loadScript('company-branding.js','company-branding');
+  loadScript('mobile-layout-fix.js','mobile-layout-fix');
+  loadScript('epi-photo-ca.js','epi-photo-ca');
+  loadScript('worker-link.js','worker-link');
+  loadScript('bulk-delivery.js','bulk-delivery');
 
   const $=(s,root=document)=>root.querySelector(s);
   const readJson=(key,fallback)=>{try{return {...fallback,...JSON.parse(localStorage.getItem(key)||'{}')};}catch{return fallback;}};
