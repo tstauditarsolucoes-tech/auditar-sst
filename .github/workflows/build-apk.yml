@@ -12,6 +12,7 @@ on:
       - "tools/patch_management_snapshot.py"
       - "tools/patch_resume_vistoria.py"
       - "tools/patch_multiuser.py"
+      - "tools/patch_checklist_v324.py"
       - ".github/workflows/build-apk.yml"
   push:
     branches:
@@ -51,6 +52,7 @@ jobs:
           python3 tools/prepare_sst_source.py app/Auditar_SST_v1_5_dashboard
           python3 tools/patch_resume_vistoria.py app/Auditar_SST_v1_5_dashboard
           python3 tools/patch_multiuser.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_checklist_v324.py app/Auditar_SST_v1_5_dashboard
 
       - name: Instalar Java
         uses: actions/setup-java@v5
@@ -160,6 +162,7 @@ jobs:
           Build: RELEASE
           Build number: ${BUILD_NUMBER}
           Multiusuário: habilitado
+          Checklist inteligente de campo: habilitado
 
           - O APK sem sufixo é a versão universal.
           - A mesma conta pode ser usada no Android e no Windows.
