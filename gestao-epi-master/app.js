@@ -96,22 +96,56 @@
     };
     if(!payload.name||!payload.code||!payload.adminUsername||payload.adminPassword.length<6){toast('Complete os campos obrigatórios.');return;}
     const btn=$('#btnCreateClient');btn.disabled=true;btn.textContent='Criando…';
-    try{const r=await api('master_create_tenant',payload);if(!r?.ok)throw new Error(r?.message||'Falha ao criar cliente.');$('#clientDialog').close();toast('Cliente criado com licença permanente.');await refresh();openView('clients');}
+    try{
+      const r=await api('master_create_tenant',payload);
+      if(!r?.ok)throw new Error(r?.message||'Falha ao criar cliente.');
+      if(r.tenant?.id){
+        const company=await api('master_create_company',{tenantId:r.tenant.id,name:payload.name,cnpj:payload.cnpj});
+        if(!company?.ok&&company?.message!=='Ação não reconhecida.')throw new Error(company?.message||'Cliente criado, mas houve falha ao cadastrar a empresa operacional.');
+      }
+      $('#clientDialog').close();toast('Cliente, licença e empresa criados.');await refresh();openView('clients');
+    }
     catch(e){toast(e.message||'Falha ao criar cliente.');}
-    finally{btn.disabled=false;btn.textContent='Criar cliente';}
+    finally{btn.disabled=false;btn.textContent='Criar cliente + empresa';}
   }
 
-  function openLicense(id){
+  async function openLicense(id){
     const t=tenants.find(x=>x.id===id);if(!t)return;
     $('#licenseTenantId').value=t.id;$('#licenseTitle').textContent=t.name;$('#licenseCode').textContent=`Código: ${t.code} • Licença permanente`;
     $('#lStatus').value=t.status==='suspended'?'suspended':'active';$('#lMaxUsers').value=t.maxUsers||5;$('#lMaxDevices').value=t.maxDevices||3;
-    renderDevices(t);$('#licenseDialog').showModal();
+    $('#lCompanyName').value=t.name||'';$('#lCompanyCnpj').value=t.cnpj||'';
+    renderDevices(t);$('#tenantCompanyList').innerHTML='<div class="empty">Carregando empresas…</div>';$('#licenseDialog').showModal();
+    await refreshTenantCompanies(t.id);
   }
 
   function renderDevices(t){
     const rows=t.devices||[];
     $('#deviceList').innerHTML=`<b>Dispositivos autorizados (${rows.filter(d=>d.active!==false).length}/${t.maxDevices||0})</b>`+(rows.length?rows.map(d=>`<div class="device-row"><div><b>${esc(d.label||'Dispositivo')}</b><small>${d.lastSeenAt?'Último acesso: '+new Date(d.lastSeenAt).toLocaleString('pt-BR'):'Sem acesso recente'}</small></div><button class="${d.active!==false?'block':'allow'}" data-device="${esc(d.id)}" data-active="${d.active!==false?'0':'1'}">${d.active!==false?'Bloquear':'Liberar'}</button></div>`).join(''):'<div class="empty">Nenhum aparelho conectado.</div>');
     $$('[data-device]').forEach(b=>b.onclick=()=>toggleDevice(t.id,b.dataset.device,b.dataset.active==='1'));
+  }
+
+  async function refreshTenantCompanies(tenantId){
+    const box=$('#tenantCompanyList');if(!box)return;
+    try{
+      const r=await api('master_list_companies',{tenantId});
+      if(!r?.ok)throw new Error(r?.message||'Não foi possível carregar as empresas.');
+      const rows=r.companies||[];
+      box.innerHTML='<b>Empresas cadastradas ('+rows.length+')</b>'+(rows.length?rows.map(c=>`<div class="device-row"><div><b>🏢 ${esc(c.name||'Empresa')}</b><small>${esc(c.cnpj||'CNPJ não informado')}</small></div><span class="badge active">Disponível</span></div>`).join(''):'<div class="empty">Nenhuma empresa cadastrada para este cliente.</div>');
+    }catch(e){box.innerHTML=`<div class="error">${esc(e.message||'Falha ao carregar empresas.')}</div>`;}
+  }
+
+  async function addTenantCompany(){
+    const tenantId=$('#licenseTenantId').value,name=$('#lCompanyName').value.trim(),cnpj=$('#lCompanyCnpj').value.trim(),btn=$('#btnAddTenantCompany');
+    if(!tenantId||!name)return toast('Informe o nome da empresa.');
+    btn.disabled=true;btn.textContent='Cadastrando…';
+    try{
+      const r=await api('master_create_company',{tenantId,name,cnpj});
+      if(!r?.ok)throw new Error(r?.message||'Falha ao cadastrar empresa.');
+      toast(r.message||'Empresa cadastrada.');
+      $('#lCompanyName').value='';$('#lCompanyCnpj').value='';
+      await refreshTenantCompanies(tenantId);
+    }catch(e){toast(e.message||'Falha ao cadastrar empresa.');}
+    finally{btn.disabled=false;btn.textContent='＋ Cadastrar empresa';}
   }
 
   async function saveLicense(){
@@ -132,7 +166,7 @@
     const tenantId=$('#licenseTenantId').value,t=tenants.find(x=>x.id===tenantId);if(!t)return;
     if(!confirm(`Migrar os dados do sistema antigo para ${t.name}?\n\nUse esta opção apenas para trazer sua base atual para o novo ambiente comercial.`))return;
     const btn=$('#btnMigrateLegacy');btn.disabled=true;btn.textContent='Migrando…';
-    try{const r=await api('master_migrate_legacy',{tenantId});if(!r?.ok)throw new Error(r?.message||'Falha na migração.');toast(`Migração concluída: ${r.summary?.workers||0} trabalhadores e ${r.summary?.deliveries||0} entregas.`);}
+    try{const r=await api('master_migrate_legacy',{tenantId});if(!r?.ok)throw new Error(r?.message||'Falha na migração.');toast(`Migração concluída: ${r.summary?.workers||0} trabalhadores e ${r.summary?.deliveries||0} entregas.`);await refreshTenantCompanies(tenantId);}
     catch(e){toast(e.message||'Falha na migração.');}
     finally{btn.disabled=false;btn.textContent='Migrar dados atuais';}
   }
@@ -140,7 +174,7 @@
   async function init(){
     $('#btnLogin').onclick=login;$('#masterPass').addEventListener('keydown',e=>{if(e.key==='Enter')login();});
     $$('.nav').forEach(n=>n.onclick=()=>openView(n.dataset.view));$('#btnRefresh').onclick=()=>refresh().catch(e=>toast(e.message));
-    $('#btnNewClient').onclick=newClient;$('#btnNewClientTop').onclick=newClient;$('#btnCreateClient').onclick=createClient;$('#btnSaveLicense').onclick=saveLicense;$('#btnMigrateLegacy').onclick=migrateLegacy;
+    $('#btnNewClient').onclick=newClient;$('#btnNewClientTop').onclick=newClient;$('#btnCreateClient').onclick=createClient;$('#btnSaveLicense').onclick=saveLicense;$('#btnMigrateLegacy').onclick=migrateLegacy;$('#btnAddTenantCompany').onclick=addTenantCompany;
     $('#btnLogout').onclick=()=>{clearSession();showLogin(false,'Você saiu do Painel Mestre.');};$('#clientSearch').oninput=renderClients;$('#statusFilter').onchange=renderClients;
     $('#cCode').addEventListener('input',()=>codeTouched=true);$('#cName').addEventListener('input',()=>{if(!codeTouched)$('#cCode').value=makeCode($('#cName').value);});
     try{const s=await api('master_status');if(!s?.ok)throw new Error(s?.message||'Central indisponível.');if(!s.configured){showLogin(true);return;}if(token()){const me=await api('master_me');if(me?.ok){$('#masterDisplay').textContent=me.user?.name||me.user?.username||'Administrador';hideLogin();await refresh();return;}clearSession();}showLogin(false);}catch(e){showLogin(false,e.message||'Não foi possível acessar a central.');}
