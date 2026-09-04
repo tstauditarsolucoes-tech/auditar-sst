@@ -1,0 +1,51 @@
+name: Gerar Windows Gestão EPI Painel Mestre
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'gestao-epi-master/**'
+      - 'gestao-epi-master-windows/**'
+      - '.github/workflows/build-gestao-epi-master.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Baixar arquivos
+        uses: actions/checkout@v4
+
+      - name: Instalar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Preparar Painel Mestre
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force 'gestao-epi-master-windows/app' -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path 'gestao-epi-master-windows/app' | Out-Null
+          Copy-Item -Recurse -Force 'gestao-epi-master/*' 'gestao-epi-master-windows/app/'
+
+      - name: Instalar dependências
+        working-directory: gestao-epi-master-windows
+        run: npm install
+
+      - name: Gerar aplicativo Windows
+        working-directory: gestao-epi-master-windows
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run dist
+
+      - name: Disponibilizar Painel Mestre
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gestao-EPI-Painel-Mestre-Windows
+          path: gestao-epi-master-windows/dist/*.exe
+          if-no-files-found: error
+          retention-days: 14
