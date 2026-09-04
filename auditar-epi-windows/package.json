@@ -1,7 +1,7 @@
 {
-  "name": "auditar-epi-gestao",
-  "version": "1.0.0",
-  "description": "Auditar EPI Gestão para Windows",
+  "name": "gestao-epi",
+  "version": "2.0.0",
+  "description": "Gestão EPI para Windows",
   "main": "main.js",
   "private": true,
   "scripts": {
@@ -12,8 +12,8 @@
     "electron-builder": "26.0.12"
   },
   "build": {
-    "appId": "br.com.auditar.epi.gestao",
-    "productName": "Auditar EPI Gestão",
+    "appId": "br.com.gestao.epi",
+    "productName": "Gestão EPI",
     "files": [
       "main.js",
       "app/**/*"
@@ -28,7 +28,7 @@
           "arch": ["x64"]
         }
       ],
-      "artifactName": "Auditar-EPI-Gestao-${version}.exe"
+      "artifactName": "Gestao-EPI-${version}.exe"
     }
   }
 }
