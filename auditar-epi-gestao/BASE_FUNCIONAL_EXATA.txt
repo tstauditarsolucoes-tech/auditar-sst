@@ -1,0 +1,1 @@
+Build de diagnóstico criado a partir do commit funcional aeb069fa26108199d5c2f7a085c777217ba4a4b4.
