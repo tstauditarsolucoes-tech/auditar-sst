@@ -1,0 +1,34 @@
+{
+  "name": "gestao-epi-painel-mestre",
+  "version": "1.0.0",
+  "description": "Painel Mestre comercial do Gestão EPI",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "dist": "electron-builder --win portable --x64"
+  },
+  "devDependencies": {
+    "electron": "37.2.0",
+    "electron-builder": "26.0.12"
+  },
+  "build": {
+    "appId": "br.com.gestao.epi.master",
+    "productName": "Gestão EPI Painel Mestre",
+    "files": [
+      "main.js",
+      "app/**/*"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "artifactName": "Gestao-EPI-Painel-Mestre-${version}.exe"
+    }
+  }
+}
