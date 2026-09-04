@@ -119,23 +119,103 @@
     return rowsFromMatrix(matrix);
   }
 
+  function groupPdfTextItems(items){
+    const groups=[];
+    for(const item of items){
+      const text=clean(item.str); if(!text) continue;
+      const x=Number(item.transform?.[4]||0), y=Number(item.transform?.[5]||0);
+      let group=groups.find(g=>Math.abs(g.y-y)<=2.5);
+      if(!group){ group={y,items:[]}; groups.push(group); }
+      group.items.push({x,text});
+    }
+    return groups
+      .sort((a,b)=>b.y-a.y)
+      .map(g=>({y:g.y,items:g.items.sort((a,b)=>a.x-b.x)}));
+  }
+
+  function headerMatch(value, field){
+    const n=norm(value);
+    return aliases[field].some(a=>n===norm(a) || n.startsWith(norm(a)+' '));
+  }
+
+  function detectPdfTableHeader(groups){
+    for(let index=0;index<groups.length;index++){
+      const group=groups[index];
+      const line=norm(group.items.map(i=>i.text).join(' '));
+      if(!line.includes('nome')) continue;
+      const roleItem=group.items.find(i=>headerMatch(i.text,'role'));
+      const sectorItem=group.items.find(i=>headerMatch(i.text,'sector'));
+      if(roleItem && sectorItem && sectorItem.x>roleItem.x){
+        return {index,roleX:roleItem.x,sectorX:sectorItem.x};
+      }
+    }
+    return null;
+  }
+
+  function isPdfFooterOrMetadata(line){
+    const n=norm(line);
+    return !n || n.startsWith('listagem de empregados') || n.startsWith('empresa:') ||
+      n.startsWith('mes/ano:') || n.startsWith('pag.:') || n==='fortes pessoal' ||
+      n.startsWith('continua') || n.startsWith('total geral:') || n==='fim';
+  }
+
+  function parsePdfTable(groups, header){
+    const rows=[];
+    const roleCut=header.roleX-4;
+    const sectorCut=header.sectorX-4;
+    for(const group of groups.slice(header.index+1)){
+      const full=clean(group.items.map(i=>i.text).join(' '));
+      if(isPdfFooterOrMetadata(full)) continue;
+
+      let name=clean(group.items.filter(i=>i.x<roleCut).map(i=>i.text).join(' '));
+      let role=clean(group.items.filter(i=>i.x>=roleCut&&i.x<sectorCut).map(i=>i.text).join(' '));
+      let sector=clean(group.items.filter(i=>i.x>=sectorCut).map(i=>i.text).join(' '));
+
+      // Alguns relatórios do Fortes colam o código da lotação no final do cargo
+      // (ex.: "ENCARREGADO DE PRODUÇÃO010.02"). Reunimos as duas colunas e
+      // separamos novamente no primeiro código 000.00 para não deslocar os dados.
+      const roleAndSector=clean([role,sector].filter(Boolean).join(' '));
+      const locationCode=roleAndSector.match(/\d{3}\.\d{2}/);
+      if(locationCode){
+        role=clean(roleAndSector.slice(0,locationCode.index));
+        sector=clean(roleAndSector.slice(locationCode.index));
+      }
+
+      if(!isLikelyName(name)) continue;
+      if(!role && !sector) continue;
+      rows.push({name,cpf:'',reg:'',role,sector});
+    }
+    return rows;
+  }
+
   async function parsePdf(file){
     if(!window.pdfjsLib) throw new Error('Leitor de PDF indisponível. Abra o app com internet e tente novamente.');
     pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    const data=new Uint8Array(await file.arrayBuffer()); const pdf=await pdfjsLib.getDocument({data}).promise;
-    const matrix=[];
+    const data=new Uint8Array(await file.arrayBuffer());
+    const pdf=await pdfjsLib.getDocument({data}).promise;
+    const structured=[];
+    const fallbackMatrix=[];
+
     for(let p=1;p<=pdf.numPages;p++){
-      const page=await pdf.getPage(p); const tc=await page.getTextContent(); const groups=new Map();
-      tc.items.forEach(item=>{
-        const y=Math.round(item.transform?.[5]||0); const x=item.transform?.[4]||0;
-        const key=[...groups.keys()].find(k=>Math.abs(k-y)<=2) ?? y;
-        if(!groups.has(key)) groups.set(key,[]); groups.get(key).push({x,text:clean(item.str)});
-      });
-      [...groups.entries()].sort((a,b)=>b[0]-a[0]).forEach(([,items])=>{
-        const row=items.sort((a,b)=>a.x-b.x).map(i=>i.text).filter(Boolean); if(row.length) matrix.push(row);
-      });
+      const page=await pdf.getPage(p);
+      const tc=await page.getTextContent();
+      const groups=groupPdfTextItems(tc.items);
+      const header=detectPdfTableHeader(groups);
+
+      if(header){
+        structured.push(...parsePdfTable(groups,header));
+      }else{
+        groups.forEach(group=>{
+          const row=group.items.map(i=>i.text).filter(Boolean);
+          if(row.length) fallbackMatrix.push(row);
+        });
+      }
     }
-    return rowsFromMatrix(matrix);
+
+    // Preferimos a leitura por posição das colunas. Ela evita o erro em que
+    // Lotação virava Nome e o Cargo aparecia em uma linha separada.
+    if(structured.length) return structured;
+    return rowsFromMatrix(fallbackMatrix);
   }
 
   function dedupeStaged(rows){
@@ -153,6 +233,7 @@
     btn.disabled=!stagedWorkers.length;
     if(!stagedWorkers.length){ box.innerHTML='<div class="empty">Não consegui identificar trabalhadores nessa lista. Verifique se existe uma coluna de Nome.</div>'; return; }
     box.innerHTML=`<div class="import-table-wrap"><table class="import-table"><thead><tr><th>Nome</th><th>CPF</th><th>Matrícula</th><th>Cargo</th><th>Setor</th></tr></thead><tbody>${stagedWorkers.slice(0,80).map(w=>`<tr><td>${esc(w.name)}</td><td>${esc(w.cpf||'—')}</td><td>${esc(w.reg||'—')}</td><td>${esc(w.role||'—')}</td><td>${esc(w.sector||'—')}</td></tr>`).join('')}</tbody></table></div>${stagedWorkers.length>80?`<small class="import-more">Prévia dos primeiros 80 de ${stagedWorkers.length}.</small>`:''}`;
+    document.dispatchEvent(new CustomEvent('auditar-epi-import-preview',{detail:{count:stagedWorkers.length,rows:stagedWorkers}}));
   }
 
   async function handleFile(file){
@@ -206,6 +287,10 @@
     if(rows.some(w=>w.id===old)) select.value=old;
     $('#deliveryWorkerCount').textContent = input.value ? `${rows.length} encontrado(s)` : `${rows.length} cadastrado(s)`;
   }
+
+  // Disponibiliza somente as ações de importação necessárias para módulos
+  // auxiliares, como a IA, reutilizarem a prévia já validada.
+  window.AuditarEpiWorkerImport={handleFile,renderPreview};
 
   document.addEventListener('DOMContentLoaded',()=>{
     syncCompanySelect();
