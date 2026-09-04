@@ -1,4 +1,4 @@
-name: Gerar APK Auditar EPI Campo
+name: Gerar APK Gestão EPI Campo
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ on:
       - '.github/workflows/build-epi-android.yml'
 
 concurrency:
-  group: auditar-epi-android
+  group: gestao-epi-android
   cancel-in-progress: true
 
 permissions:
@@ -36,30 +36,10 @@ jobs:
           java-version: '17'
 
       - name: Preparar interface Campo
-        env:
-          AUDITAR_EPI_SYNC_KEY: ${{ secrets.AUDITAR_EPI_SYNC_KEY }}
         run: |
-          if [ -z "$AUDITAR_EPI_SYNC_KEY" ]; then
-            echo "::error::Configure AUDITAR_EPI_SYNC_KEY nos segredos do repositório."
-            exit 1
-          fi
           rm -rf auditar-epi-mobile/www
           mkdir -p auditar-epi-mobile/www
           cp -R auditar-epi/. auditar-epi-mobile/www/
-          python3 - <<'PY'
-          import json, os
-          from pathlib import Path
-          root = Path('auditar-epi-mobile/www')
-          key = os.environ['AUDITAR_EPI_SYNC_KEY']
-          (root/'compiled-config.js').write_text(
-              "try{localStorage.setItem('auditarEpiCentralKey'," + json.dumps(key) + ");}catch(e){}\n",
-              encoding='utf-8'
-          )
-          index = root/'index.html'
-          text = index.read_text(encoding='utf-8')
-          text = text.replace('<script src="cloud-sync.js"></script>', '<script src="compiled-config.js"></script>\n  <script src="cloud-sync.js"></script>')
-          index.write_text(text, encoding='utf-8')
-          PY
 
       - name: Instalar Capacitor
         working-directory: auditar-epi-mobile
@@ -147,12 +127,12 @@ jobs:
         run: ./gradlew assembleDebug
 
       - name: Renomear APK
-        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Auditar-EPI-Campo.apk
+        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Campo.apk
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
-          name: Auditar-EPI-Campo-APK
-          path: Auditar-EPI-Campo.apk
+          name: Gestao-EPI-Campo-APK
+          path: Gestao-EPI-Campo.apk
           if-no-files-found: error
           retention-days: 14
