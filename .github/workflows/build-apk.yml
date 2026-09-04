@@ -8,6 +8,7 @@ on:
     paths:
       - "Auditar_SST_v1.5_dashboard_completo.zip"
       - "source_overrides/**"
+      - "tools/prepare_sst_source.py"
       - ".github/workflows/build-apk.yml"
   push:
     branches:
@@ -42,6 +43,7 @@ jobs:
           mkdir -p app
           unzip -q Auditar_SST_v1.5_dashboard_completo.zip -d app
           cp -R source_overrides/Auditar_SST_v1_5_dashboard/. app/Auditar_SST_v1_5_dashboard/
+          python3 tools/prepare_sst_source.py app/Auditar_SST_v1_5_dashboard
 
       - name: Instalar Java
         uses: actions/setup-java@v4
@@ -63,6 +65,7 @@ jobs:
 
           APP_VERSION="$(awk '/^version:/{print $2}' pubspec.yaml | cut -d+ -f1)"
           BUILD_NUMBER="$(awk '/^version:/{print $2}' pubspec.yaml | cut -d+ -f2)"
+          export APP_VERSION BUILD_NUMBER
           echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
           echo "BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
 
@@ -82,7 +85,7 @@ jobs:
 
           home = Path("lib/screens/home_screen.dart")
           home_text = home.read_text(encoding="utf-8")
-          version = os.environ.get("APP_VERSION", "3.22.0")
+          version = os.environ["APP_VERSION"]
           home_text = re.sub(
               r"Auditar SST • versão \d+\.\d+\.\d+",
               f"Auditar SST • versão {version}",
@@ -148,7 +151,7 @@ jobs:
 
           - O APK sem sufixo é a versão universal.
           - Os APKs por arquitetura são menores e podem ser usados quando a arquitetura do aparelho for conhecida.
-          - A assinatura definitiva de distribuição deve usar uma chave Android permanente, mantida fora do repositório.
+          - Para distribuição comercial/Play Store, configure uma chave Android permanente nos segredos do repositório antes da publicação oficial.
           EOF
 
       - name: Disponibilizar Android release
