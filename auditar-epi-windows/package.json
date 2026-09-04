@@ -22,6 +22,7 @@
       "output": "dist"
     },
     "win": {
+      "icon": "app-icon.png",
       "target": [
         {
           "target": "portable",
