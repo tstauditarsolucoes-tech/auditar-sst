@@ -23,7 +23,7 @@
     box.innerHTML=`
       <div style="margin-top:12px;padding:12px;border:1px solid #d7e7e4;border-radius:12px;background:#f7fbfa">
         <div style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap">
-          <div><b>✨ IA para lista difícil</b><br><small>Use quando o PDF estiver bagunçado, escaneado ou não for reconhecido direito.</small></div>
+          <div><b>✨ IA para PDF difícil</b><br><small>Use somente quando a leitura normal ficar incompleta, bagunçada ou não reconhecer o PDF.</small></div>
           <button id="btnAiWorkers" type="button" class="secondary">✨ Organizar com IA</button>
         </div>
         <div id="aiWorkersStatus" style="margin-top:8px;font-size:13px"></div>
@@ -50,6 +50,19 @@
   function setStatus(text, error=false){
     const el=$('#aiWorkersStatus'); if(!el) return;
     el.textContent=text; el.style.color=error?'#a12622':'#315f59';
+  }
+
+  function setNormalReadState(count){
+    const btn=$('#btnAiWorkers'); if(!btn) return;
+    const total=Number(count||0);
+    if(total>0){
+      btn.disabled=true;
+      btn.textContent='✓ Leitura normal OK';
+      setStatus(`${total} trabalhador(es) identificado(s) corretamente. A IA não é necessária para este arquivo.`);
+    }else{
+      btn.disabled=false;
+      btn.textContent='✨ Organizar com IA';
+    }
   }
 
   function toDataUrl(file){
@@ -145,10 +158,17 @@
       toast('Lista organizada com IA.');
     }catch(err){
       const msg=String(err?.message||err||'Falha ao usar a IA.');
-      setStatus(msg,true); toast(msg);
+      if(/ação não reconhecida|acao nao reconhecida/i.test(msg)){
+        setStatus('A Central da IA ainda não está publicada nesta versão. A leitura normal corrigida continua disponível para PDFs com texto.',true);
+        toast('Use a leitura normal deste PDF.');
+      }else{
+        setStatus(msg,true); toast(msg);
+      }
       if(/chave|sincroniza/i.test(msg)) $('#aiWorkersConfig').style.display='block';
     }finally{
-      btn.disabled=false; btn.textContent='✨ Organizar com IA';
+      if(!btn.textContent.includes('Leitura normal')){
+        btn.disabled=false; btn.textContent='✨ Organizar com IA';
+      }
     }
   }
 
@@ -156,11 +176,13 @@
     injectUi();
     $('#importFile')?.addEventListener('change',e=>{
       selectedFile=e.target.files?.[0]||null;
+      const btn=$('#btnAiWorkers'); if(btn){btn.disabled=false;btn.textContent='✨ Organizar com IA';}
       if(selectedFile){
         const ext=(selectedFile.name.split('.').pop()||'').toLowerCase();
-        setStatus(ext==='pdf'?'Se a leitura normal não ficar boa, use “Organizar com IA”.':'Este formato será lido diretamente; normalmente não precisa de IA.');
+        setStatus(ext==='pdf'?'Lendo o PDF normalmente… A IA só será necessária se a prévia não ficar correta.':'Este formato será lido diretamente; normalmente não precisa de IA.');
       }
     });
+    document.addEventListener('auditar-epi-import-preview',e=>setNormalReadState(e.detail?.count||0));
     document.addEventListener('click',e=>{ if(e.target.closest('[data-go="importWorkers"]')) setTimeout(injectUi,0); });
   });
 })();
