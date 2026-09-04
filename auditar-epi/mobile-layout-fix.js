@@ -16,6 +16,21 @@
       .epi-user-chip>span{min-width:0;overflow:hidden}
       .epi-tenant-name{max-width:100%!important}
       input,select,textarea,button{max-width:100%}
+
+      /* Tela de login padronizada em CAIXA ALTA.
+         O text-transform altera somente a exibição; o valor real do usuário
+         continua intacto para não interferir na autenticação. */
+      .epi-auth-card h1,
+      .epi-auth-card>p,
+      .epi-auth-card label,
+      .epi-auth-card button,
+      .epi-auth-error{ text-transform:uppercase!important; }
+      #epiTenantCode,
+      #epiAuthUser{ text-transform:uppercase!important; }
+      #epiTenantCode::placeholder,
+      #epiAuthUser::placeholder,
+      #epiAuthPass::placeholder{ text-transform:uppercase!important; }
+
       @media(max-width:520px){
         .topbar{display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center;padding:8px 10px!important;gap:7px 8px!important}
         .topbar>div:first-child{grid-column:1;grid-row:1;overflow:hidden}
