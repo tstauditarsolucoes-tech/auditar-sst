@@ -25,6 +25,13 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Validar scripts
+        shell: pwsh
+        run: |
+          node --check 'auditar-epi-gestao/campo-pc.js'
+          node --check 'auditar-epi-gestao/central-config.js'
+          node --check 'auditar-epi-windows/main.js'
+
       - name: Preparar interface Gestão
         shell: pwsh
         run: |
