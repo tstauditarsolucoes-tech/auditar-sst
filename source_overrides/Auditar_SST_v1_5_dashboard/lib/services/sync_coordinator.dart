@@ -26,9 +26,11 @@ class _SyncCoordinatorState extends State<SyncCoordinator>
   StreamSubscription<List<ConnectivityResult>>? _subscription;
   Timer? _automaticTimer;
   Timer? _maintenanceTimer;
+  Timer? _indicatorTimer;
   bool _syncing = false;
   bool _online = true;
-  String _statusLabel = 'Verificando sincronização…';
+  bool _showIndicator = false;
+  String _statusLabel = '';
   _SyncTone _statusTone = _SyncTone.neutral;
 
   @override
@@ -61,6 +63,7 @@ class _SyncCoordinatorState extends State<SyncCoordinator>
     _subscription?.cancel();
     _automaticTimer?.cancel();
     _maintenanceTimer?.cancel();
+    _indicatorTimer?.cancel();
     super.dispose();
   }
 
@@ -77,11 +80,22 @@ class _SyncCoordinatorState extends State<SyncCoordinator>
     required _SyncTone tone,
   }) {
     if (!mounted) return;
+
+    _indicatorTimer?.cancel();
+
     setState(() {
       _online = online;
       _statusLabel = label;
       _statusTone = tone;
+      _showIndicator = tone != _SyncTone.neutral;
     });
+
+    if (tone == _SyncTone.ok) {
+      _indicatorTimer = Timer(const Duration(seconds: 3), () {
+        if (!mounted || _statusTone != _SyncTone.ok) return;
+        setState(() => _showIndicator = false);
+      });
+    }
   }
 
   void _handleConnectivity(List<ConnectivityResult> results) {
@@ -92,7 +106,7 @@ class _SyncCoordinatorState extends State<SyncCoordinator>
     if (!hasNetwork) {
       _setStatus(
         online: false,
-        label: 'Offline • dados salvos neste aparelho',
+        label: 'Offline',
         tone: _SyncTone.offline,
       );
       return;
@@ -100,7 +114,7 @@ class _SyncCoordinatorState extends State<SyncCoordinator>
 
     _setStatus(
       online: true,
-      label: 'Conexão disponível • sincronizando',
+      label: '',
       tone: _SyncTone.syncing,
     );
     _trySync();
@@ -116,7 +130,7 @@ class _SyncCoordinatorState extends State<SyncCoordinator>
     if (!hasNetwork) {
       _setStatus(
         online: false,
-        label: 'Offline • dados salvos neste aparelho',
+        label: 'Offline',
         tone: _SyncTone.offline,
       );
       return;
@@ -125,7 +139,7 @@ class _SyncCoordinatorState extends State<SyncCoordinator>
     _syncing = true;
     _setStatus(
       online: true,
-      label: 'Sincronizando…',
+      label: '',
       tone: _SyncTone.syncing,
     );
 
@@ -136,18 +150,15 @@ class _SyncCoordinatorState extends State<SyncCoordinator>
       } catch (_) {
         _setStatus(
           online: true,
-          label: 'Sincronização pendente • nova tentativa automática',
+          label: 'Erro ao sincronizar',
           tone: _SyncTone.warning,
         );
       }
 
       if (result != null) {
-        final changes = result.sent + result.received;
         _setStatus(
           online: true,
-          label: changes > 0
-              ? 'Sincronizado • $changes atualização(ões)'
-              : 'Sincronizado',
+          label: '',
           tone: _SyncTone.ok,
         );
       }
@@ -236,17 +247,18 @@ class _SyncCoordinatorState extends State<SyncCoordinator>
     return Stack(
       children: [
         widget.child,
-        Positioned(
-          right: isMobile ? 12 : 18,
-          bottom: isMobile ? 74 : 16,
-          child: IgnorePointer(
-            child: _SyncIndicator(
-              label: _statusLabel,
-              tone: _statusTone,
-              online: _online,
+        if (_showIndicator)
+          Positioned(
+            right: isMobile ? 12 : 18,
+            bottom: isMobile ? 74 : 16,
+            child: IgnorePointer(
+              child: _SyncIndicator(
+                label: _statusLabel,
+                tone: _statusTone,
+                online: _online,
+              ),
             ),
           ),
-        ),
       ],
     );
   }
@@ -271,7 +283,7 @@ class _SyncIndicator extends StatelessWidget {
       _SyncTone.ok => (
           AuditarBrand.greenSoft,
           AuditarBrand.greenDark,
-          Icons.cloud_done_outlined,
+          Icons.check_rounded,
         ),
       _SyncTone.syncing => (
           AuditarBrand.navySoft,
@@ -295,40 +307,61 @@ class _SyncIndicator extends StatelessWidget {
         ),
     };
 
+    final showText = tone == _SyncTone.warning || tone == _SyncTone.offline;
+
     return Material(
       color: Colors.transparent,
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 285),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        constraints: BoxConstraints(maxWidth: showText ? 180 : 36),
+        width: showText ? null : 36,
+        height: 36,
+        padding: EdgeInsets.symmetric(
+          horizontal: showText ? 10 : 0,
+          vertical: 0,
+        ),
         decoration: BoxDecoration(
           color: background.withValues(alpha: .96),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(color: foreground.withValues(alpha: .18)),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x180E1A43),
-              blurRadius: 10,
-              offset: Offset(0, 3),
+              color: Color(0x140E1A43),
+              blurRadius: 8,
+              offset: Offset(0, 2),
             ),
           ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 15, color: foreground),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
+            if (tone == _SyncTone.syncing)
+              SizedBox(
+                width: 15,
+                height: 15,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
                   color: foreground,
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w800,
+                ),
+              )
+            else
+              Icon(icon, size: 17, color: foreground),
+            if (showText) ...[
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: foreground,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
         ),
       ),
