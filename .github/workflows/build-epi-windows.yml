@@ -32,6 +32,16 @@ jobs:
           New-Item -ItemType Directory -Path 'auditar-epi-windows/app' | Out-Null
           Copy-Item -Recurse -Force 'auditar-epi-gestao/*' 'auditar-epi-windows/app/'
 
+      - name: Gerar ícone do Windows
+        shell: pwsh
+        run: |
+          if (-not (Get-Command magick -ErrorAction SilentlyContinue)) {
+            choco install imagemagick.app -y --no-progress
+            $env:Path += ';C:\Program Files\ImageMagick-7.1.1-Q16-HDRI'
+          }
+          magick -background none 'auditar-epi-windows/app/icon.svg' -resize 512x512 'auditar-epi-windows/app-icon.png'
+          if (-not (Test-Path 'auditar-epi-windows/app-icon.png')) { throw 'Não foi possível gerar o ícone do Gestão EPI.' }
+
       - name: Instalar dependências
         working-directory: auditar-epi-windows
         run: npm install
