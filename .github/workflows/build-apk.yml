@@ -11,10 +11,12 @@ on:
       - "tools/prepare_sst_source.py"
       - "tools/patch_management_snapshot.py"
       - "tools/patch_resume_vistoria.py"
+      - "tools/patch_multiuser.py"
       - ".github/workflows/build-apk.yml"
   push:
     branches:
       - main
+      - feature/multiuser-v3.23.0
     paths-ignore:
       - "auditar-epi/**"
       - "auditar-epi-gestao/**"
@@ -48,6 +50,7 @@ jobs:
           python3 tools/patch_management_snapshot.py app/Auditar_SST_v1_5_dashboard
           python3 tools/prepare_sst_source.py app/Auditar_SST_v1_5_dashboard
           python3 tools/patch_resume_vistoria.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_multiuser.py app/Auditar_SST_v1_5_dashboard
 
       - name: Instalar Java
         uses: actions/setup-java@v5
@@ -67,8 +70,6 @@ jobs:
         run: |
           flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
 
-          # O Flutter cria um teste de exemplo para "MyApp". O Auditar usa
-          # AuditarSstApp, então removemos somente esse teste genérico.
           if [ -f test/widget_test.dart ] && grep -q "MyApp" test/widget_test.dart; then
             rm test/widget_test.dart
           fi
@@ -158,10 +159,12 @@ jobs:
 
           Build: RELEASE
           Build number: ${BUILD_NUMBER}
+          Multiusuário: habilitado
 
           - O APK sem sufixo é a versão universal.
-          - Os APKs por arquitetura são menores e podem ser usados quando a arquitetura do aparelho for conhecida.
-          - Para distribuição comercial/Play Store, configure uma chave Android permanente nos segredos do repositório antes da publicação oficial.
+          - A mesma conta pode ser usada no Android e no Windows.
+          - A Central Online (Apps Script) deve estar publicada com o módulo MultiUser.gs desta versão.
+          - Para distribuição comercial/Play Store, configure uma chave Android permanente antes da publicação oficial.
           EOF
 
       - name: Disponibilizar Android release
