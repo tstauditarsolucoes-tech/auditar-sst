@@ -134,14 +134,14 @@ jobs:
         run: |
           flutter config --enable-windows-desktop
           flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
-          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String -Path 'test/widget_test.dart' -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
           flutter pub get
           dart format lib
-          if (-not (Select-String pubspec.yaml -SimpleMatch 'version: 3.29.0+142' -Quiet)) { throw 'versão incorreta' }
-          if (-not (Select-String lib/screens/signature_screen.dart -SimpleMatch 'Assinar externamente por Gov.br' -Quiet)) { throw 'Gov.br ausente' }
-          if (-not (Select-String lib/screens/signature_screen.dart -SimpleMatch 'Emitir sem assinatura' -Quiet)) { throw 'emissão sem assinatura ausente' }
-          if (-not (Select-String lib/screens/report_screen.dart -SimpleMatch 'Incluir plano de ação' -Quiet)) { throw 'plano opcional ausente' }
-          if (-not (Select-String lib/services/pdf_service.dart -SimpleMatch 'O QUE FOI IDENTIFICADO' -Quiet)) { throw 'executivo simples ausente' }
+          if (-not (Select-String -Path 'pubspec.yaml' -SimpleMatch -Pattern 'version: 3.29.0+142' -Quiet)) { throw 'versão incorreta' }
+          if (-not (Select-String -Path 'lib/screens/signature_screen.dart' -SimpleMatch -Pattern 'Assinar externamente por Gov.br' -Quiet)) { throw 'Gov.br ausente' }
+          if (-not (Select-String -Path 'lib/screens/signature_screen.dart' -SimpleMatch -Pattern 'Emitir sem assinatura' -Quiet)) { throw 'emissão sem assinatura ausente' }
+          if (-not (Select-String -Path 'lib/screens/report_screen.dart' -SimpleMatch -Pattern 'Incluir plano de ação' -Quiet)) { throw 'plano opcional ausente' }
+          if (-not (Select-String -Path 'lib/services/pdf_service.dart' -SimpleMatch -Pattern 'O QUE FOI IDENTIFICADO' -Quiet)) { throw 'executivo simples ausente' }
           flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter test
       - name: Compilar Windows
