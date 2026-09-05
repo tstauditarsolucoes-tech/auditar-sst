@@ -2,13 +2,23 @@
 from __future__ import annotations
 
 import base64
-import gzip
-import subprocess
+import io
 import sys
-import tempfile
+import tarfile
 from pathlib import Path
 
-# Aplicar sobre a fonte real v3.28.0 já montada.
+EXPECTED = {
+    "lib/database.dart",
+    "lib/models.dart",
+    "lib/screens/home_screen.dart",
+    "lib/screens/new_inspection_screen.dart",
+    "lib/screens/report_screen.dart",
+    "lib/screens/signature_screen.dart",
+    "lib/services/auth_service.dart",
+    "lib/services/pdf_service.dart",
+    "lib/services/report_file_service.dart",
+    "pubspec.yaml",
+}
 
 
 def main() -> int:
@@ -21,69 +31,51 @@ def main() -> int:
         print(f"raiz inválida: {root}", file=sys.stderr)
         return 2
 
-    here = Path(__file__).resolve().parent
-    parts = []
-    for i in range(1, 8):
-        name = f"patch_v3290.from3280.part{i}"
-        part = here / name
-        if not part.exists():
-            print(f"parte ausente: {name}", file=sys.stderr)
-            return 2
-        parts.append(part.read_text(encoding="utf-8").strip())
+    payload_path = Path(__file__).resolve().parent / "v3290_payload.b64"
+    if not payload_path.exists():
+        print("payload v3.29.0 ausente", file=sys.stderr)
+        return 2
 
-    diff = gzip.decompress(base64.b64decode("".join(parts)))
-    with tempfile.NamedTemporaryFile(suffix=".diff", delete=False) as f:
-        f.write(diff)
-        patch_name = f.name
+    raw = base64.b64decode(payload_path.read_text(encoding="utf-8").strip(), validate=True)
+    with tarfile.open(fileobj=io.BytesIO(raw), mode="r:gz") as archive:
+        members = [m for m in archive.getmembers() if m.isfile()]
+        names = {m.name for m in members}
+        if names != EXPECTED:
+            missing = sorted(EXPECTED - names)
+            extra = sorted(names - EXPECTED)
+            raise RuntimeError(f"payload inesperado; ausentes={missing}; extras={extra}")
 
-    try:
-        repo_top = Path(
-            subprocess.check_output(
-                ["git", "rev-parse", "--show-toplevel"],
-                cwd=root,
-                text=True,
-            ).strip()
-        ).resolve()
-        relative_root = root.relative_to(repo_top).as_posix()
-        subprocess.run(
-            [
-                "git",
-                "apply",
-                "--unsafe-paths",
-                "--whitespace=nowarn",
-                f"--directory={relative_root}",
-                patch_name,
-            ],
-            cwd=repo_top,
-            check=True,
-        )
-    finally:
-        Path(patch_name).unlink(missing_ok=True)
+        for member in members:
+            rel = Path(member.name)
+            if rel.is_absolute() or ".." in rel.parts:
+                raise RuntimeError(f"caminho inválido no payload: {member.name}")
+            source = archive.extractfile(member)
+            if source is None:
+                raise RuntimeError(f"arquivo ausente no payload: {member.name}")
+            target = root / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(source.read())
 
     required = {
         "pubspec.yaml": "version: 3.29.0+142",
         "lib/screens/signature_screen.dart": "Assinar externamente por Gov.br",
-        "lib/screens/signature_screen.dart": "Emitir sem assinatura",
-        "lib/screens/report_screen.dart": "Incluir plano de ação",
+        "lib/screens/report_screen.dart": "Incluir plano de ação no relatório",
         "lib/services/pdf_service.dart": "O QUE FOI IDENTIFICADO",
         "lib/services/auth_service.dart": "purgeCompaniesOutsideAccess",
         "lib/screens/home_screen.dart": "versão 3.29.0",
         "lib/screens/new_inspection_screen.dart": "backgroundColor: Colors.white",
+        "lib/database.dart": "report_signature_mode",
     }
     for rel, marker in required.items():
         text = (root / rel).read_text(encoding="utf-8")
         if marker not in text:
             raise RuntimeError(f"validação v3.29.0 falhou em {rel}: {marker}")
 
-    # validações adicionais sem sobrescrever chaves no dict acima
     signature = (root / "lib/screens/signature_screen.dart").read_text(encoding="utf-8")
-    if "Assinar externamente por Gov.br" not in signature or "Emitir sem assinatura" not in signature:
-        raise RuntimeError("validação da assinatura flexível falhou")
-    database = (root / "lib/database.dart").read_text(encoding="utf-8")
-    if "report_signature_mode" not in database or "include_action_plan" not in database:
-        raise RuntimeError("validação dos campos de relatório no banco falhou")
+    if "Emitir sem assinatura" not in signature:
+        raise RuntimeError("emissão sem assinatura ausente")
 
-    print("v3.29.0 aplicada sobre a v3.28.0 com sucesso")
+    print("v3.29.0 consolidada aplicada com sucesso")
     return 0
 
 
