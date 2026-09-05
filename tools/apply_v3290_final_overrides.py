@@ -10,11 +10,7 @@ import tarfile
 from pathlib import Path
 
 EXPECTED_GZ_SHA256 = "053b2591010f090fcd4b90e8c333c88edb2fd381f704705060ad81fdb518e8e5"
-PARTS = [
-    "v3290_override.part00",
-    "v3290_override.part01",
-    "v3290_override.part02",
-]
+PARTS = [f"v3290s.part{i:02d}" for i in range(14)]
 
 
 def main() -> int:
