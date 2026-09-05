@@ -42,10 +42,12 @@ def main() -> int:
     except Exception as exc:
         raise RuntimeError(f"payload v3.29.0 inválido: {exc}") from exc
 
-    db_before = (root / "lib/database.dart").read_text(encoding="utf-8").splitlines()
-    print("--- database.dart antes da v3.29.0 (linhas 56-82) ---")
-    for idx, line in enumerate(db_before[55:82], start=56):
-        print(f"{idx:04d}: {line}")
+    # O banco montado pela cadeia atual já vem formatado exatamente como o
+    # primeiro hunk do diff tentava formatar. Removemos somente esse hunk
+    # cosmético para preservar todas as alterações funcionais seguintes.
+    cosmetic_hunk = b"""@@ -61,10 +61,9 @@\n \n   Future<String> get databaseFilePath async {\n     final dbPath = await getDatabasesPath();\n-    final fileName =\n-        _activeUserId.isEmpty\n-            ? 'auditar_sst.db'\n-            : 'auditar_sst_$_activeUserId.db';\n+    final fileName = _activeUserId.isEmpty\n+        ? 'auditar_sst.db'\n+        : 'auditar_sst_$_activeUserId.db';\n     return join(dbPath, fileName);\n   }\n \n"""
+    if cosmetic_hunk in diff:
+        diff = diff.replace(cosmetic_hunk, b"", 1)
 
     with tempfile.NamedTemporaryFile(suffix=".diff", delete=False) as f:
         f.write(diff)
