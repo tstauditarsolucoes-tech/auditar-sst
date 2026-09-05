@@ -22,16 +22,30 @@ def main() -> int:
         return 2
 
     here = Path(__file__).resolve().parent
+    names = [
+        "patch_v3290.from3280.part1",
+        "patch_v3290.from3280.part2",
+        "patch_v3290.from3280.part3",
+        "patch_v3290.from3280.part4a",
+        "patch_v3290.from3280.part4b",
+        "patch_v3290.from3280.part5",
+        "patch_v3290.from3280.part6",
+        "patch_v3290.from3280.part7a",
+        "patch_v3290.from3280.part7b",
+    ]
     parts = []
-    for i in range(1, 8):
-        name = f"patch_v3290.from3280.part{i}"
+    for name in names:
         part = here / name
         if not part.exists():
             print(f"parte ausente: {name}", file=sys.stderr)
             return 2
         parts.append(part.read_text(encoding="utf-8").strip())
 
-    diff = gzip.decompress(base64.b64decode("".join(parts)))
+    try:
+        diff = gzip.decompress(base64.b64decode("".join(parts), validate=True))
+    except Exception as exc:
+        raise RuntimeError(f"payload v3.29.0 inválido: {exc}") from exc
+
     with tempfile.NamedTemporaryFile(suffix=".diff", delete=False) as f:
         f.write(diff)
         patch_name = f.name
