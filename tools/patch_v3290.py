@@ -2,11 +2,19 @@
 from __future__ import annotations
 
 import base64
-import gzip
-import subprocess
+import io
 import sys
-import tempfile
+import tarfile
 from pathlib import Path
+
+
+def _safe_extract(archive: tarfile.TarFile, root: Path) -> None:
+    root = root.resolve()
+    for member in archive.getmembers():
+        target = (root / member.name).resolve()
+        if target != root and root not in target.parents:
+            raise RuntimeError(f"caminho inválido no payload: {member.name}")
+    archive.extractall(root)
 
 
 def main() -> int:
@@ -19,63 +27,18 @@ def main() -> int:
         print(f"raiz inválida: {root}", file=sys.stderr)
         return 2
 
-    here = Path(__file__).resolve().parent
-    names = [
-        "v3290_clean.part1a",
-        "v3290_clean.part1b",
-        "v3290_clean.part2",
-        "v3290_clean.part3",
-        "v3290_clean.part4",
-        "v3290_clean.part5",
-        "v3290_clean.part6",
-    ]
-    parts = []
-    for name in names:
-        part = here / name
-        if not part.exists():
-            print(f"payload ausente: {part.name}", file=sys.stderr)
-            return 2
-        parts.append(part.read_text(encoding="utf-8").strip())
+    payload_file = Path(__file__).resolve().parent / "v3290_full.b64"
+    if not payload_file.exists():
+        print(f"payload ausente: {payload_file.name}", file=sys.stderr)
+        return 2
 
     try:
-        diff = gzip.decompress(base64.b64decode("".join(parts), validate=True))
+        encoded = "".join(payload_file.read_text(encoding="utf-8").split())
+        payload = base64.b64decode(encoded, validate=True)
+        with tarfile.open(fileobj=io.BytesIO(payload), mode="r:gz") as archive:
+            _safe_extract(archive, root)
     except Exception as exc:
-        raise RuntimeError(f"payload v3.29.0 inválido: {exc}") from exc
-
-    # O banco montado pela cadeia atual já vem formatado exatamente como o
-    # primeiro hunk do diff tentava formatar. Removemos somente esse hunk
-    # cosmético para preservar todas as alterações funcionais seguintes.
-    cosmetic_hunk = b"""@@ -61,10 +61,9 @@\n \n   Future<String> get databaseFilePath async {\n     final dbPath = await getDatabasesPath();\n-    final fileName =\n-        _activeUserId.isEmpty\n-            ? 'auditar_sst.db'\n-            : 'auditar_sst_$_activeUserId.db';\n+    final fileName = _activeUserId.isEmpty\n+        ? 'auditar_sst.db'\n+        : 'auditar_sst_$_activeUserId.db';\n     return join(dbPath, fileName);\n   }\n \n"""
-    if cosmetic_hunk in diff:
-        diff = diff.replace(cosmetic_hunk, b"", 1)
-
-    with tempfile.NamedTemporaryFile(suffix=".diff", delete=False) as f:
-        f.write(diff)
-        patch_name = f.name
-
-    try:
-        repo_top = Path(
-            subprocess.check_output(
-                ["git", "rev-parse", "--show-toplevel"],
-                cwd=root,
-                text=True,
-            ).strip()
-        ).resolve()
-        relative_root = root.relative_to(repo_top).as_posix()
-        subprocess.run(
-            [
-                "git",
-                "apply",
-                "--unsafe-paths",
-                "--whitespace=nowarn",
-                f"--directory={relative_root}",
-                patch_name,
-            ],
-            cwd=repo_top,
-            check=True,
-        )
-    finally:
-        Path(patch_name).unlink(missing_ok=True)
+        raise RuntimeError(f"falha ao aplicar payload robusto v3.29.0: {exc}") from exc
 
     required = {
         "pubspec.yaml": "version: 3.29.0+142",
@@ -88,7 +51,10 @@ def main() -> int:
         "lib/database.dart": "report_signature_mode",
     }
     for rel, marker in required.items():
-        text = (root / rel).read_text(encoding="utf-8")
+        path = root / rel
+        if not path.exists():
+            raise RuntimeError(f"validação v3.29.0 falhou: arquivo ausente {rel}")
+        text = path.read_text(encoding="utf-8")
         if marker not in text:
             raise RuntimeError(f"validação v3.29.0 falhou em {rel}: {marker}")
 
@@ -100,7 +66,7 @@ def main() -> int:
     if "include_action_plan" not in database:
         raise RuntimeError("campo include_action_plan ausente")
 
-    print("v3.29.0 consolidada aplicada com sucesso")
+    print("v3.29.0 consolidada aplicada com sucesso (payload robusto)")
     return 0
 
 
