@@ -1,10 +1,8 @@
 (() => {
-  const ENDPOINT = 'https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec';
-  const KEY_STORE = 'auditarEpiSyncKey';
+  const ENDPOINT = 'https://script.google.com/macros/s/AKfycbxqMnKiTlAJTFv3-odS2dB1NRcSD8wwvtNxxa-zCFhTM6GeNZszib_1N6eT9wSnOnOyjg/exec';
   let selectedFile = null;
 
   const $ = (s, root=document) => root.querySelector(s);
-  const esc = (v='') => String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
   const clean = (v='') => String(v ?? '').replace(/\s+/g,' ').trim();
   const norm = (v='') => clean(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 
@@ -23,28 +21,13 @@
     box.innerHTML=`
       <div style="margin-top:12px;padding:12px;border:1px solid #d7e7e4;border-radius:12px;background:#f7fbfa">
         <div style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap">
-          <div><b>✨ IA para PDF difícil</b><br><small>Use somente quando a leitura normal ficar incompleta, bagunçada ou não reconhecer o PDF.</small></div>
+          <div><b>✨ IA para PDF difícil</b><br><small>Use quando a leitura normal do PDF ficar incompleta ou bagunçada.</small></div>
           <button id="btnAiWorkers" type="button" class="secondary">✨ Organizar com IA</button>
         </div>
         <div id="aiWorkersStatus" style="margin-top:8px;font-size:13px"></div>
-        <div id="aiWorkersConfig" style="display:none;margin-top:10px">
-          <label>Chave de ativação da IA
-            <input id="aiSyncKey" type="password" autocomplete="off" placeholder="Informe a chave uma única vez neste aparelho">
-          </label>
-          <button id="btnSaveAiKey" type="button" class="primary" style="margin-top:8px">Salvar e ativar IA</button>
-          <small style="display:block;margin-top:6px">A chave fica salva somente neste aparelho. A chave do serviço de IA continua protegida no servidor.</small>
-        </div>
       </div>`;
     drop.appendChild(box);
     $('#btnAiWorkers')?.addEventListener('click', runAi);
-    $('#btnSaveAiKey')?.addEventListener('click',()=>{
-      const value=clean($('#aiSyncKey')?.value);
-      if(!value) return toast('Informe a chave de ativação.');
-      localStorage.setItem(KEY_STORE,value);
-      $('#aiWorkersConfig').style.display='none';
-      setStatus('IA ativada neste aparelho.');
-      toast('IA ativada.');
-    });
   }
 
   function setStatus(text, error=false){
@@ -52,22 +35,12 @@
     el.textContent=text; el.style.color=error?'#a12622':'#315f59';
   }
 
-  function setNormalReadState(count){
-    const btn=$('#btnAiWorkers'); if(!btn) return;
-    const total=Number(count||0);
-    if(total>0){
-      btn.disabled=true;
-      btn.textContent='✓ Leitura normal OK';
-      setStatus(`${total} trabalhador(es) identificado(s) corretamente. A IA não é necessária para este arquivo.`);
-    }else{
-      btn.disabled=false;
-      btn.textContent='✨ Organizar com IA';
-    }
-  }
-
   function toDataUrl(file){
     return new Promise((resolve,reject)=>{
-      const r=new FileReader(); r.onload=()=>resolve(String(r.result||'')); r.onerror=()=>reject(r.error||new Error('Falha ao ler arquivo.')); r.readAsDataURL(file);
+      const r=new FileReader();
+      r.onload=()=>resolve(String(r.result||''));
+      r.onerror=()=>reject(r.error||new Error('Falha ao ler arquivo.'));
+      r.readAsDataURL(file);
     });
   }
 
@@ -79,7 +52,9 @@
       const pdf=await pdfjsLib.getDocument({data}).promise;
       const lines=[];
       for(let p=1;p<=pdf.numPages;p++){
-        const page=await pdf.getPage(p); const tc=await page.getTextContent(); const groups=new Map();
+        const page=await pdf.getPage(p);
+        const tc=await page.getTextContent();
+        const groups=new Map();
         tc.items.forEach(item=>{
           const y=Math.round(item.transform?.[5]||0), x=item.transform?.[4]||0;
           const key=[...groups.keys()].find(k=>Math.abs(k-y)<=2) ?? y;
@@ -98,16 +73,19 @@
   function enrichFromLines(worker, lines){
     const target=norm(worker.name);
     const line=lines.find(l=>norm(l).includes(target));
-    if(!line) return {...worker,cpf:'',reg:''};
-    const cpf=(line.match(/\b\d{3}\.?\d{3}\.?\d{3}[-\s]?\d{2}\b/)||[])[0]||'';
-    let reg='';
-    const m=line.match(/(?:matr[ií]cula|registro|chapa)\s*[:#-]?\s*([A-Za-z0-9.-]+)/i);
-    if(m) reg=m[1];
+    if(!line) return {...worker,cpf:clean(worker.cpf),reg:clean(worker.reg)};
+    const cpf=clean(worker.cpf) || (line.match(/\b\d{3}\.?\d{3}\.?\d{3}[-\s]?\d{2}\b/)||[])[0] || '';
+    let reg=clean(worker.reg);
+    if(!reg){
+      const m=line.match(/(?:matr[ií]cula|registro|chapa)\s*[:#-]?\s*([A-Za-z0-9.-]+)/i);
+      if(m) reg=m[1];
+    }
     return {...worker,cpf,reg};
   }
 
   function csvEscape(v){
-    const s=String(v??''); return /[;"\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s;
+    const s=String(v??'');
+    return /[;"\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s;
   }
 
   function sendRowsToImporter(rows){
@@ -116,59 +94,74 @@
     const blob=new Blob([[header.join(';'),...body].join('\n')],{type:'text/csv'});
     const file=new File([blob],'lista-organizada-ia.csv',{type:'text/csv'});
     const dt=new DataTransfer(); dt.items.add(file);
-    const input=$('#importFile'); input.files=dt.files; input.dispatchEvent(new Event('change',{bubbles:true}));
+    const input=$('#importFile');
+    input.files=dt.files;
+    input.dispatchEvent(new Event('change',{bubbles:true}));
+  }
+
+  function authToken(){
+    return window.GestaoEpiAuth?.token?.() || '';
   }
 
   async function runAi(){
     if(!selectedFile) return toast('Selecione primeiro a lista de funcionários.');
     const ext=(selectedFile.name.split('.').pop()||'').toLowerCase();
     if(ext!=='pdf') return toast('A IA é necessária principalmente para PDF. Excel e CSV já são lidos diretamente.');
-    const syncKey=clean(localStorage.getItem(KEY_STORE)||'');
-    if(!syncKey){
-      $('#aiWorkersConfig').style.display='block';
-      setStatus('Para proteger a IA, informe a chave de ativação uma única vez neste aparelho.');
-      return;
+
+    const token=authToken();
+    if(!token){
+      setStatus('Entre no Gestão EPI antes de usar a IA.',true);
+      return toast('Faça login para usar a IA.');
     }
-    const btn=$('#btnAiWorkers'); btn.disabled=true; btn.textContent='✨ Lendo com IA…';
+
+    const btn=$('#btnAiWorkers');
+    btn.disabled=true;
+    btn.textContent='✨ Lendo com IA…';
     setStatus('A IA está lendo e organizando a lista…');
+
     try{
       const documentData=await toDataUrl(selectedFile);
       if(!documentData.startsWith('data:application/pdf;base64,')) throw new Error('Selecione um PDF válido.');
       if(documentData.length>18000000) throw new Error('O PDF é muito grande para análise por IA.');
+
       const response=await fetch(ENDPOINT,{
         method:'POST',
         headers:{'Content-Type':'text/plain;charset=utf-8'},
         body:JSON.stringify({
-          action:'ai_assistant',
-          syncKey,
+          action:'tenant_ai_assistant',
+          authToken:token,
           payload:{mode:'employee_pdf_import',document:documentData}
         })
       });
+
       const data=await response.json();
-      if(!data.ok) throw new Error(data.message||'A IA não conseguiu ler a lista.');
+      if(!data?.ok) throw new Error(data?.message||'A IA não conseguiu ler a lista.');
+
       const employees=Array.isArray(data.result?.employees)?data.result.employees:[];
       if(!employees.length) throw new Error('A IA não identificou funcionários nesse PDF.');
+
       const lines=await extractPdfLines(selectedFile);
       const rows=employees
-        .map(e=>({name:clean(e.name),role:clean(e.role),sector:clean(e.sector)}))
+        .map(e=>({
+          name:clean(e.name),
+          cpf:clean(e.cpf),
+          reg:clean(e.reg),
+          role:clean(e.role),
+          sector:clean(e.sector)
+        }))
         .filter(e=>e.name)
         .map(e=>enrichFromLines(e,lines));
+
       sendRowsToImporter(rows);
-      setStatus(`IA organizou ${rows.length} trabalhador(es). Confira a prévia e toque em “Cadastrar funcionários”.`);
+      setStatus(`IA organizou ${rows.length} trabalhador(es). Confira a prévia antes de cadastrar.`);
       toast('Lista organizada com IA.');
     }catch(err){
       const msg=String(err?.message||err||'Falha ao usar a IA.');
-      if(/ação não reconhecida|acao nao reconhecida/i.test(msg)){
-        setStatus('A Central da IA ainda não está publicada nesta versão. A leitura normal corrigida continua disponível para PDFs com texto.',true);
-        toast('Use a leitura normal deste PDF.');
-      }else{
-        setStatus(msg,true); toast(msg);
-      }
-      if(/chave|sincroniza/i.test(msg)) $('#aiWorkersConfig').style.display='block';
+      setStatus(msg,true);
+      toast(msg);
     }finally{
-      if(!btn.textContent.includes('Leitura normal')){
-        btn.disabled=false; btn.textContent='✨ Organizar com IA';
-      }
+      btn.disabled=false;
+      btn.textContent='✨ Organizar com IA';
     }
   }
 
@@ -176,13 +169,19 @@
     injectUi();
     $('#importFile')?.addEventListener('change',e=>{
       selectedFile=e.target.files?.[0]||null;
-      const btn=$('#btnAiWorkers'); if(btn){btn.disabled=false;btn.textContent='✨ Organizar com IA';}
       if(selectedFile){
         const ext=(selectedFile.name.split('.').pop()||'').toLowerCase();
-        setStatus(ext==='pdf'?'Lendo o PDF normalmente… A IA só será necessária se a prévia não ficar correta.':'Este formato será lido diretamente; normalmente não precisa de IA.');
+        setStatus(ext==='pdf'
+          ? 'PDF selecionado. Use a IA se a leitura normal não ficar correta.'
+          : 'Este formato é lido diretamente; normalmente não precisa de IA.');
       }
     });
-    document.addEventListener('auditar-epi-import-preview',e=>setNormalReadState(e.detail?.count||0));
-    document.addEventListener('click',e=>{ if(e.target.closest('[data-go="importWorkers"]')) setTimeout(injectUi,0); });
+    document.addEventListener('auditar-epi-import-preview',e=>{
+      const count=Number(e.detail?.count||0);
+      if(count>0) setStatus(`${count} trabalhador(es) identificado(s) na leitura normal. A IA continua disponível se precisar corrigir a organização.`);
+    });
+    document.addEventListener('click',e=>{
+      if(e.target.closest('[data-go="importWorkers"]')) setTimeout(injectUi,0);
+    });
   });
 })();
