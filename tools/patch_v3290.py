@@ -2,23 +2,11 @@
 from __future__ import annotations
 
 import base64
-import io
+import gzip
+import subprocess
 import sys
-import tarfile
+import tempfile
 from pathlib import Path
-
-EXPECTED = {
-    "lib/database.dart",
-    "lib/models.dart",
-    "lib/screens/home_screen.dart",
-    "lib/screens/new_inspection_screen.dart",
-    "lib/screens/report_screen.dart",
-    "lib/screens/signature_screen.dart",
-    "lib/services/auth_service.dart",
-    "lib/services/pdf_service.dart",
-    "lib/services/report_file_service.dart",
-    "pubspec.yaml",
-}
 
 
 def main() -> int:
@@ -31,30 +19,47 @@ def main() -> int:
         print(f"raiz inválida: {root}", file=sys.stderr)
         return 2
 
-    payload_path = Path(__file__).resolve().parent / "v3290_payload.b64"
-    if not payload_path.exists():
-        print("payload v3.29.0 ausente", file=sys.stderr)
-        return 2
+    here = Path(__file__).resolve().parent
+    parts = []
+    for i in range(1, 7):
+        part = here / f"v3290_clean.part{i}"
+        if not part.exists():
+            print(f"payload ausente: {part.name}", file=sys.stderr)
+            return 2
+        parts.append(part.read_text(encoding="utf-8").strip())
 
-    raw = base64.b64decode(payload_path.read_text(encoding="utf-8").strip(), validate=True)
-    with tarfile.open(fileobj=io.BytesIO(raw), mode="r:gz") as archive:
-        members = [m for m in archive.getmembers() if m.isfile()]
-        names = {m.name for m in members}
-        if names != EXPECTED:
-            missing = sorted(EXPECTED - names)
-            extra = sorted(names - EXPECTED)
-            raise RuntimeError(f"payload inesperado; ausentes={missing}; extras={extra}")
+    try:
+        diff = gzip.decompress(base64.b64decode("".join(parts), validate=True))
+    except Exception as exc:
+        raise RuntimeError(f"payload v3.29.0 inválido: {exc}") from exc
 
-        for member in members:
-            rel = Path(member.name)
-            if rel.is_absolute() or ".." in rel.parts:
-                raise RuntimeError(f"caminho inválido no payload: {member.name}")
-            source = archive.extractfile(member)
-            if source is None:
-                raise RuntimeError(f"arquivo ausente no payload: {member.name}")
-            target = root / rel
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(source.read())
+    with tempfile.NamedTemporaryFile(suffix=".diff", delete=False) as f:
+        f.write(diff)
+        patch_name = f.name
+
+    try:
+        repo_top = Path(
+            subprocess.check_output(
+                ["git", "rev-parse", "--show-toplevel"],
+                cwd=root,
+                text=True,
+            ).strip()
+        ).resolve()
+        relative_root = root.relative_to(repo_top).as_posix()
+        subprocess.run(
+            [
+                "git",
+                "apply",
+                "--unsafe-paths",
+                "--whitespace=nowarn",
+                f"--directory={relative_root}",
+                patch_name,
+            ],
+            cwd=repo_top,
+            check=True,
+        )
+    finally:
+        Path(patch_name).unlink(missing_ok=True)
 
     required = {
         "pubspec.yaml": "version: 3.29.0+142",
@@ -74,6 +79,10 @@ def main() -> int:
     signature = (root / "lib/screens/signature_screen.dart").read_text(encoding="utf-8")
     if "Emitir sem assinatura" not in signature:
         raise RuntimeError("emissão sem assinatura ausente")
+
+    database = (root / "lib/database.dart").read_text(encoding="utf-8")
+    if "include_action_plan" not in database:
+        raise RuntimeError("campo include_action_plan ausente")
 
     print("v3.29.0 consolidada aplicada com sucesso")
     return 0
