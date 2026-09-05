@@ -49,6 +49,18 @@ def main() -> int:
                 raise RuntimeError(f"caminho inseguro no payload: {member.name}") from exc
         tf.extractall(root, members=members)
 
+    # Hotfix de sintaxe descoberto pela validação real do Dart no GitHub Actions.
+    pdf_path = root / "lib/services/pdf_service.dart"
+    pdf_text = pdf_path.read_text(encoding="utf-8")
+    old = """        ),\n      )\n    else\n      body.add(\n        _signatureInfoBlock("""
+    new = """        ),\n      );\n    else\n      body.add(\n        _signatureInfoBlock("""
+    if old in pdf_text:
+        pdf_text = pdf_text.replace(old, new, 1)
+        pdf_path.write_text(pdf_text, encoding="utf-8")
+        print("v3.29.0: sintaxe do bloco de assinatura do PDF corrigida")
+    elif new not in pdf_text:
+        raise RuntimeError("trecho esperado do bloco de assinatura do PDF não encontrado")
+
     required = {
         "pubspec.yaml": "version: 3.29.0+142",
         "lib/screens/signature_screen.dart": "Assinar externamente por Gov.br",
