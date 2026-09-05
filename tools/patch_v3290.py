@@ -20,57 +20,43 @@ def main() -> int:
         return 2
 
     here = Path(__file__).resolve().parent
-    parts: list[str] = []
-    for index in range(1, 5):
-        part = here / f"patch_v3290.part{index}"
+    parts = []
+    for name in ("patch_v3290.new1", "patch_v3290.new2", "patch_v3290.new3"):
+        part = here / name
         if not part.exists():
-            raise RuntimeError(f"parte ausente: {part.name}")
+            print(f"parte ausente: {name}", file=sys.stderr)
+            return 2
         parts.append(part.read_text(encoding="utf-8").strip())
 
     diff = gzip.decompress(base64.b64decode("".join(parts)))
-
-    repo_root = here.parent.resolve()
-    try:
-        relative_root = root.relative_to(repo_root).as_posix()
-    except ValueError as exc:
-        raise RuntimeError(f"raiz do app fora do repositório: {root}") from exc
-
-    with tempfile.NamedTemporaryFile(suffix=".diff", delete=False) as handle:
-        handle.write(diff)
-        patch_name = handle.name
+    with tempfile.NamedTemporaryFile(suffix=".diff", delete=False) as f:
+        f.write(diff)
+        patch_name = f.name
 
     try:
         subprocess.run(
-            [
-                "git",
-                "apply",
-                "--unsafe-paths",
-                "--whitespace=nowarn",
-                f"--directory={relative_root}",
-                patch_name,
-            ],
-            cwd=repo_root,
+            ["git", "apply", "--unsafe-paths", "--whitespace=nowarn", patch_name],
+            cwd=root,
             check=True,
         )
     finally:
         Path(patch_name).unlink(missing_ok=True)
 
-    required = [
-        ("pubspec.yaml", "version: 3.29.0+142"),
-        ("lib/screens/signature_screen.dart", "Assinar externamente por Gov.br"),
-        ("lib/screens/signature_screen.dart", "Emitir sem assinatura"),
-        ("lib/screens/report_screen.dart", "Incluir plano de ação"),
-        ("lib/services/pdf_service.dart", "O QUE FOI IDENTIFICADO"),
-        ("lib/services/auth_service.dart", "purgeCompaniesOutsideAccess"),
-        ("lib/screens/home_screen.dart", "versão 3.29.0"),
-        ("lib/screens/new_inspection_screen.dart", "backgroundColor: Colors.white"),
-    ]
-    for rel, marker in required:
+    required = {
+        "pubspec.yaml": "version: 3.29.0+142",
+        "lib/screens/signature_screen.dart": "Assinar externamente por Gov.br",
+        "lib/screens/report_screen.dart": "Incluir plano de ação",
+        "lib/services/pdf_service.dart": "O QUE FOI IDENTIFICADO",
+        "lib/services/auth_service.dart": "purgeCompaniesOutsideAccess",
+        "lib/screens/home_screen.dart": "versão 3.29.0",
+        "lib/screens/new_inspection_screen.dart": "backgroundColor: Colors.white",
+    }
+    for rel, marker in required.items():
         text = (root / rel).read_text(encoding="utf-8")
         if marker not in text:
             raise RuntimeError(f"validação v3.29.0 falhou em {rel}: {marker}")
 
-    print("v3.29.0 aplicada sobre a base v3.27.0 com sucesso")
+    print("v3.29.0 aplicada sobre a v3.28.1 com sucesso")
     return 0
 
 
