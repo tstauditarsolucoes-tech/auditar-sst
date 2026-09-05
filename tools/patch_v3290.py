@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 import base64
-import io
+import gzip
+import subprocess
 import sys
-import tarfile
+import tempfile
 from pathlib import Path
 
 
@@ -18,23 +19,30 @@ def main() -> int:
         print(f"raiz inválida: {root}", file=sys.stderr)
         return 2
 
-    payload = Path(__file__).resolve().parent / "v3290_overrides.b64"
-    if not payload.exists():
-        print("overrides finais da v3.29.0 ausentes", file=sys.stderr)
-        return 2
+    here = Path(__file__).resolve().parent
+    parts = []
+    for name in ("patch_v3290.part1", "patch_v3290.part2"):
+        part = here / name
+        if not part.exists():
+            print(f"parte ausente: {name}", file=sys.stderr)
+            return 2
+        parts.append(part.read_text(encoding="utf-8").strip())
 
-    raw = base64.b64decode(payload.read_text(encoding="utf-8").strip())
-    with tarfile.open(fileobj=io.BytesIO(raw), mode="r:gz") as archive:
-        for member in archive.getmembers():
-            target = (root / member.name).resolve()
-            if root not in target.parents and target != root:
-                raise RuntimeError(f"caminho inválido no pacote: {member.name}")
-        archive.extractall(root)
+    diff = gzip.decompress(base64.b64decode("".join(parts)))
+    with tempfile.NamedTemporaryFile(suffix=".diff", delete=False) as f:
+        f.write(diff)
+        patch_name = f.name
 
-    print(
-        "v3.29.0 aplicada por overrides finais: relatório executivo, Gov.br, "
-        "emissão sem assinatura, plano de ação opcional, permissões, versão e desempenho"
-    )
+    try:
+        subprocess.run(
+            ["git", "apply", "--unsafe-paths", "--whitespace=nowarn", patch_name],
+            cwd=root,
+            check=True,
+        )
+    finally:
+        Path(patch_name).unlink(missing_ok=True)
+
+    print("v3.29.0 aplicada sobre a base v3.27.0 com sucesso")
     return 0
 
 
