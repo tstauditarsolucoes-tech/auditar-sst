@@ -75,7 +75,8 @@ jobs:
             lib/services/device_sync_service.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter test
-          node --check painel_web_google_apps_script/Code.gs
+          cp painel_web_google_apps_script/Code.gs /tmp/auditar_code.js
+          node --check /tmp/auditar_code.js
 
       - name: Compilar APK
         working-directory: app/Auditar_SST_v1_5_dashboard
@@ -158,7 +159,8 @@ jobs:
           dart format lib/screens/pgr_screen.dart lib/services/pgr_service.dart lib/screens/company_detail_screen.dart lib/screens/training_requirements_screen.dart lib/database.dart lib/services/device_sync_service.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter test
-          node --check painel_web_google_apps_script/Code.gs
+          Copy-Item painel_web_google_apps_script/Code.gs "$env:RUNNER_TEMP\auditar_code.js" -Force
+          node --check "$env:RUNNER_TEMP\auditar_code.js"
 
       - name: Compilar Windows
         working-directory: app/Auditar_SST_v1_5_dashboard
