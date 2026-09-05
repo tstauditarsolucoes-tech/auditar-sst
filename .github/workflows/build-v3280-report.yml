@@ -1,0 +1,213 @@
+name: Auditar SST v3.28.0 Relatorio Final Profissional
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/report-v3.28.0
+    paths:
+      - "tools/patch_report_v3280.py"
+      - "tools/patch_report_v3280.part*"
+      - ".github/workflows/build-v3280-report.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android v3.28.0
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.27.0
+        run: |
+          rm -rf app && mkdir -p app
+          unzip -q Auditar_SST_v1.5_dashboard_completo.zip -d app
+          cp -R source_overrides/Auditar_SST_v1_5_dashboard/. app/Auditar_SST_v1_5_dashboard/
+          python3 tools/patch_management_snapshot.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/prepare_sst_source.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_resume_vistoria.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_multiuser.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_checklist_v324.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_quality_v3241.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_auth_timeout_v3241.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_simple_login_v3242.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_sync_v3243.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_windows_db_v3244.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_visual_v3245.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_pgr_ai_v3250.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_worker_sector_import_v3251.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_checklist_ai_v3252.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_pgr_tools_v3260.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_hardening_v3270.py app/Auditar_SST_v1_5_dashboard
+      - name: Aplicar relatorio profissional v3.28.0
+        run: |
+          python3 tools/patch_report_v3280.py app/Auditar_SST_v1_5_dashboard
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Preparar Android
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q "MyApp" test/widget_test.dart; then rm test/widget_test.dart; fi
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('android/app/src/main/AndroidManifest.xml')
+          t=p.read_text()
+          for perm in ('<uses-permission android:name="android.permission.CAMERA" />','<uses-permission android:name="android.permission.INTERNET" />'):
+              if perm not in t: t=t.replace('<application',perm+'\n    <application',1)
+          p.write_text(t)
+          PY
+          flutter pub get
+      - name: Validar
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          dart format lib/screens/report_screen.dart lib/services/pdf_service.dart lib/services/report_file_service.dart lib/screens/home_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+          cp painel_web_google_apps_script/Code.gs /tmp/Code.js
+          cp painel_web_google_apps_script/MultiUser.gs /tmp/MultiUser.js
+          node --check /tmp/Code.js
+          node --check /tmp/MultiUser.js
+      - name: Compilar APK
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY" || (echo "AUDITAR_SYNC_KEY ausente" && exit 1)
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+      - name: Preparar artefatos
+        run: |
+          mkdir -p dist/android
+          cp app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-release.apk dist/android/Auditar-SST-v3.28.0.apk
+          cd app && zip -qr ../Auditar-SST-Codigo-Fonte-v3.28.0.zip Auditar_SST_v1_5_dashboard -x "Auditar_SST_v1_5_dashboard/build/*" "Auditar_SST_v1_5_dashboard/.dart_tool/*"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.28.0-Android
+          path: dist/android/Auditar-SST-v3.28.0.apk
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.28.0-Codigo-Fonte
+          path: Auditar-SST-Codigo-Fonte-v3.28.0.zip
+          retention-days: 30
+
+  windows:
+    name: Windows v3.28.0
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.27.0
+        shell: pwsh
+        run: |
+          Remove-Item app -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path app | Out-Null
+          Expand-Archive -Path "Auditar_SST_v1.5_dashboard_completo.zip" -DestinationPath app -Force
+          Copy-Item -Path "source_overrides/Auditar_SST_v1_5_dashboard/*" -Destination "app/Auditar_SST_v1_5_dashboard" -Recurse -Force
+          python tools/patch_management_snapshot.py app/Auditar_SST_v1_5_dashboard
+          python tools/prepare_sst_source.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_resume_vistoria.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_multiuser.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_checklist_v324.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_quality_v3241.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_auth_timeout_v3241.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_simple_login_v3242.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_sync_v3243.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_windows_db_v3244.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_visual_v3245.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_pgr_ai_v3250.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_worker_sector_import_v3251.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_checklist_ai_v3252.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_pgr_tools_v3260.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_hardening_v3270.py app/Auditar_SST_v1_5_dashboard
+      - name: Aplicar relatorio profissional v3.28.0
+        shell: pwsh
+        run: |
+          python tools/patch_report_v3280.py app/Auditar_SST_v1_5_dashboard
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Preparar Windows
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String -Path 'test/widget_test.dart' -Pattern 'MyApp' -Quiet)) { Remove-Item 'test/widget_test.dart' -Force }
+          flutter pub get
+      - name: Validar
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        run: |
+          dart format lib/screens/report_screen.dart lib/services/pdf_service.dart lib/services/report_file_service.dart lib/screens/home_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+          Copy-Item painel_web_google_apps_script/Code.gs "$env:RUNNER_TEMP\Code.js" -Force
+          Copy-Item painel_web_google_apps_script/MultiUser.gs "$env:RUNNER_TEMP\MultiUser.js" -Force
+          node --check "$env:RUNNER_TEMP\Code.js"
+          node --check "$env:RUNNER_TEMP\MultiUser.js"
+      - name: Compilar Windows
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+      - name: Pacote portatil
+        shell: pwsh
+        run: |
+          $release = "app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release"
+          $exe = Get-ChildItem -Path $release -Filter *.exe | Select-Object -First 1
+          if ($exe.Name -ne 'Auditar SST.exe') { Rename-Item -Path $exe.FullName -NewName 'Auditar SST.exe' -Force }
+          New-Item -ItemType Directory -Force -Path dist/windows/portable | Out-Null
+          Copy-Item "$release/*" dist/windows/portable -Recurse -Force
+          Compress-Archive -Path "dist/windows/portable/*" -DestinationPath "dist/windows/Auditar-SST-Windows-v3.28.0-PORTATIL.zip" -Force
+      - name: Instalador
+        shell: pwsh
+        run: |
+          $iscc='C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (!(Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          $source=(Resolve-Path 'app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release').Path
+          New-Item -ItemType Directory -Force -Path dist/windows | Out-Null
+          $output=(Resolve-Path 'dist/windows').Path
+          $iss=Join-Path $env:RUNNER_TEMP 'AuditarSST.iss'
+          @"
+          [Setup]
+          AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}
+          AppName=Auditar SST
+          AppVersion=3.28.0
+          AppPublisher=Auditar Solucoes
+          DefaultDirName={autopf}\Auditar SST
+          DefaultGroupName=Auditar SST
+          OutputDir=$output
+          OutputBaseFilename=Auditar-SST-Setup-v3.28.0
+          Compression=lzma2
+          SolidCompression=yes
+          WizardStyle=modern
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          UninstallDisplayIcon={app}\Auditar SST.exe
+          [Files]
+          Source: "$source\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          [Icons]
+          Name: "{group}\Auditar SST"; Filename: "{app}\Auditar SST.exe"
+          Name: "{autodesktop}\Auditar SST"; Filename: "{app}\Auditar SST.exe"
+          "@ | Set-Content $iss -Encoding UTF8
+          & $iscc $iss
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.28.0-Windows
+          path: |
+            dist/windows/Auditar-SST-Setup-v3.28.0.exe
+            dist/windows/Auditar-SST-Windows-v3.28.0-PORTATIL.zip
+          retention-days: 30
