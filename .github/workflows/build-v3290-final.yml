@@ -1,0 +1,287 @@
+name: Auditar SST v3.29.0 Final
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/v3.29.0
+    paths:
+      - "tools/patch_v3290.py"
+      - "tools/patch_v3290.finalpart"
+      - ".github/workflows/build-v3290-final.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android v3.29.0 Final
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar fonte consolidada
+        run: |
+          rm -rf app && mkdir -p app
+          unzip -q Auditar_SST_v1.5_dashboard_completo.zip -d app
+          cp -R source_overrides/Auditar_SST_v1_5_dashboard/. app/Auditar_SST_v1_5_dashboard/
+          python3 tools/patch_management_snapshot.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/prepare_sst_source.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_resume_vistoria.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_multiuser.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_checklist_v324.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_quality_v3241.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_auth_timeout_v3241.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_simple_login_v3242.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_sync_v3243.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_windows_db_v3244.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_visual_v3245.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_pgr_ai_v3250.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_worker_sector_import_v3251.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_checklist_ai_v3252.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_pgr_tools_v3260.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_hardening_v3270.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_report_v3280.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_report_v3281.py app/Auditar_SST_v1_5_dashboard
+          python3 tools/patch_v3290.py app/Auditar_SST_v1_5_dashboard
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Preparar Android
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q "MyApp" test/widget_test.dart; then rm test/widget_test.dart; fi
+          python3 - <<'PY'
+          from pathlib import Path
+          manifest = Path('android/app/src/main/AndroidManifest.xml')
+          text = manifest.read_text()
+          for perm in (
+              '<uses-permission android:name="android.permission.CAMERA" />',
+              '<uses-permission android:name="android.permission.INTERNET" />',
+          ):
+              if perm not in text:
+                  text = text.replace('<application', perm + '\n    <application', 1)
+          manifest.write_text(text)
+
+          gradle = Path('android/app/build.gradle.kts')
+          text = gradle.read_text()
+          if 'import java.util.Properties' not in text:
+              text = 'import java.util.Properties\nimport java.io.FileInputStream\n\n' + text
+          marker = 'android {'
+          setup = '''val keystoreProperties = Properties()\nval keystorePropertiesFile = rootProject.file("key.properties")\nif (keystorePropertiesFile.exists()) {\n    keystoreProperties.load(FileInputStream(keystorePropertiesFile))\n}\n\n'''
+          if 'val keystorePropertiesFile' not in text:
+              text = text.replace(marker, setup + marker, 1)
+          signing_block = '''\n    signingConfigs {\n        if (keystorePropertiesFile.exists()) {\n            create("release") {\n                keyAlias = keystoreProperties["keyAlias"] as String\n                keyPassword = keystoreProperties["keyPassword"] as String\n                storeFile = file(keystoreProperties["storeFile"] as String)\n                storePassword = keystoreProperties["storePassword"] as String\n            }\n        }\n    }\n'''
+          if 'create("release")' not in text:
+              pos = text.find('\n    buildTypes {')
+              if pos < 0:
+                  raise SystemExit('buildTypes não encontrado')
+              text = text[:pos] + signing_block + text[pos:]
+          old = 'signingConfig = signingConfigs.getByName("debug")'
+          new = '''signingConfig = if (keystorePropertiesFile.exists()) {\n                signingConfigs.getByName("release")\n            } else {\n                signingConfigs.getByName("debug")\n            }'''
+          if old in text:
+              text = text.replace(old, new, 1)
+          gradle.write_text(text)
+          PY
+          flutter pub get
+
+      - name: Configurar certificado Android
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        env:
+          AUDITAR_ANDROID_KEYSTORE_B64: ${{ secrets.AUDITAR_ANDROID_KEYSTORE_B64 }}
+          AUDITAR_ANDROID_KEY_ALIAS: ${{ secrets.AUDITAR_ANDROID_KEY_ALIAS }}
+          AUDITAR_ANDROID_KEY_PASSWORD: ${{ secrets.AUDITAR_ANDROID_KEY_PASSWORD }}
+          AUDITAR_ANDROID_STORE_PASSWORD: ${{ secrets.AUDITAR_ANDROID_STORE_PASSWORD }}
+        run: |
+          if [ -n "$AUDITAR_ANDROID_KEYSTORE_B64" ] && [ -n "$AUDITAR_ANDROID_KEY_ALIAS" ] && [ -n "$AUDITAR_ANDROID_KEY_PASSWORD" ] && [ -n "$AUDITAR_ANDROID_STORE_PASSWORD" ]; then
+            echo "$AUDITAR_ANDROID_KEYSTORE_B64" | base64 --decode > android/app/auditar-release.jks
+            printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=%s\n' "$AUDITAR_ANDROID_STORE_PASSWORD" "$AUDITAR_ANDROID_KEY_PASSWORD" "$AUDITAR_ANDROID_KEY_ALIAS" 'auditar-release.jks' > android/key.properties
+            echo "production" > /tmp/auditar-signing-mode.txt
+          else
+            echo "debug-fallback" > /tmp/auditar-signing-mode.txt
+          fi
+
+      - name: Validar Android
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          dart format lib/screens/report_screen.dart lib/screens/signature_screen.dart lib/screens/new_inspection_screen.dart lib/services/pdf_service.dart lib/services/report_file_service.dart lib/services/auth_service.dart lib/database.dart lib/models.dart lib/screens/home_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+          grep -q "version: 3.29.0+142" pubspec.yaml
+          grep -q "Assinar externamente por Gov.br" lib/screens/signature_screen.dart
+          grep -q "Emitir sem assinatura" lib/screens/signature_screen.dart
+          grep -q "Incluir plano de ação" lib/screens/report_screen.dart
+          grep -q "O QUE FOI IDENTIFICADO" lib/services/pdf_service.dart
+          grep -q "report_signature_mode" lib/database.dart
+          grep -q "purgeCompaniesOutsideAccess" lib/services/auth_service.dart
+          grep -q "backgroundColor: Colors.white" lib/screens/new_inspection_screen.dart
+          grep -q "versão 3.29.0" lib/screens/home_screen.dart
+
+      - name: Compilar APK
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY" || (echo "AUDITAR_SYNC_KEY ausente" && exit 1)
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Conferir certificado do APK
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          MODE=$(cat /tmp/auditar-signing-mode.txt)
+          echo "Modo de assinatura: $MODE" | tee /tmp/APK-CERTIFICADO-v3.29.0.txt
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1 || true)
+          if [ -n "$APKSIGNER" ]; then
+            "$APKSIGNER" verify --print-certs build/app/outputs/flutter-apk/app-release.apk | tee -a /tmp/APK-CERTIFICADO-v3.29.0.txt
+          fi
+
+      - name: Preparar artefatos Android
+        run: |
+          mkdir -p dist/android
+          cp app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-release.apk dist/android/Auditar-SST-v3.29.0.apk
+          cp /tmp/APK-CERTIFICADO-v3.29.0.txt dist/android/APK-CERTIFICADO-v3.29.0.txt
+          cd app && zip -qr ../Auditar-SST-Codigo-Fonte-v3.29.0.zip Auditar_SST_v1_5_dashboard -x "Auditar_SST_v1_5_dashboard/build/*" "Auditar_SST_v1_5_dashboard/.dart_tool/*"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.0-Android
+          path: |
+            dist/android/Auditar-SST-v3.29.0.apk
+            dist/android/APK-CERTIFICADO-v3.29.0.txt
+          retention-days: 30
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.0-Codigo-Fonte
+          path: Auditar-SST-Codigo-Fonte-v3.29.0.zip
+          retention-days: 30
+
+  windows:
+    name: Windows v3.29.0 Final
+    runs-on: windows-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar fonte consolidada
+        shell: pwsh
+        run: |
+          Remove-Item app -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path app | Out-Null
+          Expand-Archive -Path "Auditar_SST_v1.5_dashboard_completo.zip" -DestinationPath app -Force
+          Copy-Item -Path "source_overrides/Auditar_SST_v1_5_dashboard/*" -Destination "app/Auditar_SST_v1_5_dashboard" -Recurse -Force
+          python tools/patch_management_snapshot.py app/Auditar_SST_v1_5_dashboard
+          python tools/prepare_sst_source.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_resume_vistoria.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_multiuser.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_checklist_v324.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_quality_v3241.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_auth_timeout_v3241.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_simple_login_v3242.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_sync_v3243.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_windows_db_v3244.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_visual_v3245.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_pgr_ai_v3250.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_worker_sector_import_v3251.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_checklist_ai_v3252.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_pgr_tools_v3260.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_hardening_v3270.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_report_v3280.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_report_v3281.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_v3290.py app/Auditar_SST_v1_5_dashboard
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Preparar Windows
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String -Path 'test/widget_test.dart' -Pattern 'MyApp' -Quiet)) { Remove-Item 'test/widget_test.dart' -Force }
+          flutter pub get
+
+      - name: Validar Windows
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        run: |
+          dart format lib/screens/report_screen.dart lib/screens/signature_screen.dart lib/screens/new_inspection_screen.dart lib/services/pdf_service.dart lib/services/report_file_service.dart lib/services/auth_service.dart lib/database.dart lib/models.dart lib/screens/home_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+          if (-not (Select-String -Path pubspec.yaml -Pattern 'version: 3.29.0\+142' -Quiet)) { throw 'versão incorreta' }
+          if (-not (Select-String -Path lib/screens/signature_screen.dart -Pattern 'Assinar externamente por Gov.br' -Quiet)) { throw 'Gov.br ausente' }
+          if (-not (Select-String -Path lib/screens/signature_screen.dart -Pattern 'Emitir sem assinatura' -Quiet)) { throw 'emissão sem assinatura ausente' }
+          if (-not (Select-String -Path lib/screens/report_screen.dart -Pattern 'Incluir plano de ação' -Quiet)) { throw 'plano opcional ausente' }
+          if (-not (Select-String -Path lib/services/pdf_service.dart -Pattern 'O QUE FOI IDENTIFICADO' -Quiet)) { throw 'executivo simples ausente' }
+          if (-not (Select-String -Path lib/services/auth_service.dart -Pattern 'purgeCompaniesOutsideAccess' -Quiet)) { throw 'permissões locais ausentes' }
+          if (-not (Select-String -Path lib/screens/home_screen.dart -Pattern 'versão 3.29.0' -Quiet)) { throw 'rodapé de versão incorreto' }
+
+      - name: Compilar Windows
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+
+      - name: Pacote portátil
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist/windows | Out-Null
+          Compress-Archive -Path "app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release/*" -DestinationPath "dist/windows/Auditar-SST-Windows-v3.29.0-PORTATIL.zip" -Force
+
+      - name: Instalador Windows
+        shell: pwsh
+        run: |
+          $release = (Resolve-Path "app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release").Path
+          $output = (Resolve-Path "dist/windows").Path
+          $iss = @"
+          [Setup]
+          AppName=Auditar SST
+          AppVersion=3.29.0
+          DefaultDirName={autopf}\Auditar SST
+          DefaultGroupName=Auditar SST
+          OutputDir=$output
+          OutputBaseFilename=Auditar-SST-Setup-v3.29.0
+          Compression=lzma
+          SolidCompression=yes
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          UninstallDisplayName=Auditar SST
+          
+          [Files]
+          Source: "$release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          
+          [Icons]
+          Name: "{autoprograms}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          Name: "{autodesktop}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          
+          [Run]
+          Filename: "{app}\auditar_sst.exe"; Description: "Abrir Auditar SST"; Flags: nowait postinstall skipifsilent
+          "@
+          Set-Content -Path "$env:RUNNER_TEMP\auditar.iss" -Value $iss -Encoding UTF8
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { throw 'Inno Setup não encontrado' }
+          & $iscc "$env:RUNNER_TEMP\auditar.iss"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.0-Windows
+          path: |
+            dist/windows/Auditar-SST-Setup-v3.29.0.exe
+            dist/windows/Auditar-SST-Windows-v3.29.0-PORTATIL.zip
+          retention-days: 30
