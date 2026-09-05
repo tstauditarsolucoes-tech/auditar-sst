@@ -2,10 +2,9 @@
 from __future__ import annotations
 
 import base64
-import gzip
-import subprocess
+import io
 import sys
-import tempfile
+import tarfile
 from pathlib import Path
 
 
@@ -24,34 +23,31 @@ def main() -> int:
         print("payload final da v3.29.0 ausente", file=sys.stderr)
         return 2
 
-    diff = gzip.decompress(base64.b64decode(payload.read_text(encoding="utf-8").strip()))
-    with tempfile.NamedTemporaryFile(suffix=".diff", delete=False) as f:
-        f.write(diff)
-        patch_name = f.name
-
-    try:
-        subprocess.run(
-            ["git", "apply", "--unsafe-paths", "--whitespace=nowarn", patch_name],
-            cwd=root,
-            check=True,
-        )
-    finally:
-        Path(patch_name).unlink(missing_ok=True)
+    raw = base64.b64decode(payload.read_text(encoding="utf-8").strip())
+    with tarfile.open(fileobj=io.BytesIO(raw), mode="r:gz") as archive:
+        members = archive.getmembers()
+        for member in members:
+            target = (root / member.name).resolve()
+            if target != root and root not in target.parents:
+                raise RuntimeError(f"caminho inválido no pacote: {member.name}")
+        archive.extractall(root, members=members)
 
     required = {
         "pubspec.yaml": "version: 3.29.0+142",
         "lib/screens/signature_screen.dart": "Assinar externamente por Gov.br",
+        "lib/screens/signature_screen.dart": "Emitir sem assinatura",
         "lib/screens/report_screen.dart": "Incluir plano de ação",
         "lib/services/pdf_service.dart": "O QUE FOI IDENTIFICADO",
         "lib/services/auth_service.dart": "purgeCompaniesOutsideAccess",
         "lib/screens/home_screen.dart": "versão 3.29.0",
+        "lib/screens/new_inspection_screen.dart": "backgroundColor: Colors.white",
     }
     for rel, marker in required.items():
         text = (root / rel).read_text(encoding="utf-8")
         if marker not in text:
             raise RuntimeError(f"validação v3.29.0 falhou em {rel}: {marker}")
 
-    print("v3.29.0 aplicada sobre a base v3.27.0 com sucesso")
+    print("v3.29.0 aplicada por sobrescrita final validada com sucesso")
     return 0
 
 
