@@ -56,26 +56,53 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Preparar Android
+      - name: Preparar Android e suporte à assinatura permanente
         working-directory: app/Auditar_SST_v1_5_dashboard
         run: |
-          cp android/app/build.gradle.kts /tmp/auditar-build.gradle.kts
           flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
-          cp /tmp/auditar-build.gradle.kts android/app/build.gradle.kts
           if [ -f test/widget_test.dart ] && grep -q "MyApp" test/widget_test.dart; then rm test/widget_test.dart; fi
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('android/app/src/main/AndroidManifest.xml')
-          t=p.read_text()
-          for perm in ('<uses-permission android:name="android.permission.CAMERA" />','<uses-permission android:name="android.permission.INTERNET" />'):
-              if perm not in t:
-                  t=t.replace('<application',perm+'\n    <application',1)
-          p.write_text(t)
+
+          manifest = Path('android/app/src/main/AndroidManifest.xml')
+          text = manifest.read_text()
+          for perm in (
+              '<uses-permission android:name="android.permission.CAMERA" />',
+              '<uses-permission android:name="android.permission.INTERNET" />',
+          ):
+              if perm not in text:
+                  text = text.replace('<application', perm + '\n    <application', 1)
+          manifest.write_text(text)
+
+          gradle = Path('android/app/build.gradle.kts')
+          text = gradle.read_text()
+          if 'import java.util.Properties' not in text:
+              text = 'import java.util.Properties\nimport java.io.FileInputStream\n\n' + text
+
+          marker = 'android {'
+          setup = '''val keystoreProperties = Properties()\nval keystorePropertiesFile = rootProject.file("key.properties")\nif (keystorePropertiesFile.exists()) {\n    keystoreProperties.load(FileInputStream(keystorePropertiesFile))\n}\n\n'''
+          if 'val keystorePropertiesFile' not in text:
+              text = text.replace(marker, setup + marker, 1)
+
+          signing_block = '''\n    signingConfigs {\n        if (keystorePropertiesFile.exists()) {\n            create("release") {\n                keyAlias = keystoreProperties["keyAlias"] as String\n                keyPassword = keystoreProperties["keyPassword"] as String\n                storeFile = file(keystoreProperties["storeFile"] as String)\n                storePassword = keystoreProperties["storePassword"] as String\n            }\n        }\n    }\n'''
+          if 'create("release")' not in text:
+              pos = text.find('\n    buildTypes {')
+              if pos < 0:
+                  raise SystemExit('buildTypes não encontrado no Gradle Android')
+              text = text[:pos] + signing_block + text[pos:]
+
+          old = 'signingConfig = signingConfigs.getByName("debug")'
+          new = '''signingConfig = if (keystorePropertiesFile.exists()) {\n                signingConfigs.getByName("release")\n            } else {\n                signingConfigs.getByName("debug")\n            }'''
+          if old in text:
+              text = text.replace(old, new, 1)
+          elif 'signingConfigs.getByName("release")' not in text:
+              raise SystemExit('configuração de assinatura release não foi aplicada')
+          gradle.write_text(text)
           PY
           grep -q "keystorePropertiesFile" android/app/build.gradle.kts
           flutter pub get
 
-      - name: Configurar assinatura Android
+      - name: Configurar certificado Android
         working-directory: app/Auditar_SST_v1_5_dashboard
         env:
           AUDITAR_ANDROID_KEYSTORE_B64: ${{ secrets.AUDITAR_ANDROID_KEYSTORE_B64 }}
@@ -85,33 +112,21 @@ jobs:
         run: |
           if [ -n "$AUDITAR_ANDROID_KEYSTORE_B64" ] && [ -n "$AUDITAR_ANDROID_KEY_ALIAS" ] && [ -n "$AUDITAR_ANDROID_KEY_PASSWORD" ] && [ -n "$AUDITAR_ANDROID_STORE_PASSWORD" ]; then
             echo "$AUDITAR_ANDROID_KEYSTORE_B64" | base64 --decode > android/app/auditar-release.jks
-            cat > android/key.properties <<EOF
-          storePassword=$AUDITAR_ANDROID_STORE_PASSWORD
-          keyPassword=$AUDITAR_ANDROID_KEY_PASSWORD
-          keyAlias=$AUDITAR_ANDROID_KEY_ALIAS
-          storeFile=auditar-release.jks
-          EOF
+            printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=%s\n' \
+              "$AUDITAR_ANDROID_STORE_PASSWORD" \
+              "$AUDITAR_ANDROID_KEY_PASSWORD" \
+              "$AUDITAR_ANDROID_KEY_ALIAS" \
+              'auditar-release.jks' > android/key.properties
             echo "production" > /tmp/auditar-signing-mode.txt
-            echo "Assinatura Android de produção configurada."
           else
             echo "debug-fallback" > /tmp/auditar-signing-mode.txt
-            echo "AVISO: secrets da assinatura permanente não estão configurados; build usará chave de teste."
+            echo "AVISO: certificado permanente ainda não configurado nos Secrets do repositório."
           fi
 
-      - name: Validar
+      - name: Validar Android
         working-directory: app/Auditar_SST_v1_5_dashboard
         run: |
-          dart format \
-            lib/screens/report_screen.dart \
-            lib/screens/signature_screen.dart \
-            lib/screens/new_inspection_screen.dart \
-            lib/services/pdf_service.dart \
-            lib/services/report_file_service.dart \
-            lib/services/drive_service.dart \
-            lib/services/auth_service.dart \
-            lib/database.dart \
-            lib/screens/home_screen.dart \
-            lib/brand.dart
+          dart format lib/screens/report_screen.dart lib/screens/signature_screen.dart lib/screens/new_inspection_screen.dart lib/services/pdf_service.dart lib/services/report_file_service.dart lib/services/drive_service.dart lib/services/auth_service.dart lib/database.dart lib/screens/home_screen.dart lib/brand.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter test
           cp painel_web_google_apps_script/Code.gs /tmp/Code.js
@@ -134,7 +149,7 @@ jobs:
           test -n "$AUDITAR_SYNC_KEY" || (echo "AUDITAR_SYNC_KEY ausente" && exit 1)
           flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
 
-      - name: Conferir assinatura do APK
+      - name: Conferir certificado do APK
         working-directory: app/Auditar_SST_v1_5_dashboard
         run: |
           MODE=$(cat /tmp/auditar-signing-mode.txt)
@@ -146,7 +161,7 @@ jobs:
             keytool -printcert -jarfile build/app/outputs/flutter-apk/app-release.apk | tee -a /tmp/APK-CERTIFICADO-v3.29.0.txt || true
           fi
 
-      - name: Preparar artefatos
+      - name: Preparar artefatos Android
         run: |
           mkdir -p dist/android
           cp app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-release.apk dist/android/Auditar-SST-v3.29.0.apk
@@ -215,7 +230,7 @@ jobs:
           if ((Test-Path 'test/widget_test.dart') -and (Select-String -Path 'test/widget_test.dart' -Pattern 'MyApp' -Quiet)) { Remove-Item 'test/widget_test.dart' -Force }
           flutter pub get
 
-      - name: Validar
+      - name: Validar Windows
         working-directory: app/Auditar_SST_v1_5_dashboard
         shell: pwsh
         run: |
@@ -232,6 +247,7 @@ jobs:
           if (-not (Select-String -Path lib/services/pdf_service.dart -Pattern 'O que foi identificado' -Quiet)) { throw 'executivo simples ausente' }
           if (-not (Select-String -Path lib/database.dart -Pattern 'signature_mode' -Quiet)) { throw 'modo de assinatura ausente' }
           if (-not (Select-String -Path lib/services/auth_service.dart -Pattern 'purgeCompaniesOutsideAccess' -Quiet)) { throw 'limpeza de permissões ausente' }
+          if (-not (Select-String -Path lib/screens/new_inspection_screen.dart -Pattern 'labelStyle' -Quiet)) { throw 'cor do texto das recomendações não foi corrigida' }
 
       - name: Compilar Windows
         working-directory: app/Auditar_SST_v1_5_dashboard
@@ -242,7 +258,7 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
           flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
 
-      - name: Pacote portatil
+      - name: Pacote portátil
         shell: pwsh
         run: |
           $release = "app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release"
