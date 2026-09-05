@@ -1,0 +1,129 @@
+name: Auditar SST v3.29.1 Mobile Signature
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v3.29.0]
+    paths:
+      - ".github/workflows/build-v3291-mobile-signature.yml"
+      - "tools/assemble_v3291.py"
+      - "tools/patch_signature_fullscreen_v3291.py"
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android v3.29.1
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar fonte v3.29.1
+        run: python3 tools/assemble_v3291.py
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Preparar Android
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q "MyApp" test/widget_test.dart; then rm test/widget_test.dart; fi
+          python3 - <<'PY'
+          from pathlib import Path
+          manifest = Path('android/app/src/main/AndroidManifest.xml')
+          text = manifest.read_text()
+          for perm in (
+              '<uses-permission android:name="android.permission.CAMERA" />',
+              '<uses-permission android:name="android.permission.INTERNET" />',
+          ):
+              if perm not in text:
+                  text = text.replace('<application', perm + '\n    <application', 1)
+          manifest.write_text(text)
+
+          gradle = Path('android/app/build.gradle.kts')
+          text = gradle.read_text()
+          if 'import java.util.Properties' not in text:
+              text = 'import java.util.Properties\nimport java.io.FileInputStream\n\n' + text
+          setup = '''val keystoreProperties = Properties()\nval keystorePropertiesFile = rootProject.file("key.properties")\nif (keystorePropertiesFile.exists()) {\n    keystoreProperties.load(FileInputStream(keystorePropertiesFile))\n}\n\n'''
+          if 'val keystorePropertiesFile' not in text:
+              text = text.replace('android {', setup + 'android {', 1)
+          signing = '''\n    signingConfigs {\n        if (keystorePropertiesFile.exists()) {\n            create("release") {\n                keyAlias = keystoreProperties["keyAlias"] as String\n                keyPassword = keystoreProperties["keyPassword"] as String\n                storeFile = file(keystoreProperties["storeFile"] as String)\n                storePassword = keystoreProperties["storePassword"] as String\n            }\n        }\n    }\n'''
+          if 'create("release")' not in text:
+              text = text.replace('\n    buildTypes {', signing + '\n    buildTypes {', 1)
+          old = 'signingConfig = signingConfigs.getByName("debug")'
+          new = '''signingConfig = if (keystorePropertiesFile.exists()) {\n                signingConfigs.getByName("release")\n            } else {\n                signingConfigs.getByName("debug")\n            }'''
+          if old in text:
+              text = text.replace(old, new, 1)
+          gradle.write_text(text)
+          PY
+          flutter pub get
+
+      - name: Configurar assinatura Android
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        env:
+          KS: ${{ secrets.AUDITAR_ANDROID_KEYSTORE_B64 }}
+          ALIAS: ${{ secrets.AUDITAR_ANDROID_KEY_ALIAS }}
+          KP: ${{ secrets.AUDITAR_ANDROID_KEY_PASSWORD }}
+          SP: ${{ secrets.AUDITAR_ANDROID_STORE_PASSWORD }}
+        run: |
+          if [ -n "$KS" ] && [ -n "$ALIAS" ] && [ -n "$KP" ] && [ -n "$SP" ]; then
+            echo "$KS" | base64 --decode > android/app/auditar-release.jks
+            printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=%s\n' "$SP" "$KP" "$ALIAS" 'auditar-release.jks' > android/key.properties
+            echo production > /tmp/signing.txt
+          else
+            echo debug-fallback > /tmp/signing.txt
+          fi
+
+      - name: Validar hotfix mobile
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          dart format lib
+          grep -Fq 'version: 3.29.1+143' pubspec.yaml
+          grep -Fq 'Assinar em tela cheia' lib/screens/signature_screen.dart
+          grep -Fq 'DeviceOrientation.landscapeLeft' lib/screens/signature_screen.dart
+          grep -Fq 'class _FullScreenSignaturePage extends StatelessWidget' lib/screens/signature_screen.dart
+          grep -Fq 'Assinar externamente por Gov.br' lib/screens/signature_screen.dart
+          grep -Fq 'Emitir sem assinatura' lib/screens/signature_screen.dart
+          grep -Fq 'Incluir plano de ação' lib/screens/report_screen.dart
+          grep -Fq 'versão 3.29.1' lib/screens/home_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+
+      - name: Compilar APK v3.29.1
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY" || (echo 'AUDITAR_SYNC_KEY ausente' && exit 1)
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Empacotar
+        run: |
+          mkdir -p dist/android
+          cp app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-release.apk dist/android/Auditar-SST-v3.29.1.apk
+          echo "Modo de assinatura: $(cat /tmp/signing.txt)" > dist/android/APK-CERTIFICADO-v3.29.1.txt
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1 || true)
+          if [ -n "$APKSIGNER" ]; then "$APKSIGNER" verify --print-certs dist/android/Auditar-SST-v3.29.1.apk >> dist/android/APK-CERTIFICADO-v3.29.1.txt; fi
+          cd app && zip -qr ../Auditar-SST-Codigo-Fonte-v3.29.1.zip Auditar_SST_v1_5_dashboard -x 'Auditar_SST_v1_5_dashboard/build/*' 'Auditar_SST_v1_5_dashboard/.dart_tool/*'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.1-Android
+          path: dist/android/*
+          retention-days: 30
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.1-Codigo-Fonte
+          path: Auditar-SST-Codigo-Fonte-v3.29.1.zip
+          retention-days: 30
