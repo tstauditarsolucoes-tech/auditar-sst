@@ -2,11 +2,9 @@
 from __future__ import annotations
 
 import base64
-import gzip
-import shutil
-import subprocess
+import io
 import sys
-import tempfile
+import tarfile
 from pathlib import Path
 
 
@@ -20,42 +18,22 @@ def main() -> int:
         print(f"raiz inválida: {root}", file=sys.stderr)
         return 2
 
-    payload = Path(__file__).resolve().parent / "patch_v3290.finalpart"
+    payload = Path(__file__).resolve().parent / "v3290_overrides.b64"
     if not payload.exists():
-        print("payload final da v3.29.0 ausente", file=sys.stderr)
+        print("overrides finais da v3.29.0 ausentes", file=sys.stderr)
         return 2
 
-    diff = gzip.decompress(base64.b64decode(payload.read_text(encoding="utf-8").strip()))
-    with tempfile.NamedTemporaryFile(suffix=".diff", delete=False) as f:
-        f.write(diff)
-        patch_name = f.name
-
-    nested_git = root / ".git"
-    created_nested_git = not nested_git.exists()
-
-    try:
-        if created_nested_git:
-            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
-
-        subprocess.run(
-            [
-                "git",
-                "apply",
-                "--unsafe-paths",
-                "--whitespace=nowarn",
-                patch_name,
-            ],
-            cwd=root,
-            check=True,
-        )
-    finally:
-        Path(patch_name).unlink(missing_ok=True)
-        if created_nested_git:
-            shutil.rmtree(nested_git, ignore_errors=True)
+    raw = base64.b64decode(payload.read_text(encoding="utf-8").strip())
+    with tarfile.open(fileobj=io.BytesIO(raw), mode="r:gz") as archive:
+        for member in archive.getmembers():
+            target = (root / member.name).resolve()
+            if root not in target.parents and target != root:
+                raise RuntimeError(f"caminho inválido no pacote: {member.name}")
+        archive.extractall(root)
 
     print(
-        "v3.29.0 aplicada: relatório executivo, Gov.br, emissão sem assinatura, "
-        "plano de ação opcional, permissões, versão e desempenho"
+        "v3.29.0 aplicada por overrides finais: relatório executivo, Gov.br, "
+        "emissão sem assinatura, plano de ação opcional, permissões, versão e desempenho"
     )
     return 0
 
