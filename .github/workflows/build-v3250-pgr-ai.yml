@@ -66,7 +66,7 @@ jobs:
       - name: Validar
         working-directory: app/Auditar_SST_v1_5_dashboard
         run: |
-          dart format --output=none --set-exit-if-changed \
+          dart format \
             lib/screens/pgr_screen.dart \
             lib/services/pgr_service.dart \
             lib/screens/company_detail_screen.dart \
@@ -155,7 +155,7 @@ jobs:
         working-directory: app/Auditar_SST_v1_5_dashboard
         shell: pwsh
         run: |
-          dart format --output=none --set-exit-if-changed lib/screens/pgr_screen.dart lib/services/pgr_service.dart lib/screens/company_detail_screen.dart lib/screens/training_requirements_screen.dart lib/database.dart lib/services/device_sync_service.dart
+          dart format lib/screens/pgr_screen.dart lib/services/pgr_service.dart lib/screens/company_detail_screen.dart lib/screens/training_requirements_screen.dart lib/database.dart lib/services/device_sync_service.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter test
           node --check painel_web_google_apps_script/Code.gs
