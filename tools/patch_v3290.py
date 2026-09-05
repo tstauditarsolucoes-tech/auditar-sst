@@ -20,9 +20,18 @@ def main() -> int:
         return 2
 
     here = Path(__file__).resolve().parent
+    names = [
+        "v3290_clean.part1a",
+        "v3290_clean.part1b",
+        "v3290_clean.part2",
+        "v3290_clean.part3",
+        "v3290_clean.part4",
+        "v3290_clean.part5",
+        "v3290_clean.part6",
+    ]
     parts = []
-    for i in range(1, 7):
-        part = here / f"v3290_clean.part{i}"
+    for name in names:
+        part = here / name
         if not part.exists():
             print(f"payload ausente: {part.name}", file=sys.stderr)
             return 2
