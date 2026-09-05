@@ -8,7 +8,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-# A v3.29.0 deve ser aplicada somente depois das correções reais da v3.28.0 e v3.28.1.
+# Aplicar sobre a fonte real v3.28.0 já montada.
 
 
 def main() -> int:
@@ -23,7 +23,8 @@ def main() -> int:
 
     here = Path(__file__).resolve().parent
     parts = []
-    for name in ("patch_v3290.new1", "patch_v3290.new2", "patch_v3290.new3"):
+    for i in range(1, 8):
+        name = f"patch_v3290.from3280.part{i}"
         part = here / name
         if not part.exists():
             print(f"parte ausente: {name}", file=sys.stderr)
@@ -62,6 +63,7 @@ def main() -> int:
     required = {
         "pubspec.yaml": "version: 3.29.0+142",
         "lib/screens/signature_screen.dart": "Assinar externamente por Gov.br",
+        "lib/screens/signature_screen.dart": "Emitir sem assinatura",
         "lib/screens/report_screen.dart": "Incluir plano de ação",
         "lib/services/pdf_service.dart": "O QUE FOI IDENTIFICADO",
         "lib/services/auth_service.dart": "purgeCompaniesOutsideAccess",
@@ -73,7 +75,15 @@ def main() -> int:
         if marker not in text:
             raise RuntimeError(f"validação v3.29.0 falhou em {rel}: {marker}")
 
-    print("v3.29.0 aplicada no app montado com sucesso")
+    # validações adicionais sem sobrescrever chaves no dict acima
+    signature = (root / "lib/screens/signature_screen.dart").read_text(encoding="utf-8")
+    if "Assinar externamente por Gov.br" not in signature or "Emitir sem assinatura" not in signature:
+        raise RuntimeError("validação da assinatura flexível falhou")
+    database = (root / "lib/database.dart").read_text(encoding="utf-8")
+    if "report_signature_mode" not in database or "include_action_plan" not in database:
+        raise RuntimeError("validação dos campos de relatório no banco falhou")
+
+    print("v3.29.0 aplicada sobre a v3.28.0 com sucesso")
     return 0
 
 
