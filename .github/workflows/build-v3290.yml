@@ -59,7 +59,9 @@ jobs:
       - name: Preparar Android
         working-directory: app/Auditar_SST_v1_5_dashboard
         run: |
+          cp android/app/build.gradle.kts /tmp/auditar-build.gradle.kts
           flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          cp /tmp/auditar-build.gradle.kts android/app/build.gradle.kts
           if [ -f test/widget_test.dart ] && grep -q "MyApp" test/widget_test.dart; then rm test/widget_test.dart; fi
           python3 - <<'PY'
           from pathlib import Path
@@ -122,6 +124,7 @@ jobs:
           grep -q "O que foi identificado" lib/services/pdf_service.dart
           grep -q "signature_mode" lib/database.dart
           grep -q "purgeCompaniesOutsideAccess" lib/services/auth_service.dart
+          grep -q "labelStyle" lib/screens/new_inspection_screen.dart
 
       - name: Compilar APK
         working-directory: app/Auditar_SST_v1_5_dashboard
@@ -223,14 +226,12 @@ jobs:
           Copy-Item painel_web_google_apps_script/MultiUser.gs "$env:RUNNER_TEMP\MultiUser.js" -Force
           node --check "$env:RUNNER_TEMP\Code.js"
           node --check "$env:RUNNER_TEMP\MultiUser.js"
-          Select-String -Path pubspec.yaml -Pattern 'version: 3.29.0\+142' -Quiet | Out-Null
-          if (!$?) { throw 'versão 3.29.0+142 não encontrada' }
-          Select-String -Path lib/screens/signature_screen.dart -Pattern 'Emitir sem assinatura / assinar pelo Gov.br' -Quiet | Out-Null
-          if (!$?) { throw 'opção Gov.br ausente' }
-          Select-String -Path lib/screens/report_screen.dart -Pattern 'Incluir plano de ação' -Quiet | Out-Null
-          if (!$?) { throw 'plano de ação opcional ausente' }
-          Select-String -Path lib/services/pdf_service.dart -Pattern 'O que foi identificado' -Quiet | Out-Null
-          if (!$?) { throw 'executivo simples ausente' }
+          if (-not (Select-String -Path pubspec.yaml -Pattern 'version: 3.29.0\+142' -Quiet)) { throw 'versão 3.29.0+142 não encontrada' }
+          if (-not (Select-String -Path lib/screens/signature_screen.dart -Pattern 'Emitir sem assinatura / assinar pelo Gov.br' -Quiet)) { throw 'opção Gov.br ausente' }
+          if (-not (Select-String -Path lib/screens/report_screen.dart -Pattern 'Incluir plano de ação' -Quiet)) { throw 'plano de ação opcional ausente' }
+          if (-not (Select-String -Path lib/services/pdf_service.dart -Pattern 'O que foi identificado' -Quiet)) { throw 'executivo simples ausente' }
+          if (-not (Select-String -Path lib/database.dart -Pattern 'signature_mode' -Quiet)) { throw 'modo de assinatura ausente' }
+          if (-not (Select-String -Path lib/services/auth_service.dart -Pattern 'purgeCompaniesOutsideAccess' -Quiet)) { throw 'limpeza de permissões ausente' }
 
       - name: Compilar Windows
         working-directory: app/Auditar_SST_v1_5_dashboard
