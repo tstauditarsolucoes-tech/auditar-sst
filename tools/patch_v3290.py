@@ -20,18 +20,12 @@ def main() -> int:
         print(f"raiz inválida: {root}", file=sys.stderr)
         return 2
 
-    here = Path(__file__).resolve().parent
-    parts = []
-    for i in range(1, 20):
-        part = here / f"patch_v3290.part{i}"
-        if not part.exists():
-            break
-        parts.append(part.read_text(encoding="utf-8").strip())
-    if not parts:
-        print("payload da v3.29.0 ausente", file=sys.stderr)
+    payload = Path(__file__).resolve().parent / "patch_v3290.finalpart"
+    if not payload.exists():
+        print("payload final da v3.29.0 ausente", file=sys.stderr)
         return 2
 
-    diff = gzip.decompress(base64.b64decode("".join(parts)))
+    diff = gzip.decompress(base64.b64decode(payload.read_text(encoding="utf-8").strip()))
     with tempfile.NamedTemporaryFile(suffix=".diff", delete=False) as f:
         f.write(diff)
         patch_name = f.name
@@ -40,9 +34,6 @@ def main() -> int:
     created_nested_git = not nested_git.exists()
 
     try:
-        # O app é montado dentro do checkout principal do GitHub Actions. Sem um
-        # repositório Git próprio aqui, `git apply` pode interpretar os caminhos
-        # relativamente ao repositório pai e ignorar os arquivos do app montado.
         if created_nested_git:
             subprocess.run(["git", "init", "-q"], cwd=root, check=True)
 
@@ -63,7 +54,8 @@ def main() -> int:
             shutil.rmtree(nested_git, ignore_errors=True)
 
     print(
-        "v3.29.0 aplicada: relatório executivo, Gov.br, permissões, versão e desempenho"
+        "v3.29.0 aplicada: relatório executivo, Gov.br, emissão sem assinatura, "
+        "plano de ação opcional, permissões, versão e desempenho"
     )
     return 0
 
