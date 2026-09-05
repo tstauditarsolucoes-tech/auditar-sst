@@ -24,6 +24,14 @@ def main():
         subprocess.run(["git","apply","--unsafe-paths","--whitespace=nowarn",name],cwd=root,check=True)
     finally:
         Path(name).unlink(missing_ok=True)
+
+    # Compatibilidade Flutter: ListView não possui construtor const.
+    audit=root/"lib/screens/audit_trail_screen.dart"
+    if audit.exists():
+        text=audit.read_text()
+        text=text.replace("? const ListView(", "? ListView(")
+        audit.write_text(text)
+
     print("v3.27.0 aplicada com sucesso")
     return 0
 if __name__=="__main__": raise SystemExit(main())
