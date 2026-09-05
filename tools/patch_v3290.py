@@ -34,9 +34,24 @@ def main() -> int:
         patch_name = f.name
 
     try:
+        repo_top = Path(
+            subprocess.check_output(
+                ["git", "rev-parse", "--show-toplevel"],
+                cwd=root,
+                text=True,
+            ).strip()
+        ).resolve()
+        relative_root = root.relative_to(repo_top).as_posix()
         subprocess.run(
-            ["git", "apply", "--unsafe-paths", "--whitespace=nowarn", patch_name],
-            cwd=root,
+            [
+                "git",
+                "apply",
+                "--unsafe-paths",
+                "--whitespace=nowarn",
+                f"--directory={relative_root}",
+                patch_name,
+            ],
+            cwd=repo_top,
             check=True,
         )
     finally:
@@ -56,7 +71,7 @@ def main() -> int:
         if marker not in text:
             raise RuntimeError(f"validação v3.29.0 falhou em {rel}: {marker}")
 
-    print("v3.29.0 aplicada sobre a v3.28.1 com sucesso")
+    print("v3.29.0 aplicada no app montado com sucesso")
     return 0
 
 
