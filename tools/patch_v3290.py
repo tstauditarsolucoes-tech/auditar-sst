@@ -42,6 +42,11 @@ def main() -> int:
     except Exception as exc:
         raise RuntimeError(f"payload v3.29.0 inválido: {exc}") from exc
 
+    db_before = (root / "lib/database.dart").read_text(encoding="utf-8").splitlines()
+    print("--- database.dart antes da v3.29.0 (linhas 56-82) ---")
+    for idx, line in enumerate(db_before[55:82], start=56):
+        print(f"{idx:04d}: {line}")
+
     with tempfile.NamedTemporaryFile(suffix=".diff", delete=False) as f:
         f.write(diff)
         patch_name = f.name
