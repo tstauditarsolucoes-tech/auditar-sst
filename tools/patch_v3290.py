@@ -8,6 +8,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+# A v3.29.0 deve ser aplicada somente depois das correções reais da v3.28.0 e v3.28.1.
+
 
 def main() -> int:
     if len(sys.argv) != 2:
