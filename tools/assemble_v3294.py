@@ -8,6 +8,7 @@ import zipfile
 from pathlib import Path
 
 # v3.29.4: mantém toda a sequência da v3.29.3 e aplica somente a retirada de exames no fim.
+# recompilação final após ajuste do card da Rotina SST.
 PATCHES = [
     'patch_management_snapshot.py',
     'prepare_sst_source.py',
