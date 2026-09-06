@@ -3,12 +3,16 @@
   const USER_KEY='gestaoEpiAuthUser';
   const TENANT_KEY='gestaoEpiAuthTenant';
   const TENANT_CODE_KEY='gestaoEpiTenantCode';
+  const LEGACY_SYNC_KEY='auditarEpiCentralKey';
 
   // Sempre inicia sem sessão reaproveitada no PC.
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
   localStorage.removeItem(TENANT_KEY);
   localStorage.removeItem(TENANT_CODE_KEY);
+  // O app antigo exige esta chave antes de chamar a sync. Limpamos na abertura
+  // e liberamos somente depois que o login autenticado for concluído.
+  localStorage.removeItem(LEGACY_SYNC_KEY);
 
   // Nunca mantém o código da empresa salvo no PC.
   const storageGet=Storage.prototype.getItem;
@@ -85,6 +89,20 @@
   `;
   document.head.appendChild(style);
 
+  function enableAuthenticatedSync(){
+    const token=String(window.GestaoEpiAuth?.token?.()||'').trim();
+    const auth=document.getElementById('gestaoAuthOverlay');
+    const loggedIn=!!token && !!auth && auth.classList.contains('hidden');
+    if(!loggedIn)return false;
+
+    // Compatibilidade com o app.js antigo: apenas libera a chamada de sync.
+    // O valor não autentica nada; o backend recebe o token real da sessão.
+    localStorage.setItem(LEGACY_SYNC_KEY,'AUTHENTICATED_SESSION');
+    const btn=document.getElementById('btnRefresh');
+    if(btn)setTimeout(()=>btn.click(),80);
+    return true;
+  }
+
   function enforceCleanLogin(){
     const connect=document.getElementById('connectOverlay');
     if(connect){
@@ -105,7 +123,7 @@
     if(card&&!card.querySelector('.gestao-pc-version')){
       const v=document.createElement('div');
       v.className='gestao-pc-version';
-      v.textContent='PC v2.0.5';
+      v.textContent='PC v2.0.6';
       card.appendChild(v);
     }
 
@@ -118,5 +136,11 @@
   document.addEventListener('DOMContentLoaded',()=>{
     enforceCleanLogin();
     setTimeout(enforceCleanLogin,0);
+
+    const auth=document.getElementById('gestaoAuthOverlay');
+    if(auth){
+      const observer=new MutationObserver(()=>enableAuthenticatedSync());
+      observer.observe(auth,{attributes:true,attributeFilter:['class']});
+    }
   });
 })();
