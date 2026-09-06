@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2172 724" role="img" aria-label="Gestão EPI">
+  <defs>
+    <linearGradient id="shield" x1="125" y1="90" x2="655" y2="650" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#063E70"/>
+      <stop offset="0.48" stop-color="#0B4F7A"/>
+      <stop offset="0.53" stop-color="#08C894"/>
+      <stop offset="1" stop-color="#00A878"/>
+    </linearGradient>
+    <linearGradient id="epi" x1="1550" y1="220" x2="2080" y2="510" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#06D3A0"/>
+      <stop offset="1" stop-color="#00A878"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(95 54)">
+    <path d="M280 18 492 122v164c0 133-79 224-212 281C147 510 68 419 68 286V122L280 18Z" fill="none" stroke="url(#shield)" stroke-width="35" stroke-linejoin="round"/>
+    <path d="M166 218c8-57 42-99 93-115V78h43v25c51 16 85 58 93 115H166Z" fill="#083F6E"/>
+    <rect x="149" y="214" width="263" height="31" rx="15.5" fill="#083F6E"/>
+    <circle cx="280" cy="300" r="58" fill="#083F6E"/>
+    <path d="M151 455c16-77 59-121 129-121s113 44 129 121l-17 43H168l-17-43Z" fill="#083F6E"/>
+    <path d="m196 420 57 58 121-126" fill="none" stroke="#08BE8C" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="650" y="505" font-family="Arial Black,Segoe UI,sans-serif" font-size="296" font-weight="900" letter-spacing="-13" fill="#063B69">GESTÃO</text>
+  <text x="1540" y="505" font-family="Arial Black,Segoe UI,sans-serif" font-size="296" font-weight="900" letter-spacing="-12" fill="url(#epi)">EPI</text>
+</svg>
