@@ -1,6 +1,6 @@
 {
   "name": "gestao-epi",
-  "version": "2.0.7",
+  "version": "2.0.8",
   "description": "Gestão EPI para Windows",
   "main": "main.js",
   "private": true,
