@@ -46,8 +46,38 @@
     if(pass)pass.placeholder='SUA SENHA';
   }
 
+  function installSyncTransportFix(){
+    if(window.__gestaoEpiSyncTransportFix)return;
+    const previousFetch=window.fetch.bind(window);
+
+    window.fetch=async function(input,init){
+      try{
+        if(typeof input==='string'&&init?.body&&window.GestaoEpiAuth?.api){
+          const body=JSON.parse(init.body);
+          if(body?.action==='epi_sync_merge'){
+            const extra={...body};
+            delete extra.action;
+            delete extra.authToken;
+            const json=await window.GestaoEpiAuth.api('epi_sync_merge',extra);
+            return new Response(JSON.stringify(json),{
+              status:200,
+              headers:{'Content-Type':'application/json;charset=utf-8'}
+            });
+          }
+        }
+      }catch(error){
+        console.error('Falha no transporte autenticado da sincronização:',error);
+        throw error;
+      }
+      return previousFetch(input,init);
+    };
+
+    window.__gestaoEpiSyncTransportFix=true;
+  }
+
   function init(){
     apply();
+    installSyncTransportFix();
     const obs=new MutationObserver(()=>apply());
     obs.observe(document.documentElement,{childList:true,subtree:true});
   }
