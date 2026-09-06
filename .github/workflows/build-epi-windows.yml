@@ -44,6 +44,11 @@ jobs:
             Set-Content -Path $indexPath -Value $index -Encoding UTF8
           }
 
+          # Falha o build imediatamente se qualquer correção gerar JavaScript inválido.
+          node --check 'auditar-epi-windows/app/app.js'
+          node --check 'auditar-epi-windows/app/auth-gestao.js'
+          node --check 'auditar-epi-windows/app/pc-fix.js'
+
       - name: Gerar ícone do Windows
         shell: pwsh
         run: |
