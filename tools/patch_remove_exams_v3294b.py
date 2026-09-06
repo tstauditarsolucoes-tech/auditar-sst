@@ -141,7 +141,7 @@ alerts = remove_until_children_close(alerts, "_sectionTitle('Exames periódicos'
 write('lib/screens/compliance_alerts_screen.dart', alerts)
 
 routine = read('lib/screens/routine_hub_screen.dart')
-routine = remove_call_block(routine, 'Exames a verificar', r'^\s*\(\s*$')
+routine = remove_named_call(routine, 'Exames a verificar', '')
 write('lib/screens/routine_hub_screen.dart', routine)
 
 mg = read('lib/screens/management_panel_screen.dart')
