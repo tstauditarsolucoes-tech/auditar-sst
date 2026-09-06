@@ -28,6 +28,51 @@ def remove_call_block(text, needle, opener=r'^\s*[A-Za-z_][\w.]*\(\s*$'):
         j += 1
     return text[:i] + text[j:]
 
+def remove_named_call(text, needle, call_name):
+    if needle not in text:
+        return text
+    pos = text.index(needle)
+    token = call_name + '('
+    open_pos = text.rfind(token, 0, pos)
+    if open_pos < 0:
+        raise RuntimeError(f'início da chamada {call_name} não encontrado: {needle}')
+    line_start = text.rfind('\n', 0, open_pos) + 1
+    paren = open_pos + len(call_name)
+    depth = 0
+    quote = None
+    escape = False
+    end = None
+    for k in range(paren, len(text)):
+        ch = text[k]
+        if quote is not None:
+            if escape:
+                escape = False
+            elif ch == '\\':
+                escape = True
+            elif ch == quote:
+                quote = None
+            continue
+        if ch in ("'", '"'):
+            quote = ch
+        elif ch == '(':
+            depth += 1
+        elif ch == ')':
+            depth -= 1
+            if depth == 0:
+                end = k + 1
+                break
+    if end is None:
+        raise RuntimeError(f'fim da chamada {call_name} não encontrado: {needle}')
+    while end < len(text) and text[end] in ' \t':
+        end += 1
+    if end < len(text) and text[end] == ',':
+        end += 1
+    while end < len(text) and text[end] in ' \t':
+        end += 1
+    if end < len(text) and text[end] == '\n':
+        end += 1
+    return text[:line_start] + text[end:]
+
 def remove_until_children_close(text, needle):
     if needle not in text:
         return text
@@ -55,7 +100,7 @@ write('lib/screens/home_screen.dart', home)
 
 companies = read('lib/screens/companies_screen.dart')
 companies = re.sub(r'^\s*bool\s+medicalAlertsEnabled\s*=.*?;\s*\n?', '', companies, flags=re.M)
-companies = remove_call_block(companies, 'Alertas de exames periódicos', r'^\s*SwitchListTile\(\s*$')
+companies = remove_named_call(companies, 'Alertas de exames periódicos', 'SwitchListTile')
 companies = re.sub(r'\s*\|\|\s*medicalAlertsEnabled', '', companies)
 companies = re.sub(r'medicalAlertsEnabled\s*\|\|\s*', '', companies)
 companies = re.sub(r'\n\s*medicalAlertsEnabled\)\s*&&', ') &&', companies)
@@ -82,7 +127,7 @@ workers = re.sub(r'lastMedicalExamDate:\s*lastMedicalExamDate,', 'lastMedicalExa
 workers = re.sub(r'nextMedicalExamDate:\s*nextMedicalExamDate,', 'nextMedicalExamDate: worker?.nextMedicalExamDate,', workers)
 workers = re.sub(r'\n\s*final medicalDue\s*=.*?(?=\n\s*return Scaffold\()', '', workers, count=1, flags=re.S)
 workers = workers.replace('maxColumns: 3,', 'maxColumns: 2,', 1)
-workers = remove_call_block(workers, 'Periódicos ≤30d', r'^\s*_summaryCard\(\s*$')
+workers = remove_named_call(workers, 'Periódicos ≤30d', '_summaryCard')
 workers = re.sub(r'\n\s*final periodic\s*=\s*worker\.nextMedicalExamDate;.*?(?=\n\s*return Card\()', '', workers, count=1, flags=re.S)
 workers = remove_until_children_close(workers, 'if (periodicDays != null)')
 write('lib/screens/workers_screen.dart', workers)
@@ -91,7 +136,7 @@ alerts = read('lib/screens/compliance_alerts_screen.dart')
 alerts = re.sub(r'\n\s*List<Worker>\s+get\s+_medicalAlerts\s*\{.*?(?=\n\s*Future<void>\s+_openMatrix\()', '\n', alerts, count=1, flags=re.S)
 alerts = re.sub(r'^\s*final medicalAlerts\s*=\s*_medicalAlerts;\s*\n?', '', alerts, flags=re.M)
 alerts = alerts.replace('maxColumns: 3,', 'maxColumns: 2,', 1)
-alerts = remove_call_block(alerts, "'Periódicos'", r'^\s*_metric\(\s*$')
+alerts = remove_named_call(alerts, "'Periódicos'", '_metric')
 alerts = remove_until_children_close(alerts, "_sectionTitle('Exames periódicos'")
 write('lib/screens/compliance_alerts_screen.dart', alerts)
 
@@ -104,7 +149,7 @@ mg = re.sub(r'^\s*int\s+medicalCriticalCount\s*=\s*0;\s*\n?', '', mg, flags=re.M
 mg = re.sub(r'^\s*final workers\s*=\s*await db\.getWorkers\([^\n]+\);\s*\n?', '', mg, flags=re.M)
 mg = re.sub(r'\n\s*final now\s*=\s*DateTime\.now\(\);.*?(?=\n\s*if \(!mounted\) return;)', '', mg, count=1, flags=re.S)
 mg = re.sub(r'^\s*medicalCriticalCount\s*=\s*criticalMedicalExams;\s*\n?', '', mg, flags=re.M)
-mg = remove_call_block(mg, 'Periódicos críticos', r'^\s*_metric\(\s*$')
+mg = remove_named_call(mg, 'Periódicos críticos', '_metric')
 mg = mg.replace('treinamentos, periódicos, NCs', 'treinamentos, NCs')
 write('lib/screens/management_panel_screen.dart', mg)
 
