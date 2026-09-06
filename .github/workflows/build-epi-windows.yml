@@ -41,6 +41,7 @@ jobs:
           Copy-Item -Force 'auditar-epi-windows/pc-runtime-fix.js' 'auditar-epi-windows/app/pc-runtime-fix.js'
           Copy-Item -Force 'auditar-epi-windows/pc-worker-sheet.js' 'auditar-epi-windows/app/pc-worker-sheet.js'
           Copy-Item -Force 'auditar-epi-windows/pc-worker-sheet-fiscal.js' 'auditar-epi-windows/app/pc-worker-sheet-fiscal.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-fichas-clean-v272.js' 'auditar-epi-windows/app/pc-fichas-clean-v272.js'
           Copy-Item -Force 'auditar-epi-windows/pc-external-face.js' 'auditar-epi-windows/app/pc-external-face.js'
           Copy-Item -Force 'auditar-epi-windows/pc-reliability-v240.js' 'auditar-epi-windows/app/pc-reliability-v240.js'
           Copy-Item -Force 'auditar-epi-windows/pc-productivity-v250.js' 'auditar-epi-windows/app/pc-productivity-v250.js'
@@ -49,11 +50,11 @@ jobs:
           Copy-Item -Force 'auditar-epi-windows/pc-professional-operations-v260.js' 'auditar-epi-windows/app/pc-professional-operations-v260.js'
           Copy-Item -Force 'auditar-epi-windows/pc-professional-safety-v260.js' 'auditar-epi-windows/app/pc-professional-safety-v260.js'
           Copy-Item -Force 'auditar-epi-windows/pc-intelligence-v270.js' 'auditar-epi-windows/app/pc-intelligence-v270.js'
-          Copy-Item -Force 'auditar-epi-windows/pc-version-v271.js' 'auditar-epi-windows/app/pc-version-v271.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-version-v272.js' 'auditar-epi-windows/app/pc-version-v272.js'
 
           $indexPath = 'auditar-epi-windows/app/index.html'
           $index = Get-Content $indexPath -Raw
-          $scripts = "`r`n  <script src=`"app.js`"></script>`r`n  <script src=`"pc-login-session.js`"></script>`r`n  <script src=`"pc-stable.js`"></script>`r`n  <script src=`"central-config.js`"></script>`r`n  <script src=`"indicators.js`"></script>`r`n  <script src=`"pc-modern.js`"></script>`r`n  <script src=`"pc-external-face.js`"></script>`r`n  <script src=`"pc-integrity.js`"></script>`r`n  <script src=`"pc-runtime-fix.js`"></script>`r`n  <script src=`"pc-worker-sheet.js`"></script>`r`n  <script src=`"pc-worker-sheet-fiscal.js`"></script>`r`n  <script src=`"pc-reliability-v240.js`"></script>`r`n  <script src=`"pc-productivity-v250.js`"></script>`r`n  <script src=`"pc-professional-core-v260.js`"></script>`r`n  <script src=`"pc-professional-alerts-v260.js`"></script>`r`n  <script src=`"pc-professional-operations-v260.js`"></script>`r`n  <script src=`"pc-professional-safety-v260.js`"></script>`r`n  <script src=`"pc-version-v271.js`"></script>`r`n  <script src=`"pc-intelligence-v270.js`"></script>`r`n</body>`r`n</html>`r`n"
+          $scripts = "`r`n  <script src=`"app.js`"></script>`r`n  <script src=`"pc-login-session.js`"></script>`r`n  <script src=`"pc-stable.js`"></script>`r`n  <script src=`"central-config.js`"></script>`r`n  <script src=`"indicators.js`"></script>`r`n  <script src=`"pc-modern.js`"></script>`r`n  <script src=`"pc-external-face.js`"></script>`r`n  <script src=`"pc-integrity.js`"></script>`r`n  <script src=`"pc-runtime-fix.js`"></script>`r`n  <script src=`"pc-worker-sheet.js`"></script>`r`n  <script src=`"pc-worker-sheet-fiscal.js`"></script>`r`n  <script src=`"pc-fichas-clean-v272.js`"></script>`r`n  <script src=`"pc-reliability-v240.js`"></script>`r`n  <script src=`"pc-productivity-v250.js`"></script>`r`n  <script src=`"pc-professional-core-v260.js`"></script>`r`n  <script src=`"pc-professional-alerts-v260.js`"></script>`r`n  <script src=`"pc-professional-operations-v260.js`"></script>`r`n  <script src=`"pc-professional-safety-v260.js`"></script>`r`n  <script src=`"pc-version-v272.js`"></script>`r`n  <script src=`"pc-intelligence-v270.js`"></script>`r`n</body>`r`n</html>`r`n"
           $index = [regex]::Replace($index, '(?s)\s*<!-- Ordem obrigatória:.*?</body>\s*</html>\s*$', $scripts)
           Set-Content -Path $indexPath -Value $index -Encoding UTF8
 
@@ -74,13 +75,14 @@ jobs:
           node --check 'auditar-epi-windows/app/pc-runtime-fix.js'
           node --check 'auditar-epi-windows/app/pc-worker-sheet.js'
           node --check 'auditar-epi-windows/app/pc-worker-sheet-fiscal.js'
+          node --check 'auditar-epi-windows/app/pc-fichas-clean-v272.js'
           node --check 'auditar-epi-windows/app/pc-reliability-v240.js'
           node --check 'auditar-epi-windows/app/pc-productivity-v250.js'
           node --check 'auditar-epi-windows/app/pc-professional-core-v260.js'
           node --check 'auditar-epi-windows/app/pc-professional-alerts-v260.js'
           node --check 'auditar-epi-windows/app/pc-professional-operations-v260.js'
           node --check 'auditar-epi-windows/app/pc-professional-safety-v260.js'
-          node --check 'auditar-epi-windows/app/pc-version-v271.js'
+          node --check 'auditar-epi-windows/app/pc-version-v272.js'
           node --check 'auditar-epi-windows/app/pc-intelligence-v270.js'
           node --check 'auditar-epi-windows/app/epi-photo-ca-gestao.js'
 
@@ -116,8 +118,8 @@ jobs:
           tag_name: gestao-epi-v${{ env.APP_VERSION }}
           name: Gestão EPI PC v${{ env.APP_VERSION }}
           body: |
-            Correção visual de sessão no Gestão EPI para Windows.
-            Recargas internas após salvar não exibem mais a tela de login por alguns instantes.
+            Acesso mais fácil às fichas individuais de EPI dos funcionários.
+            Registros e comprovantes de entrega com biometria facial sem texto sobre piscar.
           files: auditar-epi-windows/dist/*.exe
           make_latest: true
           overwrite_files: true
@@ -125,7 +127,7 @@ jobs:
       - name: Disponibilizar aplicativo
         uses: actions/upload-artifact@v4
         with:
-          name: Gestao-EPI-PC-v2.7.1-CORRECAO-LOGIN
+          name: Gestao-EPI-PC-v2.7.2-FICHAS-ACESSO-FACIL
           path: auditar-epi-windows/dist/*.exe
           if-no-files-found: error
           retention-days: 14
