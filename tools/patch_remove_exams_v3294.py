@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from pathlib import Path
 import sys
+import re
 
 root = Path(sys.argv[1] if len(sys.argv) > 1 else '.')
 
@@ -15,6 +16,15 @@ def rep(text, old, new, label):
         raise RuntimeError(f'marcador não encontrado: {label}')
     return text.replace(old, new, 1)
 
+def cut(text, start, end, label):
+    i = text.find(start)
+    if i < 0:
+        raise RuntimeError(f'início não encontrado: {label}')
+    j = text.find(end, i)
+    if j < 0:
+        raise RuntimeError(f'fim não encontrado: {label}')
+    return text[:i] + text[j+len(end):]
+
 # Versão
 pub = read('pubspec.yaml')
 pub = rep(pub, 'version: 3.29.3+145', 'version: 3.29.4+146', 'versão 3.29.3')
@@ -28,16 +38,27 @@ write('lib/screens/home_screen.dart', home)
 
 # Empresas: retirar configuração visual de alertas de exames.
 companies = read('lib/screens/companies_screen.dart')
-companies = companies.replace("    bool medicalAlertsEnabled = company?.medicalAlertsEnabled ?? false;\n", '')
-start = """                        SwitchListTile(\n                          contentPadding: EdgeInsets.zero,\n                          title: const Text('Alertas de exames periódicos'),\n"""
-if start in companies:
-    i = companies.index(start)
-    marker = """                              ),\n                        ),\n"""
-    j = companies.find(marker, i)
-    if j < 0:
+companies = re.sub(r'^\s*bool\s+medicalAlertsEnabled\s*=.*?;\s*$', '', companies, flags=re.M)
+# Remove o SwitchListTile inteiro mesmo antes de o dart format normalizar a indentação.
+needle = "Alertas de exames periódicos"
+if needle in companies:
+    pos = companies.index(needle)
+    starts = [m.start() for m in re.finditer(r'^\s*SwitchListTile\(\s*$', companies[:pos], flags=re.M)]
+    if not starts:
+        raise RuntimeError('início do switch de exames não encontrado')
+    i = starts[-1]
+    indent = re.match(r'^(\s*)', companies[i:]).group(1)
+    end_match = re.search(r'^' + re.escape(indent) + r'\),\s*$', companies[pos:], flags=re.M)
+    if not end_match:
         raise RuntimeError('fim do switch de exames não encontrado')
-    companies = companies[:i] + companies[j+len(marker):]
-companies = companies.replace("""    if ((monthlyReportEnabled ||\n            trainingAlertsEnabled ||\n            medicalAlertsEnabled) &&\n""", """    if ((monthlyReportEnabled || trainingAlertsEnabled) &&\n""")
+    j = pos + end_match.end()
+    if j < len(companies) and companies[j:j+1] == '\n':
+        j += 1
+    companies = companies[:i] + companies[j:]
+# Remover a variável da condição de validação em qualquer formatação.
+companies = companies.replace(' || medicalAlertsEnabled', '')
+companies = companies.replace('medicalAlertsEnabled || ', '')
+companies = re.sub(r'\n\s*medicalAlertsEnabled\)\s*&&', ') &&', companies)
 companies = companies.replace('      medicalAlertsEnabled: medicalAlertsEnabled,', '      medicalAlertsEnabled: false,')
 write('lib/screens/companies_screen.dart', companies)
 
@@ -46,6 +67,8 @@ workers = read('lib/screens/workers_screen.dart')
 workers = workers.replace('    DateTime? lastMedicalExamDate = worker?.lastMedicalExamDate;\n', '')
 workers = workers.replace('    DateTime? nextMedicalExamDate = worker?.nextMedicalExamDate;\n', '')
 health_start = """                      const Divider(height: 22),\n                      const Align(\n                        alignment: Alignment.centerLeft,\n                        child: Text(\n                          'Saúde ocupacional',\n"""
+health_end = """                      ),\n                      const SizedBox(height: 10),\n"""
+# Use next known field after medical block: switch ativo starts after SizedBox 10.
 if health_start in workers:
     i = workers.index(health_start)
     active_marker = """                      SwitchListTile(\n                        contentPadding: EdgeInsets.zero,\n                        title: const Text('Trabalhador ativo'),\n"""
@@ -55,6 +78,7 @@ if health_start in workers:
     workers = workers[:i] + active_marker + workers[j+len(active_marker):]
 workers = workers.replace('                      lastMedicalExamDate: lastMedicalExamDate,', '                      lastMedicalExamDate: worker?.lastMedicalExamDate,')
 workers = workers.replace('                      nextMedicalExamDate: nextMedicalExamDate,', '                      nextMedicalExamDate: worker?.nextMedicalExamDate,')
+# Retirar cálculo de periódicos no resumo.
 build_med_start = """    final medicalDue =\n        workers.where((worker) {\n"""
 if build_med_start in workers:
     i = workers.index(build_med_start)
@@ -63,9 +87,11 @@ if build_med_start in workers:
     if j < 0:
         raise RuntimeError('retorno Scaffold de trabalhadores não encontrado')
     workers = workers[:i] + scaffold + workers[j+len(scaffold):]
+# Resumo com dois cards.
 workers = workers.replace('                      maxColumns: 3,', '                      maxColumns: 2,', 1)
 summary_med = """                        _summaryCard(\n                          'Periódicos ≤30d',\n                          medicalDue,\n                          Icons.medical_information_outlined,\n                          medicalDue > 0\n                              ? const Color(0xFFD93025)\n                              : AuditarBrand.greenDark,\n                        ),\n"""
 workers = workers.replace(summary_med, '')
+# Retirar cálculo do periódico em cada trabalhador.
 periodic_calc_start = """                        final periodic = worker.nextMedicalExamDate;\n                        final now = DateTime.now();\n"""
 if periodic_calc_start in workers:
     i = workers.index(periodic_calc_start)
@@ -74,9 +100,11 @@ if periodic_calc_start in workers:
     if j < 0:
         raise RuntimeError('card de trabalhador não encontrado')
     workers = workers[:i] + return_card + workers[j+len(return_card):]
+# Retirar texto de periódico do subtítulo.
 periodic_ui_start = """                                if (periodicDays != null)\n                                  Text(\n"""
 if periodic_ui_start in workers:
     i = workers.index(periodic_ui_start)
+    # próximo fechamento antes de ], do children
     marker = """                                  ),\n                              ],\n"""
     j = workers.find(marker, i)
     if j < 0:
@@ -141,6 +169,7 @@ ai = rep(ai, old, new, 'filtro de dados médicos da IA')
 ai = ai.replace("          'resumoTrabalhadores': snapshot['workforceSummary'],", "          'resumoTrabalhadores': workforce,")
 write('lib/services/ai_assistant_service.dart', ai)
 
+# Nota da versão
 (root/'MUDANCAS_V3_29_4_SEM_EXAMES.md').write_text(
     '# Auditar SST v3.29.4 — retirada do controle de exames\n\n'
     '- Android e Windows: removida a parte visual de exames/periódicos.\n'
@@ -154,6 +183,7 @@ write('lib/services/ai_assistant_service.dart', ai)
     '- Painel gerencial web e checklists NR-7 não foram alterados nesta versão.\n'
     '- Nenhuma outra função foi removida ou modificada.\n', encoding='utf-8')
 
+# Validações de interface
 screen_files = [
     'lib/screens/companies_screen.dart',
     'lib/screens/workers_screen.dart',
