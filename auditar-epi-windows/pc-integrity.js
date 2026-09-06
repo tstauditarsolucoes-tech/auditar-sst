@@ -73,6 +73,9 @@
     if(!companyId)return toast('Selecione a empresa.');if(!workerId)return toast('Selecione o trabalhador.');
     const worker=root.app.workers.find(w=>w.id===workerId);if(!worker||worker.companyId!==companyId)return toast('O trabalhador não pertence à empresa selecionada.');
     const items=$$('.pc-delivery-item').map(r=>({epiId:r.querySelector('.pc-item-epi')?.value||'',qty:Math.max(0,Number(r.querySelector('.pc-item-qty')?.value||0))})).filter(i=>i.epiId&&i.qty>0);if(!items.length)return toast('Adicione pelo menos um EPI.');
+    const guard=window.GestaoEpiV270Guard?.validateDelivery?.(root,companyId,worker,items);
+    if(guard?.ok===false)return toast(guard.message||'Entrega bloqueada por uma validação de segurança.');
+    if(guard?.confirm&&!window.confirm(guard.confirm))return;
     const face=window.GestaoEpiPcFace?.getConfirmation?.()||{mode:'signature',valid:true,confirmationType:'signature'};
     const canvas=$('#pcSignature');
     if(face.mode==='face'&&!face.valid)return toast('Faça a verificação biométrica do trabalhador antes de finalizar.');
