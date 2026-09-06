@@ -39,13 +39,36 @@
     }
   }
 
+  function fixDialogCancelAndClose(){
+    if(document.documentElement.dataset.v277DialogCloseFix==='1')return;
+    document.documentElement.dataset.v277DialogCloseFix='1';
+
+    document.addEventListener('click',event=>{
+      const button=event.target.closest('button[value="cancel"],button.x');
+      if(!button)return;
+      const dialog=button.closest('dialog');
+      if(!dialog)return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      try{
+        if(dialog.open)dialog.close('cancel');
+      }catch(_){
+        dialog.removeAttribute('open');
+      }
+    },true);
+  }
+
   function refreshUi(){
     fixText();
     cleanFaceText();
     positionBatch();
+    fixDialogCancelAndClose();
   }
 
   function boot(){
+    fixDialogCancelAndClose();
     [0,300,1000,2500,5000,9000].forEach(ms=>setTimeout(refreshUi,ms));
   }
 
