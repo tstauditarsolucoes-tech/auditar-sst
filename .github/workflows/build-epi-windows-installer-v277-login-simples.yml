@@ -1,0 +1,124 @@
+name: Gerar Instalador Gestão EPI 2.7.7 Login Simples
+
+on:
+  push:
+    branches: [gestao-epi-v2.7.7-navigation-audit]
+    paths:
+      - '.github/workflows/build-epi-windows-installer-v277-login-simples.yml'
+
+jobs:
+  build-installer:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Baixar arquivos
+        uses: actions/checkout@v4
+
+      - name: Instalar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Montar base funcional do PC
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force 'auditar-epi-windows/app' -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path 'auditar-epi-windows/app' | Out-Null
+          Copy-Item -Recurse -Force 'auditar-epi-gestao/*' 'auditar-epi-windows/app/'
+          Copy-Item -Force 'auditar-epi-windows/stable-central-config.js' 'auditar-epi-windows/app/central-config.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-stable.js' 'auditar-epi-windows/app/pc-stable.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-modern.js' 'auditar-epi-windows/app/pc-modern.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-integrity.js' 'auditar-epi-windows/app/pc-integrity.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-login-session.js' 'auditar-epi-windows/app/pc-login-session.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-login-safe-v277.js' 'auditar-epi-windows/app/pc-login-safe-v277.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-runtime-fix.js' 'auditar-epi-windows/app/pc-runtime-fix.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-worker-sheet.js' 'auditar-epi-windows/app/pc-worker-sheet.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-worker-sheet-fiscal.js' 'auditar-epi-windows/app/pc-worker-sheet-fiscal.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-fichas-clean-v272.js' 'auditar-epi-windows/app/pc-fichas-clean-v272.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-easy-layout-v273.js' 'auditar-epi-windows/app/pc-easy-layout-v273.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-batch-delivery-v274.js' 'auditar-epi-windows/app/pc-batch-delivery-v274.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-external-face.js' 'auditar-epi-windows/app/pc-external-face.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-reliability-v240.js' 'auditar-epi-windows/app/pc-reliability-v240.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-productivity-v250.js' 'auditar-epi-windows/app/pc-productivity-v250.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-professional-core-v260.js' 'auditar-epi-windows/app/pc-professional-core-v260.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-professional-alerts-v260.js' 'auditar-epi-windows/app/pc-professional-alerts-v260.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-professional-operations-v260.js' 'auditar-epi-windows/app/pc-professional-operations-v260.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-professional-safety-v260.js' 'auditar-epi-windows/app/pc-professional-safety-v260.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-intelligence-v270.js' 'auditar-epi-windows/app/pc-intelligence-v270.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-version-v277.js' 'auditar-epi-windows/app/pc-version-v277.js'
+
+          $indexPath = 'auditar-epi-windows/app/index.html'
+          $index = Get-Content $indexPath -Raw
+          $marker = '<!-- Ordem obrigatória:'
+          $pos = $index.IndexOf($marker)
+          if ($pos -lt 0) { throw 'Marcador de scripts não encontrado no index.html.' }
+          $head = $index.Substring(0,$pos)
+          $scriptLines = @(
+            '  <script src="pc-login-session.js"></script>',
+            '  <script src="pc-stable.js"></script>',
+            '  <script src="auth-gestao.js" data-auth-gestao="1"></script>',
+            '  <script src="app.js"></script>',
+            '  <script src="central-config.js"></script>',
+            '  <script src="indicators.js"></script>',
+            '  <script src="pc-modern.js"></script>',
+            '  <script src="pc-external-face.js"></script>',
+            '  <script src="pc-integrity.js"></script>',
+            '  <script src="pc-runtime-fix.js"></script>',
+            '  <script src="pc-worker-sheet.js"></script>',
+            '  <script src="pc-worker-sheet-fiscal.js"></script>',
+            '  <script src="pc-fichas-clean-v272.js"></script>',
+            '  <script src="pc-reliability-v240.js"></script>',
+            '  <script src="pc-productivity-v250.js"></script>',
+            '  <script src="pc-professional-core-v260.js"></script>',
+            '  <script src="pc-professional-alerts-v260.js"></script>',
+            '  <script src="pc-professional-operations-v260.js"></script>',
+            '  <script src="pc-professional-safety-v260.js"></script>',
+            '  <script src="pc-intelligence-v270.js"></script>',
+            '  <script src="pc-easy-layout-v273.js"></script>',
+            '  <script src="pc-batch-delivery-v274.js"></script>',
+            '  <script src="pc-version-v277.js"></script>',
+            '  <script src="pc-login-safe-v277.js"></script>',
+            '</body>',
+            '</html>'
+          )
+          Set-Content -Path $indexPath -Value ($head + (($scriptLines -join "`r`n") + "`r`n")) -Encoding UTF8
+
+          node --check 'auditar-epi-windows/main.js'
+          node --check 'auditar-epi-windows/preload.js'
+          node --check 'auditar-epi-windows/app/auth-gestao.js'
+          node --check 'auditar-epi-windows/app/app.js'
+          node --check 'auditar-epi-windows/app/pc-version-v277.js'
+          node --check 'auditar-epi-windows/app/pc-login-safe-v277.js'
+
+      - name: Gerar ícone do Windows
+        shell: pwsh
+        run: |
+          if (-not (Get-Command magick -ErrorAction SilentlyContinue)) {
+            choco install imagemagick.app -y --no-progress
+            $env:Path += ';C:\Program Files\ImageMagick-7.1.1-Q16-HDRI'
+          }
+          magick -background none 'auditar-epi-windows/app/icon.svg' -resize 512x512 'auditar-epi-windows/app-icon.png'
+
+      - name: Instalar dependências
+        working-directory: auditar-epi-windows
+        run: npm install
+
+      - name: Gerar instalador Windows
+        working-directory: auditar-epi-windows
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run dist
+
+      - name: Conferir instalador
+        shell: pwsh
+        run: |
+          Get-ChildItem 'auditar-epi-windows/dist' -File | ForEach-Object { Write-Host $_.FullName }
+          if (-not (Test-Path 'auditar-epi-windows/dist/Gestao-EPI-Setup-2.7.7.exe')) { throw 'Instalador não foi criado.' }
+
+      - name: Disponibilizar instalador
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gestao-EPI-Setup-2.7.7-LOGIN-SIMPLES
+          path: auditar-epi-windows/dist/Gestao-EPI-Setup-2.7.7.exe
+          if-no-files-found: error
+          retention-days: 14
