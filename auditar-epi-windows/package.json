@@ -5,7 +5,7 @@
   "main": "main.js",
   "private": true,
   "scripts": {
-    "dist": "electron-builder --win portable --x64"
+    "dist": "electron-builder --win nsis --x64"
   },
   "devDependencies": {
     "electron": "37.2.0",
@@ -26,11 +26,18 @@
       "icon": "app-icon.png",
       "target": [
         {
-          "target": "portable",
+          "target": "nsis",
           "arch": ["x64"]
         }
-      ],
-      "artifactName": "Gestao-EPI-${version}.exe"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Gestão EPI",
+      "artifactName": "Gestao-EPI-Setup-${version}.${ext}"
     }
   }
 }
