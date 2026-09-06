@@ -1,9 +1,7 @@
 (() => {
   function apply(){
-    // A v2.2.0 atualizava o texto deste elemento dentro de um MutationObserver
-    // que também observava childList. Isso criava um ciclo infinito de mutações
-    // e congelava a interface. Removemos o nó observado e mostramos a versão
-    // por CSS, sem gerar novas mutações no DOM.
+    // Mantém a identificação da versão fora do MutationObserver para evitar
+    // o ciclo de mutações que já havia causado travamento da interface.
     document.querySelectorAll('.pc-version').forEach(el=>el.remove());
 
     if(!document.getElementById('pcRuntimeFixStyle')){
@@ -12,7 +10,7 @@
       s.textContent=`
         .sidebar-foot{position:relative;padding-bottom:28px!important}
         .sidebar-foot::after{
-          content:'PC v2.2.1';
+          content:'PC v2.2.2';
           position:absolute;
           left:28px;
           bottom:8px;
