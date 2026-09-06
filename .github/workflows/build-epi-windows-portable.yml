@@ -48,7 +48,7 @@ jobs:
           Copy-Item -Force 'auditar-epi-windows/pc-professional-operations-v260.js' 'auditar-epi-windows/app/pc-professional-operations-v260.js'
           Copy-Item -Force 'auditar-epi-windows/pc-professional-safety-v260.js' 'auditar-epi-windows/app/pc-professional-safety-v260.js'
           Copy-Item -Force 'auditar-epi-windows/pc-intelligence-v270.js' 'auditar-epi-windows/app/pc-intelligence-v270.js'
-          Copy-Item -Force 'auditar-epi-windows/pc-version-v277.js' 'auditar-epi-windows/app/pc-version-v277.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-version-v278.js' 'auditar-epi-windows/app/pc-version-v278.js'
 
           $indexPath = 'auditar-epi-windows/app/index.html'
           $index = Get-Content $indexPath -Raw
@@ -79,7 +79,7 @@ jobs:
             '  <script src="pc-intelligence-v270.js"></script>',
             '  <script src="pc-easy-layout-v273.js"></script>',
             '  <script src="pc-batch-delivery-v274.js"></script>',
-            '  <script src="pc-version-v277.js"></script>',
+            '  <script src="pc-version-v278.js"></script>',
             '  <script src="pc-login-safe-v277.js"></script>',
             '</body>',
             '</html>'
@@ -87,7 +87,7 @@ jobs:
           Set-Content -Path $indexPath -Value ($head + (($scriptLines -join "`r`n") + "`r`n")) -Encoding UTF8
           $assembled = Get-Content $indexPath -Raw
 
-          foreach ($required in @('auth-gestao.js','pc-login-session.js','pc-login-safe-v277.js','pc-easy-layout-v273.js','pc-batch-delivery-v274.js','pc-version-v277.js')) {
+          foreach ($required in @('auth-gestao.js','pc-login-session.js','pc-login-safe-v277.js','pc-easy-layout-v273.js','pc-batch-delivery-v274.js','pc-version-v278.js')) {
             if ($assembled -notmatch [regex]::Escape($required)) { throw "Script obrigatório ausente: $required" }
           }
           if ($assembled -match 'pc-login-bootstrap-v276\.js|pc-login-interaction-v275\.js|login-uppercase-gestao\.js|worker-link-gestao\.js|pc-fix\.js|prepare-pc\.js') {
@@ -101,7 +101,7 @@ jobs:
           node --check 'auditar-epi-windows/app/pc-login-session.js'
           node --check 'auditar-epi-windows/app/pc-login-safe-v277.js'
           node --check 'auditar-epi-windows/app/pc-batch-delivery-v274.js'
-          node --check 'auditar-epi-windows/app/pc-version-v277.js'
+          node --check 'auditar-epi-windows/app/pc-version-v278.js'
 
       - name: Gerar ícone do Windows
         shell: pwsh
@@ -122,18 +122,18 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         shell: pwsh
         run: |
-          npx electron-builder --win portable --x64 --config.win.artifactName="Gestao-EPI-PC-v2.7.7-PORTATIL.exe"
+          npx electron-builder --win portable --x64 --config.win.artifactName="Gestao-EPI-PC-v2.7.8-PORTATIL.exe"
 
       - name: Conferir arquivo portátil
         shell: pwsh
         run: |
           Get-ChildItem 'auditar-epi-windows/dist' -File | ForEach-Object { Write-Host $_.FullName }
-          if (-not (Test-Path 'auditar-epi-windows/dist/Gestao-EPI-PC-v2.7.7-PORTATIL.exe')) { throw 'EXE portátil não foi criado.' }
+          if (-not (Test-Path 'auditar-epi-windows/dist/Gestao-EPI-PC-v2.7.8-PORTATIL.exe')) { throw 'EXE portátil não foi criado.' }
 
       - name: Disponibilizar versão portátil
         uses: actions/upload-artifact@v4
         with:
-          name: Gestao-EPI-PC-v2.7.7-PORTATIL
-          path: auditar-epi-windows/dist/Gestao-EPI-PC-v2.7.7-PORTATIL.exe
+          name: Gestao-EPI-PC-v2.7.8-PORTATIL-NOVA-LOGO
+          path: auditar-epi-windows/dist/Gestao-EPI-PC-v2.7.8-PORTATIL.exe
           if-no-files-found: error
           retention-days: 14
