@@ -61,7 +61,6 @@ jobs:
           if permission not in text:
               text = re.sub(r'(<manifest\b[^>]*>)', r'\1\n    ' + permission + '\n    ' + feature, text, count=1)
 
-          # Usa a identidade oficial Gestão EPI também no ícone nativo do Android.
           text = re.sub(r'android:icon="[^"]+"', 'android:icon="@drawable/ic_gestao_epi"', text, count=1)
           text = re.sub(r'android:roundIcon="[^"]+"', 'android:roundIcon="@drawable/ic_gestao_epi"', text, count=1)
           manifest.write_text(text, encoding='utf-8')
@@ -72,15 +71,14 @@ jobs:
           <vector xmlns:android="http://schemas.android.com/apk/res/android"
               android:width="108dp" android:height="108dp"
               android:viewportWidth="512" android:viewportHeight="512">
-              <path android:fillColor="#0FA88E" android:pathData="M0,0H512V512H0Z"/>
-              <path android:fillColor="@android:color/transparent" android:strokeColor="#FFFFFF" android:strokeWidth="24" android:strokeLineJoin="round" android:pathData="M256,74 L401,128 L401,240 C401,336 346,403 256,447 C166,403 111,336 111,240 L111,128 Z"/>
-              <path android:fillColor="#FFFFFF" android:pathData="M176,221 C180,172 210,139 246,130 L246,112 L266,112 L266,130 C302,139 332,172 336,221 Z"/>
-              <path android:fillColor="#FFFFFF" android:pathData="M174,215 H338 A14,14 0,0 1,352 229 A14,14 0,0 1,338 243 H174 A14,14 0,0 1,160 229 A14,14 0,0 1,174 215 Z"/>
-              <path android:fillColor="@android:color/transparent" android:strokeColor="#FFFFFF" android:strokeWidth="12" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M200,254 H227 C238,254 247,263 247,274 V286 C247,297 238,306 227,306 H200 C189,306 180,297 180,286 V274 C180,263 189,254 200,254 Z M285,254 H312 C323,254 332,263 332,274 V286 C332,297 323,306 312,306 H285 C274,306 265,297 265,286 V274 C265,263 274,254 285,254 Z M247,274 H265"/>
-              <path android:fillColor="#FFFFFF" android:pathData="M188,332 L225,306 L256,337 L287,306 L324,332 L309,407 L203,407 Z"/>
-              <path android:fillColor="@android:color/transparent" android:strokeColor="#0FA88E" android:strokeWidth="10" android:strokeLineCap="round" android:pathData="M225,309 V405 M287,309 V405 M256,338 V406"/>
-              <path android:fillColor="#1F2937" android:strokeColor="#FFFFFF" android:strokeWidth="9" android:pathData="M401,367 A51,51 0,1 1,299,367 A51,51 0,1 1,401,367"/>
-              <path android:fillColor="@android:color/transparent" android:strokeColor="#FFFFFF" android:strokeWidth="14" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M326,367 L341,383 L375,344"/>
+              <path android:fillColor="#F8FBFA" android:pathData="M0,0H512V512H0Z"/>
+              <path android:fillColor="@android:color/transparent" android:strokeColor="#083B68" android:strokeWidth="30" android:strokeLineJoin="round" android:pathData="M256,52 L90,136 L90,264 C90,367 152,438 256,482"/>
+              <path android:fillColor="@android:color/transparent" android:strokeColor="#08B887" android:strokeWidth="30" android:strokeLineJoin="round" android:pathData="M256,52 L422,136 L422,264 C422,367 360,438 256,482"/>
+              <path android:fillColor="#083B68" android:pathData="M162,231 C167,187 193,155 235,142 L235,121 L277,121 L277,142 C319,155 345,187 350,231 Z"/>
+              <path android:fillColor="#083B68" android:pathData="M164,225 H348 A14,14 0,0 1,362 239 A14,14 0,0 1,348 253 H164 A14,14 0,0 1,150 239 A14,14 0,0 1,164 225 Z"/>
+              <path android:fillColor="#083B68" android:pathData="M303,289 A47,47 0,1 1,209,289 A47,47 0,1 1,303,289"/>
+              <path android:fillColor="#083B68" android:pathData="M150,415 C161,354 197,319 256,319 C315,319 351,354 362,415 L349,446 L163,446 Z"/>
+              <path android:fillColor="@android:color/transparent" android:strokeColor="#08B887" android:strokeWidth="31" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M188,379 L233,424 L327,324"/>
           </vector>
           ''', encoding='utf-8')
 
@@ -138,7 +136,7 @@ jobs:
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
-          name: Gestao-EPI-Campo-APK
+          name: Gestao-EPI-Campo-APK-NOVA-LOGO
           path: Gestao-EPI-Campo.apk
           if-no-files-found: error
           retention-days: 14
