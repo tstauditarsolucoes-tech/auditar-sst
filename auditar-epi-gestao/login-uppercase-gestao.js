@@ -21,6 +21,12 @@
         #gestaoAuthOverlay #gestaoAuthPass::placeholder{
           text-transform:uppercase;
         }
+        @media (min-width:721px){
+          html,body{height:100%;overflow:hidden!important}
+          .layout{height:100vh!important;min-height:0!important;overflow:hidden!important}
+          .sidebar{position:relative!important;top:auto!important;height:100vh!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain}
+          .main{height:100vh!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain}
+        }
       `;
       document.head.appendChild(style);
     }
