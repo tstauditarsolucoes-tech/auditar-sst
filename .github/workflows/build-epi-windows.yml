@@ -31,6 +31,13 @@ jobs:
           Remove-Item -Recurse -Force 'auditar-epi-windows/app' -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Path 'auditar-epi-windows/app' | Out-Null
           Copy-Item -Recurse -Force 'auditar-epi-gestao/*' 'auditar-epi-windows/app/'
+          Copy-Item -Force 'auditar-epi-windows/pc-fix.js' 'auditar-epi-windows/app/pc-fix.js'
+          $indexPath = 'auditar-epi-windows/app/index.html'
+          $index = Get-Content $indexPath -Raw
+          if ($index -notmatch 'pc-fix\.js') {
+            $index = $index -replace '</body>', "  <script src=`"pc-fix.js`"></script>`r`n</body>"
+            Set-Content -Path $indexPath -Value $index -Encoding UTF8
+          }
 
       - name: Gerar ícone do Windows
         shell: pwsh
