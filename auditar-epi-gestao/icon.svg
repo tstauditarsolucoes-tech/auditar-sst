@@ -1,10 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Gestão EPI">
-  <defs><linearGradient id="bg" x1="70" y1="55" x2="430" y2="455" gradientUnits="userSpaceOnUse"><stop stop-color="#31C7B2"/><stop offset="1" stop-color="#0FA88E"/></linearGradient></defs>
-  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
-  <path d="M256 74 401 128v112c0 96-55 163-145 207-90-44-145-111-145-207V128L256 74Z" fill="none" stroke="#fff" stroke-width="24" stroke-linejoin="round"/>
-  <path d="M176 221c4-49 34-82 70-91v-18h20v18c36 9 66 42 70 91H176Z" fill="#fff"/><rect x="160" y="215" width="192" height="28" rx="14" fill="#fff"/>
-  <rect x="180" y="254" width="67" height="52" rx="20" fill="none" stroke="#fff" stroke-width="12"/><rect x="265" y="254" width="67" height="52" rx="20" fill="none" stroke="#fff" stroke-width="12"/><path d="M247 274h18" stroke="#fff" stroke-width="12" stroke-linecap="round"/>
-  <path d="M188 332 225 306l31 31 31-31 37 26-15 75H203l-15-75Z" fill="#fff"/><path d="M225 309v96M287 309v96M256 338v68" stroke="#0FA88E" stroke-width="10" stroke-linecap="round" opacity=".82"/>
-  <circle cx="350" cy="367" r="51" fill="#1F2937" stroke="#fff" stroke-width="9"/><path d="m326 367 15 16 34-39" fill="none" stroke="#fff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- Gestão EPI: identidade oficial -->
+  <defs>
+    <linearGradient id="shieldGrad" x1="92" y1="86" x2="420" y2="438" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#083B68"/>
+      <stop offset="0.48" stop-color="#0B4D78"/>
+      <stop offset="0.52" stop-color="#09B98B"/>
+      <stop offset="1" stop-color="#00A878"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#F8FBFA"/>
+  <path d="M256 52 422 136v128c0 103-62 174-166 218C152 438 90 367 90 264V136L256 52Z" fill="none" stroke="url(#shieldGrad)" stroke-width="30" stroke-linejoin="round"/>
+  <path d="M162 231c5-44 31-76 73-89v-21h42v21c42 13 68 45 73 89H162Z" fill="#083B68"/>
+  <rect x="150" y="225" width="212" height="28" rx="14" fill="#083B68"/>
+  <circle cx="256" cy="289" r="47" fill="#083B68"/>
+  <path d="M150 415c11-61 47-96 106-96s95 35 106 96l-13 31H163l-13-31Z" fill="#083B68"/>
+  <path d="m188 379 45 45 94-100" fill="none" stroke="#08B887" stroke-width="31" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
