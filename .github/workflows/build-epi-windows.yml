@@ -42,10 +42,11 @@ jobs:
           Copy-Item -Force 'auditar-epi-windows/pc-worker-sheet.js' 'auditar-epi-windows/app/pc-worker-sheet.js'
           Copy-Item -Force 'auditar-epi-windows/pc-worker-sheet-fiscal.js' 'auditar-epi-windows/app/pc-worker-sheet-fiscal.js'
           Copy-Item -Force 'auditar-epi-windows/pc-external-face.js' 'auditar-epi-windows/app/pc-external-face.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-reliability-v240.js' 'auditar-epi-windows/app/pc-reliability-v240.js'
 
           $indexPath = 'auditar-epi-windows/app/index.html'
           $index = Get-Content $indexPath -Raw
-          $scripts = "`r`n  <script src=`"app.js`"></script>`r`n  <script src=`"pc-login-session.js`"></script>`r`n  <script src=`"pc-stable.js`"></script>`r`n  <script src=`"central-config.js`"></script>`r`n  <script src=`"indicators.js`"></script>`r`n  <script src=`"pc-modern.js`"></script>`r`n  <script src=`"pc-external-face.js`"></script>`r`n  <script src=`"pc-integrity.js`"></script>`r`n  <script src=`"pc-runtime-fix.js`"></script>`r`n  <script src=`"pc-worker-sheet.js`"></script>`r`n  <script src=`"pc-worker-sheet-fiscal.js`"></script>`r`n</body>`r`n</html>`r`n"
+          $scripts = "`r`n  <script src=`"app.js`"></script>`r`n  <script src=`"pc-login-session.js`"></script>`r`n  <script src=`"pc-stable.js`"></script>`r`n  <script src=`"central-config.js`"></script>`r`n  <script src=`"indicators.js`"></script>`r`n  <script src=`"pc-modern.js`"></script>`r`n  <script src=`"pc-external-face.js`"></script>`r`n  <script src=`"pc-integrity.js`"></script>`r`n  <script src=`"pc-runtime-fix.js`"></script>`r`n  <script src=`"pc-worker-sheet.js`"></script>`r`n  <script src=`"pc-worker-sheet-fiscal.js`"></script>`r`n  <script src=`"pc-reliability-v240.js`"></script>`r`n</body>`r`n</html>`r`n"
           $index = [regex]::Replace($index, '(?s)\s*<!-- Ordem obrigatória:.*?</body>\s*</html>\s*$', $scripts)
           Set-Content -Path $indexPath -Value $index -Encoding UTF8
 
@@ -65,6 +66,7 @@ jobs:
           node --check 'auditar-epi-windows/app/pc-runtime-fix.js'
           node --check 'auditar-epi-windows/app/pc-worker-sheet.js'
           node --check 'auditar-epi-windows/app/pc-worker-sheet-fiscal.js'
+          node --check 'auditar-epi-windows/app/pc-reliability-v240.js'
           node --check 'auditar-epi-windows/app/epi-photo-ca-gestao.js'
 
       - name: Gerar ícone do Windows
@@ -90,7 +92,7 @@ jobs:
       - name: Disponibilizar aplicativo
         uses: actions/upload-artifact@v4
         with:
-          name: Gestao-EPI-PC-v2.3.1-FICHA-FISCAL
+          name: Gestao-EPI-PC-v2.4.0-CONFIABILIDADE
           path: auditar-epi-windows/dist/*.exe
           if-no-files-found: error
           retention-days: 14
