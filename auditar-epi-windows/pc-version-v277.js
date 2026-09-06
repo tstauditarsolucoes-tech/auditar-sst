@@ -60,15 +60,48 @@
     },true);
   }
 
+  function simplifyLogin(){
+    const codeInput=document.getElementById('gestaoTenantCode');
+    if(!codeInput)return;
+
+    const codeLabel=codeInput.closest('label');
+    const storedCode=String(localStorage.getItem('gestaoEpiTenantCode')||'').trim();
+    const card=document.querySelector('#gestaoAuthOverlay .gestao-auth-card');
+    const subtitle=card?.querySelector(':scope > p');
+
+    if(storedCode){
+      codeInput.value=storedCode;
+      if(codeLabel)codeLabel.style.display='none';
+      if(subtitle)subtitle.textContent='Digite seu usuário e senha.';
+    }else{
+      if(codeLabel)codeLabel.style.display='';
+      if(subtitle)subtitle.textContent='Primeiro acesso: informe o código da empresa uma única vez.';
+    }
+  }
+
+  function watchSimpleLogin(){
+    const overlay=document.getElementById('gestaoAuthOverlay');
+    if(!overlay)return;
+
+    simplifyLogin();
+    if(overlay.dataset.v277SimpleLogin==='1')return;
+    overlay.dataset.v277SimpleLogin='1';
+
+    const observer=new MutationObserver(()=>simplifyLogin());
+    observer.observe(overlay,{attributes:true,attributeFilter:['class']});
+  }
+
   function refreshUi(){
     fixText();
     cleanFaceText();
     positionBatch();
     fixDialogCancelAndClose();
+    watchSimpleLogin();
   }
 
   function boot(){
     fixDialogCancelAndClose();
+    watchSimpleLogin();
     [0,300,1000,2500,5000,9000].forEach(ms=>setTimeout(refreshUi,ms));
   }
 
