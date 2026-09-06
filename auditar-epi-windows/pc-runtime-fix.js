@@ -7,7 +7,7 @@
       s.textContent=`
         .sidebar-foot{position:relative;padding-bottom:28px!important}
         .sidebar-foot::after{
-          content:'PC v2.3.0';
+          content:'PC v2.3.1';
           position:absolute;
           left:28px;
           bottom:8px;
