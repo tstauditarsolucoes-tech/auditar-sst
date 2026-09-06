@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -131,12 +131,24 @@ jobs:
         run: ./gradlew assembleDebug
 
       - name: Renomear APK
-        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Campo.apk
+        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Campo-v2.0.2.apk
+
+      - name: Publicar APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: gestao-epi-campo-v2.0.2
+          name: Gestão EPI Campo v2.0.2
+          body: |
+            Gestão EPI Campo para Android com a nova identidade visual oficial.
+            Mantidas a biometria facial simplificada, entrega de EPI, estoque, cadastro e sincronização.
+          files: Gestao-EPI-Campo-v2.0.2.apk
+          make_latest: false
+          overwrite_files: true
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
-          name: Gestao-EPI-Campo-APK-NOVA-LOGO
-          path: Gestao-EPI-Campo.apk
+          name: Gestao-EPI-Campo-v2.0.2-NOVA-LOGO
+          path: Gestao-EPI-Campo-v2.0.2.apk
           if-no-files-found: error
           retention-days: 14
