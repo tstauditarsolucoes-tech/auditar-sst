@@ -1,6 +1,7 @@
 (() => {
   const OLD_KEY='auditarEpiSyncKey';
   const CENTRAL_KEY='auditarEpiCentralKey';
+  const AUTH_TOKEN_KEY='gestaoEpiAuthToken';
   const OLD_ENDPOINT='https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec';
   const NEW_ENDPOINT='https://script.google.com/macros/s/AKfycbxqMnKiTlAJTFv3-odS2dB1NRcSD8wwvtNxxa-zCFhTM6GeNZszib_1N6eT9wSnOnOyjg/exec';
 
@@ -9,7 +10,12 @@
   const nativeRemove=Storage.prototype.removeItem;
 
   Storage.prototype.getItem=function(key){
-    if(key===OLD_KEY||key===CENTRAL_KEY)return 'commercial-session';
+    if(key===OLD_KEY||key===CENTRAL_KEY){
+      // A chave de compatibilidade só existe depois que o login comercial criou
+      // um authToken. Assim o app não tenta sincronizar antes da autenticação.
+      const token=String(nativeGet.call(this,AUTH_TOKEN_KEY)||'').trim();
+      return token?'commercial-session':'';
+    }
     return nativeGet.call(this,key);
   };
   Storage.prototype.setItem=function(key,value){
