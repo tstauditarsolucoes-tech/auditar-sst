@@ -4,7 +4,9 @@ const path = require('path');
 const appDir = path.join(__dirname, 'app');
 
 function read(name) {
-  return fs.readFileSync(path.join(appDir, name), 'utf8');
+  // O checkout do runner Windows pode converter LF para CRLF. Normalizamos antes
+  // das substituições para que o build seja determinístico.
+  return fs.readFileSync(path.join(appDir, name), 'utf8').replace(/\r\n/g,'\n');
 }
 
 function write(name, text) {
