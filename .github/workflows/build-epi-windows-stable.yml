@@ -1,0 +1,104 @@
+name: Gerar Windows Gestão EPI Estável
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'auditar-epi-gestao/**'
+      - 'auditar-epi-windows/stable-central-config.js'
+      - 'auditar-epi-windows/pc-stable.js'
+      - '.github/workflows/build-epi-windows-stable.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Baixar arquivos
+        uses: actions/checkout@v4
+
+      - name: Instalar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Montar exatamente a base funcional
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force 'auditar-epi-windows/app' -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path 'auditar-epi-windows/app' | Out-Null
+          Copy-Item -Recurse -Force 'auditar-epi-gestao/*' 'auditar-epi-windows/app/'
+
+          # Restaura a central-config da versão antiga que o usuário confirmou funcionar.
+          Copy-Item -Force 'auditar-epi-windows/stable-central-config.js' 'auditar-epi-windows/app/central-config.js'
+
+          # Patch PC seguro: não toca em fetch, authToken, syncKey, endpoint ou cache.
+          Copy-Item -Force 'auditar-epi-windows/pc-stable.js' 'auditar-epi-windows/app/pc-stable.js'
+
+          # Restaura a ordem de scripts da versão funcional:
+          # app -> patch visual PC -> central-config (carrega auth/tools/branding) -> indicadores.
+          $indexPath = 'auditar-epi-windows/app/index.html'
+          $index = Get-Content $indexPath -Raw
+          $replacement = @'
+
+  <script src="app.js"></script>
+  <script src="pc-stable.js"></script>
+  <script src="central-config.js"></script>
+  <script src="indicators.js"></script>
+</body>
+</html>
+'@
+          $index = [regex]::Replace(
+            $index,
+            '(?s)\s*<!-- Ordem obrigatória:.*?</body>\s*</html>\s*$',
+            $replacement
+          )
+          Set-Content -Path $indexPath -Value $index -Encoding UTF8
+
+          # Confirma que nenhum adaptador novo de transporte entrou no build.
+          if ((Get-Content $indexPath -Raw) -match 'login-uppercase-gestao\.js|worker-link-gestao\.js|pc-fix\.js') {
+            throw 'Build estável contém adaptador de sincronização que não existe na versão funcional.'
+          }
+
+          node --check 'auditar-epi-windows/app/app.js'
+          node --check 'auditar-epi-windows/app/auth-gestao.js'
+          node --check 'auditar-epi-windows/app/central-config.js'
+          node --check 'auditar-epi-windows/app/pc-stable.js'
+
+          # Versão própria para não confundir com os executáveis anteriores.
+          $pkgPath = 'auditar-epi-windows/package.json'
+          $pkg = Get-Content $pkgPath -Raw | ConvertFrom-Json
+          $pkg.version = '2.0.9'
+          $pkg | ConvertTo-Json -Depth 20 | Set-Content $pkgPath -Encoding UTF8
+
+      - name: Gerar ícone do Windows
+        shell: pwsh
+        run: |
+          if (-not (Get-Command magick -ErrorAction SilentlyContinue)) {
+            choco install imagemagick.app -y --no-progress
+            $env:Path += ';C:\Program Files\ImageMagick-7.1.1-Q16-HDRI'
+          }
+          magick -background none 'auditar-epi-windows/app/icon.svg' -resize 512x512 'auditar-epi-windows/app-icon.png'
+          if (-not (Test-Path 'auditar-epi-windows/app-icon.png')) { throw 'Não foi possível gerar o ícone do Gestão EPI.' }
+
+      - name: Instalar dependências
+        working-directory: auditar-epi-windows
+        run: npm install
+
+      - name: Gerar aplicativo Windows
+        working-directory: auditar-epi-windows
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run dist
+
+      - name: Disponibilizar aplicativo
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gestao-EPI-PC-2.0.9-BASE-ESTAVEL
+          path: auditar-epi-windows/dist/Gestao-EPI-2.0.9.exe
+          if-no-files-found: error
+          retention-days: 14
