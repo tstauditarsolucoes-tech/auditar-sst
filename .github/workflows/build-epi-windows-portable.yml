@@ -26,7 +26,6 @@ jobs:
           Remove-Item -Recurse -Force 'auditar-epi-windows/app' -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Path 'auditar-epi-windows/app' | Out-Null
           Copy-Item -Recurse -Force 'auditar-epi-gestao/*' 'auditar-epi-windows/app/'
-
           Copy-Item -Force 'auditar-epi-windows/stable-central-config.js' 'auditar-epi-windows/app/central-config.js'
           Copy-Item -Force 'auditar-epi-windows/pc-stable.js' 'auditar-epi-windows/app/pc-stable.js'
           Copy-Item -Force 'auditar-epi-windows/pc-modern.js' 'auditar-epi-windows/app/pc-modern.js'
@@ -56,37 +55,37 @@ jobs:
           $pos = $index.IndexOf($marker)
           if ($pos -lt 0) { throw 'Marcador de scripts não encontrado no index.html.' }
           $head = $index.Substring(0,$pos)
-          $scripts = @'
-  <script src="pc-login-session.js"></script>
-  <script src="pc-login-bootstrap-v276.js"></script>
-  <script src="pc-stable.js"></script>
-  <script src="auth-gestao.js" data-auth-gestao="1"></script>
-  <script src="app.js"></script>
-  <script src="central-config.js"></script>
-  <script src="indicators.js"></script>
-  <script src="pc-modern.js"></script>
-  <script src="pc-external-face.js"></script>
-  <script src="pc-integrity.js"></script>
-  <script src="pc-runtime-fix.js"></script>
-  <script src="pc-worker-sheet.js"></script>
-  <script src="pc-worker-sheet-fiscal.js"></script>
-  <script src="pc-fichas-clean-v272.js"></script>
-  <script src="pc-reliability-v240.js"></script>
-  <script src="pc-productivity-v250.js"></script>
-  <script src="pc-professional-core-v260.js"></script>
-  <script src="pc-professional-alerts-v260.js"></script>
-  <script src="pc-professional-operations-v260.js"></script>
-  <script src="pc-professional-safety-v260.js"></script>
-  <script src="pc-version-v276.js"></script>
-  <script src="pc-intelligence-v270.js"></script>
-  <script src="pc-easy-layout-v273.js"></script>
-  <script src="pc-batch-delivery-v274.js"></script>
-  <script src="pc-login-interaction-v275.js"></script>
-</body>
-</html>
-'@
-          $index = $head + $scripts
-          Set-Content -Path $indexPath -Value $index -Encoding UTF8
+          $scriptLines = @(
+            '  <script src="pc-login-session.js"></script>',
+            '  <script src="pc-login-bootstrap-v276.js"></script>',
+            '  <script src="pc-stable.js"></script>',
+            '  <script src="auth-gestao.js" data-auth-gestao="1"></script>',
+            '  <script src="app.js"></script>',
+            '  <script src="central-config.js"></script>',
+            '  <script src="indicators.js"></script>',
+            '  <script src="pc-modern.js"></script>',
+            '  <script src="pc-external-face.js"></script>',
+            '  <script src="pc-integrity.js"></script>',
+            '  <script src="pc-runtime-fix.js"></script>',
+            '  <script src="pc-worker-sheet.js"></script>',
+            '  <script src="pc-worker-sheet-fiscal.js"></script>',
+            '  <script src="pc-fichas-clean-v272.js"></script>',
+            '  <script src="pc-reliability-v240.js"></script>',
+            '  <script src="pc-productivity-v250.js"></script>',
+            '  <script src="pc-professional-core-v260.js"></script>',
+            '  <script src="pc-professional-alerts-v260.js"></script>',
+            '  <script src="pc-professional-operations-v260.js"></script>',
+            '  <script src="pc-professional-safety-v260.js"></script>',
+            '  <script src="pc-version-v276.js"></script>',
+            '  <script src="pc-intelligence-v270.js"></script>',
+            '  <script src="pc-easy-layout-v273.js"></script>',
+            '  <script src="pc-batch-delivery-v274.js"></script>',
+            '  <script src="pc-login-interaction-v275.js"></script>',
+            '</body>',
+            '</html>'
+          )
+          $scripts = ($scriptLines -join "`r`n") + "`r`n"
+          Set-Content -Path $indexPath -Value ($head + $scripts) -Encoding UTF8
           $assembled = Get-Content $indexPath -Raw
 
           foreach ($required in @('pc-login-bootstrap-v276.js','auth-gestao.js','pc-easy-layout-v273.js','pc-batch-delivery-v274.js','pc-version-v276.js')) {
