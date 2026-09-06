@@ -31,6 +31,11 @@ jobs:
           Remove-Item -Recurse -Force 'auditar-epi-windows/app' -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Path 'auditar-epi-windows/app' | Out-Null
           Copy-Item -Recurse -Force 'auditar-epi-gestao/*' 'auditar-epi-windows/app/'
+
+          # Converte a Gestão do PC para o fluxo comercial atual:
+          # login -> authToken -> epi_sync_merge. A chave antiga não participa da sync.
+          node 'auditar-epi-windows/prepare-pc.js'
+
           Copy-Item -Force 'auditar-epi-windows/pc-fix.js' 'auditar-epi-windows/app/pc-fix.js'
           $indexPath = 'auditar-epi-windows/app/index.html'
           $index = Get-Content $indexPath -Raw
