@@ -29,7 +29,7 @@ PATCHES = [
     'patch_signature_fullscreen_v3291.py',
     'patch_panel_pc_v3292.py',
     'patch_contrast_all_v3293.py',
-    'patch_remove_exams_v3294.py',
+    'patch_remove_exams_v3294b.py',
 ]
 
 
