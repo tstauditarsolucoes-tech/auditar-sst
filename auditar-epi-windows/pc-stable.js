@@ -1,57 +1,47 @@
 (() => {
   const TENANT_CODE_KEY='gestaoEpiTenantCode';
-
-  // O código da empresa não fica gravado no computador.
-  // Não altera token, sincronização, endpoint, deviceId ou cache.
+  const CACHE='auditarEpiGestaoCacheV1';
   const nativeGet=Storage.prototype.getItem;
   const nativeSet=Storage.prototype.setItem;
   const nativeRemove=Storage.prototype.removeItem;
 
   nativeRemove.call(localStorage,TENANT_CODE_KEY);
+  Storage.prototype.getItem=function(key){if(key===TENANT_CODE_KEY)return '';return nativeGet.call(this,key);};
+  Storage.prototype.setItem=function(key,value){if(key===TENANT_CODE_KEY){nativeRemove.call(this,key);return;}return nativeSet.call(this,key,value);};
+  Storage.prototype.removeItem=function(key){if(key===TENANT_CODE_KEY){nativeRemove.call(this,key);return;}return nativeRemove.call(this,key);};
 
-  Storage.prototype.getItem=function(key){
-    if(key===TENANT_CODE_KEY)return '';
-    return nativeGet.call(this,key);
-  };
-  Storage.prototype.setItem=function(key,value){
-    if(key===TENANT_CODE_KEY){
-      nativeRemove.call(this,key);
-      return;
-    }
-    return nativeSet.call(this,key,value);
-  };
-  Storage.prototype.removeItem=function(key){
-    if(key===TENANT_CODE_KEY){
-      nativeRemove.call(this,key);
-      return;
-    }
-    return nativeRemove.call(this,key);
-  };
-
-  // Única mudança estrutural da tela: menu azul e conteúdo branco rolam separados.
   const style=document.createElement('style');
   style.id='gestaoEpiPcStableScroll';
   style.textContent=`
-    @media (min-width:721px){
-      html,body{height:100%;overflow:hidden!important}
-      .layout{height:100vh!important;min-height:0!important;overflow:hidden!important}
-      .sidebar{
-        position:relative!important;
-        top:auto!important;
-        height:100vh!important;
-        min-height:0!important;
-        overflow-y:auto!important;
-        overflow-x:hidden!important;
-        overscroll-behavior:contain!important;
-      }
-      .main{
-        height:100vh!important;
-        min-height:0!important;
-        overflow-y:auto!important;
-        overflow-x:hidden!important;
-        overscroll-behavior:contain!important;
-      }
-    }
+    @media (min-width:721px){html,body{height:100%;overflow:hidden!important}.layout{height:100vh!important;min-height:0!important;overflow:hidden!important}.sidebar{position:relative!important;top:auto!important;height:100vh!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important}.main{height:100vh!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important}}
+    .pc-face-methods{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:10px 0 12px}.pc-face-methods button{min-height:48px;border:1px solid #cbdad8;background:#fff;color:#355b57;border-radius:12px;font-weight:900;cursor:pointer}.pc-face-methods button.active{background:#e8f5f3;border-color:#0f766e;color:#0f766e}.pc-face-panel{display:none;border:1px solid #d7e6e3;background:#f8fbfb;border-radius:14px;padding:13px;margin-bottom:12px}.pc-face-panel.open{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}.pc-face-copy b{display:block;color:#173d39}.pc-face-copy span{display:block;color:#6c827e;font-size:11px;margin-top:3px}.pc-face-status{grid-column:1/-1;padding:9px 11px;border-radius:10px;background:#fff8e6;color:#8a6418;font-size:11px;font-weight:850}.pc-face-status.ok{background:#ecfdf3;color:#166534}.pc-face-mode #pcSignature,.pc-face-mode #pcClearSignature{display:none!important}.pc-face-overlay{display:none;position:fixed;inset:0;z-index:12000;background:#082d2a;color:#fff;flex-direction:column}.pc-face-overlay.open{display:flex}.pc-face-head{padding:15px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px}.pc-face-head h2{margin:0;font-size:20px}.pc-face-head p{margin:4px 0 0;color:#c4dcd8;font-size:12px}.pc-face-close{width:44px;height:44px;border:0;border-radius:12px;background:rgba(255,255,255,.12);color:#fff;font-size:22px}.pc-face-stage{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center;background:#051f1d;overflow:hidden}.pc-face-stage video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}.pc-face-frame{position:absolute;width:min(52vw,340px);aspect-ratio:3/4;border:3px solid rgba(255,255,255,.9);border-radius:44%;box-shadow:0 0 0 9999px rgba(0,0,0,.24);pointer-events:none}.pc-face-instruction{position:absolute;left:20px;right:20px;bottom:20px;background:rgba(5,31,29,.9);padding:12px 14px;border-radius:14px;text-align:center;font-weight:900}.pc-face-actions{padding:14px 18px 18px;background:#0c3b37;display:flex;justify-content:center}.pc-face-capture{min-width:220px;min-height:50px;border:0;border-radius:13px;background:#fff;color:#0f766e;font-weight:900;font-size:15px}.pc-face-note{padding:0 18px 14px;background:#0c3b37;color:#c7dedb;text-align:center;font-size:10px}.pc-face-proof{margin-top:12px;padding:10px 12px;border-radius:10px;background:#eef8f6;color:#315d57;font-size:11px;line-height:1.45}
   `;
   document.head.appendChild(style);
+
+  const $=(s,r=document)=>r.querySelector(s);
+  let mode='signature',photoReady=false,capturedAt='',photoData='',stream=null,pendingWorkerId='';
+  function toast(msg){const el=$('#toast');if(!el)return alert(msg);el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2400);}
+  function read(){try{const x=JSON.parse(localStorage.getItem(CACHE)||'{}');x.app=x.app&&typeof x.app==='object'?x.app:{};x.app.deliveries=Array.isArray(x.app.deliveries)?x.app.deliveries:[];return x;}catch(_){return {app:{deliveries:[]}};}}
+  function write(x){x.updatedAt=new Date().toISOString();localStorage.setItem(CACHE,JSON.stringify(x));}
+
+  function ensureOverlay(){if($('#pcFaceOverlay'))return;const d=document.createElement('div');d.id='pcFaceOverlay';d.className='pc-face-overlay';d.innerHTML=`<div class="pc-face-head"><div><h2>Confirmação facial</h2><p>Olhe normalmente para a câmera. Não precisa piscar.</p></div><button id="pcFaceClose" class="pc-face-close" type="button">×</button></div><div class="pc-face-stage"><video id="pcFaceVideo" autoplay muted playsinline></video><div class="pc-face-frame"></div><div class="pc-face-instruction">Centralize o rosto e tire a foto</div></div><div class="pc-face-actions"><button id="pcFaceCapture" class="pc-face-capture" type="button">📷 Tirar foto</button></div><div class="pc-face-note">A foto ficará vinculada ao comprovante da entrega. Não é necessário piscar.</div>`;document.body.appendChild(d);$('#pcFaceClose').onclick=closeCamera;$('#pcFaceCapture').onclick=capturePhoto;}
+
+  function setup(){const canvas=$('#pcSignature');if(!canvas||$('#pcFaceMethods'))return false;ensureOverlay();const card=canvas.closest('.pc-card');if(!card)return false;card.id='pcConfirmCard';const head=card.querySelector('.pc-modern-head');if(head){const h=head.querySelector('h2');const p=head.querySelector('p');if(h)h.textContent='Confirmação do trabalhador';if(p)p.textContent='Escolha assinatura ou confirmação facial. Na facial, basta tirar uma foto — não precisa piscar.';}const methods=document.createElement('div');methods.id='pcFaceMethods';methods.className='pc-face-methods';methods.innerHTML='<button id="pcUseSignature" type="button" class="active">✍️ Assinatura</button><button id="pcUseFace" type="button">🙂 Facial sem piscar</button>';canvas.parentNode.insertBefore(methods,canvas);const panel=document.createElement('div');panel.id='pcFacePanel';panel.className='pc-face-panel';panel.innerHTML='<div class="pc-face-copy"><b>Confirmação facial</b><span>Tire uma foto do trabalhador no momento da entrega.</span></div><button id="pcFaceVerify" class="primary" type="button">📷 Abrir câmera</button><div id="pcFaceStatus" class="pc-face-status">Nenhuma foto registrada.</div>';canvas.parentNode.insertBefore(panel,canvas);$('#pcUseSignature').onclick=()=>setMode('signature');$('#pcUseFace').onclick=()=>setMode('face');$('#pcFaceVerify').onclick=openCamera;$('#pcDeliveryWorker')?.addEventListener('change',resetPhoto);const save=$('#pcSaveDelivery');if(save){save.addEventListener('click',guardSave,true);save.addEventListener('click',afterSave);}document.addEventListener('click',e=>{const b=e.target.closest('[data-pc-receipt]');if(b)setTimeout(()=>patchReceipt(b.dataset.pcReceipt),120);});setTimeout(()=>{const v=$('.pc-version');if(v)v.textContent='PC v2.1.1';},100);return true;}
+
+  function setMode(next){mode=next;resetPhoto();const card=$('#pcConfirmCard');card?.classList.toggle('pc-face-mode',mode==='face');$('#pcFacePanel')?.classList.toggle('open',mode==='face');$('#pcUseFace')?.classList.toggle('active',mode==='face');$('#pcUseSignature')?.classList.toggle('active',mode!=='face');if(mode==='face')$('#pcClearSignature')?.click();}
+  function resetPhoto(){photoReady=false;capturedAt='';photoData='';const s=$('#pcFaceStatus');if(s){s.className='pc-face-status';s.textContent='Nenhuma foto registrada.';}}
+
+  async function openCamera(){pendingWorkerId=$('#pcDeliveryWorker')?.value||'';if(!pendingWorkerId)return toast('Selecione o trabalhador primeiro.');ensureOverlay();$('#pcFaceOverlay').classList.add('open');try{if(!navigator.mediaDevices?.getUserMedia)throw new Error('A câmera não está disponível neste computador.');stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{width:{ideal:720},height:{ideal:900}}});const v=$('#pcFaceVideo');v.srcObject=stream;await v.play();}catch(err){toast(err.message||'Não foi possível abrir a câmera.');closeCamera();}}
+  function closeCamera(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}const v=$('#pcFaceVideo');if(v)v.srcObject=null;$('#pcFaceOverlay')?.classList.remove('open');}
+  function capturePhoto(){const video=$('#pcFaceVideo');if(!video?.videoWidth)return toast('Aguarde a câmera carregar.');const c=document.createElement('canvas');c.width=Math.min(420,video.videoWidth);c.height=Math.max(1,Math.round(c.width*(video.videoHeight/video.videoWidth)));c.getContext('2d').drawImage(video,0,0,c.width,c.height);photoData=c.toDataURL('image/jpeg',0.72);capturedAt=new Date().toISOString();photoReady=true;drawOnSignature();const s=$('#pcFaceStatus');if(s){s.className='pc-face-status ok';s.textContent='✓ Foto registrada para esta entrega.';}closeCamera();toast('Confirmação facial pronta.');}
+
+  function drawOnSignature(){const canvas=$('#pcSignature');if(!canvas||!photoData)return;const img=new Image();img.onload=()=>{const ctx=canvas.getContext('2d');ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);const scale=Math.min(canvas.width/img.width,canvas.height/img.height);const w=img.width*scale,h=img.height*scale;ctx.drawImage(img,(canvas.width-w)/2,(canvas.height-h)/2,w,h);ctx.restore();markDirty(canvas);};img.src=photoData;}
+  function markDirty(canvas){const r=canvas.getBoundingClientRect();const E=window.PointerEvent||window.MouseEvent;try{canvas.dispatchEvent(new E('pointerdown',{bubbles:true,clientX:r.left+2,clientY:r.top+2,pointerId:90}));canvas.dispatchEvent(new E('pointermove',{bubbles:true,clientX:r.left+4,clientY:r.top+4,pointerId:90}));canvas.dispatchEvent(new E('pointerup',{bubbles:true,clientX:r.left+4,clientY:r.top+4,pointerId:90}));}catch(_){canvas.dispatchEvent(new Event('pointerdown',{bubbles:true}));canvas.dispatchEvent(new Event('pointermove',{bubbles:true}));canvas.dispatchEvent(new Event('pointerup',{bubbles:true}));}}
+
+  function guardSave(e){if(mode!=='face')return;if(!photoReady){e.preventDefault();e.stopImmediatePropagation();toast('Tire a foto do trabalhador antes de finalizar.');return;}pendingWorkerId=$('#pcDeliveryWorker')?.value||pendingWorkerId;}
+  function afterSave(){if(mode!=='face'||!photoReady)return;const wid=pendingWorkerId,at=capturedAt;setTimeout(()=>{try{const root=read(),d=root.app.deliveries?.[0];if(!d||d.workerId!==wid||Date.now()-new Date(d.createdAt||0).getTime()>12000)return;d.confirmationType='facial-photo';d.facialCapturedAt=at;d.facialBlinkRequired=false;d.updatedAt=new Date().toISOString();write(root);setTimeout(()=>$('#btnRefresh')?.click(),120);setTimeout(()=>patchReceipt(d.id),550);}catch(_){ }setMode('signature');},80);}
+  function patchReceipt(id){try{const root=read(),d=root.app.deliveries.find(x=>x.id===id);if(!d||d.confirmationType!=='facial-photo')return;const paper=$('#pcReceiptPaper');if(!paper)return;const sign=paper.querySelector('.pc-receipt-sign');if(sign){const line=sign.querySelector('.line');if(line){const name=(line.innerHTML.split('<br>')[0]||'Trabalhador');line.innerHTML=`${name}<br>Confirmação facial do trabalhador`;}}if(!paper.querySelector('.pc-face-proof')){const html='<div class="pc-face-proof"><b>🙂 Confirmação facial</b><br>Foto registrada no momento da entrega, sem exigir piscar.</div>';(sign||paper).insertAdjacentHTML(sign?'beforebegin':'beforeend',html);}}catch(_){}}
+
+  function boot(){let tries=0;const timer=setInterval(()=>{tries++;if(setup()||tries>60)clearInterval(timer);},100);}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,0),{once:true});else setTimeout(boot,0);
 })();
