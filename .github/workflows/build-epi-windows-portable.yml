@@ -83,12 +83,18 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         shell: pwsh
         run: |
-          npx electron-builder --win portable --x64 --config.win.artifactName="Gestao-EPI-PC-v2.7.5-PORTATIL.${ext}"
+          npx electron-builder --win portable --x64 --config.win.artifactName="Gestao-EPI-PC-v2.7.5-PORTATIL.exe"
+
+      - name: Conferir arquivo portátil
+        shell: pwsh
+        run: |
+          Get-ChildItem 'auditar-epi-windows/dist' -File | ForEach-Object { Write-Host $_.FullName }
+          if (-not (Test-Path 'auditar-epi-windows/dist/Gestao-EPI-PC-v2.7.5-PORTATIL.exe')) { throw 'EXE portátil não foi criado.' }
 
       - name: Disponibilizar versão portátil
         uses: actions/upload-artifact@v4
         with:
           name: Gestao-EPI-PC-v2.7.5-PORTATIL
-          path: auditar-epi-windows/dist/*.exe
+          path: auditar-epi-windows/dist/Gestao-EPI-PC-v2.7.5-PORTATIL.exe
           if-no-files-found: error
           retention-days: 14
