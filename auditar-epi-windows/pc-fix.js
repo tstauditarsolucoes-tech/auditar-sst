@@ -5,35 +5,46 @@
   const TENANT_CODE_KEY='gestaoEpiTenantCode';
   const LEGACY_SYNC_KEY='auditarEpiCentralKey';
 
-  // Sempre inicia sem sessão reaproveitada no PC.
+  // Sempre inicia sem reaproveitar sessão nem código da empresa no PC.
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
   localStorage.removeItem(TENANT_KEY);
   localStorage.removeItem(TENANT_CODE_KEY);
-  // O app antigo exige esta chave antes de chamar a sync. Limpamos na abertura
-  // e liberamos somente depois que o login autenticado for concluído.
   localStorage.removeItem(LEGACY_SYNC_KEY);
 
-  // Nunca mantém o código da empresa salvo no PC.
   const storageGet=Storage.prototype.getItem;
   const storageSet=Storage.prototype.setItem;
   const storageRemove=Storage.prototype.removeItem;
+
+  // Compatibilidade definitiva com o app.js antigo:
+  // - código da empresa nunca fica salvo;
+  // - a antiga chave de sync só é considerada presente quando existe login válido.
   Storage.prototype.getItem=function(key){
     if(key===TENANT_CODE_KEY)return '';
+    if(key===LEGACY_SYNC_KEY){
+      const token=String(storageGet.call(this,TOKEN_KEY)||'').trim();
+      return token ? 'AUTHENTICATED_SESSION' : '';
+    }
     return storageGet.call(this,key);
   };
+
   Storage.prototype.setItem=function(key,value){
     if(key===TENANT_CODE_KEY){
+      storageRemove.call(this,key);
+      return;
+    }
+    if(key===LEGACY_SYNC_KEY){
+      // Não grava mais a chave antiga. A sincronização depende apenas do login.
       storageRemove.call(this,key);
       return;
     }
     return storageSet.call(this,key,value);
   };
 
-  // Impede o adaptador antigo de sincronização de ser instalado.
+  // Impede adaptadores antigos de sincronização de assumirem a conexão.
   window.__gestaoEpiSyncTransportFix=true;
 
-  // Sincronização usa a mesma sessão autenticada do login.
+  // Toda chamada de sincronização é convertida para a mesma API autenticada do login.
   const previousFetch=window.fetch.bind(window);
   window.fetch=async function(input,init){
     try{
@@ -51,10 +62,12 @@
               headers:{'Content-Type':'application/json;charset=utf-8'}
             });
           }
+
           const extra={...body};
           delete extra.action;
           delete extra.authToken;
           delete extra.syncKey;
+
           const json=await window.GestaoEpiAuth.api('epi_sync_merge',extra);
           return new Response(JSON.stringify(json),{
             status:200,
@@ -75,7 +88,7 @@
     return previousFetch(input,init);
   };
 
-  // Rolagem independente no PC.
+  // Rolagem independente: menu azul e área principal possuem rolagens próprias.
   const style=document.createElement('style');
   style.id='gestaoEpiPcIndependentScroll';
   style.textContent=`
@@ -89,20 +102,6 @@
   `;
   document.head.appendChild(style);
 
-  function enableAuthenticatedSync(){
-    const token=String(window.GestaoEpiAuth?.token?.()||'').trim();
-    const auth=document.getElementById('gestaoAuthOverlay');
-    const loggedIn=!!token && !!auth && auth.classList.contains('hidden');
-    if(!loggedIn)return false;
-
-    // Compatibilidade com o app.js antigo: apenas libera a chamada de sync.
-    // O valor não autentica nada; o backend recebe o token real da sessão.
-    localStorage.setItem(LEGACY_SYNC_KEY,'AUTHENTICATED_SESSION');
-    const btn=document.getElementById('btnRefresh');
-    if(btn)setTimeout(()=>btn.click(),80);
-    return true;
-  }
-
   function enforceCleanLogin(){
     const connect=document.getElementById('connectOverlay');
     if(connect){
@@ -114,6 +113,7 @@
     const tenantCode=document.getElementById('gestaoTenantCode');
     const username=document.getElementById('gestaoAuthUser');
     const password=document.getElementById('gestaoAuthPass');
+
     if(tenantCode)tenantCode.value='';
     if(username)username.value='';
     if(password)password.value='';
@@ -123,7 +123,7 @@
     if(card&&!card.querySelector('.gestao-pc-version')){
       const v=document.createElement('div');
       v.className='gestao-pc-version';
-      v.textContent='PC v2.0.6';
+      v.textContent='PC v2.0.7';
       card.appendChild(v);
     }
 
@@ -133,13 +133,21 @@
     if(time)time.textContent='—';
   }
 
+  function refreshAfterLogin(){
+    const token=String(window.GestaoEpiAuth?.token?.()||'').trim();
+    const auth=document.getElementById('gestaoAuthOverlay');
+    if(!token||!auth?.classList.contains('hidden'))return;
+    const btn=document.getElementById('btnRefresh');
+    if(btn)setTimeout(()=>btn.click(),120);
+  }
+
   document.addEventListener('DOMContentLoaded',()=>{
     enforceCleanLogin();
     setTimeout(enforceCleanLogin,0);
 
     const auth=document.getElementById('gestaoAuthOverlay');
     if(auth){
-      const observer=new MutationObserver(()=>enableAuthenticatedSync());
+      const observer=new MutationObserver(refreshAfterLogin);
       observer.observe(auth,{attributes:true,attributeFilter:['class']});
     }
   });
