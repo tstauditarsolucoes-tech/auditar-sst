@@ -2,13 +2,15 @@
   const TOKEN_KEY='gestaoEpiAuthToken';
   const USER_KEY='gestaoEpiAuthUser';
   const TENANT_KEY='gestaoEpiAuthTenant';
+  const TENANT_CODE_KEY='gestaoEpiTenantCode';
   const LAUNCH_KEY='gestaoEpiPcLaunchAuthV1';
 
-  // Uma autenticação nova a cada abertura do programa, sem apagar o código da empresa.
+  // Uma autenticação nova a cada abertura do programa, sem manter código da empresa salvo.
   if(!sessionStorage.getItem(LAUNCH_KEY)){
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(TENANT_KEY);
+    localStorage.removeItem(TENANT_CODE_KEY);
     sessionStorage.setItem(LAUNCH_KEY,'1');
   }
 
@@ -76,6 +78,14 @@
       connect.classList.add('hidden');
       connect.style.display='none';
     }
+
+    // A tela de login sempre abre totalmente limpa no PC.
+    const tenantCode=document.getElementById('gestaoTenantCode');
+    const username=document.getElementById('gestaoAuthUser');
+    const password=document.getElementById('gestaoAuthPass');
+    if(tenantCode)tenantCode.value='';
+    if(username)username.value='';
+    if(password)password.value='';
 
     // Enquanto a tela de login estiver aberta, não deixa a interface parecer travada.
     const auth=document.getElementById('gestaoAuthOverlay');
