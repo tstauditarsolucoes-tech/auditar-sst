@@ -1,11 +1,11 @@
 {
   "name": "gestao-epi",
-  "version": "2.7.8",
+  "version": "2.7.9",
   "description": "Gestão EPI para Windows",
   "main": "main.js",
   "private": true,
   "scripts": {
-    "dist": "electron-builder --win nsis --x64"
+    "dist": "electron-builder --win --x64"
   },
   "devDependencies": {
     "electron": "37.2.0",
@@ -28,6 +28,10 @@
         {
           "target": "nsis",
           "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
         }
       ]
     },
@@ -38,6 +42,9 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Gestão EPI",
       "artifactName": "Gestao-EPI-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "Gestao-EPI-PC-v${version}-PORTATIL.${ext}"
     }
   }
 }
