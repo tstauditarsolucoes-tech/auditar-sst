@@ -1,0 +1,41 @@
+name: Scan v3.35.2 periodicos
+
+on:
+  push:
+    branches: [feature/v3.35.2-remover-periodicos]
+    paths:
+      - ".github/workflows/scan-v3520-periodicos.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar v3.35.1
+        run: python3 tools/assemble_v3510.py
+      - name: Localizar referencias a periodicos
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import unicodedata
+          root=Path('app/Auditar_SST_v1_5_dashboard')
+          exts={'.dart','.gs','.html','.js','.json','.yaml','.yml','.md','.txt'}
+          total=0
+          for p in root.rglob('*'):
+              if not p.is_file() or p.suffix.lower() not in exts:
+                  continue
+              try:
+                  lines=p.read_text(encoding='utf-8', errors='ignore').splitlines()
+              except Exception:
+                  continue
+              for i,line in enumerate(lines,1):
+                  norm=''.join(c for c in unicodedata.normalize('NFD', line.lower()) if unicodedata.category(c)!='Mn')
+                  if 'periodic' in norm:
+                      print(f'{p}:{i}: {line}')
+                      total+=1
+          print(f'TOTAL_REFERENCIAS_PERIODIC={total}')
+          PY
