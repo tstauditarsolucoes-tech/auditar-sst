@@ -1,0 +1,139 @@
+name: Auditar SST v3.33.0 Sync Bidirecional
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v3.33.0-sync-bidirecional]
+    paths:
+      - ".github/workflows/build-v3330-sync.yml"
+      - "tools/assemble_v3330.py"
+      - "tools/v3330.patch.gz.b64"
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows v3.33.0
+    runs-on: windows-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.33.0
+        run: python tools/assemble_v3330.py
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Analisar e testar
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          flutter pub get
+          dart format lib
+          $pub = Get-Content pubspec.yaml -Raw
+          if (-not $pub.Contains('version: 3.33.0+149')) { throw 'versão incorreta' }
+          $sync = Get-Content lib/services/device_sync_service.dart -Raw
+          if (-not $sync.Contains("'syncProtocol': 2")) { throw 'sync protocol 2 ausente' }
+          if (-not $sync.Contains('baseServerVersion')) { throw 'baseServerVersion ausente' }
+          if (-not $sync.Contains('hasPendingLocalEdit')) { throw 'proteção de dirty local ausente' }
+          $gs = Get-Content painel_web_google_apps_script/Code.gs -Raw
+          if ($gs.Contains('pcOwnsMaster')) { throw 'preferência Windows ainda presente no Code.gs' }
+          $mu = Get-Content painel_web_google_apps_script/MultiUser.gs -Raw
+          if ($mu.Contains('pcOwnsMaster')) { throw 'preferência Windows ainda presente no MultiUser.gs' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+      - name: Compilar Windows
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+      - name: Gerar portátil e instalador
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          Compress-Archive 'app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release/*' 'dist/windows/Auditar-SST-Windows-v3.33.0-PORTATIL.zip' -Force
+          $release=(Resolve-Path 'app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release').Path
+          $output=(Resolve-Path 'dist/windows').Path
+          $iss=@"
+          [Setup]
+          AppName=Auditar SST
+          AppVersion=3.33.0
+          DefaultDirName={autopf}\Auditar SST
+          DefaultGroupName=Auditar SST
+          OutputDir=$output
+          OutputBaseFilename=Auditar-SST-Setup-v3.33.0
+          Compression=lzma
+          SolidCompression=yes
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          [Files]
+          Source: "$release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          [Icons]
+          Name: "{autoprograms}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          Name: "{autodesktop}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          "@
+          Set-Content "$env:RUNNER_TEMP\auditar.iss" $iss -Encoding UTF8
+          & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' "$env:RUNNER_TEMP\auditar.iss"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.33.0-Windows
+          path: dist/windows/*
+          retention-days: 30
+
+  android-audit:
+    name: Android v3.33.0 - auditoria
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.33.0
+        run: python3 tools/assemble_v3330.py
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Preparar, analisar e testar Android
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q "MyApp" test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          dart format lib
+          grep -Fq 'version: 3.33.0+149' pubspec.yaml
+          grep -Fq "'syncProtocol': 2" lib/services/device_sync_service.dart
+          grep -Fq 'baseServerVersion' lib/services/device_sync_service.dart
+          grep -Fq 'hasPendingLocalEdit' lib/services/device_sync_service.dart
+          ! grep -Fq 'pcOwnsMaster' painel_web_google_apps_script/Code.gs
+          ! grep -Fq 'pcOwnsMaster' painel_web_google_apps_script/MultiUser.gs
+          grep -Fq 'Assinar em tela cheia' lib/screens/signature_screen.dart
+          grep -Fq "value: 'gov'" lib/screens/signature_screen.dart
+          grep -Fq "value: 'none'" lib/screens/signature_screen.dart
+          grep -Fq 'includeActionPlan' lib/screens/signature_screen.dart
+          test "$(grep -c '^  ReadyChecklistDefinition(' lib/ready_checklists.dart)" -eq 44
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+      - name: Compilar Android para auditoria
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY" || (echo 'AUDITAR_SYNC_KEY ausente' && exit 1)
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+          mkdir -p ../../../dist/android
+          cp build/app/outputs/flutter-apk/app-release.apk ../../../dist/android/Auditar-SST-v3.33.0-AUDITORIA.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.33.0-Android-AUDITORIA
+          path: dist/android/*
+          retention-days: 14
