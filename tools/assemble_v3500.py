@@ -148,6 +148,19 @@ def _extract_overlay(app: Path, data: bytes) -> None:
         archive.extractall(app, filter='data')
 
 
+def _apply_sqlite_compat_hotfix(app: Path) -> None:
+    path = app / 'lib' / 'database.dart'
+    text = path.read_text(encoding='utf-8')
+    old = 'COALESCE(NULLIF(u.cnpj, ""), c.cnpj)'
+    new = "COALESCE(NULLIF(u.cnpj, ''), c.cnpj)"
+    if old in text:
+        text = text.replace(old, new)
+        path.write_text(text, encoding='utf-8')
+        print('Hotfix SQLite multi-CNPJ aplicado: string vazia usa aspas simples.')
+    elif new not in text:
+        raise RuntimeError('Trecho SQL esperado do CNPJ da unidade não foi encontrado.')
+
+
 def _validate(app: Path) -> None:
     pubspec = (app / 'pubspec.yaml').read_text(encoding='utf-8')
     if 'version: 3.35.0+153' not in pubspec:
@@ -177,6 +190,7 @@ def _validate(app: Path) -> None:
         'assinatura none': "value: 'none'" in signature,
         'plano ação opcional': 'includeActionPlan' in signature,
         '44 checklists': ready.count('  ReadyChecklistDefinition(') == 44,
+        'sqlite unit cnpj': "COALESCE(NULLIF(u.cnpj, ''), c.cnpj)" in db,
     }
     missing = [name for name, ok in checks.items() if not ok]
     if missing:
@@ -199,6 +213,7 @@ def main() -> int:
 
     overlay = _decode_overlay(repo)
     _extract_overlay(app, overlay)
+    _apply_sqlite_compat_hotfix(app)
     _validate(app)
 
     print(f'Fonte v3.35.0 montada em {app}')
