@@ -1,0 +1,40 @@
+name: Inspect v3.37.0 Central de Trabalho
+
+on:
+  push:
+    branches: [feature/v3.37.0-central-trabalho-pc]
+    paths:
+      - ".github/workflows/inspect-v3700-central.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar v3.36.1
+        run: python3 tools/assemble_v3610.py
+      - name: Inspecionar home e banco
+        run: |
+          APP=app/Auditar_SST_v1_5_dashboard
+          echo '===== HOME STATE / REFRESH ====='
+          sed -n '1,260p' "$APP/lib/screens/home_screen.dart"
+          echo '===== HOME BUILD 260-760 ====='
+          sed -n '260,760p' "$APP/lib/screens/home_screen.dart"
+          echo '===== HOME REST 760-1300 ====='
+          sed -n '760,1300p' "$APP/lib/screens/home_screen.dart"
+          echo '===== DATABASE METHODS ====='
+          grep -n -E "Future<.*(Inspection|ActionPlan|Training|Company)|get.*(Inspection|Action|Training|Company)|list.*(Inspection|Action|Training)|markInspection|count" "$APP/lib/database.dart" | head -n 220
+          echo '===== MODELS ACTION/TRAINING/INSPECTION ====='
+          grep -n -E "class (Inspection|ActionPlan|Training|Company|TrainingRequirement)" "$APP/lib/models.dart"
+          echo '===== HISTORY SCREEN CONSTRUCTORS ====='
+          sed -n '1,100p' "$APP/lib/screens/history_screen.dart"
+          echo '===== ACTION PLAN CONSTRUCTORS ====='
+          sed -n '1,90p' "$APP/lib/screens/action_plan_screen.dart"
+          echo '===== TRAININGS CONSTRUCTORS ====='
+          sed -n '1,90p' "$APP/lib/screens/trainings_screen.dart"
+          echo '===== REPORT FILE SERVICE ====='
+          sed -n '1,180p' "$APP/lib/services/report_file_service.dart"
