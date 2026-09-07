@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 import gzip
 import hashlib
+import os
 import shutil
 import subprocess
 import sys
@@ -12,6 +13,23 @@ from pathlib import Path
 
 V340_SHA = '35be7a5355aec6727d159067b8895393ce45762556472caed38cc227cc6ecdc8'
 V350_SHA = '0900962027afb85e6fcf7b9f4ac2580a11957c9c2b6da2f8e7d4c3d1b7fe5437'
+
+
+def _patch_executable() -> str:
+    found = shutil.which('patch')
+    if found:
+        return found
+
+    if os.name == 'nt':
+        candidates = [
+            Path(os.environ.get('ProgramFiles', r'C:\Program Files')) / 'Git' / 'usr' / 'bin' / 'patch.exe',
+            Path(os.environ.get('ProgramFiles(x86)', r'C:\Program Files (x86)')) / 'Git' / 'usr' / 'bin' / 'patch.exe',
+        ]
+        for candidate in candidates:
+            if candidate.exists():
+                return str(candidate)
+
+    raise RuntimeError('Utilitário patch não encontrado no ambiente de build.')
 
 
 def apply_parts(repo: Path, work_app: Path, pattern: str, expected_parts: int, expected_sha: str) -> None:
@@ -26,11 +44,19 @@ def apply_parts(repo: Path, work_app: Path, pattern: str, expected_parts: int, e
     patch_path = work_app.parent / '.assemble.tmp.patch'
     patch_path.write_bytes(gzip.decompress(compressed))
     try:
-        # work_app fica fora do repositório Git. Assim os caminhos lib/..., pubspec.yaml
-        # e painel_web_google_apps_script/... são resolvidos exatamente na raiz do app,
-        # igual ao snapshot usado para gerar os patches.
+        # Os patches foram gerados sobre o snapshot v3.33.2. O utilitário GNU
+        # patch tolera pequenas diferenças de contexto que o git apply rejeita,
+        # sem substituir módulos inteiros nem alterar arquivos fora do patch.
         subprocess.run(
-            ['git', 'apply', '-p1', '--whitespace=nowarn', str(patch_path)],
+            [
+                _patch_executable(),
+                '-p1',
+                '--forward',
+                '--batch',
+                '--fuzz=3',
+                '-i',
+                str(patch_path),
+            ],
             cwd=work_app,
             check=True,
         )
@@ -47,6 +73,8 @@ def main() -> int:
     )
     app = repo / 'app' / 'Auditar_SST_v1_5_dashboard'
 
+    # Monta as evoluções em cópia isolada. A fonte funcional v3.33.2 só é
+    # substituída depois que os dois patches terminam sem erro.
     with tempfile.TemporaryDirectory(prefix='auditar_v350_') as tmp:
         work_app = Path(tmp) / 'app'
         shutil.copytree(app, work_app)
