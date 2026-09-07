@@ -13,8 +13,23 @@ OVERLAY_SHA = '942763feac9c3a57bd7352dd534a68191efd8f56e04f826a5a99fbe52fbb98ef'
 OVERLAY_PARTS = 10
 OVERLAY_PART_SIZE = 16000
 OVERLAY_LAST_PART_SIZE = 7696
-PART09_SHA = 'bfdec8d6feaacc2d354a8eebb7a75c27a68cb53a1a8ad9ded46417f165d0f48c'
+PART_SHA = {
+    1: '594cfa540c2a5243c7bdbf83625b44a829b21ab15f9231bcd9dc6f05163f0acd',
+    2: 'bcddf3d8d7554b20261ad551b40b7b626f9649bcd6b81d7fdff51d0366d4ba75',
+    3: 'd4077d4a9f2d123053f62412d836e33830fe69176dbffb616e052d1764e6c3ef',
+    4: '1e3f1172804224299665fda407b32acd745e5e70471133b4af5c8847d5c58147',
+    5: 'da76571fae6786557dc8cd95db8c0265f690434e97191c2fdfa1d24ed42ef1af',
+    6: 'd948f0f79266e1dabbb7bf9e67e306af71601ac44bd1373727feafbe1b72c5f9',
+    7: '4b6a332a5be94e5886b70cef05837c62f9f04fa99acb615cb50fc7935da19cb7',
+    8: 'ad33eb2fa6f61b7cacf4fe99ca9c89c7a15a4a6f66bac85ff5bf9c1762b3285f',
+    9: 'bfdec8d6feaacc2d354a8eebb7a75c27a68cb53a1a8ad9ded46417f165d0f48c',
+    10: 'f8abb2b4d653b11c46f97efa783bf27022c3da5986775eb89a2c8da2b963492d',
+}
 BASE64_ALPHABET = b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='
+
+
+def _sha(raw: str) -> str:
+    return hashlib.sha256(raw.encode('ascii')).hexdigest()
 
 
 def _repair_one_missing_char(raw: str, target_sha: str) -> str | None:
@@ -28,11 +43,56 @@ def _repair_one_missing_char(raw: str, target_sha: str) -> str | None:
             digest.update(bytes((char,)))
             digest.update(suffix)
             if digest.digest() == target:
-                repaired = raw_bytes[:pos] + bytes((char,)) + suffix
-                return repaired.decode('ascii')
+                return (raw_bytes[:pos] + bytes((char,)) + suffix).decode('ascii')
         if pos < len(raw_bytes):
             prefix.update(raw_bytes[pos:pos + 1])
     return None
+
+
+def _repair_extra_contiguous_block(raw: str, expected: int, target_sha: str) -> str | None:
+    extra = len(raw) - expected
+    if extra <= 0:
+        return None
+
+    # Casos mais comuns: sobra no início ou no fim.
+    head = raw[:expected]
+    if _sha(head) == target_sha:
+        return head
+    tail = raw[-expected:]
+    if _sha(tail) == target_sha:
+        return tail
+
+    # Corrige um bloco extra inserido em qualquer posição (inclui 1 caractere).
+    for pos in range(expected + 1):
+        candidate = raw[:pos] + raw[pos + extra:]
+        if len(candidate) == expected and _sha(candidate) == target_sha:
+            return candidate
+    return None
+
+
+def _normalize_part(index: int, raw: str, expected: int) -> str:
+    target_sha = PART_SHA[index]
+
+    if len(raw) == expected and _sha(raw) == target_sha:
+        return raw
+
+    repaired: str | None = None
+    if len(raw) > expected:
+        repaired = _repair_extra_contiguous_block(raw, expected, target_sha)
+    elif len(raw) == expected - 1:
+        repaired = _repair_one_missing_char(raw, target_sha)
+
+    if repaired is None:
+        raise RuntimeError(
+            f'Overlay v3.35.0 parte {index:02d} inválida: '
+            f'tamanho {len(raw)} (esperado {expected}), SHA256 {_sha(raw)}.'
+        )
+
+    if len(repaired) != expected or _sha(repaired) != target_sha:
+        raise RuntimeError(f'Falha interna ao reconstruir overlay parte {index:02d}.')
+
+    print(f'Overlay v3.35.0 parte {index:02d} reconstruída com validação SHA256.')
+    return repaired
 
 
 def _decode_overlay(repo: Path) -> bytes:
@@ -46,19 +106,7 @@ def _decode_overlay(repo: Path) -> bytes:
     for index, part in enumerate(parts, start=1):
         raw = ''.join(part.read_text(encoding='utf-8').split())
         expected = OVERLAY_LAST_PART_SIZE if index == OVERLAY_PARTS else OVERLAY_PART_SIZE
-
-        if index == 9 and len(raw) == expected - 1:
-            repaired = _repair_one_missing_char(raw, PART09_SHA)
-            if repaired is None:
-                raise RuntimeError('Overlay v3.35.0 parte 09 incompleta e não foi possível reconstruir o caractere ausente.')
-            raw = repaired
-            print('Overlay v3.35.0 parte 09 reconstruída com validação SHA256.')
-
-        if len(raw) < expected:
-            raise RuntimeError(
-                f'Overlay v3.35.0 parte {index:02d} incompleta: esperado ao menos {expected}; recebido {len(raw)}.'
-            )
-        chunks.append(raw[:expected])
+        chunks.append(_normalize_part(index, raw, expected))
 
     encoded = ''.join(chunks)
     data = base64.b64decode(encoded, validate=True)
