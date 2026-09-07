@@ -17,14 +17,20 @@ jobs:
       - uses: actions/checkout@v5
       - name: Montar v3.35.1
         run: python3 tools/assemble_v3510.py
-      - name: Mostrar arquivos principais
+      - name: Mostrar blocos alvo
         run: |
           APP=app/Auditar_SST_v1_5_dashboard
-          echo '===== HOME ====='
-          sed -n '1,1200p' "$APP/lib/screens/home_screen.dart"
-          echo '===== COMPANY DETAIL ====='
-          sed -n '1,1000p' "$APP/lib/screens/company_detail_screen.dart"
-          echo '===== FIELD QUICK ====='
-          sed -n '1,700p' "$APP/lib/screens/field_quick_screen.dart"
-          echo '===== PERIODIC SEARCH ====='
-          grep -RniE 'per[ií]odic|exame' "$APP/lib" "$APP/painel_web_google_apps_script" || true
+          echo '===== ROUTINE ====='
+          sed -n '130,180p' "$APP/lib/screens/routine_hub_screen.dart"
+          echo '===== COMPANIES ====='
+          sed -n '195,235p' "$APP/lib/screens/companies_screen.dart"
+          echo '===== COMPLIANCE ====='
+          sed -n '150,235p' "$APP/lib/screens/compliance_alerts_screen.dart"
+          echo '===== WORKERS FORM ====='
+          sed -n '425,515p' "$APP/lib/screens/workers_screen.dart"
+          echo '===== WORKERS CARD ====='
+          sed -n '690,765p' "$APP/lib/screens/workers_screen.dart"
+          echo '===== PANEL INDEX PEOPLE ====='
+          sed -n '50,100p' "$APP/painel_web_google_apps_script/Index.html"
+          echo '===== PANEL INDEX JS 118-134 ====='
+          sed -n '118,134p' "$APP/painel_web_google_apps_script/Index.html"
