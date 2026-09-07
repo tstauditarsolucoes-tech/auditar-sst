@@ -8,7 +8,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-EXPECTED_GZIP_SHA256 = '809bd6c22eb6a334f32428f1df1739bf00571b872ce7db65711fce44c727122d'
+EXPECTED_GZIP_SHA256 = 'de1071f767cec1209569d6289808ee4ef3f7e1ad54243234c2eb878c7f71a1fe'
 
 
 def main() -> int:
