@@ -25,8 +25,15 @@ def apply_parts(repo: Path, app: Path, pattern: str, expected_parts: int, expect
     patch_path.write_bytes(gzip.decompress(compressed))
     try:
         subprocess.run(
-            ['git', 'apply', '-p1', '--whitespace=nowarn', str(patch_path)],
-            cwd=app,
+            [
+                'git',
+                'apply',
+                '-p1',
+                '--whitespace=nowarn',
+                '--directory=app/Auditar_SST_v1_5_dashboard',
+                str(patch_path),
+            ],
+            cwd=repo,
             check=True,
         )
     finally:
