@@ -1,0 +1,32 @@
+name: Inspect v3.36.1 PC Mobile Actions
+
+on:
+  push:
+    branches: [feature/v3.36.1-pc-enxuto]
+    paths:
+      - ".github/workflows/inspect-v3610-pc-mobile.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar v3.36.0
+        run: python3 tools/assemble_v3600.py
+      - name: Mostrar ações móveis e menus
+        run: |
+          APP=app/Auditar_SST_v1_5_dashboard
+          echo '===== CAMERA ====='
+          grep -Rni -C 8 -E "ImageSource\.camera|Câmera|Camera|Tirar foto|tirar foto|Abrir câmera|abrir câmera" "$APP/lib" || true
+          echo '===== SHARE ====='
+          grep -Rni -C 8 -E "Share\.share|SharePlus|shareXFiles|Compartilhar|compartilhar" "$APP/lib/screens" "$APP/lib/services" || true
+          echo '===== SIGNATURE FULLSCREEN ====='
+          grep -Rni -C 12 -E "Assinar em tela cheia|tela cheia|fullscreen|SystemChrome|landscape" "$APP/lib/screens/signature_screen.dart" || true
+          echo '===== HOME CAMPO RAPIDO ====='
+          grep -n -C 14 -E "Campo rápido|FieldQuickScreen|Vistoria avulsa|Nova vistoria" "$APP/lib/screens/home_screen.dart" || true
+          echo '===== REPORT EXPORT ====='
+          grep -Rni -C 10 -E "Salvar PDF|Abrir pasta|Exportar|Compartilhar PDF|share" "$APP/lib/screens/report_screen.dart" "$APP/lib/services/pdf_service.dart" || true
