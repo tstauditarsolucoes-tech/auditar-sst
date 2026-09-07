@@ -39,10 +39,10 @@ jobs:
           if (-not $checklist.Contains('bool suppressDraftAutosave = false;')) { throw 'flag do hotfix ausente' }
           if (-not $checklist.Contains('suppressDraftAutosave = true;')) { throw 'bloqueio pós-checklist ausente' }
           if (-not $checklist.Contains("if (status != 'Finalizada')")) { throw 'retorno da assinatura não validado' }
-          $home = Get-Content lib/screens/home_screen.dart -Raw
-          if (-not $home.Contains("trim() == 'Em andamento'")) { throw 'atalho home ainda aceita status inválido' }
-          $history = Get-Content lib/screens/history_screen.dart -Raw
-          if (-not $history.Contains("trim() == 'Em andamento'")) { throw 'histórico ainda aceita status inválido' }
+          $homeText = Get-Content lib/screens/home_screen.dart -Raw
+          if (-not $homeText.Contains("trim() == 'Em andamento'")) { throw 'atalho home ainda aceita status inválido' }
+          $historyText = Get-Content lib/screens/history_screen.dart -Raw
+          if (-not $historyText.Contains("trim() == 'Em andamento'")) { throw 'histórico ainda aceita status inválido' }
           $sync = Get-Content lib/services/device_sync_service.dart -Raw
           if (-not $sync.Contains("'syncProtocol': 2")) { throw 'sync v3.33.0 foi perdido' }
           flutter analyze --no-fatal-infos --no-fatal-warnings
