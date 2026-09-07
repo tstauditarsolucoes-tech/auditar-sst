@@ -65,14 +65,51 @@ def main() -> int:
         'gravação de rascunho',
     )
 
-    old_finish = '''      await db.markInspectionInProgress(widget.inspection.id);\n\n      if (!mounted) return;\n\n      Navigator.of(context).push(\n        MaterialPageRoute(\n          builder:\n              (_) => SignatureScreen(\n                inspectionId: widget.inspection.id,\n                companyName: widget.companyName,\n                technicianName: widget.inspection.technicianName,\n                preserveExisting: widget.editExisting,\n              ),\n        ),\n      );\n'''
-    new_finish = '''      await db.markInspectionInProgress(widget.inspection.id);\n\n      if (!mounted) return;\n\n      // O checklist já foi persistido. Enquanto assinatura/relatório estiverem\n      // abertos, o autosave não pode reabrir uma vistoria já finalizada.\n      suppressDraftAutosave = true;\n      await Navigator.of(context).push(\n        MaterialPageRoute(\n          builder:\n              (_) => SignatureScreen(\n                inspectionId: widget.inspection.id,\n                companyName: widget.companyName,\n                technicianName: widget.inspection.technicianName,\n                preserveExisting: widget.editExisting,\n              ),\n        ),\n      );\n\n      if (!mounted) return;\n      final header = await db.getInspectionHeader(widget.inspection.id);\n      final status = '${header?['status'] ?? ''}'.trim();\n      if (status != 'Finalizada') {\n        // Se o usuário desistiu da assinatura, o salvamento de rascunho volta.\n        suppressDraftAutosave = false;\n      }\n'''
-    checklist = replace_once(
-        checklist,
-        old_finish,
-        new_finish,
-        'transição checklist -> assinatura',
+    # Localiza a navegação específica para a tela de assinatura sem depender
+    # da formatação exata gerada nas versões anteriores.
+    signature_anchor = checklist.find('SignatureScreen(')
+    if signature_anchor < 0:
+        raise RuntimeError('Tela de assinatura não encontrada no checklist.')
+    nav_pos = checklist.rfind('Navigator.of(context).push(', 0, signature_anchor)
+    if nav_pos < 0:
+        raise RuntimeError('Navegação para assinatura não encontrada.')
+    mark_pos = checklist.rfind(
+        'await db.markInspectionInProgress(widget.inspection.id);',
+        0,
+        nav_pos,
     )
+    if mark_pos < 0 or nav_pos - mark_pos > 800:
+        raise RuntimeError('Fluxo de finalização do checklist não localizado.')
+
+    flag_block = (
+        '      // O checklist já foi persistido. Enquanto assinatura/relatório estiverem\n'
+        '      // abertos, o autosave não pode reabrir uma vistoria já finalizada.\n'
+        '      suppressDraftAutosave = true;\n'
+    )
+    checklist = checklist[:nav_pos] + flag_block + checklist[nav_pos:]
+
+    nav_pos = checklist.find('Navigator.of(context).push(', nav_pos)
+    if nav_pos < 0:
+        raise RuntimeError('Navegação para assinatura sumiu após inserir o bloqueio.')
+    before = checklist[max(0, nav_pos - 6):nav_pos]
+    if 'await ' not in before:
+        checklist = checklist[:nav_pos] + 'await ' + checklist[nav_pos:]
+
+    signature_anchor = checklist.find('SignatureScreen(', nav_pos)
+    close_pos = checklist.find('\n      );', signature_anchor)
+    if close_pos < 0:
+        raise RuntimeError('Fechamento da navegação para assinatura não encontrado.')
+    close_end = close_pos + len('\n      );')
+    resume_block = (
+        '\n\n      if (!mounted) return;\n'
+        '      final header = await db.getInspectionHeader(widget.inspection.id);\n'
+        "      final status = '${header?[\'status\'] ?? \'\'}'.trim();\n"
+        "      if (status != 'Finalizada') {\n"
+        '        // Se o usuário desistiu da assinatura, o rascunho volta a salvar.\n'
+        '        suppressDraftAutosave = false;\n'
+        '      }'
+    )
+    checklist = checklist[:close_end] + resume_block + checklist[close_end:]
     checklist_path.write_text(checklist, encoding='utf-8')
 
     for name in ('home_screen.dart', 'history_screen.dart'):
@@ -86,8 +123,7 @@ def main() -> int:
         )
         path.write_text(text, encoding='utf-8')
 
-    changes = app / 'MUDANCAS_V3_33_1_FINALIZACAO_VISTORIA.txt'
-    changes.write_text(
+    (app / 'MUDANCAS_V3_33_1_FINALIZACAO_VISTORIA.txt').write_text(
         'Auditar SST v3.33.1+150\n\n'
         '- Corrige a vistoria finalizada que voltava a aparecer como em andamento.\n'
         '- Impede o autosave do checklist de reabrir a vistoria após a assinatura.\n'
