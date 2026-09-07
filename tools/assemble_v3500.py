@@ -13,6 +13,26 @@ OVERLAY_SHA = '942763feac9c3a57bd7352dd534a68191efd8f56e04f826a5a99fbe52fbb98ef'
 OVERLAY_PARTS = 10
 OVERLAY_PART_SIZE = 16000
 OVERLAY_LAST_PART_SIZE = 7696
+PART09_SHA = 'bfdec8d6feaacc2d354a8eebb7a75c27a68cb53a1a8ad9ded46417f165d0f48c'
+BASE64_ALPHABET = b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='
+
+
+def _repair_one_missing_char(raw: str, target_sha: str) -> str | None:
+    raw_bytes = raw.encode('ascii')
+    target = bytes.fromhex(target_sha)
+    prefix = hashlib.sha256()
+    for pos in range(len(raw_bytes) + 1):
+        suffix = raw_bytes[pos:]
+        for char in BASE64_ALPHABET:
+            digest = prefix.copy()
+            digest.update(bytes((char,)))
+            digest.update(suffix)
+            if digest.digest() == target:
+                repaired = raw_bytes[:pos] + bytes((char,)) + suffix
+                return repaired.decode('ascii')
+        if pos < len(raw_bytes):
+            prefix.update(raw_bytes[pos:pos + 1])
+    return None
 
 
 def _decode_overlay(repo: Path) -> bytes:
@@ -26,6 +46,14 @@ def _decode_overlay(repo: Path) -> bytes:
     for index, part in enumerate(parts, start=1):
         raw = ''.join(part.read_text(encoding='utf-8').split())
         expected = OVERLAY_LAST_PART_SIZE if index == OVERLAY_PARTS else OVERLAY_PART_SIZE
+
+        if index == 9 and len(raw) == expected - 1:
+            repaired = _repair_one_missing_char(raw, PART09_SHA)
+            if repaired is None:
+                raise RuntimeError('Overlay v3.35.0 parte 09 incompleta e não foi possível reconstruir o caractere ausente.')
+            raw = repaired
+            print('Overlay v3.35.0 parte 09 reconstruída com validação SHA256.')
+
         if len(raw) < expected:
             raise RuntimeError(
                 f'Overlay v3.35.0 parte {index:02d} incompleta: esperado ao menos {expected}; recebido {len(raw)}.'
