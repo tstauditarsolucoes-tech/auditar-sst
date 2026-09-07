@@ -4,7 +4,6 @@ from __future__ import annotations
 import base64
 import hashlib
 import io
-import shutil
 import subprocess
 import sys
 import tarfile
@@ -12,6 +11,8 @@ from pathlib import Path
 
 OVERLAY_SHA = '942763feac9c3a57bd7352dd534a68191efd8f56e04f826a5a99fbe52fbb98ef'
 OVERLAY_PARTS = 10
+OVERLAY_PART_SIZE = 16000
+OVERLAY_LAST_PART_SIZE = 7696
 
 
 def _decode_overlay(repo: Path) -> bytes:
@@ -20,7 +21,18 @@ def _decode_overlay(repo: Path) -> bytes:
         raise RuntimeError(
             f'Overlay v3.35.0 incompleto: esperadas {OVERLAY_PARTS} partes; encontradas {len(parts)}.'
         )
-    encoded = ''.join(p.read_text(encoding='utf-8').strip() for p in parts)
+
+    chunks: list[str] = []
+    for index, part in enumerate(parts, start=1):
+        raw = ''.join(part.read_text(encoding='utf-8').split())
+        expected = OVERLAY_LAST_PART_SIZE if index == OVERLAY_PARTS else OVERLAY_PART_SIZE
+        if len(raw) < expected:
+            raise RuntimeError(
+                f'Overlay v3.35.0 parte {index:02d} incompleta: esperado ao menos {expected}; recebido {len(raw)}.'
+            )
+        chunks.append(raw[:expected])
+
+    encoded = ''.join(chunks)
     data = base64.b64decode(encoded, validate=True)
     digest = hashlib.sha256(data).hexdigest()
     if digest != OVERLAY_SHA:
