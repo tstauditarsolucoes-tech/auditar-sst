@@ -26,7 +26,7 @@ def apply_parts(repo: Path, app: Path, pattern: str, expected_parts: int, expect
     try:
         subprocess.run(
             ['git', 'apply', '-p1', '--whitespace=nowarn', str(patch_path)],
-            cwd=repo,
+            cwd=app,
             check=True,
         )
     finally:
