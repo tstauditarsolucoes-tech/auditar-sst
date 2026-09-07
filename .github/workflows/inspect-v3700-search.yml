@@ -1,0 +1,29 @@
+name: Inspect v3.37.0 Busca Geral
+on:
+  push:
+    branches: [feature/v3.37.0-central-trabalho-pc]
+    paths: [".github/workflows/inspect-v3700-search.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: python3 tools/assemble_v3610.py
+      - name: Inspecionar métodos e modelos
+        run: |
+          APP=app/Auditar_SST_v1_5_dashboard
+          echo '=== PGR METHODS ==='
+          grep -n -E "Future<.*Pgr|Future<.*PGR|getPgr|getPGR|pgr" "$APP/lib/database.dart" | head -n 140
+          echo '=== WORKER METHODS ==='
+          grep -n -E "Future<.*Worker|getWorkers|getWorker" "$APP/lib/database.dart" | head -n 100
+          echo '=== MODELS WORKER TRAINING PGR ==='
+          grep -n -E "class (Worker|TrainingControl|Pgr|PGR)" "$APP/lib/models.dart"
+          sed -n '180,272p' "$APP/lib/models.dart"
+          sed -n '691,790p' "$APP/lib/models.dart"
+          echo '=== PGR SCREEN TOP ==='
+          sed -n '1,130p' "$APP/lib/screens/pgr_screen.dart"
+          echo '=== PENDING ACTION SQL ==='
+          sed -n '3020,3105p' "$APP/lib/database.dart"
