@@ -17,16 +17,18 @@ jobs:
       - uses: actions/checkout@v5
       - name: Montar v3.36.0
         run: python3 tools/assemble_v3600.py
-      - name: Mostrar ações móveis e menus
+      - name: Mostrar trechos exatos
         run: |
           APP=app/Auditar_SST_v1_5_dashboard
-          echo '===== CAMERA ====='
-          grep -Rni -C 8 -E "ImageSource\.camera|Câmera|Camera|Tirar foto|tirar foto|Abrir câmera|abrir câmera" "$APP/lib" || true
-          echo '===== SHARE ====='
-          grep -Rni -C 8 -E "Share\.share|SharePlus|shareXFiles|Compartilhar|compartilhar" "$APP/lib/screens" "$APP/lib/services" || true
-          echo '===== SIGNATURE FULLSCREEN ====='
-          grep -Rni -C 12 -E "Assinar em tela cheia|tela cheia|fullscreen|SystemChrome|landscape" "$APP/lib/screens/signature_screen.dart" || true
-          echo '===== HOME CAMPO RAPIDO ====='
-          grep -n -C 14 -E "Campo rápido|FieldQuickScreen|Vistoria avulsa|Nova vistoria" "$APP/lib/screens/home_screen.dart" || true
-          echo '===== REPORT EXPORT ====='
-          grep -Rni -C 10 -E "Salvar PDF|Abrir pasta|Exportar|Compartilhar PDF|share" "$APP/lib/screens/report_screen.dart" "$APP/lib/services/pdf_service.dart" || true
+          for F in checklist_screen.dart action_detail_screen.dart improvements_screen.dart extinguishers_screen.dart safety_observations_screen.dart report_screen.dart signature_screen.dart home_screen.dart; do
+            echo "===== IMPORTS $F ====="
+            sed -n '1,35p' "$APP/lib/screens/$F"
+          done
+          echo '===== CHECKLIST 2498-2528 ====='; sed -n '2498,2528p' "$APP/lib/screens/checklist_screen.dart"
+          echo '===== ACTION 510-540 ====='; sed -n '510,540p' "$APP/lib/screens/action_detail_screen.dart"
+          echo '===== IMPROVEMENTS 1385-1420 ====='; sed -n '1385,1420p' "$APP/lib/screens/improvements_screen.dart"
+          echo '===== EXTINGUISHERS 1348-1372 ====='; sed -n '1348,1372p' "$APP/lib/screens/extinguishers_screen.dart"
+          echo '===== SAFETY 1238-1262 ====='; sed -n '1238,1262p' "$APP/lib/screens/safety_observations_screen.dart"
+          echo '===== REPORT 508-625 ====='; sed -n '508,625p' "$APP/lib/screens/report_screen.dart"
+          echo '===== SIGNATURE 532-556 ====='; sed -n '532,556p' "$APP/lib/screens/signature_screen.dart"
+          echo '===== HOME 410-438 ====='; sed -n '410,438p' "$APP/lib/screens/home_screen.dart"
