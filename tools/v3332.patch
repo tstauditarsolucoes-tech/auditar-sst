@@ -1,0 +1,162 @@
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -1,7 +1,7 @@
+ name: auditar_sst
+ description: Aplicativo offline para checklist, inspeções e planos de ação de Segurança do Trabalho.
+ publish_to: "none"
+-version: 3.33.1+150
++version: 3.33.2+151
+ environment:
+   sdk: ">=3.7.0 <4.0.0"
+ 
+--- a/lib/screens/home_screen.dart
++++ b/lib/screens/home_screen.dart
+@@ -139,7 +139,9 @@
+   void initState() {
+     super.initState();
+     _deviceSyncSubscription = DeviceSyncService.events.listen((result) {
+-      if (mounted && result.received > 0) _refresh();
++      if (mounted && result.received > 0) {
++        unawaited(_refresh(showLoading: false));
++      }
+     });
+     _refresh();
+   }
+@@ -151,12 +153,13 @@
+     super.dispose();
+   }
+ 
+-  Future<void> _refresh() async {
+-    if (mounted)
++  Future<void> _refresh({bool showLoading = true}) async {
++    if (showLoading && mounted) {
+       setState(() {
+         loading = true;
+         loadError = '';
+       });
++    }
+     try {
+       final result = await AppDatabase.instance.getDashboardSummary().timeout(
+         const Duration(seconds: 15),
+@@ -189,16 +192,18 @@
+       });
+     } catch (e) {
+       if (!mounted) return;
+-      setState(() {
+-        loading = false;
+-        loadError = '$e'.replaceFirst('Bad state: ', '').trim();
+-      });
++      if (showLoading) {
++        setState(() {
++          loading = false;
++          loadError = '$e'.replaceFirst('Bad state: ', '').trim();
++        });
++      }
+     }
+   }
+ 
+   Future<void> _open(Widget page) async {
+     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+-    await _refresh();
++    await _refresh(showLoading: false);
+   }
+ 
+   Future<void> _showModules() async {
+@@ -227,7 +232,7 @@
+         actions: [
+           IconButton(
+             tooltip: 'Atualizar dados',
+-            onPressed: _refresh,
++            onPressed: () => _refresh(showLoading: false),
+             icon: const Icon(Icons.refresh_rounded),
+           ),
+           IconButton(
+--- a/lib/services/sync_coordinator.dart
++++ b/lib/services/sync_coordinator.dart
+@@ -31,6 +31,7 @@
+   bool _showIndicator = false;
+   String _statusLabel = '';
+   _SyncTone _statusTone = _SyncTone.neutral;
++  final ValueNotifier<int> _indicatorRevision = ValueNotifier<int>(0);
+ 
+   @override
+   void initState() {
+@@ -64,6 +65,7 @@
+     _automaticTimer?.cancel();
+     _maintenanceTimer?.cancel();
+     _indicatorTimer?.cancel();
++    _indicatorRevision.dispose();
+     super.dispose();
+   }
+ 
+@@ -86,16 +88,16 @@
+     if (!Platform.isWindows || !mounted) return;
+ 
+     _indicatorTimer?.cancel();
+-    setState(() {
+-      _statusLabel = label;
+-      _statusTone = tone;
+-      _showIndicator = tone != _SyncTone.neutral;
+-    });
++    _statusLabel = label;
++    _statusTone = tone;
++    _showIndicator = tone != _SyncTone.neutral;
++    _indicatorRevision.value += 1;
+ 
+     if (tone == _SyncTone.ok) {
+       _indicatorTimer = Timer(const Duration(seconds: 3), () {
+         if (!mounted || _statusTone != _SyncTone.ok) return;
+-        setState(() => _showIndicator = false);
++        _showIndicator = false;
++        _indicatorRevision.value += 1;
+       });
+     }
+   }
+@@ -232,23 +234,36 @@
+ 
+   @override
+   Widget build(BuildContext context) {
+-    if (!Platform.isWindows || !_showIndicator) {
+-      return widget.child;
+-    }
+-
++    // A estrutura do app permanece fixa durante a sincronização. Somente o
++    // pequeno indicador é redesenhado, evitando reconstruir a tela inteira.
+     return Stack(
++      fit: StackFit.expand,
+       children: [
+-        widget.child,
+-        Positioned(
+-          right: 18,
+-          bottom: 16,
+-          child: IgnorePointer(
+-            child: _SyncIndicator(label: _statusLabel, tone: _statusTone),
++        RepaintBoundary(child: widget.child),
++        if (Platform.isWindows)
++          Positioned(
++            right: 18,
++            bottom: 16,
++            child: IgnorePointer(
++              child: ValueListenableBuilder<int>(
++                valueListenable: _indicatorRevision,
++                builder: (context, _, __) {
++                  return AnimatedOpacity(
++                    opacity: _showIndicator ? 1 : 0,
++                    duration: const Duration(milliseconds: 160),
++                    child: _SyncIndicator(
++                      label: _statusLabel,
++                      tone: _statusTone,
++                    ),
++                  );
++                },
++              ),
++            ),
+           ),
+-        ),
+       ],
+     );
+   }
++
+ }
+ 
+ enum _SyncTone { neutral, syncing, ok, warning, offline }
