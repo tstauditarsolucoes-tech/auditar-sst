@@ -94,7 +94,14 @@ def _normalize_part(index: int, raw: str, expected: int) -> str:
 
 
 def _exact_part03_from_helpers(repo: Path) -> str | None:
-    helpers = [repo / 'tools' / f'v3500.part03.exact{i:02d}.txt' for i in range(1, 5)]
+    names = [
+        'v3500.part03.exact01.txt',
+        'v3500.part03.exact02.txt',
+        'v3500.part03.exact03a.txt',
+        'v3500.part03.exact03b.txt',
+        'v3500.part03.exact04.txt',
+    ]
+    helpers = [repo / 'tools' / name for name in names]
     if not all(path.exists() for path in helpers):
         return None
     raw = ''.join(''.join(path.read_text(encoding='utf-8').split()) for path in helpers)
