@@ -35,9 +35,9 @@ jobs:
           dart format lib test
           $pub = Get-Content pubspec.yaml -Raw
           if (-not $pub.Contains('version: 3.37.0+157')) { throw 'versão incorreta' }
-          $home = Get-Content lib/screens/home_screen.dart -Raw
-          if (-not $home.Contains('Central de trabalho')) { throw 'Central de trabalho ausente' }
-          if (-not $home.Contains('Busca geral')) { throw 'Busca geral ausente' }
+          $homeText = Get-Content lib/screens/home_screen.dart -Raw
+          if (-not $homeText.Contains('Central de trabalho')) { throw 'Central de trabalho ausente' }
+          if (-not $homeText.Contains('Busca geral')) { throw 'Busca geral ausente' }
           if (-not (Test-Path lib/screens/reports_center_screen.dart)) { throw 'Central de relatórios ausente' }
           if (-not (Test-Path lib/screens/global_search_screen.dart)) { throw 'Tela de busca geral ausente' }
           $sync = Get-Content lib/services/device_sync_service.dart -Raw
