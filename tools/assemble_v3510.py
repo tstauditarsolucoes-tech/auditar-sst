@@ -105,7 +105,7 @@ class StartupService {
     authp = app/'lib'/'services'/'auth_service.dart'
     auth = authp.read_text(encoding='utf-8')
     old_auth_file = """  static Future<File> _authFile() async {\n    final root = await getApplicationSupportDirectory();\n    await root.create(recursive: true);\n    return File(p.join(root.path, _authFileName));\n  }\n\n  static Future<void> initialize() async {\n    final file = await _authFile();\n    if (!await file.exists()) return;\n    try {\n"""
-    new_auth_file = """  static Future<File> _authFile() async {\n    Directory root;\n    if (Platform.isWindows) {\n      final localAppData = (Platform.environment['LOCALAPPDATA'] ??\n              Platform.environment['APPDATA'] ??\n              '')\n          .trim();\n      if (localAppData.isNotEmpty) {\n        root = Directory(p.join(localAppData, 'Auditar SST'));\n      } else {\n        root = await getApplicationSupportDirectory();\n      }\n    } else {\n      root = await getApplicationSupportDirectory();\n    }\n    await root.create(recursive: true);\n    return File(p.join(root.path, _authFileName));\n  }\n\n  static Future<void> initialize() async {\n    try {\n      final file = await _authFile();\n      if (!await file.exists()) return;\n"""
+    new_auth_file = """  static Future<File> _authFile() async {\n    final root = await getApplicationSupportDirectory();\n    await root.create(recursive: true);\n    return File(p.join(root.path, _authFileName));\n  }\n\n  static Future<void> initialize() async {\n    try {\n      final file = await _authFile();\n      if (!await file.exists()) return;\n"""
     auth = replace_once(auth, old_auth_file, new_auth_file, 'auth seguro')
     authp.write_text(auth, encoding='utf-8')
 
@@ -143,7 +143,7 @@ class StartupService {
     assert 'StartupService.preparePlatform()' in s
     assert 'AuthService.activateSavedSession()' in s
     a = authp.read_text(encoding='utf-8')
-    assert "Platform.environment['LOCALAPPDATA']" in a
+    assert 'try {\n      final file = await _authFile();' in a
     assert (app/'lib'/'ready_checklists.dart').read_text(encoding='utf-8').count('  ReadyChecklistDefinition(') == 44
     assert "'syncProtocol': 2" in (app/'lib'/'services'/'device_sync_service.dart').read_text(encoding='utf-8')
     print(f'Fonte v3.35.1 montada em {app}')
