@@ -4,15 +4,17 @@ from __future__ import annotations
 import base64
 import gzip
 import hashlib
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 V340_SHA = '35be7a5355aec6727d159067b8895393ce45762556472caed38cc227cc6ecdc8'
 V350_SHA = '0900962027afb85e6fcf7b9f4ac2580a11957c9c2b6da2f8e7d4c3d1b7fe5437'
 
 
-def apply_parts(repo: Path, app: Path, pattern: str, expected_parts: int, expected_sha: str) -> None:
+def apply_parts(repo: Path, work_app: Path, pattern: str, expected_parts: int, expected_sha: str) -> None:
     parts = sorted((repo / 'tools').glob(pattern))
     if len(parts) != expected_parts:
         raise RuntimeError(f'{pattern}: esperadas {expected_parts} partes; encontradas {len(parts)}')
@@ -21,12 +23,15 @@ def apply_parts(repo: Path, app: Path, pattern: str, expected_parts: int, expect
     digest = hashlib.sha256(compressed).hexdigest()
     if digest != expected_sha:
         raise RuntimeError(f'{pattern}: SHA256 inválido {digest}')
-    patch_path = repo / 'tools' / '.assemble.tmp.patch'
+    patch_path = work_app.parent / '.assemble.tmp.patch'
     patch_path.write_bytes(gzip.decompress(compressed))
     try:
+        # work_app fica fora do repositório Git. Assim os caminhos lib/..., pubspec.yaml
+        # e painel_web_google_apps_script/... são resolvidos exatamente na raiz do app,
+        # igual ao snapshot usado para gerar os patches.
         subprocess.run(
             ['git', 'apply', '-p1', '--whitespace=nowarn', str(patch_path)],
-            cwd=app,
+            cwd=work_app,
             check=True,
         )
     finally:
@@ -42,8 +47,13 @@ def main() -> int:
     )
     app = repo / 'app' / 'Auditar_SST_v1_5_dashboard'
 
-    apply_parts(repo, app, 'v3400.patch.part*.txt', 11, V340_SHA)
-    apply_parts(repo, app, 'v3500.patch.part*.txt', 5, V350_SHA)
+    with tempfile.TemporaryDirectory(prefix='auditar_v350_') as tmp:
+        work_app = Path(tmp) / 'app'
+        shutil.copytree(app, work_app)
+        apply_parts(repo, work_app, 'v3400.patch.part*.txt', 11, V340_SHA)
+        apply_parts(repo, work_app, 'v3500.patch.part*.txt', 5, V350_SHA)
+        shutil.rmtree(app)
+        shutil.copytree(work_app, app)
 
     pubspec = (app / 'pubspec.yaml').read_text(encoding='utf-8')
     if 'version: 3.35.0+153' not in pubspec:
