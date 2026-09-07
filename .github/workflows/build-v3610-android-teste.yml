@@ -32,12 +32,16 @@ jobs:
         shell: bash
         run: |
           flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q "MyApp" test/widget_test.dart; then rm test/widget_test.dart; fi
           python3 - <<'PY'
           from pathlib import Path
           p = Path('android/app/build.gradle.kts')
           s = p.read_text(encoding='utf-8')
-          s = s.replace('applicationId = "br.com.auditar.auditar_sst"', 'applicationId = "br.com.auditar.auditar_sst.teste"')
-          s = s.replace('namespace = "br.com.auditar.auditar_sst"', 'namespace = "br.com.auditar.auditar_sst.teste"')
+          old = 'applicationId = "br.com.auditar.auditar_sst"'
+          new = 'applicationId = "br.com.auditar.auditar_sst.teste"'
+          if old not in s:
+              raise SystemExit('applicationId esperado não encontrado')
+          s = s.replace(old, new, 1)
           p.write_text(s, encoding='utf-8')
           m = Path('android/app/src/main/AndroidManifest.xml')
           t = m.read_text(encoding='utf-8')
