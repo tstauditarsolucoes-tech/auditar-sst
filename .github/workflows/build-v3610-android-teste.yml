@@ -1,0 +1,67 @@
+name: Auditar SST v3.36.1 Android Teste
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v3.36.1-pc-enxuto]
+    paths:
+      - ".github/workflows/build-v3610-android-teste.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  android-test:
+    name: Android v3.36.1 - APK teste
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.36.1
+        run: python3 tools/assemble_v3610.py
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Preparar Android de teste independente
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: bash
+        run: |
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('android/app/build.gradle.kts')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace('applicationId = "br.com.auditar.auditar_sst"', 'applicationId = "br.com.auditar.auditar_sst.teste"')
+          s = s.replace('namespace = "br.com.auditar.auditar_sst"', 'namespace = "br.com.auditar.auditar_sst.teste"')
+          p.write_text(s, encoding='utf-8')
+          m = Path('android/app/src/main/AndroidManifest.xml')
+          t = m.read_text(encoding='utf-8')
+          t = t.replace('android:label="auditar_sst"', 'android:label="Auditar SST TESTE"')
+          m.write_text(t, encoding='utf-8')
+          PY
+          flutter pub get
+          dart format lib test
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+      - name: Compilar APK de teste
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if [ -z "$AUDITAR_SYNC_KEY" ]; then echo 'AUDITAR_SYNC_KEY ausente'; exit 1; fi
+          flutter build apk --debug --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+      - name: Preparar artefato
+        run: |
+          mkdir -p dist/android
+          cp app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-debug.apk dist/android/Auditar-SST-Android-v3.36.1-TESTE.apk
+          sha256sum dist/android/Auditar-SST-Android-v3.36.1-TESTE.apk | tee dist/android/SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.36.1-Android-TESTE
+          path: dist/android/*
+          retention-days: 30
