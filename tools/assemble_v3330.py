@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 EXPECTED_GZIP_SHA256 = 'de1071f767cec1209569d6289808ee4ef3f7e1ad54243234c2eb878c7f71a1fe'
+EXPECTED_PARTS = 8
 
 
 def main() -> int:
@@ -20,8 +21,10 @@ def main() -> int:
     )
 
     app = repo / 'app' / 'Auditar_SST_v1_5_dashboard'
-    encoded_path = repo / 'tools' / 'v3330.patch.gz.b64'
-    encoded = encoded_path.read_text(encoding='utf-8').strip()
+    parts = sorted((repo / 'tools').glob('v3330.patch.part*.txt'))
+    if len(parts) != EXPECTED_PARTS:
+        raise RuntimeError(f'Esperadas {EXPECTED_PARTS} partes do patch v3.33.0; encontradas {len(parts)}.')
+    encoded = ''.join(p.read_text(encoding='utf-8').strip() for p in parts)
     compressed = base64.b64decode(encoded, validate=True)
     digest = hashlib.sha256(compressed).hexdigest()
     if digest != EXPECTED_GZIP_SHA256:
