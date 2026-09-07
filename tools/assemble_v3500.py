@@ -54,7 +54,6 @@ def _repair_extra_contiguous_block(raw: str, expected: int, target_sha: str) -> 
     if extra <= 0:
         return None
 
-    # Casos mais comuns: sobra no início ou no fim.
     head = raw[:expected]
     if _sha(head) == target_sha:
         return head
@@ -62,7 +61,6 @@ def _repair_extra_contiguous_block(raw: str, expected: int, target_sha: str) -> 
     if _sha(tail) == target_sha:
         return tail
 
-    # Corrige um bloco extra inserido em qualquer posição (inclui 1 caractere).
     for pos in range(expected + 1):
         candidate = raw[:pos] + raw[pos + extra:]
         if len(candidate) == expected and _sha(candidate) == target_sha:
@@ -95,6 +93,16 @@ def _normalize_part(index: int, raw: str, expected: int) -> str:
     return repaired
 
 
+def _exact_part03_from_helpers(repo: Path) -> str | None:
+    helpers = [repo / 'tools' / f'v3500.part03.exact{i:02d}.txt' for i in range(1, 5)]
+    if not all(path.exists() for path in helpers):
+        return None
+    raw = ''.join(''.join(path.read_text(encoding='utf-8').split()) for path in helpers)
+    if len(raw) == OVERLAY_PART_SIZE and _sha(raw) == PART_SHA[3]:
+        return raw
+    return None
+
+
 def _decode_overlay(repo: Path) -> bytes:
     parts = sorted((repo / 'tools').glob('v3500.overlay.part*.txt'))
     if len(parts) != OVERLAY_PARTS:
@@ -106,6 +114,13 @@ def _decode_overlay(repo: Path) -> bytes:
     for index, part in enumerate(parts, start=1):
         raw = ''.join(part.read_text(encoding='utf-8').split())
         expected = OVERLAY_LAST_PART_SIZE if index == OVERLAY_PARTS else OVERLAY_PART_SIZE
+
+        if index == 3 and (len(raw) != expected or _sha(raw) != PART_SHA[3]):
+            exact = _exact_part03_from_helpers(repo)
+            if exact is not None:
+                raw = exact
+                print('Overlay v3.35.0 parte 03 restaurada pela referência exata.')
+
         chunks.append(_normalize_part(index, raw, expected))
 
     encoded = ''.join(chunks)
