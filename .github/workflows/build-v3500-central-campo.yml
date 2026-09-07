@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/workflows/build-v3500-central-campo.yml"
       - "tools/assemble_v3500.py"
+      - "tools/v3500.overlay.part*.txt"
       - "tools/v3500.patch.part*.txt"
       - "tools/v3400.patch.part*.txt"
 
