@@ -1,0 +1,30 @@
+name: Inspect v3.36.0 UI
+
+on:
+  push:
+    branches: [feature/v3.36.0-interface-refinada]
+    paths:
+      - ".github/workflows/inspect-v3600-ui.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar v3.35.1
+        run: python3 tools/assemble_v3510.py
+      - name: Mostrar arquivos principais
+        run: |
+          APP=app/Auditar_SST_v1_5_dashboard
+          echo '===== HOME ====='
+          sed -n '1,1200p' "$APP/lib/screens/home_screen.dart"
+          echo '===== COMPANY DETAIL ====='
+          sed -n '1,1000p' "$APP/lib/screens/company_detail_screen.dart"
+          echo '===== FIELD QUICK ====='
+          sed -n '1,700p' "$APP/lib/screens/field_quick_screen.dart"
+          echo '===== PERIODIC SEARCH ====='
+          grep -RniE 'per[ií]odic|exame' "$APP/lib" "$APP/painel_web_google_apps_script" || true
