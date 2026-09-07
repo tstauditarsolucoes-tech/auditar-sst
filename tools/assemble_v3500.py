@@ -152,12 +152,12 @@ def _apply_sqlite_compat_hotfix(app: Path) -> None:
     path = app / 'lib' / 'database.dart'
     text = path.read_text(encoding='utf-8')
     old = 'COALESCE(NULLIF(u.cnpj, ""), c.cnpj)'
-    new = "COALESCE(NULLIF(u.cnpj, ''), c.cnpj)"
+    safe = 'CASE WHEN u.cnpj IS NULL OR length(u.cnpj) = 0 THEN c.cnpj ELSE u.cnpj END'
     if old in text:
-        text = text.replace(old, new)
+        text = text.replace(old, safe)
         path.write_text(text, encoding='utf-8')
-        print('Hotfix SQLite multi-CNPJ aplicado: string vazia usa aspas simples.')
-    elif new not in text:
+        print('Hotfix SQLite multi-CNPJ aplicado com CASE seguro.')
+    elif safe not in text:
         raise RuntimeError('Trecho SQL esperado do CNPJ da unidade não foi encontrado.')
 
 
@@ -190,7 +190,7 @@ def _validate(app: Path) -> None:
         'assinatura none': "value: 'none'" in signature,
         'plano ação opcional': 'includeActionPlan' in signature,
         '44 checklists': ready.count('  ReadyChecklistDefinition(') == 44,
-        'sqlite unit cnpj': "COALESCE(NULLIF(u.cnpj, ''), c.cnpj)" in db,
+        'sqlite unit cnpj': 'CASE WHEN u.cnpj IS NULL OR length(u.cnpj) = 0 THEN c.cnpj ELSE u.cnpj END' in db,
     }
     missing = [name for name, ok in checks.items() if not ok]
     if missing:
