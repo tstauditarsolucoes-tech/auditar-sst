@@ -22,13 +22,18 @@ def main() -> int:
 
     app = repo / 'app' / 'Auditar_SST_v1_5_dashboard'
 
-    parts = [repo / 'tools' / f'v3320.overlay.b64.part{i:02d}' for i in range(11)]
+    # Partes 00-08 já foram conferidas byte a byte. O trecho final foi
+    # dividido em blocos menores para evitar truncamento no transporte.
+    parts = [repo / 'tools' / f'v3320.overlay.b64.part{i:02d}' for i in range(9)]
+    parts += [repo / 'tools' / f'v3320.overlay.tail{i:02d}' for i in range(5)]
     missing = [str(path) for path in parts if not path.exists()]
     if missing:
         raise RuntimeError(f'Partes do overlay ausentes: {missing}')
 
     encoded = ''.join(path.read_text(encoding='utf-8').strip() for path in parts)
-    archive_bytes = base64.b64decode(encoded)
+    if len(encoded) != 100092:
+        raise RuntimeError(f'Overlay incompleto: {len(encoded)} caracteres; esperado 100092.')
+    archive_bytes = base64.b64decode(encoded, validate=True)
 
     # Extrai o overlay somente dentro da pasta do app.
     with tarfile.open(fileobj=io.BytesIO(archive_bytes), mode='r:gz') as tf:
