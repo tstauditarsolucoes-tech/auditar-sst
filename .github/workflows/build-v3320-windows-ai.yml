@@ -1,0 +1,101 @@
+name: Auditar SST v3.32.0 Windows IA Integrada
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v3.32.0]
+    paths:
+      - ".github/workflows/build-v3320-windows-ai.yml"
+      - "tools/assemble_v3320.py"
+      - "tools/v3320.patch.gz.b64.part00"
+      - "tools/v3320.patch.gz.b64.part01"
+      - "tools/v3320.patch.gz.b64.part02"
+      - "tools/v3320.patch.gz.b64.part03"
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows v3.32.0
+    runs-on: windows-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar fonte v3.32.0
+        run: python tools/assemble_v3320.py
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Preparar, analisar e testar
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          flutter pub get
+          dart format lib
+          $pub = Get-Content pubspec.yaml -Raw
+          if (-not $pub.Contains('version: 3.32.0+148')) { throw 'versão incorreta' }
+          if (-not (Test-Path 'lib/screens/dds_ai_screen.dart')) { throw 'DDS Inteligente ausente' }
+          if (-not (Test-Path 'lib/screens/prevention_ai_screen.dart')) { throw 'IA de Prevenção ausente' }
+          $actions = Get-Content lib/screens/action_plan_screen.dart -Raw
+          if (-not $actions.Contains("focus: 'action_plan'")) { throw 'IA do plano de ação ausente' }
+          $trainings = Get-Content lib/screens/trainings_screen.dart -Raw
+          if (-not $trainings.Contains("focus: 'trainings'")) { throw 'IA de treinamentos ausente' }
+          $pgr = Get-Content lib/screens/pgr_screen.dart -Raw
+          if (-not $pgr.Contains("focus: 'pgr'")) { throw 'IA preventiva no PGR ausente' }
+          $signature = Get-Content lib/screens/signature_screen.dart -Raw
+          if (-not $signature.Contains('Assinar em tela cheia')) { throw 'assinatura em tela cheia ausente' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+
+      - name: Compilar Windows
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+
+      - name: Gerar portátil e instalador
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          Compress-Archive 'app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release/*' 'dist/windows/Auditar-SST-Windows-v3.32.0-PORTATIL.zip' -Force
+          $release=(Resolve-Path 'app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release').Path
+          $output=(Resolve-Path 'dist/windows').Path
+          $iss=@"
+          [Setup]
+          AppName=Auditar SST
+          AppVersion=3.32.0
+          DefaultDirName={autopf}\Auditar SST
+          DefaultGroupName=Auditar SST
+          OutputDir=$output
+          OutputBaseFilename=Auditar-SST-Setup-v3.32.0
+          Compression=lzma
+          SolidCompression=yes
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          [Files]
+          Source: "$release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          [Icons]
+          Name: "{autoprograms}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          Name: "{autodesktop}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          [Run]
+          Filename: "{app}\auditar_sst.exe"; Description: "Abrir Auditar SST"; Flags: nowait postinstall skipifsilent
+          "@
+          Set-Content "$env:RUNNER_TEMP\auditar.iss" $iss -Encoding UTF8
+          & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' "$env:RUNNER_TEMP\auditar.iss"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.32.0-Windows
+          path: dist/windows/*
+          retention-days: 30
