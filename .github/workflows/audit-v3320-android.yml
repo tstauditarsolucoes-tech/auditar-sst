@@ -54,3 +54,5 @@ jobs:
           test -n "$AUDITAR_SYNC_KEY" || (echo 'AUDITAR_SYNC_KEY ausente' && exit 1)
           flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
           echo 'APK compilado apenas para teste de regressão. Não substituir instalação atual sem validar assinatura/backup.'
+
+# Auditoria de regressão criada para validar a base compartilhada sem substituir o app instalado.
