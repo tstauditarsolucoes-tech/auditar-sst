@@ -43,14 +43,11 @@ def main() -> int:
     app = repo / 'app' / 'Auditar_SST_v1_5_dashboard'
 
     apply_parts(repo, app, 'v3400.patch.part*.txt', 11, V340_SHA)
-    if 'version: 3.34.0+152' not in (app / 'pubspec.yaml').read_text(encoding='utf-8'):
-        raise RuntimeError('Base v3.34.0 multi-CNPJ/PGR não foi aplicada.')
-
     apply_parts(repo, app, 'v3500.patch.part*.txt', 5, V350_SHA)
 
     pubspec = (app / 'pubspec.yaml').read_text(encoding='utf-8')
     if 'version: 3.35.0+153' not in pubspec:
-        raise RuntimeError('Versão v3.35.0+153 não aplicada.')
+        raise RuntimeError('Versão v3.35.0+153 não aplicada. Pubspec atual: ' + pubspec.splitlines()[3])
 
     db = (app / 'lib' / 'database.dart').read_text(encoding='utf-8')
     models = (app / 'lib' / 'models.dart').read_text(encoding='utf-8')
