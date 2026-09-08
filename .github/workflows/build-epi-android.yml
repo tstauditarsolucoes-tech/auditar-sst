@@ -35,7 +35,15 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Preparar interface Campo
+      - name: Validar módulos Mobile v3
+        run: |
+          node --check auditar-epi/mobile-v3.js
+          node --check auditar-epi/mobile-cloud-sync-v222.js
+          node --check auditar-epi/field-operations-v221.js
+          node --check auditar-epi/bulk-delivery.js
+          node --check auditar-epi/stock.js
+
+      - name: Preparar interface Mobile v3
         run: |
           rm -rf auditar-epi-mobile/www
           mkdir -p auditar-epi-mobile/www
@@ -134,12 +142,12 @@ jobs:
         run: ./gradlew assembleDebug
 
       - name: Renomear APK
-        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Campo-v2.2.2-LOGIN-SYNC-ESTAVEL.apk
+        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Mobile-v3.0.0.apk
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
-          name: Gestao-EPI-Campo-v2.2.2-LOGIN-SYNC-ESTAVEL
-          path: Gestao-EPI-Campo-v2.2.2-LOGIN-SYNC-ESTAVEL.apk
+          name: Gestao-EPI-Mobile-v3.0.0
+          path: Gestao-EPI-Mobile-v3.0.0.apk
           if-no-files-found: error
           retention-days: 14
