@@ -7,6 +7,7 @@ on:
       - '.github/workflows/build-epi-windows-installer-v277-login-simples.yml'
       - 'auditar-epi-windows/pc-sectors-v277.js'
       - 'auditar-epi-windows/pc-return-v277.js'
+      - 'auditar-epi-windows/pc-holdings-replacements-v277.js'
 
 jobs:
   build-installer:
@@ -50,6 +51,7 @@ jobs:
           Copy-Item -Force 'auditar-epi-windows/pc-version-v277.js' 'auditar-epi-windows/app/pc-version-v277.js'
           Copy-Item -Force 'auditar-epi-windows/pc-sectors-v277.js' 'auditar-epi-windows/app/pc-sectors-v277.js'
           Copy-Item -Force 'auditar-epi-windows/pc-return-v277.js' 'auditar-epi-windows/app/pc-return-v277.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-holdings-replacements-v277.js' 'auditar-epi-windows/app/pc-holdings-replacements-v277.js'
 
           $indexPath = 'auditar-epi-windows/app/index.html'
           $index = Get-Content $indexPath -Raw
@@ -83,6 +85,7 @@ jobs:
             '  <script src="pc-version-v277.js"></script>',
             '  <script src="pc-sectors-v277.js"></script>',
             '  <script src="pc-return-v277.js"></script>',
+            '  <script src="pc-holdings-replacements-v277.js"></script>',
             '  <script src="pc-login-safe-v277.js"></script>',
             '</body>',
             '</html>'
@@ -96,6 +99,7 @@ jobs:
           node --check 'auditar-epi-windows/app/pc-version-v277.js'
           node --check 'auditar-epi-windows/app/pc-sectors-v277.js'
           node --check 'auditar-epi-windows/app/pc-return-v277.js'
+          node --check 'auditar-epi-windows/app/pc-holdings-replacements-v277.js'
           node --check 'auditar-epi-windows/app/pc-login-safe-v277.js'
 
       - name: Gerar ícone do Windows
@@ -126,7 +130,7 @@ jobs:
       - name: Disponibilizar instalador
         uses: actions/upload-artifact@v4
         with:
-          name: Gestao-EPI-Setup-2.7.7-SETORES-DEVOLUCAO
+          name: Gestao-EPI-Setup-2.7.7-POSSE-TROCAS
           path: auditar-epi-windows/dist/Gestao-EPI-Setup-2.7.7.exe
           if-no-files-found: error
           retention-days: 14
