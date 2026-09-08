@@ -1,0 +1,90 @@
+name: Auditar SST v3.37.1 Android Teste
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v3.37.0-central-trabalho-pc]
+    paths:
+      - ".github/workflows/build-v3710-android-teste.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android v3.37.1 TESTE
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.37.1
+        run: python3 tools/assemble_v3710.py
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Preparar Android de teste separado
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: bash
+        run: |
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q "MyApp" test/widget_test.dart; then rm test/widget_test.dart; fi
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          gradle = Path('android/app/build.gradle.kts')
+          text = gradle.read_text(encoding='utf-8')
+          text, count = re.subn(r'applicationId\s*=\s*"[^"]+"', 'applicationId = "br.com.auditar.auditar_sst.teste"', text, count=1)
+          if count != 1:
+              raise SystemExit('Não foi possível alterar applicationId para pacote de teste')
+          gradle.write_text(text, encoding='utf-8')
+
+          manifest = Path('android/app/src/main/AndroidManifest.xml')
+          m = manifest.read_text(encoding='utf-8')
+          m = re.sub(r'android:label="[^"]+"', 'android:label="Auditar SST TESTE"', m, count=1)
+          for permission in (
+              '<uses-permission android:name="android.permission.CAMERA" />',
+              '<uses-permission android:name="android.permission.INTERNET" />',
+          ):
+              if permission not in m:
+                  m = m.replace('<application', permission + '\n    <application', 1)
+          manifest.write_text(m, encoding='utf-8')
+          PY
+          flutter pub get
+          dart format lib test
+          grep -Fq 'version: 3.37.1+158' pubspec.yaml
+          grep -Fq 'Remover PGR' lib/screens/pgr_screen.dart
+          grep -Fq 'Assinar em tela cheia' lib/screens/signature_screen.dart
+          grep -Fq "label: const Text('Tirar foto')" lib/screens/checklist_screen.dart
+          grep -Fq 'FieldQuickScreen' lib/screens/home_screen.dart
+          grep -Fq "'syncProtocol': 2" lib/services/device_sync_service.dart
+          grep -Fq 'applicationId = "br.com.auditar.auditar_sst.teste"' android/app/build.gradle.kts
+          grep -Fq 'Auditar SST TESTE' android/app/src/main/AndroidManifest.xml
+          test "$(grep -c '^  ReadyChecklistDefinition(' lib/ready_checklists.dart)" -eq 44
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+      - name: Compilar APK TESTE
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if [ -z "$AUDITAR_SYNC_KEY" ]; then
+            echo "::error::AUDITAR_SYNC_KEY ausente"
+            exit 1
+          fi
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+      - name: Preparar APK
+        shell: bash
+        run: |
+          mkdir -p dist/android
+          cp app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-release.apk dist/android/Auditar-SST-Android-v3.37.1-TESTE.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-Android-v3.37.1-TESTE
+          path: dist/android/Auditar-SST-Android-v3.37.1-TESTE.apk
+          retention-days: 30
