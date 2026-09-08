@@ -1,3 +1,4 @@
+// Gestão EPI 2.7.7 • EPIs em posse e controle de trocas.
 (() => {
   const CACHE='auditarEpiGestaoCacheV1';
   const RETURN_MARK='DEVOLUÇÃO EPI';
