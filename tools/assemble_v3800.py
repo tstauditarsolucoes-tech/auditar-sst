@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import shutil
+import base64
+import gzip
 import subprocess
 import sys
 from pathlib import Path
@@ -11,6 +12,11 @@ def replace_once(text: str, old: str, new: str, label: str) -> str:
     if old not in text:
         raise RuntimeError(f'Trecho esperado não encontrado: {label}')
     return text.replace(old, new, 1)
+
+
+def decode_gzip_base64(parts: list[Path]) -> str:
+    encoded = ''.join(path.read_text(encoding='utf-8').strip() for path in parts)
+    return gzip.decompress(base64.b64decode(encoded)).decode('utf-8')
 
 
 def main() -> int:
@@ -24,18 +30,20 @@ def main() -> int:
     text = replace_once(text, 'version: 3.37.1+158', 'version: 3.38.0+159', 'versão 3.38.0')
     pub.write_text(text, encoding='utf-8')
 
-    shutil.copy2(
-        overrides / 'lib' / 'services' / 'extinguisher_inventory_service.dart',
-        app / 'lib' / 'services' / 'extinguisher_inventory_service.dart',
-    )
-    shutil.copy2(
-        overrides / 'lib' / 'screens' / 'extinguisher_stock_screen.dart',
-        app / 'lib' / 'screens' / 'extinguisher_stock_screen.dart',
-    )
-    shutil.copy2(
-        overrides / 'lib' / 'screens' / 'extinguishers_hub_screen.dart',
-        app / 'lib' / 'screens' / 'extinguishers_hub_screen.dart',
-    )
+    service = decode_gzip_base64([
+        overrides / 'extinguisher_inventory_service.dart.gz.b64',
+    ])
+    stock_screen = decode_gzip_base64([
+        overrides / 'extinguisher_stock_screen.part1.b64',
+        overrides / 'extinguisher_stock_screen.part2.b64',
+    ])
+    hub_screen = decode_gzip_base64([
+        overrides / 'extinguishers_hub_screen.dart.gz.b64',
+    ])
+
+    (app / 'lib' / 'services' / 'extinguisher_inventory_service.dart').write_text(service, encoding='utf-8')
+    (app / 'lib' / 'screens' / 'extinguisher_stock_screen.dart').write_text(stock_screen, encoding='utf-8')
+    (app / 'lib' / 'screens' / 'extinguishers_hub_screen.dart').write_text(hub_screen, encoding='utf-8')
 
     p = app / 'lib' / 'screens' / 'extinguishers_screen.dart'
     text = p.read_text(encoding='utf-8')
