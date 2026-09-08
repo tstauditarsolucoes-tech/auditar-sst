@@ -1,7 +1,10 @@
 (()=>{
   const CURRENT='2.7.7';
   const RELEASE_API='https://api.github.com/repos/tstauditarsolucoes-tech/auditar-sst/releases/latest';
+  const TENANT_CODE_KEY='gestaoEpiTenantCode';
+  const TENANT_CODE_BACKUP_KEY='gestaoEpiTenantCodeV277Backup';
   const nativeFetch=window.fetch.bind(window);
+  let pendingTenantCode='';
 
   window.fetch=async function(input,init){
     const url=typeof input==='string'?input:String(input?.url||'');
@@ -60,16 +63,30 @@
     },true);
   }
 
+  function storedTenantCode(){
+    return String(localStorage.getItem(TENANT_CODE_KEY)||localStorage.getItem(TENANT_CODE_BACKUP_KEY)||'').trim();
+  }
+
+  function rememberTenantCode(){
+    const typed=String(document.getElementById('gestaoTenantCode')?.value||'').trim();
+    const code=typed||pendingTenantCode||storedTenantCode();
+    if(!code)return;
+    pendingTenantCode=code;
+    localStorage.setItem(TENANT_CODE_BACKUP_KEY,code);
+    localStorage.setItem(TENANT_CODE_KEY,code);
+  }
+
   function simplifyLogin(){
     const codeInput=document.getElementById('gestaoTenantCode');
     if(!codeInput)return;
 
     const codeLabel=codeInput.closest('label');
-    const storedCode=String(localStorage.getItem('gestaoEpiTenantCode')||'').trim();
+    const storedCode=storedTenantCode();
     const card=document.querySelector('#gestaoAuthOverlay .gestao-auth-card');
     const subtitle=card?.querySelector(':scope > p');
 
     if(storedCode){
+      localStorage.setItem(TENANT_CODE_KEY,storedCode);
       codeInput.value=storedCode;
       if(codeLabel)codeLabel.style.display='none';
       if(subtitle)subtitle.textContent='Digite seu usuário e senha.';
@@ -87,7 +104,17 @@
     if(overlay.dataset.v277SimpleLogin==='1')return;
     overlay.dataset.v277SimpleLogin='1';
 
-    const observer=new MutationObserver(()=>simplifyLogin());
+    overlay.addEventListener('click',event=>{
+      if(event.target.closest('#gestaoAuthSubmit'))rememberTenantCode();
+    },true);
+    overlay.addEventListener('keydown',event=>{
+      if(event.key==='Enter'&&event.target.closest('#gestaoAuthPass'))rememberTenantCode();
+    },true);
+
+    const observer=new MutationObserver(()=>{
+      if(overlay.classList.contains('hidden'))rememberTenantCode();
+      simplifyLogin();
+    });
     observer.observe(overlay,{attributes:true,attributeFilter:['class']});
   }
 
