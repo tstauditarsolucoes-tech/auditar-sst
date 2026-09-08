@@ -1,0 +1,483 @@
+  Future<void> _importTrainingDocument() async {
+    final company = _currentCompany;
+    if (company == null) return;
+    if (workers.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cadastre ou importe os trabalhadores antes de registrar um treinamento.'),
+        ),
+      );
+      return;
+    }
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 16),
+            Expanded(
+              child: Text('Selecione o arquivo. Depois, a IA fará a leitura do treinamento...'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    TrainingImportPreview? preview;
+    try {
+      preview = await TrainingImportService.pickAndAnalyze(
+        company: company,
+        workers: workers,
+        existingTrainings: trainings,
+      );
+    } on TrainingImportException catch (error) {
+      if (mounted) Navigator.of(context, rootNavigator: true).pop();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message)),
+      );
+      return;
+    } catch (error) {
+      if (mounted) Navigator.of(context, rootNavigator: true).pop();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Não foi possível importar o treinamento: $error')),
+      );
+      return;
+    }
+
+    if (mounted) Navigator.of(context, rootNavigator: true).pop();
+    if (!mounted || preview == null) return;
+    await _showTrainingImportPreview(preview);
+  }
+
+  Future<void> _showTrainingImportPreview(TrainingImportPreview preview) async {
+    final company = _currentCompany;
+    if (company == null) return;
+
+    final codeController = TextEditingController(text: preview.code);
+    final titleController = TextEditingController(text: preview.title);
+    final workloadController = TextEditingController(text: preview.workload);
+    final instructorController = TextEditingController(text: preview.instructor);
+    DateTime? trainingDate = preview.trainingDate;
+    DateTime? expiryDate = preview.expiryDate;
+    final selectedWorkerIds = preview.participants
+        .where((item) => item.worker != null && !item.duplicate)
+        .map((item) => item.worker!.id)
+        .toSet();
+    var saving = false;
+
+    final saved = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setLocalState) {
+          final availableCount = preview.participants
+              .where((item) => item.worker != null && !item.duplicate)
+              .length;
+          return AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.auto_awesome_rounded, color: AuditarBrand.navy),
+                SizedBox(width: 9),
+                Expanded(child: Text('Conferir importação com IA')),
+              ],
+            ),
+            content: SizedBox(
+              width: 720,
+              height: MediaQuery.sizeOf(context).height * 0.72,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AuditarBrand.navySoft,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            preview.fileName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              color: AuditarBrand.navyDark,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${preview.participants.length} participante(s) encontrados • '
+                            '${preview.matchedCount} vinculados • '
+                            '${preview.unmatchedCount} não encontrados • '
+                            '${preview.duplicateCount} já registrados',
+                            style: const TextStyle(fontSize: 11.5),
+                          ),
+                          if (preview.confidence.isNotEmpty) ...[
+                            const SizedBox(height: 3),
+                            Text(
+                              'Confiança da leitura: ${preview.confidence}',
+                              style: const TextStyle(fontSize: 10.5, color: Colors.black54),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    if (preview.warnings.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      ...preview.warnings.take(5).map(
+                        (warning) => Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(
+                                Icons.warning_amber_rounded,
+                                size: 18,
+                                color: Color(0xFF8A5A00),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  warning,
+                                  style: const TextStyle(fontSize: 11.5),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Dados do treinamento',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        color: AuditarBrand.navy,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final codeField = TextField(
+                          controller: codeController,
+                          decoration: const InputDecoration(
+                            labelText: 'NR / Código',
+                            hintText: 'Ex.: NR-06',
+                          ),
+                        );
+                        final titleField = TextField(
+                          controller: titleController,
+                          decoration: const InputDecoration(
+                            labelText: 'Treinamento *',
+                          ),
+                        );
+                        if (constraints.maxWidth < 460) {
+                          return Column(
+                            children: [
+                              codeField,
+                              const SizedBox(height: 9),
+                              titleField,
+                            ],
+                          );
+                        }
+                        return Row(
+                          children: [
+                            Expanded(flex: 2, child: codeField),
+                            const SizedBox(width: 8),
+                            Expanded(flex: 4, child: titleField),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 9),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final workloadField = TextField(
+                          controller: workloadController,
+                          decoration: const InputDecoration(
+                            labelText: 'Carga horária',
+                            hintText: 'Ex.: 4h',
+                            prefixIcon: Icon(Icons.schedule_outlined),
+                          ),
+                        );
+                        final instructorField = TextField(
+                          controller: instructorController,
+                          decoration: const InputDecoration(
+                            labelText: 'Instrutor',
+                            prefixIcon: Icon(Icons.badge_outlined),
+                          ),
+                        );
+                        if (constraints.maxWidth < 460) {
+                          return Column(
+                            children: [
+                              workloadField,
+                              const SizedBox(height: 9),
+                              instructorField,
+                            ],
+                          );
+                        }
+                        return Row(
+                          children: [
+                            Expanded(flex: 2, child: workloadField),
+                            const SizedBox(width: 8),
+                            Expanded(flex: 4, child: instructorField),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 9),
+                    _dateTile(
+                      title: 'Data do treinamento *',
+                      date: trainingDate,
+                      emptyText: 'Toque para informar',
+                      onPick: () async {
+                        final picked = await showDatePicker(
+                          context: dialogContext,
+                          initialDate: trainingDate ?? DateTime.now(),
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                        );
+                        if (picked != null) {
+                          setLocalState(() => trainingDate = picked);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    _dateTile(
+                      title: 'Vencimento / reciclagem',
+                      date: expiryDate,
+                      emptyText: 'Opcional • pode usar a validade da matriz',
+                      onPick: () async {
+                        final base = trainingDate ?? DateTime.now();
+                        final picked = await showDatePicker(
+                          context: dialogContext,
+                          initialDate: expiryDate ?? DateTime(base.year + 1, base.month, base.day),
+                          firstDate: base,
+                          lastDate: DateTime.now().add(const Duration(days: 3650)),
+                        );
+                        if (picked != null) {
+                          setLocalState(() => expiryDate = picked);
+                        }
+                      },
+                      onClear: expiryDate == null
+                          ? null
+                          : () => setLocalState(() => expiryDate = null),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Participantes',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
+                              color: AuditarBrand.navy,
+                            ),
+                          ),
+                        ),
+                        if (availableCount > 0)
+                          TextButton(
+                            onPressed: () {
+                              setLocalState(() {
+                                if (selectedWorkerIds.length == availableCount) {
+                                  selectedWorkerIds.clear();
+                                } else {
+                                  selectedWorkerIds
+                                    ..clear()
+                                    ..addAll(
+                                      preview.participants
+                                          .where((item) => item.worker != null && !item.duplicate)
+                                          .map((item) => item.worker!.id),
+                                    );
+                                }
+                              });
+                            },
+                            child: Text(
+                              selectedWorkerIds.length == availableCount
+                                  ? 'Desmarcar todos'
+                                  : 'Marcar todos',
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    ...preview.participants.map((participant) {
+                      final worker = participant.worker;
+                      if (worker == null) {
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          child: ListTile(
+                            dense: true,
+                            leading: const Icon(
+                              Icons.person_search_outlined,
+                              color: Color(0xFFD93025),
+                            ),
+                            title: Text(
+                              participant.name.isEmpty ? 'Nome não identificado' : participant.name,
+                              style: const TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                            subtitle: Text(
+                              [
+                                if (participant.role.isNotEmpty) participant.role,
+                                'Não encontrado no cadastro da empresa. Não será registrado.',
+                              ].join(' • '),
+                            ),
+                          ),
+                        );
+                      }
+                      if (participant.duplicate) {
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          child: ListTile(
+                            dense: true,
+                            leading: const Icon(
+                              Icons.task_alt_rounded,
+                              color: AuditarBrand.greenDark,
+                            ),
+                            title: Text(
+                              worker.name,
+                              style: const TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                            subtitle: Text('${worker.role} • Já existe registro igual nesta data.'),
+                          ),
+                        );
+                      }
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        child: CheckboxListTile(
+                          dense: true,
+                          value: selectedWorkerIds.contains(worker.id),
+                          onChanged: saving
+                              ? null
+                              : (checked) {
+                                  setLocalState(() {
+                                    if (checked == true) {
+                                      selectedWorkerIds.add(worker.id);
+                                    } else {
+                                      selectedWorkerIds.remove(worker.id);
+                                    }
+                                  });
+                                },
+                          title: Text(
+                            worker.name,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          subtitle: Text(
+                            participant.role.isNotEmpty && participant.role != worker.role
+                                ? '${worker.role} • No arquivo: ${participant.role}'
+                                : worker.role,
+                          ),
+                          secondary: const Icon(Icons.person_outline),
+                          controlAffinity: ListTileControlAffinity.trailing,
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F7FA),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'Nada é registrado automaticamente. Confira os dados e os participantes antes de confirmar. O arquivo original será guardado como evidência do treinamento.',
+                        style: TextStyle(fontSize: 10.5, color: Colors.black54),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: saving ? null : () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton.icon(
+                onPressed: saving || selectedWorkerIds.isEmpty
+                    ? null
+                    : () async {
+                        final title = titleController.text.trim();
+                        if (title.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Informe o nome do treinamento.')),
+                          );
+                          return;
+                        }
+                        if (trainingDate == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Informe a data do treinamento.')),
+                          );
+                          return;
+                        }
+                        setLocalState(() => saving = true);
+                        try {
+                          final result = await TrainingImportService.save(
+                            companyId: company.id,
+                            preview: preview,
+                            workerIds: selectedWorkerIds,
+                            code: codeController.text,
+                            title: title,
+                            trainingDate: trainingDate!,
+                            expiryDate: expiryDate,
+                            workload: workloadController.text,
+                            instructor: instructorController.text,
+                          );
+                          if (dialogContext.mounted) {
+                            Navigator.pop(dialogContext, true);
+                          }
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Treinamento registrado para ${result.savedCount} participante(s). Arquivo original guardado como evidência.',
+                              ),
+                            ),
+                          );
+                        } on TrainingImportException catch (error) {
+                          if (!dialogContext.mounted) return;
+                          setLocalState(() => saving = false);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(error.message)),
+                          );
+                        } catch (error) {
+                          if (!dialogContext.mounted) return;
+                          setLocalState(() => saving = false);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Falha ao salvar treinamento: $error')),
+                          );
+                        }
+                      },
+                icon: saving
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.check_circle_outline),
+                label: Text(
+                  saving
+                      ? 'Registrando...'
+                      : 'Registrar ${selectedWorkerIds.length}',
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    codeController.dispose();
+    titleController.dispose();
+    workloadController.dispose();
+    instructorController.dispose();
+    if (saved == true && mounted) await _load();
+  }
+
