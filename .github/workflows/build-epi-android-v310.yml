@@ -1,4 +1,4 @@
-name: Gerar Gestão EPI Mobile v3.4.0
+name: Gerar Gestão EPI Mobile v3.4.1
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ on:
       - '.github/workflows/build-epi-android-v310.yml'
 
 concurrency:
-  group: gestao-epi-android-v340
+  group: gestao-epi-android-v341
   cancel-in-progress: true
 
 permissions:
@@ -35,7 +35,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Validar módulos Mobile v3.4.0
+      - name: Validar módulos Mobile v3.4.1
         run: |
           node --check auditar-epi/mobile-v3.js
           node --check auditar-epi/mobile-face-inline-v311.js
@@ -44,10 +44,11 @@ jobs:
           node --check auditar-epi/mobile-cloud-sync-v222.js
           node --check auditar-epi/mobile-general-report-v330.js
           node --check auditar-epi/invoice-epi-ai-v340.js
+          node --check auditar-epi/invoice-epi-ai-ca-fix-v341.js
           node --check auditar-epi/bulk-delivery.js
           node --check auditar-epi/biometric-face.js
 
-      - name: Preparar interface Mobile v3.4.0
+      - name: Preparar interface Mobile v3.4.1
         run: |
           rm -rf auditar-epi-mobile/www
           mkdir -p auditar-epi-mobile/www
@@ -114,12 +115,12 @@ jobs:
         run: ./gradlew assembleDebug
 
       - name: Renomear APK
-        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Mobile-v3.4.0-NF-IA-CA.apk
+        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Mobile-v3.4.1-NF-IA-CA-CORRIGIDO.apk
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
-          name: Gestao-EPI-Mobile-v3.4.0-NF-IA-CA
-          path: Gestao-EPI-Mobile-v3.4.0-NF-IA-CA.apk
+          name: Gestao-EPI-Mobile-v3.4.1-NF-IA-CA-CORRIGIDO
+          path: Gestao-EPI-Mobile-v3.4.1-NF-IA-CA-CORRIGIDO.apk
           if-no-files-found: error
           retention-days: 14
