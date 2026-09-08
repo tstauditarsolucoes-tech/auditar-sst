@@ -41,7 +41,7 @@ jobs:
           node --check auditar-epi/mobile-face-inline-v311.js
           node --check auditar-epi/field-operations-v221.js
           node --check auditar-epi/mobile-auth-v222.js
-          node --check auditar-epi/mobile-cloud-sync-v300.js
+          node --check auditar-epi/mobile-cloud-sync-v222.js
           node --check auditar-epi/bulk-delivery.js
           node --check auditar-epi/biometric-face.js
 
@@ -51,7 +51,7 @@ jobs:
           mkdir -p auditar-epi-mobile/www
           cp -R auditar-epi/. auditar-epi-mobile/www/
           cp auditar-epi/mobile-auth-v222.js auditar-epi-mobile/www/auth.js
-          cp auditar-epi/mobile-cloud-sync-v300.js auditar-epi-mobile/www/cloud-sync.js
+          cp auditar-epi/mobile-cloud-sync-v222.js auditar-epi-mobile/www/cloud-sync.js
           python3 - <<'PY'
           from pathlib import Path
           p=Path('auditar-epi-mobile/www/index.html')
