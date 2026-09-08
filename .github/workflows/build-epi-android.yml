@@ -132,12 +132,12 @@ jobs:
         run: ./gradlew assembleDebug
 
       - name: Renomear APK
-        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Campo-v2.2.0-POSSE-TROCAS-DEVOLUCAO.apk
+        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Campo-v2.2.1-SYNC-CORRIGIDO.apk
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
-          name: Gestao-EPI-Campo-v2.2.0-POSSE-TROCAS-DEVOLUCAO
-          path: Gestao-EPI-Campo-v2.2.0-POSSE-TROCAS-DEVOLUCAO.apk
+          name: Gestao-EPI-Campo-v2.2.1-SYNC-CORRIGIDO
+          path: Gestao-EPI-Campo-v2.2.1-SYNC-CORRIGIDO.apk
           if-no-files-found: error
           retention-days: 14
