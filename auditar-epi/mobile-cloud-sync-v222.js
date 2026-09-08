@@ -22,6 +22,7 @@
   loadStyle('mobile-v3.css','mobile-v3-style');
   loadScript('mobile-v3.js','mobile-v3');
   loadScript('mobile-general-report-v330.js','mobile-general-report-v330');
+  loadScript('invoice-epi-ai-v340.js','invoice-epi-ai-v340');
 
   const $=(s,root=document)=>root.querySelector(s);
   const auth=()=>window.GestaoEpiAuth;
