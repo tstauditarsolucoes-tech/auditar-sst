@@ -1,0 +1,28 @@
+name: Inspect v3.37.1 PGR Remove
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v3.37.0-central-trabalho-pc]
+    paths:
+      - ".github/workflows/inspect-v3710-pgr-remove.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar v3.37.0
+        run: python3 tools/assemble_v3700.py
+      - name: Inspecionar PGR
+        run: |
+          APP=app/Auditar_SST_v1_5_dashboard
+          echo '===== PGR METHODS ====='
+          grep -n -E "deactivatePgrDocument|delete|remove|Remover|Excluir|document|documents|_load\(|build\(" "$APP/lib/screens/pgr_screen.dart" | head -n 220
+          echo '===== PGR SCREEN 1-420 ====='
+          sed -n '1,420p' "$APP/lib/screens/pgr_screen.dart"
+          echo '===== PGR SCREEN 420-900 ====='
+          sed -n '420,900p' "$APP/lib/screens/pgr_screen.dart"
