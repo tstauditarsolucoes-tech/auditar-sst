@@ -21,6 +21,14 @@
     return res;
   };
 
+  function loadInvoiceModule(){
+    if(document.querySelector('script[data-pc-invoice-import]'))return;
+    const s=document.createElement('script');
+    s.src='invoice-import-gestao.js';
+    s.dataset.pcInvoiceImport='1';
+    document.head.appendChild(s);
+  }
+
   function fixText(){
     const el=document.getElementById('v270UpdateText');
     if(!el)return;
@@ -127,6 +135,7 @@
   }
 
   function boot(){
+    loadInvoiceModule();
     fixDialogCancelAndClose();
     watchSimpleLogin();
     [0,300,1000,2500,5000,9000].forEach(ms=>setTimeout(refreshUi,ms));
