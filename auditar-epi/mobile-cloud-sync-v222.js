@@ -11,6 +11,7 @@
   let syncing=false,pushTimer=null,lastSyncAt=0,ready=false;
 
   function loadScript(src,attr){if(document.querySelector(`script[data-${attr}]`))return;const s=document.createElement('script');s.src=src;s.dataset[attr.replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]='1';document.head.appendChild(s);}
+  function loadStyle(src,attr){if(document.querySelector(`link[data-${attr}]`))return;const l=document.createElement('link');l.rel='stylesheet';l.href=src;l.dataset[attr.replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]='1';document.head.appendChild(l);}
   loadScript('company-branding.js','company-branding');
   loadScript('mobile-layout-fix.js','mobile-layout-fix');
   loadScript('epi-photo-ca.js','epi-photo-ca');
@@ -18,6 +19,8 @@
   loadScript('bulk-delivery.js','bulk-delivery');
   loadScript('signature-worker-name.js','signature-worker-name');
   loadScript('field-operations-v221.js','field-operations-v221');
+  loadStyle('mobile-v3.css','mobile-v3-style');
+  loadScript('mobile-v3.js','mobile-v3');
 
   const $=(s,root=document)=>root.querySelector(s);
   const auth=()=>window.GestaoEpiAuth;
@@ -49,7 +52,7 @@
     const stockRaw=validJsonRaw(localStorage.getItem(STOCK_KEY),'{}');
     const rev=Number(localStorage.getItem(REV_STORE)||0);
     const now=new Date().toISOString();
-    return `{"action":"epi_sync_merge","authToken":${JSON.stringify(token)},"deviceId":${JSON.stringify(auth()?.deviceId?.()||'')},"client":"campo-android-v222","payload":{"version":1,"revision":${rev},"updatedAt":${JSON.stringify(now)},"app":${appRaw},"stock":${stockRaw}}}`;
+    return `{"action":"epi_sync_merge","authToken":${JSON.stringify(token)},"deviceId":${JSON.stringify(auth()?.deviceId?.()||'')},"client":"campo-android-v300","payload":{"version":1,"revision":${rev},"updatedAt":${JSON.stringify(now)},"app":${appRaw},"stock":${stockRaw}}}`;
   }
 
   function isHomeVisible(){return $('#home')?.classList.contains('active');}
@@ -138,8 +141,7 @@
 
   function onAuthReady(){
     ready=true;
-    // Regra principal da v2.2.2: NÃO faz sincronização completa logo após o login.
-    // Primeiro libera o app para uso. Bases pequenas podem sincronizar depois, em segundo plano.
+    // Mobile v3 mantém a regra estável: não sincroniza tudo imediatamente após o login.
     status('Pronto','idle');
     if(canAutoSync())scheduleAuto(12000);
   }
