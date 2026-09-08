@@ -3,7 +3,7 @@ name: Gerar APK Gestão EPI Campo
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, gestao-epi-v2.7.7-navigation-audit]
     paths:
       - 'auditar-epi/**'
       - 'auditar-epi-mobile/**'
@@ -61,7 +61,6 @@ jobs:
           if permission not in text:
               text = re.sub(r'(<manifest\b[^>]*>)', r'\1\n    ' + permission + '\n    ' + feature, text, count=1)
 
-          # Usa a identidade oficial Gestão EPI também no ícone nativo do Android.
           text = re.sub(r'android:icon="[^"]+"', 'android:icon="@drawable/ic_gestao_epi"', text, count=1)
           text = re.sub(r'android:roundIcon="[^"]+"', 'android:roundIcon="@drawable/ic_gestao_epi"', text, count=1)
           manifest.write_text(text, encoding='utf-8')
@@ -133,12 +132,12 @@ jobs:
         run: ./gradlew assembleDebug
 
       - name: Renomear APK
-        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Campo.apk
+        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Campo-v2.2.0-POSSE-TROCAS-DEVOLUCAO.apk
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
-          name: Gestao-EPI-Campo-APK
-          path: Gestao-EPI-Campo.apk
+          name: Gestao-EPI-Campo-v2.2.0-POSSE-TROCAS-DEVOLUCAO
+          path: Gestao-EPI-Campo-v2.2.0-POSSE-TROCAS-DEVOLUCAO.apk
           if-no-files-found: error
           retention-days: 14
