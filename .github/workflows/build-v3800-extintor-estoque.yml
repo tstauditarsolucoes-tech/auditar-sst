@@ -1,0 +1,46 @@
+name: Auditar SST v3.38.0 Estoque de Extintores
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v3.37.0-central-trabalho-pc]
+    paths:
+      - ".github/workflows/build-v3800-extintor-estoque.yml"
+      - "tools/assemble_v3800.py"
+      - "version_overrides/v3800/**"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validar v3.38.0
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.38.0
+        run: python3 tools/assemble_v3800.py
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Analisar e testar
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          flutter pub get
+          dart format lib test
+          grep -Fq 'version: 3.38.0+159' pubspec.yaml
+          grep -Fq "EXTINTOR_ESTOQUE" lib/services/extinguisher_inventory_service.dart
+          grep -Fq "EXTINTOR_MOVIMENTACAO" lib/services/extinguisher_inventory_service.dart
+          grep -Fq "Instalados" lib/screens/extinguishers_hub_screen.dart
+          grep -Fq "Estoque" lib/screens/extinguishers_hub_screen.dart
+          grep -Fq "Movimentações" lib/screens/extinguishers_hub_screen.dart
+          grep -Fq "Enviar para recarga" lib/screens/extinguisher_stock_screen.dart
+          grep -Fq "Registrar retorno da recarga" lib/screens/extinguisher_stock_screen.dart
+          grep -Fq "Retirar do ponto" lib/screens/extinguisher_stock_screen.dart
+          grep -Fq "Instalar em um ponto" lib/screens/extinguisher_stock_screen.dart
+          grep -Fq "'syncProtocol': 2" lib/services/device_sync_service.dart
+          test "$(grep -c '^  ReadyChecklistDefinition(' lib/ready_checklists.dart)" -eq 44
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
