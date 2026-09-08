@@ -1,0 +1,123 @@
+name: Gerar Gestão EPI Mobile v3.1
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [gestao-epi-v2.7.7-navigation-audit]
+    paths:
+      - 'auditar-epi/**'
+      - 'auditar-epi-mobile/**'
+      - '.github/workflows/build-epi-android-v310.yml'
+
+concurrency:
+  group: gestao-epi-android-v310
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Baixar arquivos
+        uses: actions/checkout@v4
+
+      - name: Instalar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Validar módulos Mobile v3.1
+        run: |
+          node --check auditar-epi/mobile-v3.js
+          node --check auditar-epi/mobile-field-v310.js
+          node --check auditar-epi/field-operations-v221.js
+          node --check auditar-epi/mobile-auth-v222.js
+          node --check auditar-epi/mobile-cloud-sync-v300.js
+          node --check auditar-epi/bulk-delivery.js
+          node --check auditar-epi/facial-assist.js
+
+      - name: Preparar interface Mobile v3.1
+        run: |
+          rm -rf auditar-epi-mobile/www
+          mkdir -p auditar-epi-mobile/www
+          cp -R auditar-epi/. auditar-epi-mobile/www/
+          cp auditar-epi/mobile-auth-v222.js auditar-epi-mobile/www/auth.js
+          cp auditar-epi/mobile-cloud-sync-v300.js auditar-epi-mobile/www/cloud-sync.js
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('auditar-epi-mobile/www/index.html')
+          text=p.read_text(encoding='utf-8')
+          scripts='''\n  <script src="field-operations-v221.js"></script>\n  <script src="mobile-v3.js"></script>\n  <script src="mobile-field-v310.js"></script>\n'''
+          for src in ['field-operations-v221.js','mobile-v3.js','mobile-field-v310.js']:
+              text=text.replace(f'  <script src="{src}"></script>\n','')
+          text=text.replace('</body>',scripts+'</body>')
+          p.write_text(text,encoding='utf-8')
+          PY
+
+      - name: Instalar Capacitor
+        working-directory: auditar-epi-mobile
+        run: npm install --no-audit --no-fund
+
+      - name: Criar projeto Android
+        working-directory: auditar-epi-mobile
+        run: |
+          npx cap add android
+          npx cap sync android
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          manifest=Path('android/app/src/main/AndroidManifest.xml')
+          text=manifest.read_text(encoding='utf-8')
+          permission='<uses-permission android:name="android.permission.CAMERA" />'
+          feature='<uses-feature android:name="android.hardware.camera.front" android:required="false" />'
+          if permission not in text:
+              text=re.sub(r'(<manifest\b[^>]*>)',r'\1\n    '+permission+'\n    '+feature,text,count=1)
+          text=re.sub(r'android:icon="[^"]+"','android:icon="@drawable/ic_gestao_epi"',text,count=1)
+          text=re.sub(r'android:roundIcon="[^"]+"','android:roundIcon="@drawable/ic_gestao_epi"',text,count=1)
+          manifest.write_text(text,encoding='utf-8')
+          drawable=Path('android/app/src/main/res/drawable');drawable.mkdir(parents=True,exist_ok=True)
+          (drawable/'ic_gestao_epi.xml').write_text(r'''<?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="512" android:viewportHeight="512">
+            <path android:fillColor="#0FA88E" android:pathData="M0,0H512V512H0Z"/>
+            <path android:fillColor="@android:color/transparent" android:strokeColor="#FFFFFF" android:strokeWidth="24" android:strokeLineJoin="round" android:pathData="M256,74 L401,128 L401,240 C401,336 346,403 256,447 C166,403 111,336 111,240 L111,128 Z"/>
+            <path android:fillColor="#FFFFFF" android:pathData="M176,221 C180,172 210,139 246,130 L246,112 L266,112 L266,130 C302,139 332,172 336,221 Z"/>
+            <path android:fillColor="#FFFFFF" android:pathData="M174,215 H338 A14,14 0,0 1,352 229 A14,14 0,0 1,338 243 H174 A14,14 0,0 1,160 229 A14,14 0,0 1,174 215 Z"/>
+            <path android:fillColor="#1F2937" android:strokeColor="#FFFFFF" android:strokeWidth="9" android:pathData="M401,367 A51,51 0,1 1,299,367 A51,51 0,1 1,401,367"/>
+            <path android:fillColor="@android:color/transparent" android:strokeColor="#FFFFFF" android:strokeWidth="14" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M326,367 L341,383 L375,344"/>
+          </vector>''',encoding='utf-8')
+          java_dir=Path('android/app/src/main/java/br/com/gestao/epi');java_dir.mkdir(parents=True,exist_ok=True)
+          (java_dir/'ScreenOrientationPlugin.java').write_text(r'''package br.com.gestao.epi;
+          import android.content.pm.ActivityInfo;
+          import com.getcapacitor.Plugin;import com.getcapacitor.PluginCall;import com.getcapacitor.PluginMethod;import com.getcapacitor.annotation.CapacitorPlugin;
+          @CapacitorPlugin(name = "ScreenOrientation") public class ScreenOrientationPlugin extends Plugin {
+            @PluginMethod public void lock(PluginCall call){String o=call.getString("orientation","portrait");final int r=o.startsWith("landscape")?ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE:o.startsWith("portrait")?ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT:ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;getActivity().runOnUiThread(()->{getActivity().setRequestedOrientation(r);call.resolve();});}
+            @PluginMethod public void unlock(PluginCall call){getActivity().runOnUiThread(()->{getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);call.resolve();});}
+          }''',encoding='utf-8')
+          (java_dir/'MainActivity.java').write_text(r'''package br.com.gestao.epi;
+          import android.os.Bundle;import com.getcapacitor.BridgeActivity;
+          public class MainActivity extends BridgeActivity {@Override public void onCreate(Bundle savedInstanceState){registerPlugin(ScreenOrientationPlugin.class);super.onCreate(savedInstanceState);}}''',encoding='utf-8')
+          PY
+
+      - name: Compilar APK
+        working-directory: auditar-epi-mobile/android
+        run: ./gradlew assembleDebug
+
+      - name: Renomear APK
+        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Mobile-v3.1.0-CAMPO.apk
+
+      - name: Disponibilizar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gestao-EPI-Mobile-v3.1.0-CAMPO
+          path: Gestao-EPI-Mobile-v3.1.0-CAMPO.apk
+          if-no-files-found: error
+          retention-days: 14
