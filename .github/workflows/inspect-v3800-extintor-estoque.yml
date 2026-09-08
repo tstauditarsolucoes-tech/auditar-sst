@@ -1,0 +1,32 @@
+name: Inspect v3.38.0 Estoque Extintores
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v3.37.0-central-trabalho-pc]
+    paths:
+      - ".github/workflows/inspect-v3800-extintor-estoque.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar v3.37.1
+        run: python3 tools/assemble_v3710.py
+      - name: Inspecionar módulo de extintores
+        run: |
+          APP=app/Auditar_SST_v1_5_dashboard
+          echo '===== ARQUIVOS ====='
+          find "$APP/lib" -type f | grep -Ei 'extin|fire|equip' | sort || true
+          echo '===== REFERENCIAS ====='
+          grep -RniE 'extintor|extinguisher|fire exting' "$APP/lib" | head -n 350 || true
+          echo '===== DATABASE TABLES/METHODS ====='
+          grep -nEi 'extintor|extinguisher' "$APP/lib/database.dart" | head -n 250 || true
+          echo '===== MODELS ====='
+          grep -nEi 'extintor|extinguisher' "$APP/lib/models.dart" | head -n 250 || true
+          echo '===== HOME/MODULE ====='
+          grep -nEi 'extintor|extinguisher' "$APP/lib/screens/home_screen.dart" | head -n 120 || true
