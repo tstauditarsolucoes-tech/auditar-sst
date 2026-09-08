@@ -1,0 +1,31 @@
+name: Export v3.37.1 Source for v3.38.0
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v3.37.0-central-trabalho-pc]
+    paths:
+      - ".github/workflows/export-v3710-source-for-v3800.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar v3.37.1
+        run: python3 tools/assemble_v3710.py
+      - name: Empacotar fonte
+        run: |
+          cd app
+          zip -qr ../Auditar-SST-Codigo-Fonte-v3.37.1.zip Auditar_SST_v1_5_dashboard \
+            -x 'Auditar_SST_v1_5_dashboard/build/*' \
+               'Auditar_SST_v1_5_dashboard/.dart_tool/*' \
+               'Auditar_SST_v1_5_dashboard/android/.gradle/*'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-Codigo-Fonte-v3.37.1
+          path: Auditar-SST-Codigo-Fonte-v3.37.1.zip
+          retention-days: 7
