@@ -12,6 +12,7 @@
   loadScript('worker-link.js','worker-link');
   loadScript('bulk-delivery.js','bulk-delivery');
   loadScript('signature-worker-name.js','signature-worker-name');
+  loadScript('return-epi.js','return-epi');
 
   const $=(s,root=document)=>root.querySelector(s);
   const readJson=(key,fallback)=>{try{return {...fallback,...JSON.parse(localStorage.getItem(key)||'{}')};}catch{return fallback;}};
