@@ -1,0 +1,113 @@
+name: Auditar SST v3.38.2 Mobile Importacao Treinamentos
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v3.37.0-central-trabalho-pc]
+    paths:
+      - ".github/workflows/build-v3820-mobile-training-import.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  android-test:
+    name: Android v3.38.2 TESTE separado
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.38.2
+        run: python3 tools/assemble_v3820.py
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Preparar e validar Android
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q "MyApp" test/widget_test.dart; then rm test/widget_test.dart; fi
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          gradle = Path('android/app/build.gradle.kts')
+          text = gradle.read_text(encoding='utf-8')
+          text, count = re.subn(r'applicationId\s*=\s*"[^"]+"', 'applicationId = "br.com.auditar.auditar_sst.v3820"', text, count=1)
+          if count != 1:
+              raise SystemExit('Não foi possível alterar applicationId de teste')
+          gradle.write_text(text, encoding='utf-8')
+          manifest = Path('android/app/src/main/AndroidManifest.xml')
+          m = manifest.read_text(encoding='utf-8')
+          m = re.sub(r'android:label="[^"]+"', 'android:label="Auditar SST 3.38.2 TESTE"', m, count=1)
+          for permission in (
+              '<uses-permission android:name="android.permission.CAMERA" />',
+              '<uses-permission android:name="android.permission.INTERNET" />',
+          ):
+              if permission not in m:
+                  m = m.replace('<application', permission + '\n    <application', 1)
+          manifest.write_text(m, encoding='utf-8')
+          PY
+          flutter pub get
+          dart format lib test
+          grep -Fq 'version: 3.38.2+161' pubspec.yaml
+          grep -Fq 'xml: ^6.5.0' pubspec.yaml
+          grep -Fq "title: 'Importar com IA'" lib/screens/trainings_screen.dart
+          grep -Fq "subtitle: 'PDF, Excel ou CSV'" lib/screens/trainings_screen.dart
+          grep -Fq 'Conferir importação com IA' lib/screens/trainings_screen.dart
+          grep -Fq 'Nada é registrado automaticamente.' lib/screens/trainings_screen.dart
+          grep -Fq "allowedExtensions: const ['pdf', 'xlsx', 'csv']" lib/services/training_import_service.dart
+          grep -Fq "'mode': 'training_document_import'" lib/services/training_import_service.dart
+          grep -Fq 'Registro conferido antes da importação.' lib/services/training_import_service.dart
+          grep -Fq 'training_document_import' painel_web_google_apps_script/Code.gs
+          cp painel_web_google_apps_script/Code.gs /tmp/auditar_code_v3820.js
+          node --check /tmp/auditar_code_v3820.js
+          grep -Fq 'Ocultar empresa' lib/screens/companies_screen.dart
+          grep -Fq 'Setor excluído.' lib/screens/sectors_screen.dart
+          grep -Fq 'Enviar para recarga' lib/screens/extinguisher_stock_screen.dart
+          grep -Fq 'Assinar em tela cheia' lib/screens/signature_screen.dart
+          grep -Fq "label: const Text('Tirar foto')" lib/screens/checklist_screen.dart
+          grep -Fq 'FieldQuickScreen' lib/screens/home_screen.dart
+          grep -Fq "'syncProtocol': 2" lib/services/device_sync_service.dart
+          test "$(grep -c '^  ReadyChecklistDefinition(' lib/ready_checklists.dart)" -eq 44
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+      - name: Compilar APK TESTE
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if [ -z "$AUDITAR_SYNC_KEY" ]; then echo '::error::AUDITAR_SYNC_KEY ausente'; exit 1; fi
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+      - name: Preparar APK
+        run: |
+          mkdir -p dist/android
+          cp app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-release.apk dist/android/Auditar-SST-Android-v3.38.2-IMPORTACAO-TREINAMENTOS-TESTE.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-Android-v3.38.2-IMPORTACAO-TREINAMENTOS-TESTE
+          path: dist/android/Auditar-SST-Android-v3.38.2-IMPORTACAO-TREINAMENTOS-TESTE.apk
+          retention-days: 30
+
+  source:
+    name: Codigo-fonte v3.38.2
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar e empacotar
+        run: |
+          python3 tools/assemble_v3820.py
+          cd app
+          zip -qr ../Auditar-SST-Codigo-Fonte-v3.38.2-Importacao-Treinamentos.zip Auditar_SST_v1_5_dashboard \
+            -x 'Auditar_SST_v1_5_dashboard/build/*' \
+               'Auditar_SST_v1_5_dashboard/.dart_tool/*' \
+               'Auditar_SST_v1_5_dashboard/android/.gradle/*'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-Codigo-Fonte-v3.38.2-Mobile
+          path: Auditar-SST-Codigo-Fonte-v3.38.2-Importacao-Treinamentos.zip
+          retention-days: 30
