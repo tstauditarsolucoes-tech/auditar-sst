@@ -21,6 +21,7 @@
   loadScript('field-operations-v221.js','field-operations-v221');
   loadStyle('mobile-v3.css','mobile-v3-style');
   loadScript('mobile-v3.js','mobile-v3');
+  loadScript('mobile-general-report-v330.js','mobile-general-report-v330');
 
   const $=(s,root=document)=>root.querySelector(s);
   const auth=()=>window.GestaoEpiAuth;
@@ -73,7 +74,6 @@
     const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),SYNC_TIMEOUT);
 
     try{
-      // Libera um quadro de renderização antes de montar/enviar a base.
       await new Promise(resolve=>requestAnimationFrame(()=>setTimeout(resolve,40)));
       const body=buildSyncBody(token);
       const res=await fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body,signal:controller.signal});
@@ -95,8 +95,6 @@
 
       const responseBytes=responseText.length;
       if(changed){
-        // Só redesenha imediatamente quando a resposta é pequena.
-        // Bases grandes ficam salvas e são aplicadas na próxima abertura, evitando congelar o WebView.
         if(allowRefresh&&responseBytes<=SAFE_REFRESH_MAX_BYTES&&isHomeVisible()){
           requestAnimationFrame(()=>setTimeout(()=>document.dispatchEvent(new CustomEvent('gestao-epi-sync-applied',{detail:{remote:true}})),120));
           localStorage.removeItem(NEEDS_REFRESH);
@@ -125,7 +123,6 @@
     clearTimeout(pushTimer);
     if(!canAutoSync()){status('Pendente • toque ☁️','idle');return;}
     pushTimer=setTimeout(()=>{
-      // Nunca inicia uma sincronização automática enquanto o usuário está na tela de entrega.
       if($('#delivery')?.classList.contains('active')){status('Pendente • toque ☁️','idle');return;}
       sync({manual:false,allowRefresh:false});
     },delay);
@@ -141,7 +138,6 @@
 
   function onAuthReady(){
     ready=true;
-    // Mobile v3 mantém a regra estável: não sincroniza tudo imediatamente após o login.
     status('Pronto','idle');
     if(canAutoSync())scheduleAuto(12000);
   }
