@@ -1,4 +1,4 @@
-name: Gerar Gestão EPI Mobile v3.1
+name: Gerar Gestão EPI Mobile v3.1.1
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ on:
       - '.github/workflows/build-epi-android-v310.yml'
 
 concurrency:
-  group: gestao-epi-android-v310
+  group: gestao-epi-android-v311
   cancel-in-progress: true
 
 permissions:
@@ -35,17 +35,17 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Validar módulos Mobile v3.1
+      - name: Validar módulos Mobile v3.1.1
         run: |
           node --check auditar-epi/mobile-v3.js
-          node --check auditar-epi/mobile-field-v310.js
+          node --check auditar-epi/mobile-face-inline-v311.js
           node --check auditar-epi/field-operations-v221.js
           node --check auditar-epi/mobile-auth-v222.js
           node --check auditar-epi/mobile-cloud-sync-v300.js
           node --check auditar-epi/bulk-delivery.js
-          node --check auditar-epi/facial-assist.js
+          node --check auditar-epi/biometric-face.js
 
-      - name: Preparar interface Mobile v3.1
+      - name: Preparar interface Mobile v3.1.1
         run: |
           rm -rf auditar-epi-mobile/www
           mkdir -p auditar-epi-mobile/www
@@ -56,8 +56,8 @@ jobs:
           from pathlib import Path
           p=Path('auditar-epi-mobile/www/index.html')
           text=p.read_text(encoding='utf-8')
-          scripts='''\n  <script src="field-operations-v221.js"></script>\n  <script src="mobile-v3.js"></script>\n  <script src="mobile-field-v310.js"></script>\n'''
-          for src in ['field-operations-v221.js','mobile-v3.js','mobile-field-v310.js']:
+          scripts='''\n  <script src="field-operations-v221.js"></script>\n  <script src="mobile-v3.js"></script>\n  <script src="mobile-face-inline-v311.js"></script>\n'''
+          for src in ['field-operations-v221.js','mobile-v3.js','mobile-field-v310.js','mobile-face-inline-v311.js']:
               text=text.replace(f'  <script src="{src}"></script>\n','')
           text=text.replace('</body>',scripts+'</body>')
           p.write_text(text,encoding='utf-8')
@@ -112,12 +112,12 @@ jobs:
         run: ./gradlew assembleDebug
 
       - name: Renomear APK
-        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Mobile-v3.1.0-CAMPO.apk
+        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Mobile-v3.1.1-FACIAL-CAMPO.apk
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
-          name: Gestao-EPI-Mobile-v3.1.0-CAMPO
-          path: Gestao-EPI-Mobile-v3.1.0-CAMPO.apk
+          name: Gestao-EPI-Mobile-v3.1.1-FACIAL-CAMPO
+          path: Gestao-EPI-Mobile-v3.1.1-FACIAL-CAMPO.apk
           if-no-files-found: error
           retention-days: 14
