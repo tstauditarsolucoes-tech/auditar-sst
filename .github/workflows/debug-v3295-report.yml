@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v5
       - name: Montar fonte v3.29.4 atual
         run: python3 tools/assemble_v3294.py
-      - name: Inspecionar relatório e sincronização finais
+      - name: Inspecionar mídia, relatório e sincronização finais
         working-directory: app/Auditar_SST_v1_5_dashboard
         run: |
           python3 - <<'PY'
@@ -25,6 +25,9 @@ jobs:
 
           def snippets(rel, needles, radius=18):
               p=Path(rel)
+              if not p.exists():
+                  print(f'===== {rel} AUSENTE =====')
+                  return
               text=p.read_text(encoding='utf-8')
               lines=text.splitlines()
               print(f'===== {rel} ({len(lines)} linhas) =====')
@@ -41,21 +44,33 @@ jobs:
                           print(f'{n+1:04d}: {lines[n]}')
                       print('---')
 
-          snippets('lib/services/pdf_service.dart', [
-              'Foto indisponível', 'pw.MultiPage', 'pageNumber', 'pagesCount',
-              'MemoryImage', 'image', 'photo', 'footer', 'header',
-              'CHECKLIST COMPLETO', 'PONTOS DE ATENÇÃO'
-          ], 14)
-          snippets('lib/screens/report_screen.dart', [
-              'generate', 'PdfService', 'include_action_plan', 'signature'
-          ], 14)
+          print('===== ARQUIVOS RELACIONADOS A MIDIA =====')
+          for p in sorted(Path('lib').rglob('*.dart')):
+              low=str(p).lower()
+              txt=p.read_text(encoding='utf-8', errors='ignore')
+              if 'media' in low or 'MediaSyncService' in txt or 'media_assets' in txt or 'media_sync' in txt:
+                  print(p)
+
+          snippets('lib/services/media_sync_service.dart', [
+              'class MediaSyncService', 'uploadPending', 'download', 'media_assets',
+              'local_path', 'remote', 'file', 'cache', 'asset'
+          ], 22)
           snippets('lib/database.dart', [
-              'getInspectionHistory', 'photo', 'inspection_photos', 'answer_photos'
-          ], 10)
+              'media_assets', 'MediaAsset', 'media_sync', 'evidence_photos',
+              'completion_photos', 'getPhotosForAnswer', 'getCompletionPhotos',
+              'getOriginalPhotosForAction'
+          ], 16)
+          snippets('lib/services/pdf_service.dart', [
+              'Foto indisponível', '_loadImage', '_photoBox', 'pw.MultiPage',
+              'pageNumber', 'pagesCount', 'getPhotosForAnswer',
+              'getCompletionPhotos', 'getOriginalPhotosForAction'
+          ], 18)
           snippets('lib/services/device_sync_service.dart', [
-              '_ensureChangeTracking', '_pendingChanges', '_attemptIsDue'
-          ], 10)
+              'MediaSyncService', '_ensureChangeTracking', '_pendingChanges',
+              '_attemptIsDue', 'pendingChangesCount', 'synchronize'
+          ], 20)
           snippets('lib/services/sync_coordinator.dart', [
-              'addPostFrameCallback', 'verifySession', 'Timer.periodic'
-          ], 10)
+              'addPostFrameCallback', 'verifySession', 'Timer.periodic',
+              '_trySync', '_tryAutoBackup', 'Connectivity'
+          ], 20)
           PY
