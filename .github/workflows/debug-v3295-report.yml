@@ -1,8 +1,8 @@
-name: Debug v3.29.5 Pending Improvements
+name: Debug v3.29.6 Revisao IA Relatorio
 
 on:
   push:
-    branches: [feature/v3.29.5]
+    branches: [feature/v3.29.6]
     paths:
       - ".github/workflows/debug-v3295-report.yml"
 
@@ -15,28 +15,21 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
-      - name: Montar fonte v3.29.5 atual
+      - name: Montar fonte v3.29.5 base
         run: python3 tools/assemble_v3295.py
-      - name: Localizar telas de plano de ação
-        working-directory: app/Auditar_SST_v1_5_dashboard
-        run: |
-          find lib -type f \( -iname '*action*' -o -iname '*plan*' -o -iname '*report*' \) -print | sort | tee /tmp/relevant-files.txt
       - name: Salvar fonte final relevante
         uses: actions/upload-artifact@v4
         with:
-          name: debug-v3295-action-report
+          name: debug-v3296-ai-report
           path: |
             app/Auditar_SST_v1_5_dashboard/lib/models.dart
             app/Auditar_SST_v1_5_dashboard/lib/database.dart
-            app/Auditar_SST_v1_5_dashboard/lib/screens/checklist_screen.dart
-            app/Auditar_SST_v1_5_dashboard/lib/screens/*action*.dart
-            app/Auditar_SST_v1_5_dashboard/lib/screens/*plan*.dart
             app/Auditar_SST_v1_5_dashboard/lib/screens/report_screen.dart
+            app/Auditar_SST_v1_5_dashboard/lib/screens/report_history_screen.dart
+            app/Auditar_SST_v1_5_dashboard/lib/screens/checklist_screen.dart
+            app/Auditar_SST_v1_5_dashboard/lib/services/ai_assistant_service.dart
             app/Auditar_SST_v1_5_dashboard/lib/services/pdf_service.dart
-            app/Auditar_SST_v1_5_dashboard/lib/services/device_sync_service.dart
-            app/Auditar_SST_v1_5_dashboard/lib/services/sync_coordinator.dart
             app/Auditar_SST_v1_5_dashboard/painel_web_google_apps_script/Code.gs
-            app/Auditar_SST_v1_5_dashboard/painel_web_google_apps_script/MultiUser.gs
             app/Auditar_SST_v1_5_dashboard/pubspec.yaml
           if-no-files-found: warn
           retention-days: 2
