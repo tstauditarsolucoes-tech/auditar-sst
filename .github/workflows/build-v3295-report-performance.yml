@@ -150,7 +150,7 @@ jobs:
           grep -Fq "import 'media_sync_service.dart';" lib/services/pdf_service.dart
           grep -Fq 'await MediaSyncService.downloadMissing();' lib/services/pdf_service.dart
           grep -Fq 'final photoCache = <String, Future<List<EvidencePhoto>>>{};' lib/services/pdf_service.dart
-          grep -Fq "'Página ${context.pageNumber} de ${context.pagesCount}'," lib/services/pdf_service.dart
+          grep -Fq "'Página \${context.pageNumber} de \${context.pagesCount}'," lib/services/pdf_service.dart
           ! grep -Fq 'context.pageNumber + 1' lib/services/pdf_service.dart
           ! grep -Fq 'context.pagesCount + 1' lib/services/pdf_service.dart
           ! grep -Fq 'Alertas de exames periódicos' lib/screens/companies_screen.dart
