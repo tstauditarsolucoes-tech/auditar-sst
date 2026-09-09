@@ -18,12 +18,12 @@
   loadScript('worker-link.js','worker-link');
   loadScript('bulk-delivery.js','bulk-delivery');
   loadScript('signature-worker-name.js','signature-worker-name');
-  loadScript('field-operations-v221.js','field-operations-v221');
+  loadScript('field-operations-v350.js','field-operations-v350');
   loadStyle('mobile-v3.css','mobile-v3-style');
   loadScript('mobile-v3.js','mobile-v3');
   loadScript('mobile-general-report-v330.js','mobile-general-report-v330');
-  loadScript('invoice-epi-ai-v340.js','invoice-epi-ai-v340');
-  loadScript('invoice-epi-ai-ca-fix-v341.js','invoice-epi-ai-ca-fix-v341');
+  loadScript('invoice-epi-ai-v350.js','invoice-epi-ai-v350');
+  loadScript('smart-management-v350.js','smart-management-v350');
 
   const $=(s,root=document)=>root.querySelector(s);
   const auth=()=>window.GestaoEpiAuth;
@@ -55,7 +55,7 @@
     const stockRaw=validJsonRaw(localStorage.getItem(STOCK_KEY),'{}');
     const rev=Number(localStorage.getItem(REV_STORE)||0);
     const now=new Date().toISOString();
-    return `{"action":"epi_sync_merge","authToken":${JSON.stringify(token)},"deviceId":${JSON.stringify(auth()?.deviceId?.()||'')},"client":"campo-android-v300","payload":{"version":1,"revision":${rev},"updatedAt":${JSON.stringify(now)},"app":${appRaw},"stock":${stockRaw}}}`;
+    return `{"action":"epi_sync_merge","authToken":${JSON.stringify(token)},"deviceId":${JSON.stringify(auth()?.deviceId?.()||'')},"client":"campo-android-v350","payload":{"version":1,"revision":${rev},"updatedAt":${JSON.stringify(now)},"app":${appRaw},"stock":${stockRaw}}}`;
   }
 
   function isHomeVisible(){return $('#home')?.classList.contains('active');}
@@ -138,11 +138,7 @@
     document.addEventListener('auditar-epi-data-changed',()=>scheduleAuto(5000));
   }
 
-  function onAuthReady(){
-    ready=true;
-    status('Pronto','idle');
-    if(canAutoSync())scheduleAuto(12000);
-  }
+  function onAuthReady(){ready=true;status('Pronto','idle');if(canAutoSync())scheduleAuto(12000);}
 
   window.addEventListener('online',()=>{status(ready?'Pronto':'Online','idle');if(ready&&canAutoSync()&&Date.now()-lastSyncAt>180000)scheduleAuto(12000);});
   window.addEventListener('offline',()=>status('Offline','offline'));
