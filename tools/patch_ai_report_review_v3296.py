@@ -43,7 +43,10 @@ def main() -> int:
         return 2
 
     here = Path(__file__).resolve().parent
-    payload = (here / 'patch_ai_report_review_v3296.part1').read_text(encoding='utf-8').strip()
+    payload = ''.join(
+        (here / f'patch_ai_report_review_v3296.part{i}').read_text(encoding='utf-8').strip()
+        for i in range(1, 6)
+    )
     diff = gzip.decompress(base64.b64decode(payload))
 
     with tempfile.NamedTemporaryFile(suffix='.diff', delete=False) as tmp:
