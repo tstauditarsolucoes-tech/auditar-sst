@@ -10,7 +10,7 @@
   const SAFE_REFRESH_MAX_BYTES=900000;
   let syncing=false,pushTimer=null,lastSyncAt=0,ready=false;
 
-  function loadScript(src,attr){if(document.querySelector(`script[data-${attr}]`))return;const s=document.createElement('script');s.src=src;s.dataset[attr.replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]='1';document.head.appendChild(s);}
+  function loadScript(src,attr){if(document.querySelector(`script[data-${attr}]`))return;const s=document.createElement('script');s.src=src;s.async=false;s.dataset[attr.replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]='1';document.head.appendChild(s);}
   function loadStyle(src,attr){if(document.querySelector(`link[data-${attr}]`))return;const l=document.createElement('link');l.rel='stylesheet';l.href=src;l.dataset[attr.replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]='1';document.head.appendChild(l);}
   loadScript('company-branding.js','company-branding');
   loadScript('mobile-layout-fix.js','mobile-layout-fix');
@@ -21,6 +21,7 @@
   loadScript('field-operations-v350.js','field-operations-v350');
   loadStyle('mobile-v3.css','mobile-v3-style');
   loadScript('mobile-v3.js','mobile-v3');
+  loadScript('mobile-face-inline-v311.js','mobile-face-inline-v311');
   loadScript('mobile-general-report-v330.js','mobile-general-report-v330');
   loadScript('invoice-epi-ai-v350.js','invoice-epi-ai-v350');
   loadScript('smart-management-v350.js','smart-management-v350');
