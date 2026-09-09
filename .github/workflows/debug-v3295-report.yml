@@ -17,14 +17,18 @@ jobs:
       - uses: actions/checkout@v5
       - name: Montar fonte v3.29.5 atual
         run: python3 tools/assemble_v3295.py
-      - name: Inspecionar IA do checklist e backend
+      - name: Inspecionar snapshot e configurações de relatórios
         working-directory: app/Auditar_SST_v1_5_dashboard
         run: |
           python3 - <<'PY'
           from pathlib import Path
 
-          def around(rel, needles, radius=35):
-              lines=Path(rel).read_text(encoding='utf-8').splitlines()
+          def around(rel, needles, radius=45):
+              p=Path(rel)
+              if not p.exists():
+                  print(f'ARQUIVO AUSENTE: {rel}')
+                  return
+              lines=p.read_text(encoding='utf-8').splitlines()
               print(f'===== {rel} ({len(lines)} linhas) =====')
               shown=set()
               for needle in needles:
@@ -38,27 +42,19 @@ jobs:
                       for j in range(a,b): print(f'{j+1:04d}: {lines[j]}')
                       print('---')
 
-          around('lib/screens/checklist_screen.dart', [
-              'analyzeChecklistPhoto',
-              'technicianContext',
-              'Analisar com IA',
-              'Analisar foto',
-              'observations[item.id]',
-              'Fotos de evidência',
+          around('lib/services/management_panel_service.dart', [
+              "'openNonConformities'", "'pendingActions'", "'recentInspections'",
+              "'monthlyReport'", "'notifications'", 'return {',
+          ], 60)
+          around('lib/models.dart', [
+              'monthlyReportEnabled', 'primaryEmail', 'secondaryEmail',
+              'class Company', 'notifications',
           ], 45)
-          around('lib/services/ai_assistant_service.dart', [
-              'analyzeChecklistPhoto',
-              'technicianContext',
-              'return _send',
+          around('lib/screens/settings_screen.dart', [
+              'monthlyReportEnabled', 'Relatório mensal', 'primaryEmail',
+              'monthlyReportDay', 'notifica',
+          ], 45)
+          around('lib/database.dart', [
+              'monthly_report', 'primary_email', 'secondary_email', 'notifications',
           ], 30)
-          around('painel_web_google_apps_script/Code.gs', [
-              "mode === 'checklist_photo'",
-              'function doGet',
-              'function sendMonthlyReportIfDue_',
-              'function createMonthlyPdf_',
-              'weekly',
-              'persistent',
-              'recurring',
-              'corrected',
-          ], 25)
           PY
