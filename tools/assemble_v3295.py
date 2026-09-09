@@ -35,6 +35,7 @@ PATCHES = [
     'patch_remove_exams_v3294b.py',
     'patch_report_media_performance_v3295.py',
     'patch_pending_improvements_v3295.py',
+    'patch_sync_cache_guard_v3295.py',
 ]
 
 
