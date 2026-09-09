@@ -59,8 +59,8 @@ jobs:
           from pathlib import Path
           p=Path('auditar-epi-mobile/www/index.html')
           text=p.read_text(encoding='utf-8')
-          # A inicialização dos módulos de campo agora é feita pelo cloud-sync em ordem leve,
-          # evitando a execução duplicada que podia causar lentidão/travamento.
+          # A inicialização dos módulos de campo é feita pelo cloud-sync em ordem leve,
+          # evitando execução duplicada e reduzindo travamentos.
           for src in [
               'field-operations-v221.js','field-operations-v350.js','mobile-v3.js',
               'mobile-field-v310.js','mobile-face-inline-v311.js',
@@ -83,6 +83,7 @@ jobs:
           python3 - <<'PY'
           import re
           from pathlib import Path
+
           manifest=Path('android/app/src/main/AndroidManifest.xml')
           text=manifest.read_text(encoding='utf-8')
           permission='<uses-permission android:name="android.permission.CAMERA" />'
@@ -92,7 +93,9 @@ jobs:
           text=re.sub(r'android:icon="[^"]+"','android:icon="@drawable/ic_gestao_epi"',text,count=1)
           text=re.sub(r'android:roundIcon="[^"]+"','android:roundIcon="@drawable/ic_gestao_epi"',text,count=1)
           manifest.write_text(text,encoding='utf-8')
-          drawable=Path('android/app/src/main/res/drawable');drawable.mkdir(parents=True,exist_ok=True)
+
+          drawable=Path('android/app/src/main/res/drawable')
+          drawable.mkdir(parents=True,exist_ok=True)
           (drawable/'ic_gestao_epi.xml').write_text(r'''<?xml version="1.0" encoding="utf-8"?>
           <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="512" android:viewportHeight="512">
             <path android:fillColor="#0FA88E" android:pathData="M0,0H512V512H0Z"/>
@@ -102,15 +105,54 @@ jobs:
             <path android:fillColor="#1F2937" android:strokeColor="#FFFFFF" android:strokeWidth="9" android:pathData="M401,367 A51,51 0,1 1,299,367 A51,51 0,1 1,401,367"/>
             <path android:fillColor="@android:color/transparent" android:strokeColor="#FFFFFF" android:strokeWidth="14" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M326,367 L341,383 L375,344"/>
           </vector>''',encoding='utf-8')
-          java_dir=Path('android/app/src/main/java/br/com/gestao/epi');java_dir.mkdir(parents=True,exist_ok=True)
+
+          java_dir=Path('android/app/src/main/java/br/com/gestao/epi')
+          java_dir.mkdir(parents=True,exist_ok=True)
           (java_dir/'ScreenOrientationPlugin.java').write_text(r'''package br.com.gestao.epi;
+
           import android.content.pm.ActivityInfo;
-          import com.getcapacitor.Plugin;import com.getcapacitor.PluginCall;import com.getcapacitor.PluginMethod;import com.getcapacitor.annotation.CapacitorPlugin;
-          @CapacitorPlugin(name = "ScreenOrientation") public class ScreenOrientationPlugin {
-          }'''.replace('public class ScreenOrientationPlugin {\n          }','public class ScreenOrientationPlugin extends Plugin {\n            @PluginMethod public void lock(PluginCall call){String o=call.getString("orientation","portrait");final int r=o.startsWith("landscape")?ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE:o.startsWith("portrait")?ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT:ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;getActivity().runOnUiThread(()->{getActivity().setRequestedOrientation(r);call.resolve();});}\n            @PluginMethod public void unlock(PluginCall call){getActivity().runOnUiThread(()->{getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);call.resolve();});}\n          }'),encoding='utf-8')
+          import com.getcapacitor.Plugin;
+          import com.getcapacitor.PluginCall;
+          import com.getcapacitor.PluginMethod;
+          import com.getcapacitor.annotation.CapacitorPlugin;
+
+          @CapacitorPlugin(name = "ScreenOrientation")
+          public class ScreenOrientationPlugin extends Plugin {
+            @PluginMethod
+            public void lock(PluginCall call) {
+              String orientation = call.getString("orientation", "portrait");
+              final int requested = orientation.startsWith("landscape")
+                ? ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                : orientation.startsWith("portrait")
+                  ? ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
+                  : ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
+              getActivity().runOnUiThread(() -> {
+                getActivity().setRequestedOrientation(requested);
+                call.resolve();
+              });
+            }
+
+            @PluginMethod
+            public void unlock(PluginCall call) {
+              getActivity().runOnUiThread(() -> {
+                getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+                call.resolve();
+              });
+            }
+          }
+          ''',encoding='utf-8')
+
           (java_dir/'MainActivity.java').write_text(r'''package br.com.gestao.epi;
-          import android.os.Bundle;import com.getcapacitor.BridgeActivity;
-          public class MainActivity extends BridgeActivity {@Override public void onCreate(Bundle savedInstanceState){registerPlugin(ScreenOrientationPlugin.class);super.onCreate(savedInstanceState);}}''',encoding='utf-8')
+          import android.os.Bundle;
+          import com.getcapacitor.BridgeActivity;
+          public class MainActivity extends BridgeActivity {
+            @Override
+            public void onCreate(Bundle savedInstanceState) {
+              registerPlugin(ScreenOrientationPlugin.class);
+              super.onCreate(savedInstanceState);
+            }
+          }
+          ''',encoding='utf-8')
           PY
 
       - name: Compilar APK
