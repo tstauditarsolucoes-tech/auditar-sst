@@ -85,7 +85,8 @@ jobs:
           import re
           html = Path('painel_web_google_apps_script/Index.html').read_text(encoding='utf-8')
           scripts = re.findall(r'<script[^>]*>([\s\S]*?)</script>', html, flags=re.I)
-          js = '\n'.join(scripts).replace("<?!= JSON.stringify(data) ?>", '{}')
+          js = '\n'.join(scripts)
+          js = re.sub(r'<\?!=[\s\S]*?\?>', '{}', js)
           Path('/tmp/index_check.js').write_text(js, encoding='utf-8')
           PY
           node --check /tmp/index_check.js
