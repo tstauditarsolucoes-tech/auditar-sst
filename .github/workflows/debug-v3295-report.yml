@@ -17,35 +17,35 @@ jobs:
       - uses: actions/checkout@v5
       - name: Montar fonte v3.29.4 atual
         run: python3 tools/assemble_v3294.py
-      - name: Inspecionar PDF final e versão das dependências
+      - name: Inspecionar tipos de fotos e renderização final
         working-directory: app/Auditar_SST_v1_5_dashboard
         run: |
           python3 - <<'PY'
           from pathlib import Path
 
-          def ranges(rel, items):
+          def around(rel, needles, radius=45):
               lines=Path(rel).read_text(encoding='utf-8').splitlines()
               print(f'===== {rel} ({len(lines)} linhas) =====')
-              for a,b in items:
-                  print(f'--- linhas {a}-{b} ---')
-                  for i in range(a-1, min(b, len(lines))):
-                      print(f'{i+1:04d}: {lines[i]}')
+              shown=set()
+              for needle in needles:
+                  hits=[i for i,line in enumerate(lines) if needle.lower() in line.lower()]
+                  print(f'--- {needle!r}: {hits} ---')
+                  for i in hits:
+                      a=max(0,i-radius); b=min(len(lines),i+radius+1)
+                      key=(a,b)
+                      if key in shown: continue
+                      shown.add(key)
+                      for j in range(a,b): print(f'{j+1:04d}: {lines[j]}')
+                      print('---')
 
-          ranges('lib/services/pdf_service.dart', [
-              (1,220),
-              (220,430),
-              (430,650),
-              (650,850),
-          ])
-          print('===== PUBSPEC PDF/VERSION =====')
-          for n,line in enumerate(Path('pubspec.yaml').read_text(encoding='utf-8').splitlines(),1):
-              if line.startswith('version:') or 'pdf:' in line or 'printing:' in line:
-                  print(f'{n:04d}: {line}')
-          print('===== REPORT SCREEN CHAMADAS =====')
-          lines=Path('lib/screens/report_screen.dart').read_text(encoding='utf-8').splitlines()
-          for i,line in enumerate(lines):
-              if 'PdfService' in line or 'generate' in line.lower() or 'include_action_plan' in line:
-                  a=max(0,i-12); b=min(len(lines),i+20)
-                  for j in range(a,b): print(f'{j+1:04d}: {lines[j]}')
-                  print('---')
+          around('lib/models.dart', [
+              'class EvidencePhoto',
+              'class CompletionPhoto',
+              'class ActionPlan',
+          ], 50)
+          around('lib/services/pdf_service.dart', [
+              'static Future<List<pw.Widget>> _photoRows',
+              'static Future<pw.Widget> _photoBox',
+              'static Future<pw.ImageProvider?> _loadImage',
+          ], 65)
           PY
