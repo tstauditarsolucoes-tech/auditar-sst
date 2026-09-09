@@ -1,4 +1,4 @@
-name: Debug v3.29.5 Report
+name: Debug v3.29.5 Pending Improvements
 
 on:
   push:
@@ -15,15 +15,15 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
-      - name: Montar fonte v3.29.4 atual
-        run: python3 tools/assemble_v3294.py
-      - name: Inspecionar tipos de fotos e renderização final
+      - name: Montar fonte v3.29.5 atual
+        run: python3 tools/assemble_v3295.py
+      - name: Inspecionar IA do checklist e backend
         working-directory: app/Auditar_SST_v1_5_dashboard
         run: |
           python3 - <<'PY'
           from pathlib import Path
 
-          def around(rel, needles, radius=45):
+          def around(rel, needles, radius=35):
               lines=Path(rel).read_text(encoding='utf-8').splitlines()
               print(f'===== {rel} ({len(lines)} linhas) =====')
               shown=set()
@@ -38,14 +38,27 @@ jobs:
                       for j in range(a,b): print(f'{j+1:04d}: {lines[j]}')
                       print('---')
 
-          around('lib/models.dart', [
-              'class EvidencePhoto',
-              'class CompletionPhoto',
-              'class ActionPlan',
-          ], 50)
-          around('lib/services/pdf_service.dart', [
-              'static Future<List<pw.Widget>> _photoRows',
-              'static Future<pw.Widget> _photoBox',
-              'static Future<pw.ImageProvider?> _loadImage',
-          ], 65)
+          around('lib/screens/checklist_screen.dart', [
+              'analyzeChecklistPhoto',
+              'technicianContext',
+              'Analisar com IA',
+              'Analisar foto',
+              'observations[item.id]',
+              'Fotos de evidência',
+          ], 45)
+          around('lib/services/ai_assistant_service.dart', [
+              'analyzeChecklistPhoto',
+              'technicianContext',
+              'return _send',
+          ], 30)
+          around('painel_web_google_apps_script/Code.gs', [
+              "mode === 'checklist_photo'",
+              'function doGet',
+              'function sendMonthlyReportIfDue_',
+              'function createMonthlyPdf_',
+              'weekly',
+              'persistent',
+              'recurring',
+              'corrected',
+          ], 25)
           PY
