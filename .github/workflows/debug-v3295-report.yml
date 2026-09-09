@@ -17,13 +17,13 @@ jobs:
       - uses: actions/checkout@v5
       - name: Montar fonte v3.29.5 atual
         run: python3 tools/assemble_v3295.py
-      - name: Inspecionar snapshot e configurações de relatórios
+      - name: Inspecionar relatório, checklist IA e sincronização finais
         working-directory: app/Auditar_SST_v1_5_dashboard
         run: |
           python3 - <<'PY'
           from pathlib import Path
 
-          def around(rel, needles, radius=45):
+          def around(rel, needles, radius=32):
               p=Path(rel)
               if not p.exists():
                   print(f'ARQUIVO AUSENTE: {rel}')
@@ -44,17 +44,25 @@ jobs:
 
           around('lib/services/management_panel_service.dart', [
               "'openNonConformities'", "'pendingActions'", "'recentInspections'",
-              "'monthlyReport'", "'notifications'", 'return {',
-          ], 60)
-          around('lib/models.dart', [
-              'monthlyReportEnabled', 'primaryEmail', 'secondaryEmail',
-              'class Company', 'notifications',
-          ], 45)
-          around('lib/screens/settings_screen.dart', [
-              'monthlyReportEnabled', 'Relatório mensal', 'primaryEmail',
-              'monthlyReportDay', 'notifica',
-          ], 45)
-          around('lib/database.dart', [
-              'monthly_report', 'primary_email', 'secondary_email', 'notifications',
-          ], 30)
+              "'monthlyReport'", "'notifications'", 'managementFollowUp', 'weeklyReport',
+          ], 40)
+          around('lib/screens/new_inspection_screen.dart', [
+              'analy', 'technicianContext', 'AiAssistant', 'foto', 'photo',
+              'Observação do técnico', 'O que você observou',
+          ], 28)
+          around('lib/services/ai_assistant_service.dart', [
+              'technicianContext', 'analyze', 'checklist', 'images',
+          ], 32)
+          around('lib/services/device_sync_service.dart', [
+              '_ensureChangeTracking', '_pendingChanges', '_attemptIsDue',
+              'device_sync_push', 'device_sync_pull',
+          ], 32)
+          around('lib/services/sync_coordinator.dart', [
+              'Timer.periodic', 'addPostFrameCallback', '_trySync', 'minutes:', 'seconds:',
+          ], 28)
+          around('painel_web_google_apps_script/Code.gs', [
+              'function pushDeviceChanges_', 'function pullDeviceChanges_',
+              'sendWeeklyReportIfDue_', 'createWeeklyPdf_', 'managementFollowUp',
+              "'Observação do técnico:'", 'technicianContext',
+          ], 38)
           PY
