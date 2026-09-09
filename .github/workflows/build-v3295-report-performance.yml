@@ -8,6 +8,8 @@ on:
       - ".github/workflows/build-v3295-report-performance.yml"
       - "tools/assemble_v3295.py"
       - "tools/patch_report_media_performance_v3295.py"
+      - "tools/patch_pending_improvements_v3295.py"
+      - "tools/patch_pending_improvements_v3295.part1"
 
 permissions:
   contents: read
@@ -35,7 +37,7 @@ jobs:
           flutter pub get
           dart format lib
           $pub = Get-Content pubspec.yaml -Raw
-          if (-not $pub.Contains('version: 3.29.5+147')) { throw 'versão incorreta' }
+          if (-not $pub.Contains('version: 3.29.5+148')) { throw 'versão incorreta' }
           $screens = @(
             (Get-Content lib/screens/companies_screen.dart -Raw),
             (Get-Content lib/screens/workers_screen.dart -Raw),
@@ -57,8 +59,22 @@ jobs:
           if (-not $report.Contains('final photoCache = <String, Future<List<EvidencePhoto>>>{};')) { throw 'cache de fotos ausente' }
           if (-not $report.Contains("'Página `${context.pageNumber} de `${context.pagesCount}',")) { throw 'paginação v3.29.5 ausente' }
           if ($report.Contains('context.pageNumber + 1') -or $report.Contains('context.pagesCount + 1')) { throw 'paginação antiga ainda presente' }
+          if (-not $report.Contains("_detailLine('Local da correção'")) { throw 'local da correção ausente do relatório' }
+          if (-not $report.Contains("executive ? 'O que deve ser feito' : 'Ação corretiva'")) { throw 'modelo executivo de ação ausente' }
           $reportScreen = Get-Content lib/screens/report_screen.dart -Raw
           if (-not $reportScreen.Contains('Incluir plano de ação no relatório')) { throw 'plano de ação opcional ausente' }
+          $createAction = Get-Content lib/screens/create_action_screen.dart -Raw
+          if (-not $createAction.Contains('Local exato / ponto de referência')) { throw 'local exato ausente do plano de ação' }
+          $checklist = Get-Content lib/screens/checklist_screen.dart -Raw
+          if (-not $checklist.Contains('O que você observou no local? (opcional)')) { throw 'observação opcional da IA ausente' }
+          if (-not $checklist.Contains('primaryActionLocation')) { throw 'localização da ação rápida ausente' }
+          $device = Get-Content lib/services/device_sync_service.dart -Raw
+          if (-not $device.Contains('static bool _changeTrackingReady = false;')) { throw 'otimização SQLite de sync ausente' }
+          $coordinator = Get-Content lib/services/sync_coordinator.dart -Raw
+          if (-not $coordinator.Contains('Duration(seconds: 45)')) { throw 'cadência otimizada de sync ausente' }
+          $multi = Get-Content painel_web_google_apps_script/MultiUser.gs -Raw
+          if (-not $multi.Contains('let AUDITAR_AUTH_SS_CACHE_ = null;')) { throw 'cache multiusuário ausente' }
+          if (-not $multi.Contains('const updatedRows = [];')) { throw 'escrita em lote multiusuário ausente' }
           $main = Get-Content lib/main.dart -Raw
           if (-not $main.Contains('checkmarkColor: AuditarBrand.greenDark')) { throw 'contraste global foi perdido' }
           flutter analyze --no-fatal-infos --no-fatal-warnings
@@ -141,16 +157,26 @@ jobs:
         working-directory: app/Auditar_SST_v1_5_dashboard
         run: |
           dart format lib
-          grep -Fq 'version: 3.29.5+147' pubspec.yaml
+          grep -Fq 'version: 3.29.5+148' pubspec.yaml
           grep -Fq 'Assinar em tela cheia' lib/screens/signature_screen.dart
           grep -Fq 'Assinar externamente por Gov.br' lib/screens/signature_screen.dart
           grep -Fq 'Emitir sem assinatura' lib/screens/signature_screen.dart
           grep -Fq 'Incluir plano de ação no relatório' lib/screens/report_screen.dart
           grep -Fq 'checkmarkColor: AuditarBrand.greenDark' lib/main.dart
+          grep -Fq 'Local exato / ponto de referência' lib/screens/create_action_screen.dart
+          grep -Fq 'Local exato / ponto de referência' lib/screens/action_detail_screen.dart
+          grep -Fq 'Local exato / ponto de referência' lib/screens/checklist_screen.dart
+          grep -Fq 'O que você observou no local? (opcional)' lib/screens/checklist_screen.dart
+          grep -Fq 'primaryActionLocation' lib/screens/checklist_screen.dart
           grep -Fq "import 'media_sync_service.dart';" lib/services/pdf_service.dart
           grep -Fq 'await MediaSyncService.downloadMissing();' lib/services/pdf_service.dart
           grep -Fq 'final photoCache = <String, Future<List<EvidencePhoto>>>{};' lib/services/pdf_service.dart
           grep -Fq "'Página \${context.pageNumber} de \${context.pagesCount}'," lib/services/pdf_service.dart
+          grep -Fq "_detailLine('Local da correção'" lib/services/pdf_service.dart
+          grep -Fq 'static bool _changeTrackingReady = false;' lib/services/device_sync_service.dart
+          grep -Fq 'Duration(seconds: 45)' lib/services/sync_coordinator.dart
+          grep -Fq 'let AUDITAR_AUTH_SS_CACHE_ = null;' painel_web_google_apps_script/MultiUser.gs
+          grep -Fq 'const updatedRows = [];' painel_web_google_apps_script/MultiUser.gs
           ! grep -Fq 'context.pageNumber + 1' lib/services/pdf_service.dart
           ! grep -Fq 'context.pagesCount + 1' lib/services/pdf_service.dart
           ! grep -Fq 'Alertas de exames periódicos' lib/screens/companies_screen.dart
@@ -176,4 +202,26 @@ jobs:
         with:
           name: Auditar-SST-v3.29.5-Android
           path: dist/android/*
+          retention-days: 30
+
+  server-sync:
+    name: MultiUser.gs otimizado
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.29.5
+        run: python3 tools/assemble_v3295.py
+      - name: Validar sincronização do servidor
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          grep -Fq 'let AUDITAR_AUTH_SS_CACHE_ = null;' painel_web_google_apps_script/MultiUser.gs
+          grep -Fq 'const updatedRows = [];' painel_web_google_apps_script/MultiUser.gs
+          mkdir -p ../../dist/server
+          cp painel_web_google_apps_script/MultiUser.gs ../../dist/server/MultiUser.gs
+          printf '%s\n' 'Substitua somente o MultiUser.gs no Google Apps Script. Mantenha o seu Code.gs atual.' > ../../dist/server/LEIA-ME.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.5-Sync-Servidor
+          path: dist/server/*
           retention-days: 30
