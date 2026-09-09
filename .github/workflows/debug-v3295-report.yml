@@ -1,0 +1,61 @@
+name: Debug v3.29.5 Report
+
+on:
+  push:
+    branches: [feature/v3.29.5]
+    paths:
+      - ".github/workflows/debug-v3295-report.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.29.4 atual
+        run: python3 tools/assemble_v3294.py
+      - name: Inspecionar relatório e sincronização finais
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def snippets(rel, needles, radius=18):
+              p=Path(rel)
+              text=p.read_text(encoding='utf-8')
+              lines=text.splitlines()
+              print(f'===== {rel} ({len(lines)} linhas) =====')
+              shown=set()
+              for needle in needles:
+                  hits=[i for i,line in enumerate(lines) if needle.lower() in line.lower()]
+                  print(f'--- needle={needle!r} hits={hits} ---')
+                  for i in hits:
+                      a=max(0,i-radius); b=min(len(lines),i+radius+1)
+                      key=(a,b)
+                      if key in shown: continue
+                      shown.add(key)
+                      for n in range(a,b):
+                          print(f'{n+1:04d}: {lines[n]}')
+                      print('---')
+
+          snippets('lib/services/pdf_service.dart', [
+              'Foto indisponível', 'pw.MultiPage', 'pageNumber', 'pagesCount',
+              'MemoryImage', 'image', 'photo', 'footer', 'header',
+              'CHECKLIST COMPLETO', 'PONTOS DE ATENÇÃO'
+          ], 14)
+          snippets('lib/screens/report_screen.dart', [
+              'generate', 'PdfService', 'include_action_plan', 'signature'
+          ], 14)
+          snippets('lib/database.dart', [
+              'getInspectionHistory', 'photo', 'inspection_photos', 'answer_photos'
+          ], 10)
+          snippets('lib/services/device_sync_service.dart', [
+              '_ensureChangeTracking', '_pendingChanges', '_attemptIsDue'
+          ], 10)
+          snippets('lib/services/sync_coordinator.dart', [
+              'addPostFrameCallback', 'verifySession', 'Timer.periodic'
+          ], 10)
+          PY
