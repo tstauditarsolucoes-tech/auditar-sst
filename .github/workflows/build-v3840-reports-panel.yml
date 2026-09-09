@@ -61,7 +61,7 @@ jobs:
           grep -Fq 'weekly_report_enabled' lib/database.dart
           grep -Fq 'Enviar relatório semanal' lib/screens/companies_screen.dart
           grep -Fq 'managementFollowUp' lib/services/management_panel_service.dart
-          grep -Fq 'Relatórios automáticos' lib/screens/management_panel_screen.dart
+          grep -Fq 'Relatórios para a gerência' lib/screens/management_panel_screen.dart
           grep -Fq 'DDS por assinatura' lib/screens/sst_records_screen.dart
           grep -Fq 'Importar com IA' lib/screens/trainings_screen.dart
           grep -Fq 'Enviar para recarga' lib/screens/extinguisher_stock_screen.dart
@@ -130,7 +130,7 @@ jobs:
           $pub = Get-Content pubspec.yaml -Raw
           if (-not $pub.Contains('version: 3.38.4+163')) { throw 'versão incorreta' }
           $panel = Get-Content lib/screens/management_panel_screen.dart -Raw
-          if (-not $panel.Contains('Relatórios automáticos')) { throw 'card de relatórios automáticos ausente' }
+          if (-not $panel.Contains('Relatórios para a gerência')) { throw 'card de relatórios para a gerência ausente' }
           $service = Get-Content lib/services/management_panel_service.dart -Raw
           if (-not $service.Contains('managementFollowUp')) { throw 'acompanhamento gerencial ausente' }
           $code = Get-Content painel_web_google_apps_script/Code.gs -Raw
