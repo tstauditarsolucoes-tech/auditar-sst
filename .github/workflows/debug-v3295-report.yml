@@ -25,9 +25,9 @@ jobs:
             app/Auditar_SST_v1_5_dashboard/lib/models.dart
             app/Auditar_SST_v1_5_dashboard/lib/database.dart
             app/Auditar_SST_v1_5_dashboard/lib/screens/management_panel_screen.dart
-            app/Auditar_SST_v1_5_dashboard/lib/screens/company_form_screen.dart
+            app/Auditar_SST_v1_5_dashboard/lib/screens/settings_screen.dart
+            app/Auditar_SST_v1_5_dashboard/lib/screens/*compan*.dart
             app/Auditar_SST_v1_5_dashboard/lib/services/management_panel_service.dart
-            app/Auditar_SST_v1_5_dashboard/lib/services/management_snapshot_service.dart
             app/Auditar_SST_v1_5_dashboard/lib/services/pdf_service.dart
             app/Auditar_SST_v1_5_dashboard/painel_web_google_apps_script/Code.gs
             app/Auditar_SST_v1_5_dashboard/painel_web_google_apps_script/MultiUser.gs
