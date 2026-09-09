@@ -20,7 +20,7 @@ jobs:
       - name: Inspecionar relatório, checklist IA e sincronização finais
         working-directory: app/Auditar_SST_v1_5_dashboard
         run: |
-          python3 - <<'PY'
+          python3 - <<'PY' > ../../debug-v3295.txt
           from pathlib import Path
 
           def around(rel, needles, radius=32):
@@ -66,3 +66,11 @@ jobs:
               "'Observação do técnico:'", 'technicianContext',
           ], 38)
           PY
+          cat ../../debug-v3295.txt
+      - name: Salvar diagnóstico
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-v3295
+          path: debug-v3295.txt
+          if-no-files-found: error
+          retention-days: 2
