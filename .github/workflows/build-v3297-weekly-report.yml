@@ -1,0 +1,198 @@
+name: Auditar SST v3.29.7 Relatorio Semanal
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v3.29.7]
+    paths:
+      - ".github/workflows/build-v3297-weekly-report.yml"
+      - "tools/assemble_v3297.py"
+      - "tools/patch_weekly_report_v3297.py"
+      - "tools/patch_weekly_report_v3297.part1"
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows v3.29.7
+    runs-on: windows-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.29.7
+        run: python tools/assemble_v3297.py
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Preparar, analisar e testar Windows
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          flutter pub get
+          dart format lib
+          $pub = Get-Content pubspec.yaml -Raw
+          if (-not $pub.Contains('version: 3.29.7+150')) { throw 'versão incorreta' }
+          $companies = Get-Content lib/screens/companies_screen.dart -Raw
+          if (-not $companies.Contains('Enviar relatório semanal')) { throw 'opção semanal ausente' }
+          if (-not $companies.Contains('Dia do envio semanal')) { throw 'dia semanal ausente' }
+          $management = Get-Content lib/services/management_panel_service.dart -Raw
+          if (-not $management.Contains("'weeklyReport':")) { throw 'payload semanal ausente' }
+          if (-not $management.Contains("'resolvedActions':")) { throw 'resolvidos da semana ausentes' }
+          if (-not $management.Contains("'pendingActions':")) { throw 'pendências semanais ausentes' }
+          $weekly = Get-Content painel_web_google_apps_script/WeeklyReport.gs -Raw
+          if (-not $weekly.Contains('setupWeeklyReportAuditar')) { throw 'instalador do gatilho semanal ausente' }
+          if (-not $weekly.Contains('O que foi resolvido')) { throw 'seção resolvidos ausente' }
+          if (-not $weekly.Contains('O que continua pendente')) { throw 'seção pendentes ausente' }
+          $report = Get-Content lib/screens/report_screen.dart -Raw
+          if (-not $report.Contains('Avaliar relatório com IA')) { throw 'revisão IA da v3.29.6 perdida' }
+          $ai = Get-Content lib/services/ai_assistant_service.dart -Raw
+          if (-not $ai.Contains('reviewFinalReport')) { throw 'serviço IA final perdido' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+      - name: Compilar Windows
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+      - name: Gerar instalador e portátil
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          Compress-Archive 'app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release/*' 'dist/windows/Auditar-SST-Windows-v3.29.7-PORTATIL.zip' -Force
+          $release=(Resolve-Path 'app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release').Path
+          $output=(Resolve-Path 'dist/windows').Path
+          $iss=@"
+          [Setup]
+          AppName=Auditar SST
+          AppVersion=3.29.7
+          DefaultDirName={autopf}\Auditar SST
+          DefaultGroupName=Auditar SST
+          OutputDir=$output
+          OutputBaseFilename=Auditar-SST-Setup-v3.29.7
+          Compression=lzma
+          SolidCompression=yes
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          [Files]
+          Source: "$release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          [Icons]
+          Name: "{autoprograms}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          Name: "{autodesktop}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          [Run]
+          Filename: "{app}\auditar_sst.exe"; Description: "Abrir Auditar SST"; Flags: nowait postinstall skipifsilent
+          "@
+          Set-Content "$env:RUNNER_TEMP\auditar.iss" $iss -Encoding UTF8
+          & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' "$env:RUNNER_TEMP\auditar.iss"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.7-Windows
+          path: dist/windows/*
+          retention-days: 30
+
+  android:
+    name: Android v3.29.7
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.29.7
+        run: python3 tools/assemble_v3297.py
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Preparar Android
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q "MyApp" test/widget_test.dart; then rm test/widget_test.dart; fi
+          python3 - <<'PY'
+          from pathlib import Path
+          manifest=Path('android/app/src/main/AndroidManifest.xml')
+          text=manifest.read_text()
+          for perm in ('<uses-permission android:name="android.permission.CAMERA" />','<uses-permission android:name="android.permission.INTERNET" />'):
+              if perm not in text:
+                  text=text.replace('<application',perm+'\n    <application',1)
+          manifest.write_text(text)
+          PY
+          flutter pub get
+      - name: Analisar e testar Android
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          dart format lib
+          grep -Fq 'version: 3.29.7+150' pubspec.yaml
+          grep -Fq 'Enviar relatório semanal' lib/screens/companies_screen.dart
+          grep -Fq 'Dia do envio semanal' lib/screens/companies_screen.dart
+          grep -Fq "'weeklyReport':" lib/services/management_panel_service.dart
+          grep -Fq "'resolvedActions':" lib/services/management_panel_service.dart
+          grep -Fq "'pendingActions':" lib/services/management_panel_service.dart
+          grep -Fq 'setupWeeklyReportAuditar' painel_web_google_apps_script/WeeklyReport.gs
+          grep -Fq 'O que foi resolvido' painel_web_google_apps_script/WeeklyReport.gs
+          grep -Fq 'O que continua pendente' painel_web_google_apps_script/WeeklyReport.gs
+          grep -Fq 'Avaliar relatório com IA' lib/screens/report_screen.dart
+          grep -Fq 'reviewFinalReport' lib/services/ai_assistant_service.dart
+          cp painel_web_google_apps_script/WeeklyReport.gs /tmp/WeeklyReport.js
+          node --check /tmp/WeeklyReport.js
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+      - name: Compilar APK v3.29.7
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY" || (echo 'AUDITAR_SYNC_KEY ausente' && exit 1)
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+      - name: Empacotar APK
+        run: |
+          mkdir -p dist/android
+          cp app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-release.apk dist/android/Auditar-SST-v3.29.7.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.7-Android
+          path: dist/android/*
+          retention-days: 30
+
+  server-weekly:
+    name: Relatorio semanal servidor
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.29.7
+        run: python3 tools/assemble_v3297.py
+      - name: Validar e empacotar módulo semanal
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          cp painel_web_google_apps_script/WeeklyReport.gs /tmp/WeeklyReport.js
+          node --check /tmp/WeeklyReport.js
+          mkdir -p ../../dist/server-weekly
+          cp painel_web_google_apps_script/WeeklyReport.gs ../../dist/server-weekly/WeeklyReport.gs
+          cat > ../../dist/server-weekly/LEIA-ME.txt <<'TXT'
+          RELATÓRIO SEMANAL AUDITAR SST
+
+          1. No MESMO projeto do Google Apps Script do Auditar SST, crie um novo arquivo chamado WeeklyReport.gs.
+          2. Cole nele o conteúdo do WeeklyReport.gs deste pacote.
+          3. NÃO substitua o seu Code.gs atual.
+          4. Execute uma única vez a função setupWeeklyReportAuditar() e autorize o envio de e-mails.
+          5. No app, edite a empresa, ative "Enviar relatório semanal" e escolha o dia.
+          6. Sincronize o Painel Gerencial da empresa.
+
+          O relatório mostra as ações concluídas nos últimos 7 dias e todas as pendências que continuam abertas, incluindo local exato, ação necessária, responsável, prazo, prioridade e vencimentos.
+          TXT
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.7-Relatorio-Semanal-Servidor
+          path: dist/server-weekly/*
+          retention-days: 30
