@@ -17,54 +17,35 @@ jobs:
       - uses: actions/checkout@v5
       - name: Montar fonte v3.29.4 atual
         run: python3 tools/assemble_v3294.py
-      - name: Inspecionar somente mídia e pontos críticos
+      - name: Inspecionar PDF final e versão das dependências
         working-directory: app/Auditar_SST_v1_5_dashboard
         run: |
           python3 - <<'PY'
           from pathlib import Path
 
-          def print_all(rel):
-              p = Path(rel)
-              print(f'===== {rel} =====')
-              if not p.exists():
-                  print('AUSENTE')
-                  return
-              for n, line in enumerate(p.read_text(encoding='utf-8').splitlines(), 1):
-                  print(f'{n:04d}: {line}')
-
-          def around(rel, needles, radius=28):
-              p = Path(rel)
-              lines = p.read_text(encoding='utf-8').splitlines()
+          def ranges(rel, items):
+              lines=Path(rel).read_text(encoding='utf-8').splitlines()
               print(f'===== {rel} ({len(lines)} linhas) =====')
-              covered = []
-              for needle in needles:
-                  hits = [i for i, line in enumerate(lines) if needle.lower() in line.lower()]
-                  print(f'--- {needle!r}: {hits} ---')
-                  for i in hits:
-                      a=max(0, i-radius); b=min(len(lines), i+radius+1)
-                      if any(a >= x and b <= y for x,y in covered):
-                          continue
-                      covered.append((a,b))
-                      for j in range(a,b):
-                          print(f'{j+1:04d}: {lines[j]}')
-                      print('---')
+              for a,b in items:
+                  print(f'--- linhas {a}-{b} ---')
+                  for i in range(a-1, min(b, len(lines))):
+                      print(f'{i+1:04d}: {lines[i]}')
 
-          print_all('lib/services/media_sync_service.dart')
-          around('lib/database.dart', [
-              'CREATE TABLE evidence_photos',
-              'CREATE TABLE completion_photos',
-              'Future<List<EvidencePhoto>> getPhotosForAnswer',
-              'Future<List<CompletionPhoto>> getCompletionPhotos',
-              'getOriginalPhotosForAction',
-              'media_assets',
-              'remote_url',
-              'remote_key'
-          ], 24)
-          around('lib/services/device_sync_service.dart', [
-              'Future<void> _ensureChangeTracking',
-              'Future<int> pendingChangesCount',
-              'Future<DeviceSyncResult> synchronize',
-              'MediaSyncService',
-              'uploadPending'
-          ], 30)
+          ranges('lib/services/pdf_service.dart', [
+              (1,220),
+              (220,430),
+              (430,650),
+              (650,850),
+          ])
+          print('===== PUBSPEC PDF/VERSION =====')
+          for n,line in enumerate(Path('pubspec.yaml').read_text(encoding='utf-8').splitlines(),1):
+              if line.startswith('version:') or 'pdf:' in line or 'printing:' in line:
+                  print(f'{n:04d}: {line}')
+          print('===== REPORT SCREEN CHAMADAS =====')
+          lines=Path('lib/screens/report_screen.dart').read_text(encoding='utf-8').splitlines()
+          for i,line in enumerate(lines):
+              if 'PdfService' in line or 'generate' in line.lower() or 'include_action_plan' in line:
+                  a=max(0,i-12); b=min(len(lines),i+20)
+                  for j in range(a,b): print(f'{j+1:04d}: {lines[j]}')
+                  print('---')
           PY
