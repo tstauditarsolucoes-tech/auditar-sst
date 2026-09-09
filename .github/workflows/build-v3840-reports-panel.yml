@@ -1,0 +1,214 @@
+name: Auditar SST v3.38.4 Relatorios e Painel
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v3.37.0-central-trabalho-pc]
+    paths:
+      - ".github/workflows/build-v3840-reports-panel.yml"
+      - "tools/assemble_v3840.py"
+      - "tools/v3840/assembler.b64"
+
+permissions:
+  contents: read
+
+jobs:
+  android-test:
+    name: Android v3.38.4 TESTE separado
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.38.4
+        run: python3 tools/assemble_v3840.py
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Preparar e validar Android
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q "MyApp" test/widget_test.dart; then rm test/widget_test.dart; fi
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          gradle = Path('android/app/build.gradle.kts')
+          text = gradle.read_text(encoding='utf-8')
+          text, count = re.subn(r'applicationId\s*=\s*"[^"]+"', 'applicationId = "br.com.auditar.auditar_sst.v3840"', text, count=1)
+          if count != 1:
+              raise SystemExit('Não foi possível alterar applicationId de teste')
+          gradle.write_text(text, encoding='utf-8')
+          manifest = Path('android/app/src/main/AndroidManifest.xml')
+          m = manifest.read_text(encoding='utf-8')
+          m = re.sub(r'android:label="[^"]+"', 'android:label="Auditar SST 3.38.4 TESTE"', m, count=1)
+          for permission in (
+              '<uses-permission android:name="android.permission.CAMERA" />',
+              '<uses-permission android:name="android.permission.INTERNET" />',
+          ):
+              if permission not in m:
+                  m = m.replace('<application', permission + '\n    <application', 1)
+          manifest.write_text(m, encoding='utf-8')
+          PY
+          flutter pub get
+          dart format lib test
+          grep -Fq 'version: 3.38.4+163' pubspec.yaml
+          grep -Fq 'weeklyReportEnabled' lib/models.dart
+          grep -Fq 'weekly_report_enabled' lib/database.dart
+          grep -Fq 'Enviar relatório semanal' lib/screens/companies_screen.dart
+          grep -Fq 'managementFollowUp' lib/services/management_panel_service.dart
+          grep -Fq 'Relatórios automáticos' lib/screens/management_panel_screen.dart
+          grep -Fq 'DDS por assinatura' lib/screens/sst_records_screen.dart
+          grep -Fq 'Importar com IA' lib/screens/trainings_screen.dart
+          grep -Fq 'Enviar para recarga' lib/screens/extinguisher_stock_screen.dart
+          grep -Fq 'Ocultar empresa' lib/screens/companies_screen.dart
+          grep -Fq 'Assinar em tela cheia' lib/screens/signature_screen.dart
+          grep -Fq 'FieldQuickScreen' lib/screens/home_screen.dart
+          grep -Fq "'syncProtocol': 2" lib/services/device_sync_service.dart
+          test "$(grep -c '^  ReadyChecklistDefinition(' lib/ready_checklists.dart)" -eq 44
+          grep -Fq 'sendWeeklyReportIfDue_' painel_web_google_apps_script/Code.gs
+          grep -Fq 'createWeeklyPdf_' painel_web_google_apps_script/Code.gs
+          grep -Fq 'Problemas que ainda persistem' painel_web_google_apps_script/Index.html
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+      - name: Validar JavaScript do Apps Script
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          cp painel_web_google_apps_script/Code.gs /tmp/code_check.js
+          node --check /tmp/code_check.js
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          html = Path('painel_web_google_apps_script/Index.html').read_text(encoding='utf-8')
+          scripts = re.findall(r'<script[^>]*>([\s\S]*?)</script>', html, flags=re.I)
+          js = '\n'.join(scripts).replace("<?!= JSON.stringify(data) ?>", '{}')
+          Path('/tmp/index_check.js').write_text(js, encoding='utf-8')
+          PY
+          node --check /tmp/index_check.js
+      - name: Compilar APK TESTE
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if [ -z "$AUDITAR_SYNC_KEY" ]; then echo '::error::AUDITAR_SYNC_KEY ausente'; exit 1; fi
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+      - name: Preparar APK
+        run: |
+          mkdir -p dist/android
+          cp app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-release.apk dist/android/Auditar-SST-Android-v3.38.4-RELATORIOS-PAINEL-TESTE.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-Android-v3.38.4-RELATORIOS-PAINEL-TESTE
+          path: dist/android/Auditar-SST-Android-v3.38.4-RELATORIOS-PAINEL-TESTE.apk
+          retention-days: 30
+
+  windows:
+    name: Windows v3.38.4
+    runs-on: windows-latest
+    timeout-minutes: 85
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.38.4
+        run: python tools/assemble_v3840.py
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Preparar e validar Windows
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          flutter pub get
+          dart format lib test
+          $pub = Get-Content pubspec.yaml -Raw
+          if (-not $pub.Contains('version: 3.38.4+163')) { throw 'versão incorreta' }
+          $panel = Get-Content lib/screens/management_panel_screen.dart -Raw
+          if (-not $panel.Contains('Relatórios automáticos')) { throw 'card de relatórios automáticos ausente' }
+          $service = Get-Content lib/services/management_panel_service.dart -Raw
+          if (-not $service.Contains('managementFollowUp')) { throw 'acompanhamento gerencial ausente' }
+          $code = Get-Content painel_web_google_apps_script/Code.gs -Raw
+          if (-not $code.Contains('sendWeeklyReportIfDue_')) { throw 'relatório semanal ausente' }
+          $index = Get-Content painel_web_google_apps_script/Index.html -Raw
+          if (-not $index.Contains('Problemas que ainda persistem')) { throw 'painel persistências ausente' }
+          $sync = Get-Content lib/services/device_sync_service.dart -Raw
+          if (-not $sync.Contains("'syncProtocol': 2")) { throw 'sync v2 foi perdido' }
+          if ((Select-String lib/ready_checklists.dart -Pattern '^  ReadyChecklistDefinition\(').Count -ne 44) { throw 'biblioteca de 44 checklists alterada' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+      - name: Compilar Windows
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+      - name: Gerar portátil e instalador
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          Compress-Archive 'app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release/*' 'dist/windows/Auditar-SST-Windows-v3.38.4-PORTATIL.zip' -Force
+          $release=(Resolve-Path 'app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release').Path
+          $output=(Resolve-Path 'dist/windows').Path
+          $iss=@"
+          [Setup]
+          AppName=Auditar SST
+          AppVersion=3.38.4
+          DefaultDirName={autopf}\Auditar SST
+          DefaultGroupName=Auditar SST
+          OutputDir=$output
+          OutputBaseFilename=Auditar-SST-Setup-v3.38.4
+          Compression=lzma
+          SolidCompression=yes
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          [Files]
+          Source: "$release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          [Icons]
+          Name: "{autoprograms}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          Name: "{autodesktop}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          "@
+          Set-Content "$env:RUNNER_TEMP\auditar.iss" $iss -Encoding UTF8
+          & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' "$env:RUNNER_TEMP\auditar.iss"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-Windows-v3.38.4-RELATORIOS-PAINEL
+          path: dist/windows/*
+          retention-days: 30
+
+  source-apps-script:
+    name: Fonte e Apps Script v3.38.4
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar e validar
+        run: |
+          python3 tools/assemble_v3840.py
+          grep -Fq 'version: 3.38.4+163' app/Auditar_SST_v1_5_dashboard/pubspec.yaml
+          grep -Fq 'sendWeeklyReportIfDue_' app/Auditar_SST_v1_5_dashboard/painel_web_google_apps_script/Code.gs
+          grep -Fq 'Problemas que ainda persistem' app/Auditar_SST_v1_5_dashboard/painel_web_google_apps_script/Index.html
+      - name: Empacotar
+        run: |
+          mkdir -p dist/apps-script
+          cp app/Auditar_SST_v1_5_dashboard/painel_web_google_apps_script/Code.gs dist/apps-script/Code-v3.38.4-RELATORIOS-PAINEL.gs
+          cp app/Auditar_SST_v1_5_dashboard/painel_web_google_apps_script/Index.html dist/apps-script/Index-v3.38.4-PAINEL.html
+          cp app/Auditar_SST_v1_5_dashboard/MUDANCAS_V3_38_4_RELATORIOS_PAINEL.txt dist/apps-script/MUDANCAS-v3.38.4.txt
+          cd app
+          zip -qr ../Auditar-SST-Codigo-Fonte-v3.38.4-Relatorios-Painel.zip Auditar_SST_v1_5_dashboard \
+            -x 'Auditar_SST_v1_5_dashboard/build/*' \
+               'Auditar_SST_v1_5_dashboard/.dart_tool/*' \
+               'Auditar_SST_v1_5_dashboard/android/.gradle/*'
+          cd ..
+          cp Auditar-SST-Codigo-Fonte-v3.38.4-Relatorios-Painel.zip dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.38.4-FONTE-APPS-SCRIPT
+          path: dist/*
+          retention-days: 30
