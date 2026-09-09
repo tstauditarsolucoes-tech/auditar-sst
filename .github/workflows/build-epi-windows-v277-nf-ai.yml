@@ -1,4 +1,4 @@
-name: Gerar Gestão EPI PC v2.7.7 NF IA CA
+name: Gerar Gestão EPI PC v2.8.0 Gestão Inteligente
 
 on:
   workflow_dispatch:
@@ -6,7 +6,8 @@ on:
     branches: [gestao-epi-v2.7.7-navigation-audit]
     paths:
       - '.github/workflows/build-epi-windows-v277-nf-ai.yml'
-      - 'auditar-epi/invoice-epi-ai-v340.js'
+      - 'auditar-epi/invoice-epi-ai-v350.js'
+      - 'auditar-epi/smart-management-v350.js'
       - 'auditar-epi-windows/**'
       - 'auditar-epi-gestao/**'
 
@@ -23,13 +24,15 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Montar Gestão EPI PC com NF por IA
+      - name: Montar Gestão EPI PC v2.8.0
         shell: pwsh
         run: |
           Remove-Item -Recurse -Force 'auditar-epi-windows/app' -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Path 'auditar-epi-windows/app' | Out-Null
           Copy-Item -Recurse -Force 'auditar-epi-gestao/*' 'auditar-epi-windows/app/'
-          Copy-Item -Force 'auditar-epi/invoice-epi-ai-v340.js' 'auditar-epi-windows/app/invoice-import-gestao.js'
+          Copy-Item -Force 'auditar-epi/invoice-epi-ai-v350.js' 'auditar-epi-windows/app/invoice-import-gestao.js'
+          Copy-Item -Force 'auditar-epi/smart-management-v350.js' 'auditar-epi-windows/app/smart-management-v350.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-swap-prefill-v280.js' 'auditar-epi-windows/app/pc-swap-prefill-v280.js'
           Copy-Item -Force 'auditar-epi-windows/stable-central-config.js' 'auditar-epi-windows/app/central-config.js'
           Copy-Item -Force 'auditar-epi-windows/pc-stable.js' 'auditar-epi-windows/app/pc-stable.js'
           Copy-Item -Force 'auditar-epi-windows/pc-modern.js' 'auditar-epi-windows/app/pc-modern.js'
@@ -62,6 +65,7 @@ jobs:
           if ($pos -lt 0) { throw 'Marcador de scripts não encontrado no index.html.' }
           $head = $index.Substring(0,$pos)
           $scriptLines = @(
+            '  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>',
             '  <script src="pc-login-session.js"></script>',
             '  <script src="pc-stable.js"></script>',
             '  <script src="auth-gestao.js" data-auth-gestao="1"></script>',
@@ -88,6 +92,8 @@ jobs:
             '  <script src="pc-sectors-v277.js"></script>',
             '  <script src="pc-return-v277.js"></script>',
             '  <script src="pc-holdings-replacements-v277.js"></script>',
+            '  <script src="smart-management-v350.js"></script>',
+            '  <script src="pc-swap-prefill-v280.js"></script>',
             '  <script src="pc-login-safe-v277.js"></script>',
             '</body>',
             '</html>'
@@ -95,6 +101,8 @@ jobs:
           Set-Content -Path $indexPath -Value ($head + (($scriptLines -join "`r`n") + "`r`n")) -Encoding UTF8
 
           node --check 'auditar-epi-windows/app/invoice-import-gestao.js'
+          node --check 'auditar-epi-windows/app/smart-management-v350.js'
+          node --check 'auditar-epi-windows/app/pc-swap-prefill-v280.js'
           node --check 'auditar-epi-windows/main.js'
           node --check 'auditar-epi-windows/preload.js'
           node --check 'auditar-epi-windows/app/auth-gestao.js'
@@ -128,13 +136,13 @@ jobs:
         shell: pwsh
         run: |
           Get-ChildItem 'auditar-epi-windows/dist' -File | ForEach-Object { Write-Host $_.FullName }
-          if (-not (Test-Path 'auditar-epi-windows/dist/Gestao-EPI-Setup-2.7.7.exe')) { throw 'Instalador não foi criado.' }
-          Copy-Item -Force 'auditar-epi-windows/dist/Gestao-EPI-Setup-2.7.7.exe' 'Gestao-EPI-PC-v2.7.7-NF-IA-CA.exe'
+          if (-not (Test-Path 'auditar-epi-windows/dist/Gestao-EPI-Setup-2.8.0.exe')) { throw 'Instalador v2.8.0 não foi criado.' }
+          Copy-Item -Force 'auditar-epi-windows/dist/Gestao-EPI-Setup-2.8.0.exe' 'Gestao-EPI-PC-v2.8.0-GESTAO-INTELIGENTE.exe'
 
       - name: Disponibilizar PC
         uses: actions/upload-artifact@v4
         with:
-          name: Gestao-EPI-PC-v2.7.7-NF-IA-CA
-          path: Gestao-EPI-PC-v2.7.7-NF-IA-CA.exe
+          name: Gestao-EPI-PC-v2.8.0-GESTAO-INTELIGENTE
+          path: Gestao-EPI-PC-v2.8.0-GESTAO-INTELIGENTE.exe
           if-no-files-found: error
           retention-days: 14
