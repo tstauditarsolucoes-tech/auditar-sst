@@ -17,33 +17,26 @@ jobs:
       - uses: actions/checkout@v5
       - name: Montar fonte v3.29.5 atual
         run: python3 tools/assemble_v3295.py
-      - name: Validar arquivos relevantes
+      - name: Localizar telas de plano de ação
         working-directory: app/Auditar_SST_v1_5_dashboard
         run: |
-          test -f lib/database.dart
-          test -f lib/models.dart
-          test -f lib/services/management_panel_service.dart
-          test -f lib/screens/checklist_screen.dart
-          test -f lib/services/ai_assistant_service.dart
-          test -f lib/services/device_sync_service.dart
-          test -f lib/services/sync_coordinator.dart
-          test -f painel_web_google_apps_script/Code.gs
-          test -f painel_web_google_apps_script/MultiUser.gs
-          echo "Fonte final v3.29.5 montada para inspeção."
+          find lib -type f \( -iname '*action*' -o -iname '*plan*' -o -iname '*report*' \) -print | sort | tee /tmp/relevant-files.txt
       - name: Salvar fonte final relevante
         uses: actions/upload-artifact@v4
         with:
-          name: debug-v3295-source
+          name: debug-v3295-action-report
           path: |
-            app/Auditar_SST_v1_5_dashboard/lib/database.dart
             app/Auditar_SST_v1_5_dashboard/lib/models.dart
-            app/Auditar_SST_v1_5_dashboard/lib/services/management_panel_service.dart
+            app/Auditar_SST_v1_5_dashboard/lib/database.dart
             app/Auditar_SST_v1_5_dashboard/lib/screens/checklist_screen.dart
-            app/Auditar_SST_v1_5_dashboard/lib/services/ai_assistant_service.dart
+            app/Auditar_SST_v1_5_dashboard/lib/screens/*action*.dart
+            app/Auditar_SST_v1_5_dashboard/lib/screens/*plan*.dart
+            app/Auditar_SST_v1_5_dashboard/lib/screens/report_screen.dart
+            app/Auditar_SST_v1_5_dashboard/lib/services/pdf_service.dart
             app/Auditar_SST_v1_5_dashboard/lib/services/device_sync_service.dart
             app/Auditar_SST_v1_5_dashboard/lib/services/sync_coordinator.dart
             app/Auditar_SST_v1_5_dashboard/painel_web_google_apps_script/Code.gs
             app/Auditar_SST_v1_5_dashboard/painel_web_google_apps_script/MultiUser.gs
             app/Auditar_SST_v1_5_dashboard/pubspec.yaml
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 2
