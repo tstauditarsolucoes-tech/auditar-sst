@@ -8,7 +8,8 @@ import zipfile
 from pathlib import Path
 
 # v3.29.5 mantém integralmente a sequência da v3.29.4 e aplica, por último,
-# apenas a correção controlada do relatório/mídia/desempenho.
+# apenas as correções controladas de relatório, mídia, desempenho, plano de ação
+# e IA do checklist.
 PATCHES = [
     'patch_management_snapshot.py',
     'prepare_sst_source.py',
@@ -33,6 +34,7 @@ PATCHES = [
     'patch_contrast_all_v3293.py',
     'patch_remove_exams_v3294b.py',
     'patch_report_media_performance_v3295.py',
+    'patch_pending_improvements_v3295.py',
 ]
 
 
