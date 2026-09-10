@@ -43,7 +43,11 @@ def main() -> int:
         return 2
 
     here = Path(__file__).resolve().parent
-    payload = (here / 'patch_critical_ai_review_v3299.part1').read_text(encoding='utf-8').strip()
+    parts = [here / f'patch_critical_ai_review_v3299.part{i}' for i in range(1, 7)]
+    missing = [str(part.name) for part in parts if not part.exists()]
+    if missing:
+        raise RuntimeError(f'partes ausentes do patch v3.29.9: {", ".join(missing)}')
+    payload = ''.join(part.read_text(encoding='utf-8').strip() for part in parts)
     diff = gzip.decompress(base64.b64decode(payload))
 
     with tempfile.NamedTemporaryFile(suffix='.diff', delete=False) as tmp:
