@@ -2,37 +2,50 @@ name: Gerar Windows Auditar SST
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "Auditar_SST_v1.5_dashboard_completo.zip"
+      - "source_overrides/**"
+      - "tools/prepare_sst_source.py"
+      - "tools/patch_management_snapshot.py"
+      - "tools/patch_resume_vistoria.py"
+      - ".github/workflows/build-windows.yml"
   push:
     branches:
       - main
     paths:
       - "Auditar_SST_v1.5_dashboard_completo.zip"
       - "source_overrides/**"
+      - "tools/prepare_sst_source.py"
+      - "tools/patch_management_snapshot.py"
+      - "tools/patch_resume_vistoria.py"
       - ".github/workflows/build-windows.yml"
 
 permissions:
   contents: read
 
 jobs:
-  build-windows:
-    name: Compilar Auditar SST para Windows
+  windows-release:
+    name: Validar e compilar Windows release
     runs-on: windows-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
 
     steps:
       - name: Baixar arquivos
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
-      - name: Extrair projeto
+      - name: Montar fonte atual do Auditar SST
         shell: pwsh
         run: |
+          Remove-Item app -Recurse -Force -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Force -Path app | Out-Null
           Expand-Archive -Path "Auditar_SST_v1.5_dashboard_completo.zip" -DestinationPath app -Force
-
-      - name: Aplicar correções mais recentes
-        shell: pwsh
-        run: |
           Copy-Item -Path "source_overrides/Auditar_SST_v1_5_dashboard/*" -Destination "app/Auditar_SST_v1_5_dashboard" -Recurse -Force
+          python tools/patch_management_snapshot.py app/Auditar_SST_v1_5_dashboard
+          python tools/prepare_sst_source.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_resume_vistoria.py app/Auditar_SST_v1_5_dashboard
 
       - name: Instalar Flutter
         uses: subosito/flutter-action@v2
@@ -40,25 +53,49 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Preparar Windows
+      - name: Preparar Windows e versão
         shell: pwsh
         working-directory: app/Auditar_SST_v1_5_dashboard
         run: |
           flutter config --enable-windows-desktop
           flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
 
-          $pubspec = Get-Content pubspec.yaml -Raw
-          $pubspec = $pubspec -replace 'archive: \^4\.2\.0', 'archive: ^4.0.9'
-          $pubspec = $pubspec -replace 'file_picker: \^8\.1\.7', 'file_picker: ^10.3.8'
-          Set-Content pubspec.yaml $pubspec -Encoding UTF8
+          # Remove apenas o teste de exemplo que o Flutter cria para "MyApp".
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String -Path 'test/widget_test.dart' -Pattern 'MyApp' -Quiet)) {
+            Remove-Item 'test/widget_test.dart' -Force
+          }
+
+          $match = Select-String -Path pubspec.yaml -Pattern '^version:\s*([0-9.]+)\+([0-9]+)'
+          if (!$match) { throw 'Versão não encontrada no pubspec.yaml.' }
+          $version = $match.Matches[0].Groups[1].Value
+          $build = $match.Matches[0].Groups[2].Value
+          "APP_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "BUILD_NUMBER=$build" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
           $homePath = 'lib/screens/home_screen.dart'
           $homeContent = Get-Content $homePath -Raw
-          $homeContent = $homeContent.Replace('Auditar SST • versão 3.20.3', 'Auditar SST • versão 3.21.3')
+          $homeContent = $homeContent -replace 'Auditar SST • versão \d+\.\d+\.\d+', "Auditar SST • versão $version"
+          $homeContent = $homeContent -replace 'Auditar SST para Windows • versão \d+\.\d+\.\d+', "Auditar SST para Windows • versão $version"
           Set-Content $homePath $homeContent -Encoding UTF8
 
           flutter pub get
           flutter doctor -v
+
+      - name: Análise estática
+        shell: pwsh
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Testes automatizados
+        shell: pwsh
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          $tests = Get-ChildItem -Path test -Filter '*_test.dart' -Recurse -ErrorAction SilentlyContinue
+          if ($tests) {
+            flutter test
+          } else {
+            Write-Host 'Nenhum teste automatizado do projeto encontrado; etapa concluída sem falha.'
+          }
 
       - name: Compilar versão Windows
         shell: pwsh
@@ -67,12 +104,12 @@ jobs:
           AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
         run: |
           if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) {
-            throw "Configure AUDITAR_SYNC_KEY nos segredos do repositório."
+            throw 'Configure AUDITAR_SYNC_KEY nos segredos do repositório.'
           }
           flutter build windows --release `
             --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
 
-      - name: Preparar pacote para PC
+      - name: Preparar versão portátil
         shell: pwsh
         run: |
           $release = "app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release"
@@ -81,34 +118,82 @@ jobs:
           }
 
           $exe = Get-ChildItem -Path $release -Filter *.exe | Select-Object -First 1
-          if ($null -eq $exe) {
-            throw "Executável Windows não encontrado."
+          if ($null -eq $exe) { throw 'Executável Windows não encontrado.' }
+          if ($exe.Name -ne 'Auditar SST.exe') {
+            Rename-Item -Path $exe.FullName -NewName 'Auditar SST.exe' -Force
           }
 
-          if ($exe.Name -ne "Auditar SST.exe") {
-            Rename-Item -Path $exe.FullName -NewName "Auditar SST.exe"
-          }
-
-          $destino = "Auditar-SST-Windows"
+          $destino = "dist/windows/portable"
           New-Item -ItemType Directory -Force -Path $destino | Out-Null
           Copy-Item -Path "$release/*" -Destination $destino -Recurse -Force
 
           @"
-          AUDITAR SST - WINDOWS
+          AUDITAR SST v$env:APP_VERSION — WINDOWS
 
-          1. Extraia todos os arquivos deste pacote para uma pasta do computador.
-          2. Abra o arquivo "Auditar SST.exe".
-          3. Não mova somente o .exe: mantenha os demais arquivos na mesma pasta.
+          Build: RELEASE
+          Build number: $env:BUILD_NUMBER
 
-          Esta versão foi gerada a partir do mesmo projeto Flutter usado no aplicativo Android.
+          1. Mantenha todos os arquivos desta pasta juntos.
+          2. Abra "Auditar SST.exe".
+          3. O aplicativo funciona offline e sincroniza quando houver conexão.
+          4. Para uso normal, prefira o instalador Auditar-SST-Setup-v$env:APP_VERSION.exe.
           "@ | Set-Content "$destino/LEIA-ME.txt" -Encoding UTF8
 
-          Compress-Archive -Path "$destino/*" -DestinationPath "Auditar-SST-Windows.zip" -Force
+          Compress-Archive -Path "$destino/*" -DestinationPath "dist/windows/Auditar-SST-Windows-v$env:APP_VERSION-PORTATIL.zip" -Force
+
+      - name: Gerar instalador profissional
+        shell: pwsh
+        run: |
+          $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (!(Test-Path $iscc)) {
+            choco install innosetup -y --no-progress
+          }
+          if (!(Test-Path $iscc)) { throw 'Inno Setup não encontrado.' }
+
+          $source = (Resolve-Path 'app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release').Path
+          New-Item -ItemType Directory -Force -Path 'dist/windows' | Out-Null
+          $output = (Resolve-Path 'dist/windows').Path
+          $iss = Join-Path $env:RUNNER_TEMP 'AuditarSST.iss'
+
+          @"
+          [Setup]
+          AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}
+          AppName=Auditar SST
+          AppVersion=$env:APP_VERSION
+          AppPublisher=Auditar Soluções
+          DefaultDirName={autopf}\Auditar SST
+          DefaultGroupName=Auditar SST
+          OutputDir=$output
+          OutputBaseFilename=Auditar-SST-Setup-v$env:APP_VERSION
+          Compression=lzma2
+          SolidCompression=yes
+          WizardStyle=modern
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          UninstallDisplayIcon={app}\Auditar SST.exe
+
+          [Files]
+          Source: "$source\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+          [Icons]
+          Name: "{group}\Auditar SST"; Filename: "{app}\Auditar SST.exe"
+          Name: "{autodesktop}\Auditar SST"; Filename: "{app}\Auditar SST.exe"; Tasks: desktopicon
+
+          [Tasks]
+          Name: "desktopicon"; Description: "Criar atalho na área de trabalho"; GroupDescription: "Atalhos:"; Flags: unchecked
+
+          [Run]
+          Filename: "{app}\Auditar SST.exe"; Description: "Abrir Auditar SST"; Flags: nowait postinstall skipifsilent
+          "@ | Set-Content $iss -Encoding UTF8
+
+          & $iscc $iss
 
       - name: Disponibilizar versão para PC
         uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-Windows
-          path: Auditar-SST-Windows.zip
+          name: Auditar-SST-Windows-Release
+          path: |
+            dist/windows/Auditar-SST-Setup-v*.exe
+            dist/windows/Auditar-SST-Windows-v*-PORTATIL.zip
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30

@@ -1,7 +1,7 @@
 name: auditar_sst
 description: Aplicativo offline para checklist, inspeções e planos de ação de Segurança do Trabalho.
 publish_to: "none"
-version: 3.21.3+72
+version: 3.22.0+80
 
 environment:
   sdk: ">=3.7.0 <4.0.0"
