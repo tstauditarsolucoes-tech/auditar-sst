@@ -1,0 +1,39 @@
+name: Export v3.29.15 Current Source
+
+on:
+  push:
+    branches: [debug/export-v32915-current]
+    paths:
+      - ".github/workflows/export-v32915-current.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte final v3.29.15
+        run: python3 tools/assemble_v32915.py
+      - name: Exportar fonte relevante
+        uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.15-Current-Source
+          path: |
+            app/Auditar_SST_v1_5_dashboard/lib/screens/home_screen.dart
+            app/Auditar_SST_v1_5_dashboard/lib/screens/new_inspection_screen.dart
+            app/Auditar_SST_v1_5_dashboard/lib/screens/checklist_screen.dart
+            app/Auditar_SST_v1_5_dashboard/lib/screens/company_detail_screen.dart
+            app/Auditar_SST_v1_5_dashboard/lib/screens/pgr_screen.dart
+            app/Auditar_SST_v1_5_dashboard/lib/services/dashboard_service.dart
+            app/Auditar_SST_v1_5_dashboard/lib/services/ai_assistant_service.dart
+            app/Auditar_SST_v1_5_dashboard/lib/services/device_sync_service.dart
+            app/Auditar_SST_v1_5_dashboard/lib/services/media_sync_service.dart
+            app/Auditar_SST_v1_5_dashboard/lib/services/pdf_service.dart
+            app/Auditar_SST_v1_5_dashboard/lib/models.dart
+            app/Auditar_SST_v1_5_dashboard/lib/database.dart
+            app/Auditar_SST_v1_5_dashboard/pubspec.yaml
+          retention-days: 2
