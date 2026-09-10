@@ -1,0 +1,42 @@
+name: Inspect v3.29.15 Current Source
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v3.29.16-vistoria-avulsa-layout]
+    paths:
+      - ".github/workflows/inspect-v32915-current.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte atual v3.29.15
+        run: python3 tools/assemble_v32915.py
+      - name: Inventario da fonte montada
+        run: |
+          set -e
+          APP=app/Auditar_SST_v1_5_dashboard
+          echo '===== VERSION ====='
+          grep '^version:' "$APP/pubspec.yaml" || true
+          echo '===== SCREEN FILES ====='
+          find "$APP/lib/screens" -maxdepth 1 -type f -printf '%f\n' | sort
+          echo '===== QUICK / AVULSA MARKERS ====='
+          grep -RniE 'FieldQuick|Campo rápido|Vistoria avulsa|fieldMode|initialCompany|Central Auditar|GERAL|Prioridades da carteira|Unidades / CNPJs|PGR \+ IA' "$APP/lib" || true
+          echo '===== AI MARKERS ====='
+          grep -RniE 'checklist_photo|report_review_chat|analyzeChecklistPhotos|Gerar plano de ação com IA|Revisor crítico|Avaliação rápida com IA' "$APP/lib" | head -n 250 || true
+          echo '===== PRESERVATION MARKERS ====='
+          grep -RniE "syncProtocol.*2|Assinar em tela cheia|value: 'gov'|value: 'none'|includeActionPlan|Página.*pageNumber.*pagesCount|company_units" "$APP/lib" | head -n 250 || true
+          echo '===== HOME 1-900 ====='
+          sed -n '1,900p' "$APP/lib/screens/home_screen.dart"
+          echo '===== NEW INSPECTION 1-900 ====='
+          sed -n '1,900p' "$APP/lib/screens/new_inspection_screen.dart"
+          echo '===== COMPANY DETAIL 1-700 ====='
+          sed -n '1,700p' "$APP/lib/screens/company_detail_screen.dart" 2>/dev/null || true
+          echo '===== FIELD QUICK ====='
+          if [ -f "$APP/lib/screens/field_quick_screen.dart" ]; then sed -n '1,1200p' "$APP/lib/screens/field_quick_screen.dart"; else echo 'MISSING field_quick_screen.dart'; fi
