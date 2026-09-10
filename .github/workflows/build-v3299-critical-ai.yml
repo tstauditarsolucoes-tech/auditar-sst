@@ -1,0 +1,205 @@
+name: Auditar SST v3.29.9 Revisor Critico IA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v3.29.9]
+    paths:
+      - ".github/workflows/build-v3299-critical-ai.yml"
+      - "tools/assemble_v3299.py"
+      - "tools/patch_critical_ai_review_v3299.py"
+      - "tools/patch_critical_ai_review_v3299.part1"
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows v3.29.9
+    runs-on: windows-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.29.9
+        run: python tools/assemble_v3299.py
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Preparar, analisar e testar Windows
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          flutter pub get
+          dart format lib
+          $pub = Get-Content pubspec.yaml -Raw
+          if (-not $pub.Contains('version: 3.29.9+152')) { throw 'versão incorreta' }
+          $report = Get-Content lib/screens/report_screen.dart -Raw
+          if (-not $report.Contains('Revisor crítico: analisar e conversar')) { throw 'revisor crítico ausente' }
+          if (-not $report.Contains('Gerar plano de ação com IA')) { throw 'plano IA anterior perdido' }
+          $chat = Get-Content lib/screens/ai_report_chat_screen.dart -Raw
+          if (-not $chat.Contains('Modo crítico: a IA deve procurar problemas')) { throw 'tela crítica ausente' }
+          if (-not $chat.Contains('Contradições')) { throw 'atalho de contradições ausente' }
+          if (-not $chat.Contains('Normas')) { throw 'atalho de normas ausente' }
+          $ai = Get-Content lib/services/ai_assistant_service.dart -Raw
+          if (-not $ai.Contains("'mode': 'report_review_chat'")) { throw 'chat IA ausente no serviço' }
+          $code = Get-Content painel_web_google_apps_script/Code.gs -Raw
+          if (-not $code.Contains("mode === 'report_review_chat'")) { throw 'modo crítico ausente no backend' }
+          if (-not $code.Contains('não elogiar nem validar o relatório por padrão')) { throw 'criticidade do prompt ausente' }
+          if (-not $code.Contains('questionsForTechnician')) { throw 'perguntas ao técnico ausentes' }
+          if (-not $code.Contains('actionPlanSuggestions')) { throw 'plano IA v3.29.8 perdido' }
+          $companies = Get-Content lib/screens/companies_screen.dart -Raw
+          if (-not $companies.Contains('Enviar relatório semanal')) { throw 'relatório semanal perdido' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+      - name: Compilar Windows
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+      - name: Gerar instalador e portátil
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          Compress-Archive 'app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release/*' 'dist/windows/Auditar-SST-Windows-v3.29.9-PORTATIL.zip' -Force
+          $release=(Resolve-Path 'app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release').Path
+          $output=(Resolve-Path 'dist/windows').Path
+          $iss=@"
+          [Setup]
+          AppName=Auditar SST
+          AppVersion=3.29.9
+          DefaultDirName={autopf}\Auditar SST
+          DefaultGroupName=Auditar SST
+          OutputDir=$output
+          OutputBaseFilename=Auditar-SST-Setup-v3.29.9
+          Compression=lzma
+          SolidCompression=yes
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          [Files]
+          Source: "$release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          [Icons]
+          Name: "{autoprograms}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          Name: "{autodesktop}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          [Run]
+          Filename: "{app}\auditar_sst.exe"; Description: "Abrir Auditar SST"; Flags: nowait postinstall skipifsilent
+          "@
+          Set-Content "$env:RUNNER_TEMP\auditar.iss" $iss -Encoding UTF8
+          & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' "$env:RUNNER_TEMP\auditar.iss"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.9-Windows
+          path: dist/windows/*
+          retention-days: 30
+
+  android:
+    name: Android v3.29.9
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.29.9
+        run: python3 tools/assemble_v3299.py
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Preparar Android
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q "MyApp" test/widget_test.dart; then rm test/widget_test.dart; fi
+          python3 - <<'PY'
+          from pathlib import Path
+          manifest=Path('android/app/src/main/AndroidManifest.xml')
+          text=manifest.read_text()
+          for perm in ('<uses-permission android:name="android.permission.CAMERA" />','<uses-permission android:name="android.permission.INTERNET" />'):
+              if perm not in text:
+                  text=text.replace('<application',perm+'\n    <application',1)
+          manifest.write_text(text)
+          PY
+          flutter pub get
+      - name: Analisar e testar Android
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          dart format lib
+          grep -Fq 'version: 3.29.9+152' pubspec.yaml
+          grep -Fq 'Revisor crítico: analisar e conversar' lib/screens/report_screen.dart
+          grep -Fq 'Gerar plano de ação com IA' lib/screens/report_screen.dart
+          grep -Fq 'Modo crítico: a IA deve procurar problemas' lib/screens/ai_report_chat_screen.dart
+          grep -Fq 'Contradições' lib/screens/ai_report_chat_screen.dart
+          grep -Fq 'Normas' lib/screens/ai_report_chat_screen.dart
+          grep -Fq "'mode': 'report_review_chat'" lib/services/ai_assistant_service.dart
+          grep -Fq "mode === 'report_review_chat'" painel_web_google_apps_script/Code.gs
+          grep -Fq 'não elogiar nem validar o relatório por padrão' painel_web_google_apps_script/Code.gs
+          grep -Fq 'questionsForTechnician' painel_web_google_apps_script/Code.gs
+          grep -Fq 'actionPlanSuggestions' painel_web_google_apps_script/Code.gs
+          grep -Fq 'Enviar relatório semanal' lib/screens/companies_screen.dart
+          cp painel_web_google_apps_script/Code.gs /tmp/Code.js
+          cp painel_web_google_apps_script/WeeklyReport.gs /tmp/WeeklyReport.js
+          node --check /tmp/Code.js
+          node --check /tmp/WeeklyReport.js
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+      - name: Compilar APK v3.29.9
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY" || (echo 'AUDITAR_SYNC_KEY ausente' && exit 1)
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+      - name: Empacotar APK
+        run: |
+          mkdir -p dist/android
+          cp app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-release.apk dist/android/Auditar-SST-v3.29.9.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.9-Android
+          path: dist/android/*
+          retention-days: 30
+
+  server-patch:
+    name: Patch IA servidor v3.29.9
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Gerar patch mínimo do Code.gs
+        run: |
+          python3 tools/assemble_v3298.py
+          cp app/Auditar_SST_v1_5_dashboard/painel_web_google_apps_script/Code.gs /tmp/Code-v3298.gs
+          python3 tools/patch_critical_ai_review_v3299.py app/Auditar_SST_v1_5_dashboard
+          mkdir -p dist/server-v3299
+          diff -u /tmp/Code-v3298.gs app/Auditar_SST_v1_5_dashboard/painel_web_google_apps_script/Code.gs > dist/server-v3299/PATCH-Code.gs-v3.29.9.diff || true
+          cat > dist/server-v3299/LEIA-ME.txt <<'TXT'
+          AUDITAR SST v3.29.9 - REVISOR CRÍTICO INTERATIVO
+
+          IMPORTANTE: NÃO substitua o seu Code.gs inteiro.
+
+          O arquivo PATCH-Code.gs-v3.29.9.diff adiciona somente o modo report_review_chat usado pelo novo revisor crítico interativo do relatório.
+
+          A IA passa a procurar ativamente contradições, lacunas, referências normativas a conferir, prioridades/prazos incoerentes, locais genéricos e conclusões mais fortes do que os dados permitem. Também permite conversar com a IA sobre o relatório.
+
+          A IA não altera o relatório automaticamente e não bloqueia a emissão. Achados de alta ou crítica prioridade apenas recomendam revisão humana antes de emitir.
+
+          Aplique somente os trechos do patch no seu Code.gs atual. Se o Code.gs tiver alterações próprias e o patch não encaixar, envie o arquivo atual para o ChatGPT ajustar sem remover funções existentes.
+
+          Depois de atualizar o Code.gs, salve e publique uma NOVA versão da implantação Web App mantendo a mesma URL /exec quando possível.
+          TXT
+          cp app/Auditar_SST_v1_5_dashboard/painel_web_google_apps_script/Code.gs /tmp/Code-v3299.js
+          node --check /tmp/Code-v3299.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.9-Patch-IA-Servidor
+          path: dist/server-v3299/*
+          retention-days: 30
