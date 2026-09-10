@@ -1,0 +1,34 @@
+name: Export v3.36.1 Layout Reference
+
+on:
+  push:
+    branches: [debug/export-v361-layout]
+    paths:
+      - ".github/workflows/export-v361-layout.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte final v3.36.1
+        run: python3 tools/assemble_v3610.py
+      - name: Exportar referência exata
+        uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.36.1-Layout-Reference
+          path: |
+            app/Auditar_SST_v1_5_dashboard/lib/screens/home_screen.dart
+            app/Auditar_SST_v1_5_dashboard/lib/screens/field_quick_screen.dart
+            app/Auditar_SST_v1_5_dashboard/lib/screens/new_inspection_screen.dart
+            app/Auditar_SST_v1_5_dashboard/lib/screens/company_detail_screen.dart
+            app/Auditar_SST_v1_5_dashboard/lib/services/dashboard_service.dart
+            app/Auditar_SST_v1_5_dashboard/lib/models.dart
+            app/Auditar_SST_v1_5_dashboard/lib/database.dart
+            app/Auditar_SST_v1_5_dashboard/pubspec.yaml
+          retention-days: 2
