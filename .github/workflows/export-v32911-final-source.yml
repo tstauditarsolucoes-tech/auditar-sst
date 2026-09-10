@@ -1,0 +1,34 @@
+name: Export v3.29.11 Final Source
+
+on:
+  push:
+    branches: [feature/v3.29.11]
+    paths:
+      - ".github/workflows/export-v32911-final-source.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte final v3.29.11
+        run: python3 tools/assemble_v32911.py
+      - name: Exportar arquivos relevantes
+        uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.11-Fonte-Relevante
+          path: |
+            app/Auditar_SST_v1_5_dashboard/lib/services/ai_assistant_service.dart
+            app/Auditar_SST_v1_5_dashboard/lib/services/management_panel_service.dart
+            app/Auditar_SST_v1_5_dashboard/lib/screens/companies_screen.dart
+            app/Auditar_SST_v1_5_dashboard/lib/screens/report_screen.dart
+            app/Auditar_SST_v1_5_dashboard/lib/screens/ai_report_chat_screen.dart
+            app/Auditar_SST_v1_5_dashboard/painel_web_google_apps_script/Code.gs
+            app/Auditar_SST_v1_5_dashboard/painel_web_google_apps_script/WeeklyReport.gs
+            app/Auditar_SST_v1_5_dashboard/pubspec.yaml
+          retention-days: 2
