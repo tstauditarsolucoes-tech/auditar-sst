@@ -115,7 +115,7 @@ jobs:
           flutter pub get
           dart format lib
           $pub = Get-Content pubspec.yaml -Raw
-          $home = Get-Content lib/screens/home_screen.dart -Raw
+          $homeText = Get-Content lib/screens/home_screen.dart -Raw
           $field = Get-Content lib/screens/field_quick_screen.dart -Raw
           $newi = Get-Content lib/screens/new_inspection_screen.dart -Raw
           $db = Get-Content lib/database.dart -Raw
@@ -125,7 +125,7 @@ jobs:
           if (-not $pub.Contains('version: 3.29.16+159')) { throw 'versão incorreta' }
           if (-not $field.Contains('class FieldQuickScreen') -or -not $field.Contains('Vistoria rápida / avulsa')) { throw 'vistoria avulsa ausente' }
           if (-not $newi.Contains('initialCompany') -or -not $newi.Contains('fieldMode')) { throw 'modo avulso não integrado à nova vistoria' }
-          if (-not $home.Contains('Central Auditar') -or -not $home.Contains('Vistoria rápida / avulsa')) { throw 'layout/atalho ausente' }
+          if (-not $homeText.Contains('Central Auditar') -or -not $homeText.Contains('Vistoria rápida / avulsa')) { throw 'layout/atalho ausente' }
           if (-not $db.Contains('getPgrDocuments')) { throw 'múltiplos PGRs foram perdidos' }
           if (-not $ai.Contains("'mode': 'checklist_photo'")) { throw 'IA de foto foi perdida' }
           if (-not $pgr.Contains('Adicionar outro PGR')) { throw 'PGR múltiplo foi perdido' }
