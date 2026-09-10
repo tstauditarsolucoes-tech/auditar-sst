@@ -21,6 +21,12 @@ def main() -> int:
         check=True,
         env=env,
     )
+    subprocess.run(
+        [sys.executable, str(repo / 'tools' / 'patch_v32916_layout_finalize.py'), str(app)],
+        cwd=repo,
+        check=True,
+        env=env,
+    )
     print(f'Fonte v3.29.16 montada em {app}')
     return 0
 
