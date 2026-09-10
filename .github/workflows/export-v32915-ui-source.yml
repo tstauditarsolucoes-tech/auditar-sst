@@ -1,0 +1,38 @@
+name: Export v3.29.15 UI Source
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v3.29.15]
+    paths:
+      - ".github/workflows/export-v32915-ui-source.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.29.15
+        run: python3 tools/assemble_v32915.py
+      - name: Preparar arquivos de interface
+        run: |
+          set -euo pipefail
+          APP=app/Auditar_SST_v1_5_dashboard
+          mkdir -p dist/ui/lib/screens dist/ui/lib/services
+          cp "$APP/lib/screens/home_screen.dart" dist/ui/lib/screens/
+          cp "$APP/lib/screens/company_detail_screen.dart" dist/ui/lib/screens/
+          cp "$APP/lib/screens/new_inspection_screen.dart" dist/ui/lib/screens/
+          if [ -f "$APP/lib/screens/field_quick_screen.dart" ]; then cp "$APP/lib/screens/field_quick_screen.dart" dist/ui/lib/screens/; fi
+          cp "$APP/lib/services/ai_assistant_service.dart" dist/ui/lib/services/
+          cp "$APP/lib/models.dart" dist/ui/lib/
+          cp "$APP/lib/database.dart" dist/ui/lib/
+          cp "$APP/pubspec.yaml" dist/ui/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.15-UI-Source
+          path: dist/ui/**
+          retention-days: 2
