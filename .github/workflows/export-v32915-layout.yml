@@ -1,0 +1,38 @@
+name: Export v3.29.15 Layout Reference
+
+on:
+  push:
+    branches: [debug/export-v32915-layout]
+    paths:
+      - ".github/workflows/export-v32915-layout.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte final v3.29.15
+        run: python3 tools/assemble_v32915.py
+      - name: Exportar arquivos necessários
+        run: |
+          set -euo pipefail
+          APP=app/Auditar_SST_v1_5_dashboard
+          mkdir -p dist/lib/screens dist/lib/services
+          cp "$APP/pubspec.yaml" dist/
+          cp "$APP/lib/brand.dart" dist/lib/
+          cp "$APP/lib/models.dart" dist/lib/
+          cp "$APP/lib/database.dart" dist/lib/
+          cp "$APP/lib/screens/home_screen.dart" dist/lib/screens/
+          cp "$APP/lib/screens/new_inspection_screen.dart" dist/lib/screens/
+          cp "$APP/lib/screens/improvements_screen.dart" dist/lib/screens/
+          cp "$APP/lib/services/ai_assistant_service.dart" dist/lib/services/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.15-Layout-Reference
+          path: dist/**
+          retention-days: 2
