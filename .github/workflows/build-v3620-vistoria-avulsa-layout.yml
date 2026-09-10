@@ -1,0 +1,115 @@
+name: Auditar SST v3.36.2 Vistoria Avulsa Layout
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v3.36.2-vistoria-avulsa-layout]
+    paths:
+      - ".github/workflows/build-v3620-vistoria-avulsa-layout.yml"
+      - "tools/assemble_v3620.py"
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android v3.36.2
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.36.2
+        run: python3 tools/assemble_v3620.py
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Analisar e testar
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q "MyApp" test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          dart format lib test
+          grep -Fq 'version: 3.36.2+157' pubspec.yaml
+          grep -Fq 'autoOpenStandalone' lib/screens/field_quick_screen.dart
+          grep -Fq 'Iniciar vistoria rápida' lib/screens/field_quick_screen.dart
+          grep -Fq 'SEM CADASTRO' lib/screens/field_quick_screen.dart
+          grep -Fq "label: const Text('Vistoria rápida / avulsa')" lib/screens/home_screen.dart
+          grep -Fq "'syncProtocol': 2" lib/services/device_sync_service.dart
+          grep -Fq 'Assinar em tela cheia' lib/screens/signature_screen.dart
+          test "$(grep -c '^  ReadyChecklistDefinition(' lib/ready_checklists.dart)" -eq 44
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+      - name: Compilar APK release
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY" || (echo 'AUDITAR_SYNC_KEY ausente' && exit 1)
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+      - name: Preparar APK
+        run: |
+          mkdir -p dist/android
+          cp app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-release.apk dist/android/Auditar-SST-Android-v3.36.2.apk
+          sha256sum dist/android/Auditar-SST-Android-v3.36.2.apk > dist/android/SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.36.2-Android
+          path: dist/android/*
+          retention-days: 30
+
+  windows:
+    name: Windows v3.36.2
+    runs-on: windows-latest
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.36.2
+        run: python tools/assemble_v3620.py
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Analisar e testar
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          flutter pub get
+          dart format lib test
+          $pub = Get-Content pubspec.yaml -Raw
+          if (-not $pub.Contains('version: 3.36.2+157')) { throw 'versão incorreta' }
+          $field = Get-Content lib/screens/field_quick_screen.dart -Raw
+          if (-not $field.Contains('autoOpenStandalone') -or -not $field.Contains('SEM CADASTRO')) { throw 'vistoria avulsa/layout ausente' }
+          $home = Get-Content lib/screens/home_screen.dart -Raw
+          if (-not $home.Contains("label: const Text('Vistoria rápida / avulsa')")) { throw 'atalho da vistoria avulsa ausente no Windows' }
+          $sync = Get-Content lib/services/device_sync_service.dart -Raw
+          if (-not $sync.Contains("'syncProtocol': 2")) { throw 'sync v2 foi perdido' }
+          if ((Select-String lib/ready_checklists.dart -Pattern '^  ReadyChecklistDefinition\(').Count -ne 44) { throw 'biblioteca de 44 checklists alterada' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+      - name: Compilar Windows release
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+      - name: Preparar portátil
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          Compress-Archive 'app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release/*' 'dist/windows/Auditar-SST-Windows-v3.36.2-PORTATIL.zip' -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.36.2-Windows
+          path: dist/windows/*
+          retention-days: 30
