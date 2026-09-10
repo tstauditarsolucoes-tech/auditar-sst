@@ -1,0 +1,40 @@
+name: Export v3.29.15 Current Source
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v3.29.16-vistoria-avulsa-layout]
+    paths:
+      - ".github/workflows/export-v32915-current-source.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte atual v3.29.15
+        run: python3 tools/assemble_v32915.py
+      - name: Preparar referência atual
+        run: |
+          set -euo pipefail
+          APP=app/Auditar_SST_v1_5_dashboard
+          mkdir -p dist/current/lib/screens dist/current/lib/services
+          cp "$APP/pubspec.yaml" dist/current/
+          cp "$APP/lib/models.dart" dist/current/lib/
+          cp "$APP/lib/database.dart" dist/current/lib/
+          cp "$APP/lib/screens/home_screen.dart" dist/current/lib/screens/
+          cp "$APP/lib/screens/new_inspection_screen.dart" dist/current/lib/screens/
+          cp "$APP/lib/screens/company_detail_screen.dart" dist/current/lib/screens/
+          cp "$APP/lib/services/ai_assistant_service.dart" dist/current/lib/services/
+          cp "$APP/lib/services/device_sync_service.dart" dist/current/lib/services/
+          cp "$APP/lib/screens/signature_screen.dart" dist/current/lib/screens/
+          cp "$APP/lib/screens/report_screen.dart" dist/current/lib/screens/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.15-Current-Source
+          path: dist/current/**
+          retention-days: 2
