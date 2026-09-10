@@ -13,6 +13,8 @@ def main() -> int:
     app = repo / 'app' / 'Auditar_SST_v1_5_dashboard'
     env = os.environ.copy()
     env['PYTHONUTF8'] = '1'
+    # v3.29.16: restaura a vistoria rápida/avulsa e o layout Central Auditar
+    # sobre a linha atual estabilizada, sem substituir as funções de IA.
     subprocess.run(
         [sys.executable, str(repo / 'tools' / 'patch_field_quick_layout_v32916.py'), str(app)],
         cwd=repo,
