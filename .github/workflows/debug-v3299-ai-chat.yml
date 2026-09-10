@@ -1,0 +1,33 @@
+name: Debug v3.29.9 IA Critica Interativa
+
+on:
+  push:
+    branches: [feature/v3.29.9]
+    paths:
+      - ".github/workflows/debug-v3299-ai-chat.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.29.8 atual
+        run: python3 tools/assemble_v3298.py
+      - name: Salvar fonte final relevante
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-v3299-ai-chat
+          path: |
+            app/Auditar_SST_v1_5_dashboard/lib/screens/report_screen.dart
+            app/Auditar_SST_v1_5_dashboard/lib/screens/ai_action_plan_review_screen.dart
+            app/Auditar_SST_v1_5_dashboard/lib/services/ai_assistant_service.dart
+            app/Auditar_SST_v1_5_dashboard/lib/models.dart
+            app/Auditar_SST_v1_5_dashboard/lib/database.dart
+            app/Auditar_SST_v1_5_dashboard/painel_web_google_apps_script/Code.gs
+            app/Auditar_SST_v1_5_dashboard/pubspec.yaml
+          if-no-files-found: error
+          retention-days: 2
