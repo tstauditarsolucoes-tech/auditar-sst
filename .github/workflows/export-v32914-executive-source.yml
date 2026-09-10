@@ -16,15 +16,18 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
-      - name: Montar fonte v3.29.13
-        run: python3 tools/assemble_v32913.py
-      - name: Exportar arquivos do relatório executivo
+      - name: Montar fonte v3.29.14
+        run: python3 tools/assemble_v32914.py
+      - name: Exportar arquivos relevantes
         uses: actions/upload-artifact@v4
         with:
           name: Auditar-SST-v3.29.14-Executive-Source
           path: |
             app/Auditar_SST_v1_5_dashboard/lib/services/pdf_service.dart
             app/Auditar_SST_v1_5_dashboard/lib/screens/report_screen.dart
+            app/Auditar_SST_v1_5_dashboard/lib/screens/home_screen.dart
+            app/Auditar_SST_v1_5_dashboard/lib/screens/new_inspection_screen.dart
+            app/Auditar_SST_v1_5_dashboard/lib/screens/checklist_screen.dart
             app/Auditar_SST_v1_5_dashboard/lib/models.dart
             app/Auditar_SST_v1_5_dashboard/lib/database.dart
             app/Auditar_SST_v1_5_dashboard/pubspec.yaml
