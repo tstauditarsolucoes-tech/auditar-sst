@@ -88,8 +88,8 @@ jobs:
           if (-not $pub.Contains('version: 3.36.2+157')) { throw 'versão incorreta' }
           $field = Get-Content lib/screens/field_quick_screen.dart -Raw
           if (-not $field.Contains('autoOpenStandalone') -or -not $field.Contains('SEM CADASTRO')) { throw 'vistoria avulsa/layout ausente' }
-          $home = Get-Content lib/screens/home_screen.dart -Raw
-          if (-not $home.Contains("label: const Text('Vistoria rápida / avulsa')")) { throw 'atalho da vistoria avulsa ausente no Windows' }
+          $homeText = Get-Content lib/screens/home_screen.dart -Raw
+          if (-not $homeText.Contains("label: const Text('Vistoria rápida / avulsa')")) { throw 'atalho da vistoria avulsa ausente no Windows' }
           $sync = Get-Content lib/services/device_sync_service.dart -Raw
           if (-not $sync.Contains("'syncProtocol': 2")) { throw 'sync v2 foi perdido' }
           if ((Select-String lib/ready_checklists.dart -Pattern '^  ReadyChecklistDefinition\(').Count -ne 44) { throw 'biblioteca de 44 checklists alterada' }
