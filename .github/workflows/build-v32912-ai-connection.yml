@@ -1,0 +1,110 @@
+name: Auditar SST v3.29.12 IA Connection
+
+on:
+  push:
+    branches: [feature/v3.29.12]
+    paths:
+      - ".github/workflows/build-v32912-ai-connection.yml"
+      - "tools/assemble_v32912.py"
+      - "tools/patch_ai_connection_v32912.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android v3.29.12
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.29.12
+        run: python3 tools/assemble_v32912.py
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Preparar Android
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q "MyApp" test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+      - name: Analisar e testar
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          dart format lib
+          grep -Fq 'version: 3.29.12+155' pubspec.yaml
+          grep -Fq 'const maxAttempts = 4;' lib/services/ai_assistant_service.dart
+          grep -Fq "message.contains('connection reset')" lib/services/ai_assistant_service.dart
+          grep -Fq "message.contains('software caused connection abort')" lib/services/ai_assistant_service.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+      - name: Compilar APK
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY" || (echo 'AUDITAR_SYNC_KEY ausente' && exit 1)
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+      - name: Empacotar APK
+        run: |
+          mkdir -p dist/android
+          cp app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-release.apk dist/android/Auditar-SST-v3.29.12.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.12-Android
+          path: dist/android/*
+          retention-days: 30
+
+  windows:
+    name: Windows v3.29.12
+    runs-on: windows-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.29.12
+        run: python tools/assemble_v32912.py
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Preparar, analisar e testar Windows
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          flutter pub get
+          dart format lib
+          $pub = Get-Content pubspec.yaml -Raw
+          if (-not $pub.Contains('version: 3.29.12+155')) { throw 'versão incorreta' }
+          $ai = Get-Content lib/services/ai_assistant_service.dart -Raw
+          if (-not $ai.Contains('const maxAttempts = 4;')) { throw 'tentativas insuficientes' }
+          if (-not $ai.Contains("message.contains('connection reset')")) { throw 'connection reset não tratado' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+      - name: Compilar Windows
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+      - name: Gerar portátil
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          Compress-Archive 'app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release/*' 'dist/windows/Auditar-SST-Windows-v3.29.12-PORTATIL.zip' -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.12-Windows
+          path: dist/windows/*
+          retention-days: 30
