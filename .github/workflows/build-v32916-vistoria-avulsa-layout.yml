@@ -1,0 +1,154 @@
+name: Auditar SST v3.29.16 Vistoria Avulsa + Layout
+
+on:
+  push:
+    branches: [feature/v3.29.16-vistoria-avulsa-layout]
+    paths:
+      - ".github/workflows/build-v32916-vistoria-avulsa-layout.yml"
+      - "tools/assemble_v32916.py"
+      - "tools/patch_field_quick_layout_v32916.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android v3.29.16
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.29.16
+        run: python3 tools/assemble_v32916.py
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Preparar Android
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q "MyApp" test/widget_test.dart; then rm test/widget_test.dart; fi
+          python3 - <<'PY'
+          from pathlib import Path
+          manifest=Path('android/app/src/main/AndroidManifest.xml')
+          text=manifest.read_text(encoding='utf-8')
+          for perm in ('<uses-permission android:name="android.permission.CAMERA" />','<uses-permission android:name="android.permission.INTERNET" />'):
+              if perm not in text:
+                  text=text.replace('<application',perm+'\n    <application',1)
+          manifest.write_text(text, encoding='utf-8')
+          PY
+          flutter pub get
+      - name: Analisar e testar
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          dart format lib
+          python3 - <<'PY'
+          from pathlib import Path
+          pub=Path('pubspec.yaml').read_text(encoding='utf-8')
+          home=Path('lib/screens/home_screen.dart').read_text(encoding='utf-8')
+          field=Path('lib/screens/field_quick_screen.dart').read_text(encoding='utf-8')
+          newi=Path('lib/screens/new_inspection_screen.dart').read_text(encoding='utf-8')
+          db=Path('lib/database.dart').read_text(encoding='utf-8')
+          ai=Path('lib/services/ai_assistant_service.dart').read_text(encoding='utf-8')
+          pgr=Path('lib/screens/pgr_screen.dart').read_text(encoding='utf-8')
+          pdf=Path('lib/services/pdf_service.dart').read_text(encoding='utf-8')
+          assert 'version: 3.29.16+159' in pub
+          assert 'class FieldQuickScreen' in field
+          assert 'Vistoria rápida / avulsa' in field
+          assert 'active: false' in field
+          assert 'deleteCompanyIfUnused' in field
+          assert 'initialCompany' in newi and 'fieldMode' in newi
+          assert 'Central Auditar' in home and 'Vistoria rápida / avulsa' in home
+          assert 'getPgrDocuments' in db
+          assert "'mode': 'checklist_photo'" in ai
+          assert 'Adicionar outro PGR' in pgr
+          for marker in ('QUANTITATIVO OPERACIONAL','QUADRO DE PROVIDÊNCIAS','O QUE FICOU PENDENTE','O QUE JÁ FOI RESOLVIDO','Evidência principal'):
+              assert marker in pdf, marker
+          ready=Path('lib/ready_checklists.dart').read_text(encoding='utf-8')
+          assert ready.count('  ReadyChecklistDefinition(') == 44
+          PY
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+      - name: Compilar APK
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY" || (echo 'AUDITAR_SYNC_KEY ausente' && exit 1)
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+      - name: Empacotar APK
+        run: |
+          mkdir -p dist/android
+          cp app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-release.apk dist/android/Auditar-SST-v3.29.16.apk
+          sha256sum dist/android/Auditar-SST-v3.29.16.apk > dist/android/SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.16-Android
+          path: dist/android/*
+          retention-days: 30
+
+  windows:
+    name: Windows v3.29.16
+    runs-on: windows-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.29.16
+        run: python tools/assemble_v32916.py
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Preparar, analisar e testar Windows
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          flutter pub get
+          dart format lib
+          $pub = Get-Content pubspec.yaml -Raw
+          $home = Get-Content lib/screens/home_screen.dart -Raw
+          $field = Get-Content lib/screens/field_quick_screen.dart -Raw
+          $newi = Get-Content lib/screens/new_inspection_screen.dart -Raw
+          $db = Get-Content lib/database.dart -Raw
+          $ai = Get-Content lib/services/ai_assistant_service.dart -Raw
+          $pgr = Get-Content lib/screens/pgr_screen.dart -Raw
+          $pdf = Get-Content lib/services/pdf_service.dart -Raw
+          if (-not $pub.Contains('version: 3.29.16+159')) { throw 'versão incorreta' }
+          if (-not $field.Contains('class FieldQuickScreen') -or -not $field.Contains('Vistoria rápida / avulsa')) { throw 'vistoria avulsa ausente' }
+          if (-not $newi.Contains('initialCompany') -or -not $newi.Contains('fieldMode')) { throw 'modo avulso não integrado à nova vistoria' }
+          if (-not $home.Contains('Central Auditar') -or -not $home.Contains('Vistoria rápida / avulsa')) { throw 'layout/atalho ausente' }
+          if (-not $db.Contains('getPgrDocuments')) { throw 'múltiplos PGRs foram perdidos' }
+          if (-not $ai.Contains("'mode': 'checklist_photo'")) { throw 'IA de foto foi perdida' }
+          if (-not $pgr.Contains('Adicionar outro PGR')) { throw 'PGR múltiplo foi perdido' }
+          foreach ($marker in @('QUANTITATIVO OPERACIONAL','QUADRO DE PROVIDÊNCIAS','O QUE FICOU PENDENTE','O QUE JÁ FOI RESOLVIDO','Evidência principal')) { if (-not $pdf.Contains($marker)) { throw "marcador ausente: $marker" } }
+          if ((Select-String lib/ready_checklists.dart -Pattern '^  ReadyChecklistDefinition\(').Count -ne 44) { throw 'biblioteca de 44 checklists alterada' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+      - name: Compilar Windows
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+      - name: Gerar portátil
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          Compress-Archive 'app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release/*' 'dist/windows/Auditar-SST-Windows-v3.29.16-PORTATIL.zip' -Force
+          Get-FileHash dist/windows/Auditar-SST-Windows-v3.29.16-PORTATIL.zip -Algorithm SHA256 | Format-List | Out-File dist/windows/SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.16-Windows
+          path: dist/windows/*
+          retention-days: 30
