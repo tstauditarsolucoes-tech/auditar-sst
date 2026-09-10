@@ -1,0 +1,94 @@
+name: Auditar SST v3.36.2 Windows Vistoria Avulsa
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v3.36.2-windows-vistoria-avulsa]
+    paths:
+      - ".github/workflows/build-v3620-windows-vistoria-avulsa.yml"
+      - "tools/assemble_v3620.py"
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows v3.36.2
+    runs-on: windows-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.36.2
+        run: python tools/assemble_v3620.py
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Analisar e testar
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          flutter pub get
+          dart format lib test
+          $pub = Get-Content pubspec.yaml -Raw
+          if (-not $pub.Contains('version: 3.36.2+157')) { throw 'versão incorreta' }
+          $home = Get-Content lib/screens/home_screen.dart -Raw
+          if (-not $home.Contains("label: const Text('Vistoria rápida / avulsa')")) { throw 'atalho de vistoria rápida/avulsa ausente no Windows' }
+          $field = Get-Content lib/screens/field_quick_screen.dart -Raw
+          if (-not $field.Contains('Widget _windowsBody()')) { throw 'layout Windows da vistoria rápida ausente' }
+          if (-not $field.Contains('_openStandaloneDialog') -or -not $field.Contains('_startStandaloneInspection')) { throw 'fluxo de vistoria avulsa ausente' }
+          if (-not $field.Contains('fieldMode: true')) { throw 'modo avulso não está ligado ao fluxo normal' }
+          $sync = Get-Content lib/services/device_sync_service.dart -Raw
+          if (-not $sync.Contains("'syncProtocol': 2")) { throw 'sync v2 foi perdido' }
+          if ((Select-String lib/ready_checklists.dart -Pattern '^  ReadyChecklistDefinition\(').Count -ne 44) { throw 'biblioteca de 44 checklists alterada' }
+          $report = Get-Content lib/screens/report_screen.dart -Raw
+          if (-not $report.Contains("? 'Salvar PDF'")) { throw 'Salvar PDF do Windows foi perdido' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+      - name: Compilar Windows
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+      - name: Gerar portátil e instalador
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          Compress-Archive 'app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release/*' 'dist/windows/Auditar-SST-Windows-v3.36.2-PORTATIL.zip' -Force
+          $release=(Resolve-Path 'app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release').Path
+          $output=(Resolve-Path 'dist/windows').Path
+          $iss=@"
+          [Setup]
+          AppName=Auditar SST
+          AppVersion=3.36.2
+          DefaultDirName={autopf}\Auditar SST
+          DefaultGroupName=Auditar SST
+          OutputDir=$output
+          OutputBaseFilename=Auditar-SST-Setup-v3.36.2
+          Compression=lzma
+          SolidCompression=yes
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          [Files]
+          Source: "$release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          [Icons]
+          Name: "{autoprograms}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          Name: "{autodesktop}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          "@
+          Set-Content "$env:RUNNER_TEMP\auditar.iss" $iss -Encoding UTF8
+          & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' "$env:RUNNER_TEMP\auditar.iss"
+      - name: Gerar checksums
+        shell: pwsh
+        run: |
+          Get-FileHash dist/windows/* -Algorithm SHA256 | Format-Table -AutoSize | Out-String | Set-Content dist/windows/SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.36.2-Windows
+          path: dist/windows/*
+          retention-days: 30
