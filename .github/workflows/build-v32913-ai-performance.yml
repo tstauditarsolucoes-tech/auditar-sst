@@ -1,0 +1,124 @@
+name: Auditar SST v3.29.13 IA Performance
+
+on:
+  push:
+    branches: [feature/v3.29.13]
+    paths:
+      - ".github/workflows/build-v32913-ai-performance.yml"
+      - "tools/assemble_v32913.py"
+      - "tools/patch_ai_performance_v32913.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android v3.29.13
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.29.13
+        run: python3 tools/assemble_v32913.py
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Preparar Android
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q "MyApp" test/widget_test.dart; then rm test/widget_test.dart; fi
+          python3 - <<'PY'
+          from pathlib import Path
+          manifest=Path('android/app/src/main/AndroidManifest.xml')
+          text=manifest.read_text()
+          for perm in ('<uses-permission android:name="android.permission.CAMERA" />','<uses-permission android:name="android.permission.INTERNET" />'):
+              if perm not in text:
+                  text=text.replace('<application',perm+'\n    <application',1)
+          manifest.write_text(text)
+          PY
+          flutter pub get
+      - name: Analisar e testar
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          dart format lib
+          grep -Fq 'version: 3.29.13+156' pubspec.yaml
+          grep -Fq 'const maxAttempts = 2;' lib/services/ai_assistant_service.dart
+          grep -Fq 'const Duration(seconds: 55)' lib/services/ai_assistant_service.dart
+          grep -Fq 'const Duration(seconds: 75)' lib/services/ai_assistant_service.dart
+          grep -Fq 'width: 1024' lib/services/ai_assistant_service.dart
+          grep -Fq 'quality: 68' lib/services/ai_assistant_service.dart
+          grep -Fq 'http.Response.fromStream(streamed).timeout(timeout)' lib/services/apps_script_http.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+      - name: Compilar APK
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY" || (echo 'AUDITAR_SYNC_KEY ausente' && exit 1)
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+      - name: Empacotar APK
+        run: |
+          mkdir -p dist/android
+          cp app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-release.apk dist/android/Auditar-SST-v3.29.13.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.13-Android
+          path: dist/android/*
+          retention-days: 30
+
+  windows:
+    name: Windows v3.29.13
+    runs-on: windows-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.29.13
+        run: python tools/assemble_v32913.py
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Preparar, analisar e testar Windows
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          flutter pub get
+          dart format lib
+          $pub = Get-Content pubspec.yaml -Raw
+          if (-not $pub.Contains('version: 3.29.13+156')) { throw 'versão incorreta' }
+          $ai = Get-Content lib/services/ai_assistant_service.dart -Raw
+          if (-not $ai.Contains('const maxAttempts = 2;')) { throw 'retry excessivo' }
+          if (-not $ai.Contains('const Duration(seconds: 75)')) { throw 'timeout revisor ausente' }
+          $http = Get-Content lib/services/apps_script_http.dart -Raw
+          if (-not $http.Contains('http.Response.fromStream(streamed).timeout(timeout)')) { throw 'timeout de stream ausente' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+      - name: Compilar Windows
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+      - name: Gerar portátil
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          Compress-Archive 'app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release/*' 'dist/windows/Auditar-SST-Windows-v3.29.13-PORTATIL.zip' -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.13-Windows
+          path: dist/windows/*
+          retention-days: 30
