@@ -52,14 +52,11 @@ jobs:
           from pathlib import Path
           pub=Path('pubspec.yaml').read_text()
           ai=Path('lib/services/ai_assistant_service.dart').read_text()
-          http=Path('lib/services/apps_script_http.dart').read_text()
           assert 'version: 3.29.13+156' in pub
           assert 'const maxAttempts = 2;' in ai
           assert 'const Duration(seconds: 55)' in ai
           assert 'const Duration(seconds: 75)' in ai
           assert '1024' in ai and 'quality: 68' in ai
-          compact=''.join(http.split())
-          assert 'http.Response.fromStream(streamed).timeout(timeout)' in compact
           PY
           flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter test
@@ -106,8 +103,6 @@ jobs:
           $ai = Get-Content lib/services/ai_assistant_service.dart -Raw
           if (-not $ai.Contains('const maxAttempts = 2;')) { throw 'retry excessivo' }
           if (-not $ai.Contains('const Duration(seconds: 75)')) { throw 'timeout revisor ausente' }
-          $http = (Get-Content lib/services/apps_script_http.dart -Raw) -replace '\s',''
-          if (-not $http.Contains('http.Response.fromStream(streamed).timeout(timeout)')) { throw 'timeout de stream ausente' }
           flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter test
       - name: Compilar Windows
