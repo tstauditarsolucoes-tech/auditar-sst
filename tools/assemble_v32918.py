@@ -32,6 +32,7 @@ def main() -> int:
         cwd=repo,
         env=env,
     )
+    # Correção final do loading dinâmico do chat Executivo.
     subprocess.run(
         [sys.executable, str(repo / 'tools' / 'patch_v32918_constfix.py')],
         check=True,
