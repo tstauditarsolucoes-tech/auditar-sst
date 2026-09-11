@@ -1,0 +1,107 @@
+name: Auditar SST v3.29.17 Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v3.29.17-pc]
+    paths:
+      - ".github/workflows/build-v32917-android.yml"
+      - "tools/assemble_v32917.py"
+      - "tools/patch_v32917.py"
+      - "tools/patch_quick_field_layout_v32916.py"
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android v3.29.17
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar fonte v3.29.17 sobre v3.29.16
+        run: python3 tools/assemble_v32917.py
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Preparar Android
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q "MyApp" test/widget_test.dart; then rm test/widget_test.dart; fi
+          python3 - <<'PY'
+          from pathlib import Path
+          manifest = Path('android/app/src/main/AndroidManifest.xml')
+          text = manifest.read_text(encoding='utf-8')
+          for perm in (
+              '<uses-permission android:name="android.permission.CAMERA" />',
+              '<uses-permission android:name="android.permission.INTERNET" />',
+          ):
+              if perm not in text:
+                  text = text.replace('<application', perm + '\n    <application', 1)
+          manifest.write_text(text, encoding='utf-8')
+          PY
+          flutter pub get
+
+      - name: Formatar, analisar e testar
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          dart format lib
+          if [ -d test ]; then dart format test; fi
+          python3 - <<'PY'
+          from pathlib import Path
+          app = Path('.')
+          pub = (app/'pubspec.yaml').read_text(encoding='utf-8')
+          company = (app/'lib/screens/company_detail_screen.dart').read_text(encoding='utf-8')
+          report = (app/'lib/screens/report_screen.dart').read_text(encoding='utf-8')
+          device = (app/'lib/services/device_sync_service.dart').read_text(encoding='utf-8')
+          media = (app/'lib/services/media_sync_service.dart').read_text(encoding='utf-8')
+          pdf = (app/'lib/services/pdf_service.dart').read_text(encoding='utf-8')
+          db = (app/'lib/database.dart').read_text(encoding='utf-8')
+          ai = (app/'lib/services/ai_assistant_service.dart').read_text(encoding='utf-8')
+          pgr = (app/'lib/screens/pgr_screen.dart').read_text(encoding='utf-8')
+          checklists = (app/'lib/screens/checklist_templates_screen.dart').read_text(encoding='utf-8')
+
+          assert 'version: 3.29.17+160' in pub, 'versão incorreta'
+          assert 'IA · O que merece sua atenção' in company, 'atalho IA ausente'
+          assert 'fullPdfBusy' in report and 'executivePdfBusy' in report, 'estados PDF não separados'
+          assert 'insertPayload' in device, 'proteção do caminho local das fotos ausente'
+          assert "CASE WHEN entity_type = 'company_logo'" in media, 'prioridade de restauração da logo ausente'
+          assert 'downloadMissing(limit: 24)' in pdf, 'limite de mídia do PDF ausente'
+          assert 'media_assets' in db and 'evidence_photos' in db, 'estrutura de mídia ausente'
+          assert 'maxAttempts' in ai, 'serviço de IA ausente'
+          assert 'PGR' in pgr, 'módulo PGR ausente'
+          assert 'IA' in checklists or 'inteligente' in checklists.lower(), 'criador de checklist IA ausente'
+          PY
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if [ -d test ]; then flutter test; fi
+
+      - name: Compilar APK release
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY" || (echo 'AUDITAR_SYNC_KEY ausente' && exit 1)
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Empacotar APK
+        run: |
+          mkdir -p dist/android
+          cp app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-release.apk dist/android/Auditar-SST-v3.29.17.apk
+          test -f dist/android/Auditar-SST-v3.29.17.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.17-Android
+          path: dist/android/Auditar-SST-v3.29.17.apk
+          retention-days: 30
