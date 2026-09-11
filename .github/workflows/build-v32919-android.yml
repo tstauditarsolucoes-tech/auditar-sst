@@ -1,0 +1,106 @@
+name: Auditar SST v3.29.19 Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v3.29.19-logo-online]
+    paths:
+      - ".github/workflows/build-v32919-android.yml"
+      - "tools/assemble_v32919.py"
+      - "tools/patch_v32919_logo_online.py"
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android v3.29.19
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar fonte v3.29.19
+        run: python3 tools/assemble_v32919.py
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Preparar Android
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q "MyApp" test/widget_test.dart; then rm test/widget_test.dart; fi
+          python3 - <<'PY'
+          from pathlib import Path
+          manifest = Path('android/app/src/main/AndroidManifest.xml')
+          text = manifest.read_text(encoding='utf-8')
+          for perm in (
+              '<uses-permission android:name="android.permission.CAMERA" />',
+              '<uses-permission android:name="android.permission.INTERNET" />',
+          ):
+              if perm not in text:
+                  text = text.replace('<application', perm + '\n    <application', 1)
+          manifest.write_text(text, encoding='utf-8')
+          PY
+          flutter pub get
+
+      - name: Validar, analisar e testar
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          dart format lib
+          if [ -d test ]; then dart format test; fi
+          python3 - <<'PY'
+          from pathlib import Path
+          app = Path('.')
+          pub = (app/'pubspec.yaml').read_text(encoding='utf-8')
+          media = (app/'lib/services/media_sync_service.dart').read_text(encoding='utf-8')
+          companies = (app/'lib/screens/companies_screen.dart').read_text(encoding='utf-8')
+          coordinator = (app/'lib/services/sync_coordinator.dart').read_text(encoding='utf-8')
+          screen = (app/'lib/screens/report_screen.dart').read_text(encoding='utf-8')
+          chat = (app/'lib/screens/ai_report_chat_screen.dart').read_text(encoding='utf-8')
+          pdf = (app/'lib/services/pdf_service.dart').read_text(encoding='utf-8')
+          device = (app/'lib/services/device_sync_service.dart').read_text(encoding='utf-8')
+
+          assert 'version: 3.29.19+162' in pub, 'versão incorreta'
+          assert 'uploadCompanyLogoNow' in media, 'upload imediato da logo ausente'
+          assert 'uploadPendingCompanyLogos' in media, 'migração das logos antigas ausente'
+          assert "response['fileId']" in media, 'confirmação online da logo ausente'
+          assert 'MediaSyncService.uploadCompanyLogoNow(company.id)' in companies, 'tela não envia logo online'
+          assert 'Logo salva online e vinculada à empresa' in companies, 'confirmação ao usuário ausente'
+          assert 'MediaSyncService.uploadPendingCompanyLogos()' in coordinator, 'sync não migra logos locais'
+          assert 'MediaSyncService.downloadCompanyLogos()' in coordinator, 'sync não restaura logos online'
+          assert 'Conversar com a IA sobre o Executivo' in screen, 'IA interativa do Executivo foi perdida'
+          assert 'MODO EXECUTIVO GERENCIAL' in chat, 'chat Executivo foi perdido'
+          assert 'O QUE A EMPRESA PRECISA PROVIDENCIAR' in pdf, 'Executivo universal foi perdido'
+          assert 'insertPayload' in device, 'proteção das fotos foi perdida'
+          PY
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if [ -d test ]; then flutter test; fi
+
+      - name: Compilar APK release
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY" || (echo 'AUDITAR_SYNC_KEY ausente' && exit 1)
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Empacotar APK
+        run: |
+          mkdir -p dist/android
+          cp app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-release.apk dist/android/Auditar-SST-v3.29.19.apk
+          test -f dist/android/Auditar-SST-v3.29.19.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.19-Android
+          path: dist/android/Auditar-SST-v3.29.19.apk
+          retention-days: 30
