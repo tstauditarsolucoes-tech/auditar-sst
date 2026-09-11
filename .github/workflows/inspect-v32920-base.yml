@@ -25,7 +25,7 @@ jobs:
           targets = {
             'web_service_config.dart': ['class WebServiceConfig', 'endpoint', 'hasValidEndpoint', 'applyEmbeddedConfiguration'],
             'media_sync_service.dart': ['class MediaSyncService', 'static Future<MediaSyncSummary> synchronize', 'media_upload', 'media_download', 'uploadCompanyLogoNow', 'downloadCompanyLogos'],
-            'device_sync_service.dart': ['class DeviceSyncService', 'MediaSyncService', 'synchronize'],
+            'device_sync_service.dart': ['class DeviceSyncService', 'MediaSyncService', 'uploadPendingCompanyLogos', 'downloadMissing', 'downloadCompanyLogos'],
             'auth_service.dart': ['class AuthService', 'sessionToken', 'management_panel_endpoint'],
           }
           for rel, needles in targets.items():
@@ -39,7 +39,7 @@ jobs:
             for needle in needles:
               for i,line in enumerate(lines):
                 if needle in line:
-                  a=max(0,i-12); b=min(len(lines),i+45)
+                  a=max(0,i-15); b=min(len(lines),i+60)
                   key=(a,b)
                   if key not in printed:
                     printed.add(key)
@@ -59,10 +59,10 @@ jobs:
               continue
             lines=text.splitlines()
             print(f'===== {path} =====')
-            for needle in ['media_upload','media_download','function uploadMedia','function downloadMedia','DriveApp']:
+            for needle in ['media_upload','media_download','uploadMedia_','downloadMedia_','DriveApp']:
               for i,line in enumerate(lines):
                 if needle in line:
-                  a=max(0,i-20); b=min(len(lines),i+90)
+                  a=max(0,i-20); b=min(len(lines),i+100)
                   print(f'--- {needle} @ {i+1} ---')
                   for n in range(a,b): print(f'{n+1:04d}: {lines[n]}')
                   break
