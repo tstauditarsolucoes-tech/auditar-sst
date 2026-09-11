@@ -26,6 +26,12 @@ def main() -> int:
         cwd=repo,
         env=env,
     )
+    subprocess.run(
+        [sys.executable, str(repo / 'tools' / 'patch_v32918_interactive.py')],
+        check=True,
+        cwd=repo,
+        env=env,
+    )
 
     app = repo / 'app' / 'Auditar_SST_v1_5_dashboard'
     print(f'Fonte v3.29.18 montada em {app}')
