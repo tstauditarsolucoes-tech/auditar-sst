@@ -1,0 +1,118 @@
+name: Auditar SST v3.29.17 Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v3.29.17-pc]
+    paths:
+      - ".github/workflows/build-v32917-windows.yml"
+      - "tools/assemble_v32917.py"
+      - "tools/patch_v32917.py"
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows v3.29.17
+    runs-on: windows-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar fonte v3.29.17 sobre v3.29.16
+        shell: pwsh
+        run: python tools/assemble_v32917.py
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Preparar, formatar, analisar e testar
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          flutter pub get
+          dart format lib
+          if (Test-Path 'test') { dart format test }
+
+          $pub = Get-Content pubspec.yaml -Raw
+          $company = Get-Content lib/screens/company_detail_screen.dart -Raw
+          $report = Get-Content lib/screens/report_screen.dart -Raw
+          $deviceSync = Get-Content lib/services/device_sync_service.dart -Raw
+          $media = Get-Content lib/services/media_sync_service.dart -Raw
+          $pdf = Get-Content lib/services/pdf_service.dart -Raw
+          $db = Get-Content lib/database.dart -Raw
+
+          if (-not $pub.Contains('version: 3.29.17+160')) { throw 'versão incorreta' }
+          if (-not $company.Contains('IA · O que merece sua atenção')) { throw 'atalho da IA ausente' }
+          if (-not $report.Contains('fullPdfBusy') -or -not $report.Contains('executivePdfBusy')) { throw 'estados de PDF não separados' }
+          if (-not $deviceSync.Contains('insertPayload')) { throw 'proteção do caminho local das fotos ausente' }
+          if (-not $media.Contains('CASE WHEN entity_type = ''company_logo''')) { throw 'prioridade de restauração das logos ausente' }
+          if (-not $pdf.Contains('downloadMissing(limit: 24)')) { throw 'limite de recuperação de mídia do PDF ausente' }
+          if (-not $db.Contains('media_assets') -or -not $db.Contains('evidence_photos')) { throw 'estrutura de mídia ausente' }
+
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if (Test-Path 'test') { flutter test }
+
+      - name: Compilar Windows release
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+
+      - name: Gerar portátil e instalador
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          $release=(Resolve-Path 'app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release').Path
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.29.17-PORTATIL.zip' -Force
+
+          $iscc='C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress
+          }
+          if (-not (Test-Path $iscc)) { throw 'Inno Setup não disponível no runner' }
+
+          $output=(Resolve-Path 'dist/windows').Path
+          $iss=@"
+          [Setup]
+          AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}
+          AppName=Auditar SST
+          AppVersion=3.29.17
+          AppPublisher=Auditar Soluções
+          DefaultDirName={autopf}\Auditar SST
+          DefaultGroupName=Auditar SST
+          OutputDir=$output
+          OutputBaseFilename=Auditar-SST-Setup-v3.29.17
+          Compression=lzma2
+          SolidCompression=yes
+          WizardStyle=modern
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          [Files]
+          Source: "$release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          [Icons]
+          Name: "{autoprograms}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          Name: "{autodesktop}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          [Run]
+          Filename: "{app}\auditar_sst.exe"; Description: "Abrir Auditar SST"; Flags: nowait postinstall skipifsilent
+          "@
+          Set-Content "$env:RUNNER_TEMP\auditar.iss" $iss -Encoding UTF8
+          & $iscc "$env:RUNNER_TEMP\auditar.iss"
+
+          if (-not (Test-Path 'dist/windows/Auditar-SST-Setup-v3.29.17.exe')) { throw 'instalador não foi gerado' }
+          if (-not (Test-Path 'dist/windows/Auditar-SST-Windows-v3.29.17-PORTATIL.zip')) { throw 'portátil não foi gerado' }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.17-Windows
+          path: dist/windows/*
+          retention-days: 30
