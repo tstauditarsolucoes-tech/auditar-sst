@@ -46,11 +46,11 @@ jobs:
 
           $pub = Get-Content pubspec.yaml -Raw
           $media = Get-Content lib/services/media_sync_service.dart -Raw
-          $host = Get-Content lib/services/hostinger_media_service.dart -Raw
+          $hostingerCode = Get-Content lib/services/hostinger_media_service.dart -Raw
           $device = Get-Content lib/services/device_sync_service.dart -Raw
           $report = Get-Content lib/screens/report_screen.dart -Raw
           if (-not $pub.Contains('version: 3.29.20+163')) { throw 'versão incorreta' }
-          if (-not $host.Contains('AUDITAR_MEDIA_HOSTINGER_URL') -or -not $host.Contains('AUDITAR_MEDIA_HOSTINGER_KEY')) { throw 'configuração Hostinger ausente' }
+          if (-not $hostingerCode.Contains('AUDITAR_MEDIA_HOSTINGER_URL') -or -not $hostingerCode.Contains('AUDITAR_MEDIA_HOSTINGER_KEY')) { throw 'configuração Hostinger ausente' }
           if (-not $media.Contains('HostingerMediaService.uploadPending') -or -not $media.Contains('HostingerMediaService.downloadAsset')) { throw 'armazenamento Hostinger não integrado' }
           if (-not $media.Contains("'action': 'media_upload'") -or -not $media.Contains("'action': 'media_download'")) { throw 'backup/fallback Drive não preservado' }
           if (-not $media.Contains("CASE WHEN entity_type = 'company_logo'")) { throw 'prioridade da logo ausente' }
