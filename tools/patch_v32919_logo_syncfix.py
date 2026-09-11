@@ -87,9 +87,13 @@ if 'uploadCompanyLogoNow' not in media:
     raise RuntimeError('Upload imediato da logo foi perdido')
 if 'await MediaSyncService.uploadPendingCompanyLogos();' not in device:
     raise RuntimeError('Prioridade da logo não entrou no DeviceSyncService')
-if 'downloadCompanyLogos' not in media:
-    raise RuntimeError('Rotina de restauração online da logo foi perdida')
+# A v3.29.17 já prioriza company_logo em downloadMissing(). A restauração usa
+# essa fila geral existente, evitando criar uma segunda rotina concorrente.
+if 'MediaSyncService.downloadMissing' not in device:
+    raise RuntimeError('Fila de restauração de mídias após sincronização foi perdida')
+if "CASE WHEN entity_type = 'company_logo' THEN 0 ELSE 1 END" not in media:
+    raise RuntimeError('Prioridade da logo na restauração foi perdida')
 if "import 'media_sync_service.dart';" in coord:
     raise RuntimeError('SyncCoordinator ainda contém sincronização de mídia duplicada')
 
-print('v3.29.19: prioridade de logo online integrada ao DeviceSyncService sem duplicar o coordenador.')
+print('v3.29.19: upload imediato e recuperação priorizada da logo integrados sem duplicar o coordenador.')
