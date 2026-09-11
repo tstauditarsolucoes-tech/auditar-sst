@@ -1,0 +1,118 @@
+name: Auditar SST v3.29.20 Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v3.29.20-hostinger-storage]
+    paths:
+      - ".github/workflows/build-v32920-android.yml"
+      - "tools/assemble_v32920.py"
+      - "tools/patch_v32920_dual_storage.py"
+      - "tools/assemble_v32919.py"
+      - "tools/patch_v32919_logo_online.py"
+      - "tools/patch_v32919_logo_syncfix.py"
+      - "hostinger-media-api/**"
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android v3.29.20
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Validar backend Hostinger
+        run: |
+          php -l hostinger-media-api/index.php
+          test -f hostinger-media-api/config.example.php
+          test ! -f hostinger-media-api/config.php
+
+      - name: Montar fonte v3.29.20
+        run: python3 tools/assemble_v32920.py
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Preparar Android
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q "MyApp" test/widget_test.dart; then rm test/widget_test.dart; fi
+          python3 - <<'PY'
+          from pathlib import Path
+          manifest = Path('android/app/src/main/AndroidManifest.xml')
+          text = manifest.read_text(encoding='utf-8')
+          for perm in (
+              '<uses-permission android:name="android.permission.CAMERA" />',
+              '<uses-permission android:name="android.permission.INTERNET" />',
+          ):
+              if perm not in text:
+                  text = text.replace('<application', perm + '\n    <application', 1)
+          manifest.write_text(text, encoding='utf-8')
+          PY
+          flutter pub get
+
+      - name: Validar, analisar e testar
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          dart format lib
+          if [ -d test ]; then dart format test; fi
+          python3 - <<'PY'
+          from pathlib import Path
+          app=Path('.')
+          pub=(app/'pubspec.yaml').read_text(encoding='utf-8')
+          media=(app/'lib/services/media_sync_service.dart').read_text(encoding='utf-8')
+          host=(app/'lib/services/hostinger_media_service.dart').read_text(encoding='utf-8')
+          device=(app/'lib/services/device_sync_service.dart').read_text(encoding='utf-8')
+          report=(app/'lib/screens/report_screen.dart').read_text(encoding='utf-8')
+          assert 'version: 3.29.20+163' in pub
+          assert 'AUDITAR_MEDIA_HOSTINGER_URL' in host and 'AUDITAR_MEDIA_HOSTINGER_KEY' in host
+          assert 'HostingerMediaService.uploadPending' in media
+          assert 'HostingerMediaService.downloadAsset' in media
+          assert "'action': 'media_upload'" in media and "'action': 'media_download'" in media
+          assert "CASE WHEN entity_type = 'company_logo'" in media
+          assert 'device_sync_push' in device and 'device_sync_pull' in device
+          assert 'Conversar com a IA sobre o Executivo' in report
+          PY
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if [ -d test ]; then flutter test; fi
+
+      - name: Compilar APK release
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+          AUDITAR_MEDIA_HOSTINGER_URL: ${{ secrets.AUDITAR_MEDIA_HOSTINGER_URL }}
+          AUDITAR_MEDIA_HOSTINGER_KEY: ${{ secrets.AUDITAR_MEDIA_HOSTINGER_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY" || (echo 'AUDITAR_SYNC_KEY ausente' && exit 1)
+          flutter build apk --release \
+            --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY" \
+            --dart-define=AUDITAR_MEDIA_HOSTINGER_URL="$AUDITAR_MEDIA_HOSTINGER_URL" \
+            --dart-define=AUDITAR_MEDIA_HOSTINGER_KEY="$AUDITAR_MEDIA_HOSTINGER_KEY"
+
+      - name: Empacotar Android e backend
+        run: |
+          mkdir -p dist/android dist/hostinger
+          cp app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-release.apk dist/android/Auditar-SST-v3.29.20.apk
+          cp -r hostinger-media-api/* hostinger-media-api/.htaccess hostinger-media-api/.user.ini dist/hostinger/ 2>/dev/null || true
+          cd dist/hostinger && zip -r ../Auditar-SST-v3.29.20-Hostinger-Backend.zip . && cd ../..
+          test -f dist/android/Auditar-SST-v3.29.20.apk
+          test -f dist/Auditar-SST-v3.29.20-Hostinger-Backend.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.20-Android
+          path: |
+            dist/android/Auditar-SST-v3.29.20.apk
+            dist/Auditar-SST-v3.29.20-Hostinger-Backend.zip
+          retention-days: 30
