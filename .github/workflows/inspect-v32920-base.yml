@@ -1,0 +1,69 @@
+name: Inspect v3.29.20 base
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v3.29.20-hostinger-storage]
+    paths:
+      - ".github/workflows/inspect-v32920-base.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.29.19
+        run: python3 tools/assemble_v32919.py
+      - name: Mostrar trechos de configuração e mídia
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          targets = {
+            'web_service_config.dart': ['class WebServiceConfig', 'endpoint', 'hasValidEndpoint', 'applyEmbeddedConfiguration'],
+            'media_sync_service.dart': ['class MediaSyncService', 'static Future<MediaSyncSummary> synchronize', 'media_upload', 'media_download', 'uploadCompanyLogoNow', 'downloadCompanyLogos'],
+            'device_sync_service.dart': ['class DeviceSyncService', 'MediaSyncService', 'synchronize'],
+            'auth_service.dart': ['class AuthService', 'sessionToken', 'management_panel_endpoint'],
+          }
+          for rel, needles in targets.items():
+            path = Path('lib/services')/rel
+            if not path.exists():
+              print(f'===== {rel}: AUSENTE =====')
+              continue
+            lines = path.read_text(encoding='utf-8').splitlines()
+            print(f'===== {rel} ({len(lines)} linhas) =====')
+            printed=set()
+            for needle in needles:
+              for i,line in enumerate(lines):
+                if needle in line:
+                  a=max(0,i-12); b=min(len(lines),i+45)
+                  key=(a,b)
+                  if key not in printed:
+                    printed.add(key)
+                    print(f'--- {needle} @ {i+1} ---')
+                    for n in range(a,b): print(f'{n+1:04d}: {lines[n]}')
+                  break
+          PY
+      - name: Mostrar handlers de mídia da Central atual
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          candidates=list(Path('.').rglob('Code.gs'))
+          for path in candidates:
+            text=path.read_text(encoding='utf-8',errors='replace')
+            if 'media_upload' not in text and 'media_download' not in text:
+              continue
+            lines=text.splitlines()
+            print(f'===== {path} =====')
+            for needle in ['media_upload','media_download','function uploadMedia','function downloadMedia','DriveApp']:
+              for i,line in enumerate(lines):
+                if needle in line:
+                  a=max(0,i-20); b=min(len(lines),i+90)
+                  print(f'--- {needle} @ {i+1} ---')
+                  for n in range(a,b): print(f'{n+1:04d}: {lines[n]}')
+                  break
+          PY
