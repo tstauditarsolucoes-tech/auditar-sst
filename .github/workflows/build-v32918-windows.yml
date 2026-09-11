@@ -1,0 +1,128 @@
+name: Auditar SST v3.29.18 Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v3.29.18-ai-executivo]
+    paths:
+      - ".github/workflows/build-v32918-windows.yml"
+      - "tools/assemble_v32918.py"
+      - "tools/patch_v32918.py"
+      - "tools/patch_v32918_interactive.py"
+      - "tools/assemble_v32917.py"
+      - "tools/patch_v32917.py"
+      - "tools/patch_quick_field_layout_v32916.py"
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows v3.29.18
+    runs-on: windows-latest
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar fonte v3.29.18
+        shell: pwsh
+        run: python tools/assemble_v32918.py
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Preparar, validar, analisar e testar
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          flutter pub get
+          dart format lib
+          if (Test-Path 'test') { dart format test }
+
+          $pub = Get-Content pubspec.yaml -Raw
+          $screen = Get-Content lib/screens/report_screen.dart -Raw
+          $chat = Get-Content lib/screens/ai_report_chat_screen.dart -Raw
+          $pdf = Get-Content lib/services/pdf_service.dart -Raw
+          $ai = Get-Content lib/services/ai_assistant_service.dart -Raw
+          $reportFile = Get-Content lib/services/report_file_service.dart -Raw
+          $company = Get-Content lib/screens/company_detail_screen.dart -Raw
+          $deviceSync = Get-Content lib/services/device_sync_service.dart -Raw
+          $media = Get-Content lib/services/media_sync_service.dart -Raw
+
+          if (-not $pub.Contains('version: 3.29.18+161')) { throw 'versão incorreta' }
+          if (-not $ai.Contains('analyzeExecutiveReport')) { throw 'IA do Executivo ausente' }
+          if (-not $screen.Contains('Conversar com a IA sobre o Executivo') -or -not $screen.Contains('executiveMode: true')) { throw 'chat do Executivo não ligado à tela de relatórios' }
+          if (-not $chat.Contains('final bool executiveMode;') -or -not $chat.Contains('MODO EXECUTIVO GERENCIAL')) { throw 'modo interativo Executivo ausente' }
+          if (-not $chat.Contains("'Prioridades'") -or -not $chat.Contains("'Providenciar'") -or -not $chat.Contains("'Mensagem à gestão'")) { throw 'atalhos do chat Executivo ausentes' }
+          if (-not $screen.Contains('Revisor crítico: analisar e conversar')) { throw 'revisor crítico anterior não preservado' }
+          if (-not $pdf.Contains('O QUE A EMPRESA PRECISA PROVIDENCIAR') -or -not $pdf.Contains('ANÁLISE GERENCIAL POR IA')) { throw 'seções executivas ausentes' }
+          if (-not $reportFile.Contains('executiveAiAnalysis')) { throw 'passagem da análise IA ausente' }
+          if (-not $company.Contains('IA · O que merece sua atenção')) { throw 'atalho IA da empresa ausente' }
+          if (-not $deviceSync.Contains('insertPayload')) { throw 'proteção do caminho local das fotos ausente' }
+          if (-not $media.Contains("CASE WHEN entity_type = 'company_logo'")) { throw 'recuperação prioritária das logos ausente' }
+
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if (Test-Path 'test') { flutter test }
+
+      - name: Compilar Windows release
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+
+      - name: Gerar portátil e instalador
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          $release=(Resolve-Path 'app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release').Path
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.29.18-PORTATIL.zip' -Force
+
+          $iscc='C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress
+          }
+          if (-not (Test-Path $iscc)) { throw 'Inno Setup não disponível no runner' }
+
+          $output=(Resolve-Path 'dist/windows').Path
+          $iss=@"
+          [Setup]
+          AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}
+          AppName=Auditar SST
+          AppVersion=3.29.18
+          AppPublisher=Auditar Soluções
+          DefaultDirName={autopf}\Auditar SST
+          DefaultGroupName=Auditar SST
+          OutputDir=$output
+          OutputBaseFilename=Auditar-SST-Setup-v3.29.18
+          Compression=lzma2
+          SolidCompression=yes
+          WizardStyle=modern
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          [Files]
+          Source: "$release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          [Icons]
+          Name: "{autoprograms}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          Name: "{autodesktop}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          [Run]
+          Filename: "{app}\auditar_sst.exe"; Description: "Abrir Auditar SST"; Flags: nowait postinstall skipifsilent
+          "@
+          Set-Content "$env:RUNNER_TEMP\auditar.iss" $iss -Encoding UTF8
+          & $iscc "$env:RUNNER_TEMP\auditar.iss"
+
+          if (-not (Test-Path 'dist/windows/Auditar-SST-Setup-v3.29.18.exe')) { throw 'instalador não foi gerado' }
+          if (-not (Test-Path 'dist/windows/Auditar-SST-Windows-v3.29.18-PORTATIL.zip')) { throw 'portátil não foi gerado' }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.18-Windows
+          path: dist/windows/*
+          retention-days: 30
