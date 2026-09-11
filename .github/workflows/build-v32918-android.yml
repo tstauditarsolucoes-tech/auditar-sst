@@ -8,6 +8,7 @@ on:
       - ".github/workflows/build-v32918-android.yml"
       - "tools/assemble_v32918.py"
       - "tools/patch_v32918.py"
+      - "tools/patch_v32918_interactive.py"
       - "tools/assemble_v32917.py"
       - "tools/patch_v32917.py"
       - "tools/patch_quick_field_layout_v32916.py"
@@ -65,6 +66,7 @@ jobs:
           app = Path('.')
           pub = (app/'pubspec.yaml').read_text(encoding='utf-8')
           screen = (app/'lib/screens/report_screen.dart').read_text(encoding='utf-8')
+          chat = (app/'lib/screens/ai_report_chat_screen.dart').read_text(encoding='utf-8')
           pdf = (app/'lib/services/pdf_service.dart').read_text(encoding='utf-8')
           ai = (app/'lib/services/ai_assistant_service.dart').read_text(encoding='utf-8')
           report_file = (app/'lib/services/report_file_service.dart').read_text(encoding='utf-8')
@@ -75,6 +77,10 @@ jobs:
           assert 'version: 3.29.18+161' in pub, 'versão incorreta'
           assert 'analyzeExecutiveReport' in ai, 'IA do Executivo ausente'
           assert 'executiveAiEnabled' in screen and 'Preparar análise gerencial com IA' in screen, 'controle IA do Executivo ausente'
+          assert 'Conversar com a IA sobre o Executivo' in screen and 'executiveMode: true' in screen, 'chat do Executivo não ligado à tela de relatórios'
+          assert 'final bool executiveMode;' in chat and 'MODO EXECUTIVO GERENCIAL' in chat, 'modo interativo Executivo ausente'
+          assert "'Prioridades'" in chat and "'Providenciar'" in chat and "'Mensagem à gestão'" in chat, 'atalhos do chat Executivo ausentes'
+          assert 'Revisor crítico do relatório' in chat and 'Revisor crítico: analisar e conversar' in screen, 'revisor crítico anterior não preservado'
           assert 'O QUE A EMPRESA PRECISA PROVIDENCIAR' in pdf, 'resumo universal de providências ausente'
           assert 'ANÁLISE GERENCIAL POR IA' in pdf, 'bloco IA do PDF ausente'
           assert '_buildExecutiveProvisionGroups' in pdf, 'agrupamento de providências ausente'
