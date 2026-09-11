@@ -25,6 +25,12 @@ def main() -> int:
         cwd=repo,
         env=env,
     )
+    subprocess.run(
+        [sys.executable, str(repo / 'tools' / 'patch_v32919_logo_syncfix.py')],
+        check=True,
+        cwd=repo,
+        env=env,
+    )
 
     app = repo / 'app' / 'Auditar_SST_v1_5_dashboard'
     print(f'Fonte v3.29.19 montada em {app}')
