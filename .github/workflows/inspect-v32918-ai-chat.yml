@@ -1,0 +1,30 @@
+name: Inspect v3.29.18 AI chat source
+
+on:
+  push:
+    branches: [feature/v3.29.18-ai-executivo]
+    paths:
+      - ".github/workflows/inspect-v32918-ai-chat.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar base v3.29.17
+        run: python3 tools/assemble_v32917.py
+      - name: Mostrar tela de chat IA
+        run: |
+          echo '---AI_CHAT_START---'
+          cat app/Auditar_SST_v1_5_dashboard/lib/screens/ai_report_chat_screen.dart
+          echo '---AI_CHAT_END---'
+          echo '---REPORT_IMPORTS_START---'
+          sed -n '1,70p' app/Auditar_SST_v1_5_dashboard/lib/screens/report_screen.dart
+          echo '---REPORT_IMPORTS_END---'
+          echo '---REPORT_REVIEW_METHOD_START---'
+          grep -n -A18 -B5 "_openCriticalAiReviewer" app/Auditar_SST_v1_5_dashboard/lib/screens/report_screen.dart || true
+          echo '---REPORT_REVIEW_METHOD_END---'
