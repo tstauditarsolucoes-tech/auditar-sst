@@ -5,7 +5,7 @@ APP = Path(__file__).resolve().parent.parent / 'app' / 'Auditar_SST_v1_5_dashboa
 path = APP / 'lib/screens/ai_report_chat_screen.dart'
 text = path.read_text(encoding='utf-8')
 old = """                    return const Align(\n                      alignment: Alignment.centerLeft,\n                      child: Padding("""
-new = """                    return Align(\n                      alignment: Alignment.centerLeft,\n                      child: const Padding("""
+new = """                    return Align(\n                      alignment: Alignment.centerLeft,\n                      child: Padding("""
 if old not in text:
     raise RuntimeError('Trecho do loading dinâmico não encontrado')
 text = text.replace(old, new, 1)
