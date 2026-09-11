@@ -6,6 +6,9 @@ on:
     branches: [feature/v3.29.20-hostinger-storage]
     paths:
       - ".github/workflows/inspect-v32920-base.yml"
+      - "tools/patch_v32919_logo_syncfix.py"
+      - "tools/patch_v32919_logo_online.py"
+      - "tools/assemble_v32919.py"
 
 permissions:
   contents: read
@@ -24,8 +27,8 @@ jobs:
           from pathlib import Path
           targets = {
             'web_service_config.dart': ['class WebServiceConfig', 'endpoint', 'hasValidEndpoint', 'applyEmbeddedConfiguration'],
-            'media_sync_service.dart': ['class MediaSyncService', 'static Future<MediaSyncSummary> synchronize', 'media_upload', 'media_download', 'uploadCompanyLogoNow', 'downloadCompanyLogos'],
-            'device_sync_service.dart': ['class DeviceSyncService', 'MediaSyncService', 'uploadPendingCompanyLogos', 'downloadMissing', 'downloadCompanyLogos'],
+            'media_sync_service.dart': ['class MediaSyncService', 'static Future<MediaSyncSummary> synchronize', 'media_upload', 'media_download', 'uploadCompanyLogoNow', 'downloadMissing'],
+            'device_sync_service.dart': ['class DeviceSyncService', 'MediaSyncService', 'uploadPendingCompanyLogos', 'downloadMissing'],
             'auth_service.dart': ['class AuthService', 'sessionToken', 'management_panel_endpoint'],
           }
           for rel, needles in targets.items():
@@ -39,7 +42,7 @@ jobs:
             for needle in needles:
               for i,line in enumerate(lines):
                 if needle in line:
-                  a=max(0,i-15); b=min(len(lines),i+60)
+                  a=max(0,i-15); b=min(len(lines),i+80)
                   key=(a,b)
                   if key not in printed:
                     printed.add(key)
@@ -62,7 +65,7 @@ jobs:
             for needle in ['media_upload','media_download','uploadMedia_','downloadMedia_','DriveApp']:
               for i,line in enumerate(lines):
                 if needle in line:
-                  a=max(0,i-20); b=min(len(lines),i+100)
+                  a=max(0,i-20); b=min(len(lines),i+110)
                   print(f'--- {needle} @ {i+1} ---')
                   for n in range(a,b): print(f'{n+1:04d}: {lines[n]}')
                   break
