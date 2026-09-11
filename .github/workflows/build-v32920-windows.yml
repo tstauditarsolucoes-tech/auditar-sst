@@ -1,0 +1,120 @@
+name: Auditar SST v3.29.20 Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/v3.29.20-hostinger-storage]
+    paths:
+      - ".github/workflows/build-v32920-windows.yml"
+      - "tools/assemble_v32920.py"
+      - "tools/patch_v32920_dual_storage.py"
+      - "tools/assemble_v32919.py"
+      - "tools/patch_v32919_logo_online.py"
+      - "tools/patch_v32919_logo_syncfix.py"
+      - "hostinger-media-api/**"
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows v3.29.20
+    runs-on: windows-latest
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar fonte v3.29.20
+        shell: pwsh
+        run: python tools/assemble_v32920.py
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Preparar, validar, analisar e testar
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          flutter pub get
+          dart format lib
+          if (Test-Path 'test') { dart format test }
+
+          $pub = Get-Content pubspec.yaml -Raw
+          $media = Get-Content lib/services/media_sync_service.dart -Raw
+          $host = Get-Content lib/services/hostinger_media_service.dart -Raw
+          $device = Get-Content lib/services/device_sync_service.dart -Raw
+          $report = Get-Content lib/screens/report_screen.dart -Raw
+          if (-not $pub.Contains('version: 3.29.20+163')) { throw 'versão incorreta' }
+          if (-not $host.Contains('AUDITAR_MEDIA_HOSTINGER_URL') -or -not $host.Contains('AUDITAR_MEDIA_HOSTINGER_KEY')) { throw 'configuração Hostinger ausente' }
+          if (-not $media.Contains('HostingerMediaService.uploadPending') -or -not $media.Contains('HostingerMediaService.downloadAsset')) { throw 'armazenamento Hostinger não integrado' }
+          if (-not $media.Contains("'action': 'media_upload'") -or -not $media.Contains("'action': 'media_download'")) { throw 'backup/fallback Drive não preservado' }
+          if (-not $media.Contains("CASE WHEN entity_type = 'company_logo'")) { throw 'prioridade da logo ausente' }
+          if (-not $device.Contains('device_sync_push') -or -not $device.Contains('device_sync_pull')) { throw 'sincronização estrutural ausente' }
+          if (-not $report.Contains('Conversar com a IA sobre o Executivo')) { throw 'IA interativa do Executivo ausente' }
+
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if (Test-Path 'test') { flutter test }
+
+      - name: Compilar Windows release
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+          AUDITAR_MEDIA_HOSTINGER_URL: ${{ secrets.AUDITAR_MEDIA_HOSTINGER_URL }}
+          AUDITAR_MEDIA_HOSTINGER_KEY: ${{ secrets.AUDITAR_MEDIA_HOSTINGER_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release `
+            --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY" `
+            --dart-define=AUDITAR_MEDIA_HOSTINGER_URL="$env:AUDITAR_MEDIA_HOSTINGER_URL" `
+            --dart-define=AUDITAR_MEDIA_HOSTINGER_KEY="$env:AUDITAR_MEDIA_HOSTINGER_KEY"
+
+      - name: Gerar portátil e instalador
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          $release=(Resolve-Path 'app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release').Path
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.29.20-PORTATIL.zip' -Force
+
+          $iscc='C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          if (-not (Test-Path $iscc)) { throw 'Inno Setup não disponível no runner' }
+          $output=(Resolve-Path 'dist/windows').Path
+          $iss=@"
+          [Setup]
+          AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}
+          AppName=Auditar SST
+          AppVersion=3.29.20
+          AppPublisher=Auditar Soluções
+          DefaultDirName={autopf}\Auditar SST
+          DefaultGroupName=Auditar SST
+          OutputDir=$output
+          OutputBaseFilename=Auditar-SST-Setup-v3.29.20
+          Compression=lzma2
+          SolidCompression=yes
+          WizardStyle=modern
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          [Files]
+          Source: "$release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          [Icons]
+          Name: "{autoprograms}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          Name: "{autodesktop}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          [Run]
+          Filename: "{app}\auditar_sst.exe"; Description: "Abrir Auditar SST"; Flags: nowait postinstall skipifsilent
+          "@
+          Set-Content "$env:RUNNER_TEMP\auditar.iss" $iss -Encoding UTF8
+          & $iscc "$env:RUNNER_TEMP\auditar.iss"
+          if (-not (Test-Path 'dist/windows/Auditar-SST-Setup-v3.29.20.exe')) { throw 'instalador não foi gerado' }
+          if (-not (Test-Path 'dist/windows/Auditar-SST-Windows-v3.29.20-PORTATIL.zip')) { throw 'portátil não foi gerado' }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.20-Windows
+          path: dist/windows/*
+          retention-days: 30
