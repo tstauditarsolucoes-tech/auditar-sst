@@ -87,8 +87,8 @@ if 'uploadCompanyLogoNow' not in media:
     raise RuntimeError('Upload imediato da logo foi perdido')
 if 'await MediaSyncService.uploadPendingCompanyLogos();' not in device:
     raise RuntimeError('Prioridade da logo não entrou no DeviceSyncService')
-if 'await MediaSyncService.downloadCompanyLogos();' not in device:
-    raise RuntimeError('Restauração de logo após pull foi perdida')
+if 'downloadCompanyLogos' not in media:
+    raise RuntimeError('Rotina de restauração online da logo foi perdida')
 if "import 'media_sync_service.dart';" in coord:
     raise RuntimeError('SyncCoordinator ainda contém sincronização de mídia duplicada')
 
