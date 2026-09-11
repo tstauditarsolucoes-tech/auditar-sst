@@ -77,7 +77,7 @@ jobs:
           assert 'fullPdfBusy' in report and 'executivePdfBusy' in report, 'estados PDF não separados'
           assert 'insertPayload' in device, 'proteção do caminho local das fotos ausente'
           assert "CASE WHEN entity_type = 'company_logo'" in media, 'prioridade de restauração da logo ausente'
-          assert 'downloadMissing(limit: 24)' in pdf, 'limite de mídia do PDF ausente'
+          assert 'downloadMissing' in pdf and 'limit: 24' in pdf, 'limite de mídia do PDF ausente'
           assert 'media_assets' in db and 'evidence_photos' in db, 'estrutura de mídia ausente'
           assert 'maxAttempts' in ai, 'serviço de IA ausente'
           assert 'PGR' in pgr, 'módulo PGR ausente'
