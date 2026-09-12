@@ -17,7 +17,7 @@ if "title: 'Levantamentos técnicos'" not in text:
     block = """        _ModuleData(
           title: 'Levantamentos técnicos',
           subtitle: 'Coleta para ESO e laudo de acessibilidade com Assistente IA',
-          icon: Icons.assignment_add,
+          icon: Icons.assignment_outlined,
           color: const Color(0xFF1E6F63),
           page: () => const TechnicalSurveysScreen(),
         ),
