@@ -52,7 +52,9 @@ jobs:
         working-directory: app/Auditar_SST_v1_5_dashboard
         run: |
           patch -p1 < /tmp/v32920_to_v32927.patch
+          patch -p1 < "$GITHUB_WORKSPACE/build_sources/v3.29.27-patch/hotfix-sync-biblioteca.patch"
           grep -q "version: 3.29.27+170" pubspec.yaml
+          grep -q "_discardBuiltInChecklistChanges" lib/services/device_sync_service.dart
           test -f lib/screens/express_round_screen.dart
           test ! -f lib/services/hostinger_media_service.dart
           python3 - <<'PY'
