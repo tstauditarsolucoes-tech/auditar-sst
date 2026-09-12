@@ -3,8 +3,6 @@ name: Export v3.29.20 source for v3.29.27 final2
 on:
   push:
     branches: [build-v3.29.27-final2]
-    paths:
-      - ".github/workflows/export-v32920-for-v32927-final2.yml"
   workflow_dispatch:
 
 permissions:
