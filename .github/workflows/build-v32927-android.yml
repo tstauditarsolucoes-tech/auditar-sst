@@ -1,0 +1,123 @@
+name: Auditar SST v3.29.27 Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.27-final2]
+    paths:
+      - ".github/workflows/build-v32927-android.yml"
+      - "build_sources/v3.29.27-patch/**"
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android v3.29.27
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar base funcional v3.29.20
+        run: |
+          python3 tools/assemble_v32920.py
+          grep -q "version: 3.29.20+163" app/Auditar_SST_v1_5_dashboard/pubspec.yaml
+
+      - name: Montar e validar patch v3.29.27
+        run: |
+          cat build_sources/v3.29.27-patch/part00.b64 \
+              build_sources/v3.29.27-patch/part01.b64 \
+              build_sources/v3.29.27-patch/part02.b64 \
+              build_sources/v3.29.27-patch/part03.b64 \
+              build_sources/v3.29.27-patch/part04.b64 \
+              build_sources/v3.29.27-patch/part05.b64 \
+              build_sources/v3.29.27-patch/part06.b64 \
+              build_sources/v3.29.27-patch/part07.b64 \
+              build_sources/v3.29.27-patch/part08.b64 > /tmp/v32927.patch.xz.b64
+          base64 -d /tmp/v32927.patch.xz.b64 > /tmp/v32920_to_v32927.patch.xz
+          echo "0b238c75455f7cb942acaa5a28e6f8c3eeb18be0fb52cdaac06b2f5ba8dc2c7c  /tmp/v32920_to_v32927.patch.xz" | sha256sum -c -
+          xz -dc /tmp/v32920_to_v32927.patch.xz > /tmp/v32920_to_v32927.patch
+          echo "860792297ff41e2267971e7bbe9551f24e371e2d3c766816c2c4fa805f08edc3  /tmp/v32920_to_v32927.patch" | sha256sum -c -
+
+      - name: Aplicar patch e validar fonte final
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          patch -p1 < /tmp/v32920_to_v32927.patch
+          grep -q "version: 3.29.27+170" pubspec.yaml
+          test -f lib/screens/express_round_screen.dart
+          test ! -f lib/services/hostinger_media_service.dart
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          text = Path('lib/ready_checklists.dart').read_text(encoding='utf-8')
+          ids = re.findall(r"id:\s*'([^']+)'", text)
+          names = re.findall(r"name:\s*'([^']+)'", text)
+          assert len(ids) == 248, f'Esperados 248 checklists, encontrados {len(ids)}'
+          assert len(ids) == len(set(ids)), 'IDs de checklist duplicados'
+          assert len(names) == len(set(names)), 'Nomes de checklist duplicados'
+          print(f'Biblioteca validada: {len(ids)} checklists sem duplicidade')
+          PY
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Preparar Android
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q "MyApp" test/widget_test.dart; then rm test/widget_test.dart; fi
+          python3 - <<'PY'
+          from pathlib import Path
+          manifest = Path('android/app/src/main/AndroidManifest.xml')
+          text = manifest.read_text(encoding='utf-8')
+          for perm in (
+              '<uses-permission android:name="android.permission.CAMERA" />',
+              '<uses-permission android:name="android.permission.INTERNET" />',
+          ):
+              if perm not in text:
+                  text = text.replace('<application', perm + '\n    <application', 1)
+          manifest.write_text(text, encoding='utf-8')
+          PY
+          flutter pub get
+
+      - name: Analisar fonte Flutter
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          dart format lib
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Compilar APK release
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+          AUDITAR_MEDIA_HOSTINGER_URL: ${{ secrets.AUDITAR_MEDIA_HOSTINGER_URL }}
+          AUDITAR_MEDIA_HOSTINGER_KEY: ${{ secrets.AUDITAR_MEDIA_HOSTINGER_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY" || (echo 'AUDITAR_SYNC_KEY ausente' && exit 1)
+          flutter build apk --release \
+            --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY" \
+            --dart-define=AUDITAR_MEDIA_HOSTINGER_URL="$AUDITAR_MEDIA_HOSTINGER_URL" \
+            --dart-define=AUDITAR_MEDIA_HOSTINGER_KEY="$AUDITAR_MEDIA_HOSTINGER_KEY"
+
+      - name: Preparar APK
+        run: |
+          mkdir -p dist
+          cp app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-release.apk dist/Auditar-SST-v3.29.27.apk
+          test -s dist/Auditar-SST-v3.29.27.apk
+          sha256sum dist/Auditar-SST-v3.29.27.apk
+          ls -lh dist/Auditar-SST-v3.29.27.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.27-Android
+          path: dist/Auditar-SST-v3.29.27.apk
+          retention-days: 30
