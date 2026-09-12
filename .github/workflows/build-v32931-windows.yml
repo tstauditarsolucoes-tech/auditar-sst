@@ -75,15 +75,15 @@ jobs:
           git apply --directory=app/Auditar_SST_v1_5_dashboard build_sources/v3.29.27-patch/hotfix-sync-biblioteca.patch
           git apply --directory=app/Auditar_SST_v1_5_dashboard v32928.patch
           python tools/patch_tutorial_v32930.py app/Auditar_SST_v1_5_dashboard "$PWD"
-          git apply --directory=app/Auditar_SST_v1_5_dashboard v32931.patch
+          git apply -p2 --directory=app/Auditar_SST_v1_5_dashboard v32931.patch
 
           $pub = Get-Content app/Auditar_SST_v1_5_dashboard/pubspec.yaml -Raw
-          $home = Get-Content app/Auditar_SST_v1_5_dashboard/lib/screens/home_screen.dart -Raw
+          $homeCode = Get-Content app/Auditar_SST_v1_5_dashboard/lib/screens/home_screen.dart -Raw
           $checklists = Get-Content app/Auditar_SST_v1_5_dashboard/lib/screens/checklist_templates_screen.dart -Raw
           if (-not $pub.Contains('version: 3.29.31+173')) { throw 'versão v3.29.31 ausente' }
-          if (-not $home.Contains('Central de gestão')) { throw 'layout exclusivo do PC ausente' }
-          if (-not $home.Contains('Ferramentas de campo')) { throw 'área de campo do PC ausente' }
-          if (-not $home.Contains('Ronda expressa')) { throw 'atalho de Ronda Expressa ausente' }
+          if (-not $homeCode.Contains('Central de gestão')) { throw 'layout exclusivo do PC ausente' }
+          if (-not $homeCode.Contains('Ferramentas de campo')) { throw 'área de campo do PC ausente' }
+          if (-not $homeCode.Contains('Ronda expressa')) { throw 'atalho de Ronda Expressa ausente' }
           if (-not $checklists.Contains('Tipos de checklist')) { throw 'barra de tipos de checklist ausente' }
           if (-not $checklists.Contains('_categoryScrollController')) { throw 'rolagem horizontal de categorias ausente' }
 
