@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - feature/levantamento-eso-mvp
     paths-ignore:
       - 'auditar-epi/**'
       - 'auditar-epi-gestao/**'
@@ -34,6 +35,8 @@ jobs:
       - name: Aplicar correções mais recentes
         run: |
           cp -R source_overrides/Auditar_SST_v1_5_dashboard/. app/Auditar_SST_v1_5_dashboard/
+          cd app/Auditar_SST_v1_5_dashboard
+          python3 tool/apply_technical_surveys_patch.py
 
       - name: Instalar Java
         uses: actions/setup-java@v4
@@ -76,8 +79,9 @@ jobs:
           sed -i 's/archive: \^4.2.0/archive: \^4.0.9/' pubspec.yaml
           sed -i 's/file_picker: \^8.1.7/file_picker: \^10.3.8/' pubspec.yaml
           sed -i 's/Auditar SST • versão 3.20.3/Auditar SST • versão 3.21.3/' lib/screens/home_screen.dart
+          grep -q '^  image_picker:' pubspec.yaml || flutter pub add image_picker
+          grep -q '^  path_provider:' pubspec.yaml || flutter pub add path_provider
           flutter pub get
-          
 
       - name: Gerar APK de teste
         working-directory: app/Auditar_SST_v1_5_dashboard
