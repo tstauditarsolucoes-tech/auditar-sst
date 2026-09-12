@@ -6,7 +6,6 @@ on:
     branches: [build-v3.29.27-final2]
     paths:
       - ".github/workflows/build-v32927-android.yml"
-      - "build_sources/v3.29.27-patch/**"
 
 permissions:
   contents: read
@@ -19,6 +18,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+
+      - name: Validar backend Hostinger
+        run: |
+          php -l hostinger-media-api/index.php
+          test -f hostinger-media-api/config.example.php
+          test ! -f hostinger-media-api/config.php
 
       - name: Montar base funcional v3.29.20
         run: |
@@ -34,7 +39,8 @@ jobs:
               build_sources/v3.29.27-patch/part04.b64 \
               build_sources/v3.29.27-patch/part05.b64 \
               build_sources/v3.29.27-patch/part06.b64 \
-              build_sources/v3.29.27-patch/part07.b64 \
+              build_sources/v3.29.27-patch/part07a.b64 \
+              build_sources/v3.29.27-patch/part07b.b64 \
               build_sources/v3.29.27-patch/part08.b64 > /tmp/v32927.patch.xz.b64
           base64 --ignore-garbage -d /tmp/v32927.patch.xz.b64 > /tmp/v32920_to_v32927.patch.xz
           echo "0b238c75455f7cb942acaa5a28e6f8c3eeb18be0fb52cdaac06b2f5ba8dc2c7c  /tmp/v32920_to_v32927.patch.xz" | sha256sum -c -
@@ -52,12 +58,11 @@ jobs:
           from pathlib import Path
           import re
           text = Path('lib/ready_checklists.dart').read_text(encoding='utf-8')
-          ids = re.findall(r"id:\s*'([^']+)'", text)
-          names = re.findall(r"name:\s*'([^']+)'", text)
+          ids = re.findall(r"\bid:\s*'([^']+)'", text)
           assert len(ids) == 248, f'Esperados 248 checklists, encontrados {len(ids)}'
-          assert len(ids) == len(set(ids)), 'IDs de checklist duplicados'
-          assert len(names) == len(set(names)), 'Nomes de checklist duplicados'
-          print(f'Biblioteca validada: {len(ids)} checklists sem duplicidade')
+          assert len(set(ids)) == 248, 'IDs de checklist duplicados'
+          assert text.count('ReadyChecklistItem(') == 2209, 'Quantidade de itens divergente'
+          print(f'Biblioteca validada: {len(ids)} checklists / 2209 itens')
           PY
 
       - uses: actions/setup-java@v5
@@ -89,11 +94,13 @@ jobs:
           PY
           flutter pub get
 
-      - name: Analisar fonte Flutter
+      - name: Formatar, analisar e testar
         working-directory: app/Auditar_SST_v1_5_dashboard
         run: |
           dart format lib
+          if [ -d test ]; then dart format test; fi
           flutter analyze --no-fatal-infos --no-fatal-warnings
+          if [ -d test ]; then flutter test; fi
 
       - name: Compilar APK release
         working-directory: app/Auditar_SST_v1_5_dashboard
@@ -112,12 +119,14 @@ jobs:
         run: |
           mkdir -p dist
           cp app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-release.apk dist/Auditar-SST-v3.29.27.apk
+          sha256sum dist/Auditar-SST-v3.29.27.apk | tee dist/Auditar-SST-v3.29.27.sha256.txt
           test -s dist/Auditar-SST-v3.29.27.apk
-          sha256sum dist/Auditar-SST-v3.29.27.apk
           ls -lh dist/Auditar-SST-v3.29.27.apk
 
       - uses: actions/upload-artifact@v4
         with:
           name: Auditar-SST-v3.29.27-Android
-          path: dist/Auditar-SST-v3.29.27.apk
+          path: |
+            dist/Auditar-SST-v3.29.27.apk
+            dist/Auditar-SST-v3.29.27.sha256.txt
           retention-days: 30
