@@ -60,9 +60,9 @@ jobs:
           text31 = (root/'build_sources/v3.29.31-pc-layout/v32930_to_v32931.patch.xz.b64').read_text(encoding='utf-8')
           clean31 = re.sub(r'[^A-Za-z0-9+/=]', '', text31)
           packed31 = base64.b64decode(clean31)
-          assert hashlib.sha256(packed31).hexdigest() == 'e344eafd55b8404808a783fe1306e867304d7f704b3ef5d03d20adc22d707dc9'
+          assert hashlib.sha256(packed31).hexdigest() == '2aeaf0d617547c609a51589502a654244581b73011b13269884e56fd0dedf3a5'
           patch31 = lzma.decompress(packed31)
-          assert hashlib.sha256(patch31).hexdigest() == 'd81a9096de9aa33dec83df6f4667b23129c53ed6a861cce84c5962b5cec30139'
+          assert hashlib.sha256(patch31).hexdigest() == '15f360f51a032d7ca114919943e19b210b7609a7b5c818182f273b9ae60f5264'
           Path('v32931.patch').write_bytes(patch31)
           print('Patches reconstruídos e validados.')
           '@ | Set-Content "$env:RUNNER_TEMP\rebuild.py" -Encoding UTF8
@@ -79,11 +79,13 @@ jobs:
 
           $pub = Get-Content app/Auditar_SST_v1_5_dashboard/pubspec.yaml -Raw
           $homeCode = Get-Content app/Auditar_SST_v1_5_dashboard/lib/screens/home_screen.dart -Raw
+          $companiesCode = Get-Content app/Auditar_SST_v1_5_dashboard/lib/screens/companies_screen.dart -Raw
           $checklists = Get-Content app/Auditar_SST_v1_5_dashboard/lib/screens/checklist_templates_screen.dart -Raw
           if (-not $pub.Contains('version: 3.29.31+173')) { throw 'versão v3.29.31 ausente' }
           if (-not $homeCode.Contains('Central de gestão')) { throw 'layout exclusivo do PC ausente' }
           if (-not $homeCode.Contains('Ferramentas de campo')) { throw 'área de campo do PC ausente' }
           if (-not $homeCode.Contains('Ronda expressa')) { throw 'atalho de Ronda Expressa ausente' }
+          if (-not $companiesCode.Contains('selectForExpressRound')) { throw 'seleção de empresa para Ronda Expressa ausente' }
           if (-not $checklists.Contains('Tipos de checklist')) { throw 'barra de tipos de checklist ausente' }
           if (-not $checklists.Contains('_categoryScrollController')) { throw 'rolagem horizontal de categorias ausente' }
 
@@ -103,7 +105,11 @@ jobs:
           dart format lib
           if (Test-Path 'test') { dart format test }
           flutter analyze --no-fatal-infos --no-fatal-warnings
-          if (Test-Path 'test') { flutter test }
+          if ($LASTEXITCODE -ne 0) { throw 'flutter analyze falhou' }
+          if (Test-Path 'test') {
+            flutter test
+            if ($LASTEXITCODE -ne 0) { throw 'flutter test falhou' }
+          }
 
       - name: Compilar Windows release
         working-directory: app/Auditar_SST_v1_5_dashboard
