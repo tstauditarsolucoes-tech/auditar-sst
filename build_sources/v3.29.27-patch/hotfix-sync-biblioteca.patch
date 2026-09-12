@@ -1,0 +1,44 @@
+--- a/lib/services/device_sync_service.dart
++++ b/lib/services/device_sync_service.dart
+@@ -266,7 +266,10 @@
+       final trackingTable = await db.rawQuery(
+         "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = '$_changesTable' LIMIT 1",
+       );
+-      if (trackingTable.isNotEmpty) return;
++      if (trackingTable.isNotEmpty) {
++        await _discardBuiltInChecklistChanges(db);
++        return;
++      }
+       _changeTrackingReady = false;
+     }
+     await db.execute(
+@@ -328,9 +331,29 @@
+         ") SELECT '$table', id, 1, $initialDirty, 0 FROM $table",
+       );
+     }
++    await _discardBuiltInChecklistChanges(db);
+     _changeTrackingReady = true;
+   }
+ 
++  // A Biblioteca Auditar já é embarcada no aplicativo e é recriada a partir
++  // do código em cada dispositivo. Enviar seus milhares de itens pela Central
++  // Online só ocupa a fila e pode atrasar empresas, vistorias e ações.
++  // Modelos personalizados continuam normalmente na sincronização.
++  static Future<void> _discardBuiltInChecklistChanges(Database db) async {
++    await db.delete(
++      _changesTable,
++      where:
++          "(table_name = 'checklist_templates' AND (record_id = ? OR record_id LIKE ?)) "
++          "OR (table_name = 'checklist_items' AND (record_id LIKE ? OR record_id LIKE ?))",
++      whereArgs: const [
++        'template-geral-sst',
++        'ready-%',
++        'geral-%',
++        'ready-%',
++      ],
++    );
++  }
++
+   static Future<List<Map<String, Object?>>> _pendingChanges(
+     Database db, {
+     required int limit,
