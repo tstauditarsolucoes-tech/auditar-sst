@@ -1,0 +1,40 @@
+MVP — LEVANTAMENTOS TÉCNICOS
+
+Branch: feature/levantamento-eso-mvp
+
+Objetivo
+- Criar uma central de coleta técnica em campo.
+- Preparar informações para lançamento e elaboração de documentos no Sistema ESO.
+- Adicionar levantamento para Laudo de Acessibilidade com Assistente IA.
+
+Módulos incluídos
+1. Levantamento ESO
+   - Primeira visita.
+   - Fluxo inicial: Empresa > Ambiente/Setor > Cargo/Função > Risco/Exposição > EPI/EPC > Conferência.
+   - Atalhos previstos para levantamento complementar, medições e pendências ESO.
+
+2. Laudo de Acessibilidade
+   - Projetos por empresa/unidade.
+   - Salvamento local/offline usando o banco de configurações já existente.
+   - Pontos por categoria: acesso, calçada, rota acessível, circulação, porta, rampa, escada, corrimão/guarda-corpo, sanitário acessível, vaga, balcão, piso tátil/sinalização, elevador/plataforma, mobiliário e outros.
+   - Campos específicos de medidas conforme a categoria.
+   - Status definido pelo técnico: Não avaliado, Conforme, Não conforme ou Requer verificação.
+   - Até 6 fotos por ponto, copiadas para armazenamento permanente do aplicativo.
+   - Conferência de lacunas antes de finalizar o levantamento.
+
+Assistente IA de Acessibilidade
+- Reaproveita a Central Online e o Assistente IA já existentes no Auditar SST.
+- A chave da IA permanece no Apps Script e não é gravada no APK.
+- Com foto: usa a análise fotográfica já existente, enviando contexto de acessibilidade, medidas e observação do técnico.
+- Sem foto: usa análise textual para indicar pontos de atenção, próximos passos e lacunas de coleta.
+- Não inventa medidas e não deve emitir conformidade legal definitiva.
+- Toda resposta é apresentada como rascunho de apoio para revisão do técnico.
+
+Integração com o app
+- Nova central: Levantamentos técnicos.
+- Entradas: Levantamento ESO e Laudo de Acessibilidade.
+- A Home é conectada por patch de build, evitando substituir o arquivo grande e preservando as funções existentes.
+
+Validação pendente
+- O workflow foi preparado para compilar também a branch de desenvolvimento, porém commits realizados pela integração do GitHub não dispararam o GitHub Actions automaticamente nesta sessão.
+- Antes de mesclar no main: compilar APK de teste e validar abertura dos módulos, câmera, salvamento offline e chamada da IA.
