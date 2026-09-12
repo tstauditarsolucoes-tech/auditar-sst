@@ -36,7 +36,7 @@ jobs:
               build_sources/v3.29.27-patch/part06.b64 \
               build_sources/v3.29.27-patch/part07.b64 \
               build_sources/v3.29.27-patch/part08.b64 > /tmp/v32927.patch.xz.b64
-          base64 -d /tmp/v32927.patch.xz.b64 > /tmp/v32920_to_v32927.patch.xz
+          base64 --ignore-garbage -d /tmp/v32927.patch.xz.b64 > /tmp/v32920_to_v32927.patch.xz
           echo "0b238c75455f7cb942acaa5a28e6f8c3eeb18be0fb52cdaac06b2f5ba8dc2c7c  /tmp/v32920_to_v32927.patch.xz" | sha256sum -c -
           xz -dc /tmp/v32920_to_v32927.patch.xz > /tmp/v32920_to_v32927.patch
           echo "860792297ff41e2267971e7bbe9551f24e371e2d3c766816c2c4fa805f08edc3  /tmp/v32920_to_v32927.patch" | sha256sum -c -
