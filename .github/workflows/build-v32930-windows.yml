@@ -1,0 +1,152 @@
+name: Auditar SST v3.29.30 Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.30-tutorial]
+    paths:
+      - ".github/workflows/build-v32930-windows.yml"
+      - "build_sources/v3.29.30-tutorial/**"
+      - "tools/patch_tutorial_v32930.py"
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows v3.29.30
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar base funcional v3.29.20
+        shell: pwsh
+        run: |
+          python tools/assemble_v32920.py
+          $pub = Get-Content app/Auditar_SST_v1_5_dashboard/pubspec.yaml -Raw
+          if (-not $pub.Contains('version: 3.29.20+163')) { throw 'base v3.29.20 incorreta' }
+
+      - name: Reconstruir patches v3.29.27 e v3.29.28
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import base64, hashlib, lzma, re
+
+          root = Path('.')
+          parts = [
+              'part00.b64','part01.b64','part02.b64','part03.b64','part04.b64',
+              'part05.b64','part06.b64','part07a.b64','part07b.b64','part08.b64'
+          ]
+          text = ''.join((root/'build_sources/v3.29.27-patch'/p).read_text(encoding='utf-8') for p in parts)
+          clean = re.sub(r'[^A-Za-z0-9+/=]', '', text)
+          packed = base64.b64decode(clean)
+          assert hashlib.sha256(packed).hexdigest() == '0b238c75455f7cb942acaa5a28e6f8c3eeb18be0fb52cdaac06b2f5ba8dc2c7c'
+          patch = lzma.decompress(packed)
+          assert hashlib.sha256(patch).hexdigest() == '860792297ff41e2267971e7bbe9551f24e371e2d3c766816c2c4fa805f08edc3'
+          Path('v32927.patch').write_bytes(patch)
+
+          text28 = (root/'build_sources/v3.29.28-panel/v32927_to_v32928.patch.xz.b64').read_text(encoding='utf-8')
+          clean28 = re.sub(r'[^A-Za-z0-9+/=]', '', text28)
+          packed28 = base64.b64decode(clean28)
+          assert hashlib.sha256(packed28).hexdigest() == '9779b432169de1e7fa1df4501651e6449d0aab467b1a027d25373023d3eb9ef6'
+          patch28 = lzma.decompress(packed28)
+          assert hashlib.sha256(patch28).hexdigest() == 'f47da23a6a6dd399b58c1f7e13e43f0fe07c038e430024d400531daa65e27e6e'
+          Path('v32928.patch').write_bytes(patch28)
+          print('Patches reconstruídos e validados.')
+          '@ | Set-Content "$env:RUNNER_TEMP\rebuild.py" -Encoding UTF8
+          python "$env:RUNNER_TEMP\rebuild.py"
+
+      - name: Aplicar v3.29.27, v3.29.28 e mini tutorial
+        shell: pwsh
+        run: |
+          git apply --directory=app/Auditar_SST_v1_5_dashboard v32927.patch
+          git apply --directory=app/Auditar_SST_v1_5_dashboard build_sources/v3.29.27-patch/hotfix-sync-biblioteca.patch
+          git apply --directory=app/Auditar_SST_v1_5_dashboard v32928.patch
+          python tools/patch_tutorial_v32930.py app/Auditar_SST_v1_5_dashboard "$PWD"
+          $pub = Get-Content app/Auditar_SST_v1_5_dashboard/pubspec.yaml -Raw
+          $tutorial = Get-Content app/Auditar_SST_v1_5_dashboard/lib/widgets/tutorial_bubble.dart -Raw
+          $settings = Get-Content app/Auditar_SST_v1_5_dashboard/lib/screens/settings_screen.dart -Raw
+          if (-not $pub.Contains('version: 3.29.30+172')) { throw 'versão v3.29.30 ausente' }
+          if (-not $tutorial.Contains('Pular tutorial') -or -not $tutorial.Contains('Parar dicas')) { throw 'tutorial incompleto' }
+          if (-not $settings.Contains('Reiniciar mini tutorial')) { throw 'reset do tutorial ausente' }
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Preparar, analisar e testar Windows
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          flutter pub get
+          dart format lib
+          if (Test-Path 'test') { dart format test }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if (Test-Path 'test') { flutter test }
+
+      - name: Compilar Windows release
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+          AUDITAR_MEDIA_HOSTINGER_URL: ${{ secrets.AUDITAR_MEDIA_HOSTINGER_URL }}
+          AUDITAR_MEDIA_HOSTINGER_KEY: ${{ secrets.AUDITAR_MEDIA_HOSTINGER_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release `
+            --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY" `
+            --dart-define=AUDITAR_MEDIA_HOSTINGER_URL="$env:AUDITAR_MEDIA_HOSTINGER_URL" `
+            --dart-define=AUDITAR_MEDIA_HOSTINGER_KEY="$env:AUDITAR_MEDIA_HOSTINGER_KEY"
+
+      - name: Gerar portátil e instalador
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          $release=(Resolve-Path 'app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release').Path
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.29.30-PORTATIL.zip' -Force
+
+          $iscc='C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          if (-not (Test-Path $iscc)) { throw 'Inno Setup não disponível' }
+          $output=(Resolve-Path 'dist/windows').Path
+          $iss=@"
+          [Setup]
+          AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}
+          AppName=Auditar SST
+          AppVersion=3.29.30
+          AppPublisher=Auditar Soluções
+          DefaultDirName={autopf}\Auditar SST
+          DefaultGroupName=Auditar SST
+          OutputDir=$output
+          OutputBaseFilename=Auditar-SST-Setup-v3.29.30
+          Compression=lzma2
+          SolidCompression=yes
+          WizardStyle=modern
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          [Files]
+          Source: "$release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          [Icons]
+          Name: "{autoprograms}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          Name: "{autodesktop}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          [Run]
+          Filename: "{app}\auditar_sst.exe"; Description: "Abrir Auditar SST"; Flags: nowait postinstall skipifsilent
+          "@
+          Set-Content "$env:RUNNER_TEMP\auditar.iss" $iss -Encoding UTF8
+          & $iscc "$env:RUNNER_TEMP\auditar.iss"
+          if (-not (Test-Path 'dist/windows/Auditar-SST-Setup-v3.29.30.exe')) { throw 'instalador não foi gerado' }
+          if (-not (Test-Path 'dist/windows/Auditar-SST-Windows-v3.29.30-PORTATIL.zip')) { throw 'portátil não foi gerado' }
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.29.30.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.29.30.sha256.txt'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.30-Windows
+          path: dist/windows/*
+          retention-days: 30
