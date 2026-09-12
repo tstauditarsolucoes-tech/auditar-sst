@@ -1,0 +1,32 @@
+name: Export v3.29.20 source for v3.29.27
+
+on:
+  push:
+    branches: [build-v3.29.27-clean2]
+    paths:
+      - ".github/workflows/export-v32920-for-v32927.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.29.20
+        run: python3 tools/assemble_v32920.py
+      - name: Validar versão base
+        run: |
+          grep -q "version: 3.29.20+163" app/Auditar_SST_v1_5_dashboard/pubspec.yaml
+      - name: Empacotar fonte
+        run: |
+          tar -cJf v32920-source.tar.xz -C app/Auditar_SST_v1_5_dashboard lib pubspec.yaml
+          sha256sum v32920-source.tar.xz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v32920-source-for-v32927
+          path: v32920-source.tar.xz
+          retention-days: 1
