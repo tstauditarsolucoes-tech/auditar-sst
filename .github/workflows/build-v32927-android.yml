@@ -6,6 +6,7 @@ on:
     branches: [build-v3.29.27-final2]
     paths:
       - ".github/workflows/build-v32927-android.yml"
+      - "build_sources/v3.29.27-patch/**"
 
 permissions:
   contents: read
