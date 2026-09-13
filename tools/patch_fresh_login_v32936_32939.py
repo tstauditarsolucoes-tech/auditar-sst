@@ -43,7 +43,7 @@ if new_signature not in auth:
         raise RuntimeError('Nao foi possivel localizar AuthService.initialize()')
     auth = auth.replace(signature, new_signature, 1)
 
-    guard = r'''    // Segurança: no uso normal, cada nova inicialização exige senha.
+    guard = r'''    // Segurança: cada nova inicialização do aplicativo exige senha novamente.
     // Mantemos somente o deviceId persistente para preservar a identidade do
     // aparelho, licença e vínculo de sincronização.
     if (!restoreSavedSessionForTesting) {
