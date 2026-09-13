@@ -1,0 +1,28 @@
+name: Diagnose Sync Stuck Counts
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/diag-sync-stuck-counts.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Assemble current Windows source
+        run: python tools/assemble_sync_response_fix.py windows
+      - name: Inspect sync progress and pending counts
+        run: |
+          APP=app/Auditar_SST_v1_5_dashboard
+          echo '=== DATA SAFETY SCREEN ==='
+          grep -n -A220 -B80 "Alterações aguardando envio\|Registros apenas neste dispositivo\|Sincronizando dados\|Progresso da sincronização\|pending" "$APP/lib/screens/data_safety_screen.dart" || true
+          echo '=== DEVICE SYNC SERVICE ==='
+          grep -n -A320 -B80 "class DeviceSyncProgress\|progressStream\|pending\|synchronize\|device_sync_push\|device_sync_pull\|partial" "$APP/lib/services/device_sync_service.dart" || true
+          echo '=== SYNC COORDINATOR ==='
+          grep -n -A220 -B80 "_setDesktopStatus\|synchronize\|partial\|_syncing" "$APP/lib/services/sync_coordinator.dart" || true
