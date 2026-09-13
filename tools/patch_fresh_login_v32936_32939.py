@@ -4,10 +4,11 @@
 Android: 3.29.35+177 -> 3.29.36+178
 Windows: 3.29.38+180 -> 3.29.39+181
 
-Nao altera telas/layout. Apenas impede restauracao automatica da sessao local salva.
+Nao altera telas/layout. A restauracao de sessao antiga fica desativada no uso
+normal; o parametro restoreSavedSessionForTesting existe apenas para manter os
+testes de sincronizacao offline capazes de injetar uma sessao simulada.
 """
 from pathlib import Path
-import re
 import sys
 
 root = Path(sys.argv[1] if len(sys.argv) > 1 else '.')
@@ -17,6 +18,7 @@ if platform not in {'android', 'windows'}:
 
 pub_path = root / 'pubspec.yaml'
 auth_path = root / 'lib/services/auth_service.dart'
+test_path = root / 'test/device_sync_roundtrip_test.dart'
 pub = pub_path.read_text(encoding='utf-8')
 auth = auth_path.read_text(encoding='utf-8')
 
@@ -32,50 +34,64 @@ if target not in pub:
         raise RuntimeError(f'Versao esperada ausente: {expected}')
     pub = pub.replace(expected, target, 1)
 
-pattern = re.compile(
-    r"  static Future<void> initialize\(\) async \{.*?\n  \}\n\n  static Future<void> activateSavedSession\(\) async \{",
-    re.S,
+signature = '  static Future<void> initialize() async {\n'
+new_signature = (
+    '  static Future<void> initialize({bool restoreSavedSessionForTesting = false}) async {\n'
 )
-replacement = r'''  static Future<void> initialize() async {
-    // Segurança: cada nova inicialização do aplicativo exige senha novamente.
-    // Mantemos apenas o deviceId persistente para não quebrar identificação,
-    // licença e sincronização do aparelho.
-    _sessionToken = '';
-    _currentUser = null;
+if new_signature not in auth:
+    if signature not in auth:
+        raise RuntimeError('Nao foi possivel localizar AuthService.initialize()')
+    auth = auth.replace(signature, new_signature, 1)
 
-    final file = await _authFile();
-    if (!await file.exists()) return;
-    try {
-      final decoded = jsonDecode(await file.readAsString());
-      if (decoded is Map) {
-        _deviceId = '${decoded['deviceId'] ?? ''}'.trim();
-      }
-      if (_deviceId.isEmpty) _deviceId = const Uuid().v4();
-
-      // Remove sessão/usuário persistidos, preservando somente a identidade
-      // do dispositivo. Assim, fechar e abrir o app volta para o login.
-      await file.writeAsString(jsonEncode({'deviceId': _deviceId}));
-    } catch (_) {
+    guard = r'''    // Segurança: no uso normal, cada nova inicialização exige senha.
+    // Mantemos somente o deviceId persistente para preservar a identidade do
+    // aparelho, licença e vínculo de sincronização.
+    if (!restoreSavedSessionForTesting) {
       _sessionToken = '';
       _currentUser = null;
-      _deviceId = const Uuid().v4();
+
+      final file = await _authFile();
+      if (!await file.exists()) return;
       try {
+        final decoded = jsonDecode(await file.readAsString());
+        if (decoded is Map) {
+          _deviceId = '${decoded['deviceId'] ?? ''}'.trim();
+        }
+        if (_deviceId.isEmpty) _deviceId = const Uuid().v4();
         await file.writeAsString(jsonEncode({'deviceId': _deviceId}));
-      } catch (_) {}
+      } catch (_) {
+        _sessionToken = '';
+        _currentUser = null;
+        _deviceId = const Uuid().v4();
+        try {
+          await file.writeAsString(jsonEncode({'deviceId': _deviceId}));
+        } catch (_) {}
+      }
+      return;
     }
-  }
 
-  static Future<void> activateSavedSession() async {'''
+'''
+    auth = auth.replace(new_signature, new_signature + guard, 1)
 
-if "cada nova inicialização do aplicativo exige senha novamente" not in auth:
-    auth, count = pattern.subn(replacement, auth, count=1)
-    if count != 1:
-        raise RuntimeError('Nao foi possivel localizar AuthService.initialize()')
+# O teste de roundtrip precisa injetar uma sessão simulada. Em produção o
+# parâmetro nunca é informado e a sessão não é restaurada automaticamente.
+if test_path.exists():
+    test = test_path.read_text(encoding='utf-8')
+    old = '  await AuthService.initialize();\n  await AuthService.activateSavedSession();\n'
+    new = (
+        '  await AuthService.initialize(restoreSavedSessionForTesting: true);\n'
+        '  await AuthService.activateSavedSession();\n'
+    )
+    if new not in test:
+        if old not in test:
+            raise RuntimeError('Teste de sincronizacao: marcador de sessao nao encontrado')
+        test = test.replace(old, new, 1)
+    test_path.write_text(test, encoding='utf-8')
 
 pub_path.write_text(pub, encoding='utf-8')
 auth_path.write_text(auth, encoding='utf-8')
 
 assert target in pub
-assert "_sessionToken = '';" in auth
+assert 'restoreSavedSessionForTesting = false' in auth
 assert "jsonEncode({'deviceId': _deviceId})" in auth
 print(f'Login fresco aplicado em {platform}: {target}')
