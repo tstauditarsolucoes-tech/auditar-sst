@@ -51,7 +51,7 @@ jobs:
           if [ -d test ]; then dart format test; fi
           flutter analyze --no-fatal-infos --no-fatal-warnings
           if [ -d test ]; then flutter test; fi
-      - name: Testar Central real
+      - name: Testar Central real com tolerância a resposta HTML temporária
         working-directory: ${{ env.APP_DIR }}
         env:
           AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
@@ -62,23 +62,51 @@ jobs:
           import 'package:flutter_test/flutter_test.dart';
           import '../lib/services/apps_script_http.dart';
 
+          Future<Map<String, dynamic>> postJsonWithRetry(
+            Uri uri,
+            Map<String, Object?> payload,
+          ) async {
+            Object? lastError;
+            for (var attempt = 0; attempt < 4; attempt++) {
+              try {
+                final response = await AppsScriptHttp.postJson(uri, payload);
+                if (response.statusCode != 200) {
+                  throw StateError('HTTP ${response.statusCode}');
+                }
+                final body = utf8.decode(response.bodyBytes, allowMalformed: true).trim();
+                final decoded = jsonDecode(body);
+                if (decoded is Map) {
+                  return Map<String, dynamic>.from(decoded);
+                }
+                throw const FormatException('Resposta não é objeto JSON');
+              } catch (e) {
+                lastError = e;
+                if (attempt < 3) {
+                  await Future<void>.delayed(
+                    Duration(milliseconds: 700 + attempt * 600),
+                  );
+                }
+              }
+            }
+            throw StateError('Central não retornou JSON válido após tentativas: $lastError');
+          }
+
           void main() {
             const endpoint = 'https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec';
             const key = String.fromEnvironment('AUDITAR_SYNC_KEY');
-            test('push e pull retornam JSON válido', () async {
+            test('push e pull retornam JSON válido mesmo com resposta temporária', () async {
               expect(key, isNotEmpty);
               final uri = Uri.parse(endpoint);
-              final push = await AppsScriptHttp.postJson(uri, {
+              final pushJson = await postJsonWithRetry(uri, {
                 'action': 'device_sync_push',
                 'syncKey': key,
                 'deviceId': 'ci-sync-progress-android-final',
                 'platform': 'android',
                 'changes': const [],
               });
-              expect(push.statusCode, 200);
-              final pushJson = jsonDecode(utf8.decode(push.bodyBytes));
-              expect((pushJson as Map)['ok'], true);
-              final pull = await AppsScriptHttp.postJson(uri, {
+              expect(pushJson['ok'], true);
+
+              final pullJson = await postJsonWithRetry(uri, {
                 'action': 'device_sync_pull',
                 'syncKey': key,
                 'deviceId': 'ci-sync-progress-android-final',
@@ -86,10 +114,8 @@ jobs:
                 'sinceVersion': 0,
                 'limit': 1,
               });
-              expect(pull.statusCode, 200);
-              final pullJson = jsonDecode(utf8.decode(pull.bodyBytes));
-              expect((pullJson as Map)['ok'], true);
-            }, timeout: const Timeout(Duration(minutes: 2)));
+              expect(pullJson['ok'], true);
+            }, timeout: const Timeout(Duration(minutes: 3)));
           }
           DART
           flutter test test/live_sync_progress_test.dart --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
