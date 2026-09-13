@@ -1,0 +1,55 @@
+name: Diagnose Android HTTP
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/diag-android-http.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte Android v3.29.34
+        run: |
+          python tools/assemble_v32920.py
+          python - <<'PY'
+          from pathlib import Path
+          import base64, lzma, re
+          root=Path('.')
+          parts=['part00.b64','part01.b64','part02.b64','part03.b64','part04.b64','part05.b64','part06.b64','part07a.b64','part07b.b64','part08.b64']
+          packed=base64.b64decode(re.sub(r'[^A-Za-z0-9+/=]','', ''.join((root/'build_sources/v3.29.27-patch'/p).read_text() for p in parts)))
+          Path('v32927.patch').write_bytes(lzma.decompress(packed))
+          specs=[
+            ('build_sources/v3.29.28-panel/v32927_to_v32928.patch.xz.b64','v32928.patch'),
+            ('build_sources/v3.29.31-pc-layout/v32930_to_v32931.patch.xz.b64','v32931.patch'),
+            ('build_sources/v3.29.32-pc-premium/v32931_to_v32932.patch.xz.b64','v32932.patch'),
+            ('build_sources/v3.29.34-drive-evidence/v32933_to_v32934.patch.xz.b64','v32934.patch')]
+          for src,out in specs:
+              packed=base64.b64decode(re.sub(r'[^A-Za-z0-9+/=]','',Path(src).read_text()))
+              Path(out).write_bytes(lzma.decompress(packed))
+          PY
+          git apply --directory=app/Auditar_SST_v1_5_dashboard v32927.patch
+          git apply --directory=app/Auditar_SST_v1_5_dashboard build_sources/v3.29.27-patch/hotfix-sync-biblioteca.patch
+          git apply --directory=app/Auditar_SST_v1_5_dashboard v32928.patch
+          python tools/patch_tutorial_v32930.py app/Auditar_SST_v1_5_dashboard "$PWD"
+          git apply -p2 --directory=app/Auditar_SST_v1_5_dashboard v32931.patch
+          git apply -p2 --directory=app/Auditar_SST_v1_5_dashboard v32932.patch
+          python tools/patch_photo_recovery_v32933.py app/Auditar_SST_v1_5_dashboard
+          git apply --directory=app/Auditar_SST_v1_5_dashboard v32934.patch
+      - name: Mostrar transporte Android
+        run: |
+          echo '===== device_sync_service.dart ====='
+          sed -n '1,460p' app/Auditar_SST_v1_5_dashboard/lib/services/device_sync_service.dart
+          echo '===== apps_script_http.dart ====='
+          if [ -f app/Auditar_SST_v1_5_dashboard/lib/services/apps_script_http.dart ]; then
+            cat app/Auditar_SST_v1_5_dashboard/lib/services/apps_script_http.dart
+          else
+            echo 'AUSENTE'
+          fi
