@@ -1,80 +1,51 @@
-name: Auditar SST v3.29.33 Windows
+name: Auditar SST v3.29.34 Windows
 
 on:
   workflow_dispatch:
   push:
-    branches: [build-v3.29.33-photo-recovery]
+    branches: [build-v3.29.34-drive-evidence]
     paths:
       - ".github/workflows/build-v32933-windows.yml"
-      - "tools/patch_photo_recovery_v32933.py"
+      - "build_sources/v3.29.34-drive-evidence/**"
 
 permissions:
   contents: read
 
 jobs:
   windows:
-    name: Windows v3.29.33
+    name: Windows v3.29.34
     runs-on: windows-latest
     timeout-minutes: 90
-
     steps:
       - uses: actions/checkout@v5
-
       - name: Montar base funcional v3.29.20
         shell: pwsh
         run: |
           python tools/assemble_v32920.py
           $pub = Get-Content app/Auditar_SST_v1_5_dashboard/pubspec.yaml -Raw
           if (-not $pub.Contains('version: 3.29.20+163')) { throw 'base v3.29.20 incorreta' }
-
-      - name: Reconstruir patches até v3.29.32
+      - name: Reconstruir patches
         shell: pwsh
         run: |
           @'
           from pathlib import Path
           import base64, hashlib, lzma, re
-
-          root = Path('.')
-          parts = [
-              'part00.b64','part01.b64','part02.b64','part03.b64','part04.b64',
-              'part05.b64','part06.b64','part07a.b64','part07b.b64','part08.b64'
-          ]
-          text = ''.join((root/'build_sources/v3.29.27-patch'/p).read_text(encoding='utf-8') for p in parts)
-          clean = re.sub(r'[^A-Za-z0-9+/=]', '', text)
-          packed = base64.b64decode(clean)
-          assert hashlib.sha256(packed).hexdigest() == '0b238c75455f7cb942acaa5a28e6f8c3eeb18be0fb52cdaac06b2f5ba8dc2c7c'
-          patch = lzma.decompress(packed)
-          assert hashlib.sha256(patch).hexdigest() == '860792297ff41e2267971e7bbe9551f24e371e2d3c766816c2c4fa805f08edc3'
-          Path('v32927.patch').write_bytes(patch)
-
-          text28 = (root/'build_sources/v3.29.28-panel/v32927_to_v32928.patch.xz.b64').read_text(encoding='utf-8')
-          clean28 = re.sub(r'[^A-Za-z0-9+/=]', '', text28)
-          packed28 = base64.b64decode(clean28)
-          assert hashlib.sha256(packed28).hexdigest() == '9779b432169de1e7fa1df4501651e6449d0aab467b1a027d25373023d3eb9ef6'
-          patch28 = lzma.decompress(packed28)
-          assert hashlib.sha256(patch28).hexdigest() == 'f47da23a6a6dd399b58c1f7e13e43f0fe07c038e430024d400531daa65e27e6e'
-          Path('v32928.patch').write_bytes(patch28)
-
-          text31 = (root/'build_sources/v3.29.31-pc-layout/v32930_to_v32931.patch.xz.b64').read_text(encoding='utf-8')
-          clean31 = re.sub(r'[^A-Za-z0-9+/=]', '', text31)
-          packed31 = base64.b64decode(clean31)
-          assert hashlib.sha256(packed31).hexdigest() == '2aeaf0d617547c609a51589502a654244581b73011b13269884e56fd0dedf3a5'
-          patch31 = lzma.decompress(packed31)
-          assert hashlib.sha256(patch31).hexdigest() == '15f360f51a032d7ca114919943e19b210b7609a7b5c818182f273b9ae60f5264'
-          Path('v32931.patch').write_bytes(patch31)
-
-          text32 = (root/'build_sources/v3.29.32-pc-premium/v32931_to_v32932.patch.xz.b64').read_text(encoding='utf-8')
-          clean32 = re.sub(r'[^A-Za-z0-9+/=]', '', text32)
-          packed32 = base64.b64decode(clean32)
-          assert hashlib.sha256(packed32).hexdigest() == '3a6b3ce5ded2017d1c4a38df41134ffda2c4fffb0bd436f3bf47849155ece2c8'
-          patch32 = lzma.decompress(packed32)
-          assert hashlib.sha256(patch32).hexdigest() == '04303227ec9eb1cceaca66390e6b300bab979f0579cbb312c99036531554aab6'
-          Path('v32932.patch').write_bytes(patch32)
-          print('Patches reconstruídos e validados.')
+          root=Path('.')
+          parts=['part00.b64','part01.b64','part02.b64','part03.b64','part04.b64','part05.b64','part06.b64','part07a.b64','part07b.b64','part08.b64']
+          packed=base64.b64decode(re.sub(r'[^A-Za-z0-9+/=]','', ''.join((root/'build_sources/v3.29.27-patch'/p).read_text() for p in parts)))
+          assert hashlib.sha256(packed).hexdigest()=='0b238c75455f7cb942acaa5a28e6f8c3eeb18be0fb52cdaac06b2f5ba8dc2c7c'
+          patch=lzma.decompress(packed); assert hashlib.sha256(patch).hexdigest()=='860792297ff41e2267971e7bbe9551f24e371e2d3c766816c2c4fa805f08edc3'; Path('v32927.patch').write_bytes(patch)
+          specs=[
+            ('build_sources/v3.29.28-panel/v32927_to_v32928.patch.xz.b64','v32928.patch','9779b432169de1e7fa1df4501651e6449d0aab467b1a027d25373023d3eb9ef6','f47da23a6a6dd399b58c1f7e13e43f0fe07c038e430024d400531daa65e27e6e'),
+            ('build_sources/v3.29.31-pc-layout/v32930_to_v32931.patch.xz.b64','v32931.patch','2aeaf0d617547c609a51589502a654244581b73011b13269884e56fd0dedf3a5','15f360f51a032d7ca114919943e19b210b7609a7b5c818182f273b9ae60f5264'),
+            ('build_sources/v3.29.32-pc-premium/v32931_to_v32932.patch.xz.b64','v32932.patch','3a6b3ce5ded2017d1c4a38df41134ffda2c4fffb0bd436f3bf47849155ece2c8','04303227ec9eb1cceaca66390e6b300bab979f0579cbb312c99036531554aab6'),
+            ('build_sources/v3.29.34-drive-evidence/v32933_to_v32934.patch.xz.b64','v32934.patch','8734b362e83d69aac49bdb3178d7634e058462f3160edc5977869ac50e615de2','f77d0c42d4a1457bc99b3ff23ff5cccdb06312b69485e7c1601c1b009fcc8297')]
+          for src,out,packed_sha,patch_sha in specs:
+              packed=base64.b64decode(re.sub(r'[^A-Za-z0-9+/=]','',Path(src).read_text())); assert hashlib.sha256(packed).hexdigest()==packed_sha
+              patch=lzma.decompress(packed); assert hashlib.sha256(patch).hexdigest()==patch_sha; Path(out).write_bytes(patch)
           '@ | Set-Content "$env:RUNNER_TEMP\rebuild.py" -Encoding UTF8
           python "$env:RUNNER_TEMP\rebuild.py"
-
-      - name: Aplicar v3.29.27 a v3.29.33
+      - name: Aplicar v3.29.27 a v3.29.34
         shell: pwsh
         run: |
           git apply --directory=app/Auditar_SST_v1_5_dashboard v32927.patch
@@ -84,21 +55,18 @@ jobs:
           git apply -p2 --directory=app/Auditar_SST_v1_5_dashboard v32931.patch
           git apply -p2 --directory=app/Auditar_SST_v1_5_dashboard v32932.patch
           python tools/patch_photo_recovery_v32933.py app/Auditar_SST_v1_5_dashboard
-
-          $pub = Get-Content app/Auditar_SST_v1_5_dashboard/pubspec.yaml -Raw
-          $syncCode = Get-Content app/Auditar_SST_v1_5_dashboard/lib/services/device_sync_service.dart -Raw
-          $mediaCode = Get-Content app/Auditar_SST_v1_5_dashboard/lib/services/media_sync_service.dart -Raw
-          $checklistCode = Get-Content app/Auditar_SST_v1_5_dashboard/lib/screens/checklist_screen.dart -Raw
-          if (-not $pub.Contains('version: 3.29.33+175')) { throw 'versão v3.29.33 ausente' }
-          if (-not $syncCode.Contains('nunca substitua um caminho')) { throw 'proteção de caminho local ausente' }
-          if (-not $mediaCode.Contains('repairKnownLocalPaths')) { throw 'reparo de mídia local ausente' }
-          if (-not $checklistCode.Contains('needsMediaRecovery')) { throw 'recuperação ao abrir histórico ausente' }
-
+          git apply --directory=app/Auditar_SST_v1_5_dashboard v32934.patch
+          $pub=Get-Content app/Auditar_SST_v1_5_dashboard/pubspec.yaml -Raw
+          $media=Get-Content app/Auditar_SST_v1_5_dashboard/lib/services/media_sync_service.dart -Raw
+          $settings=Get-Content app/Auditar_SST_v1_5_dashboard/lib/screens/settings_screen.dart -Raw
+          if (-not $pub.Contains('version: 3.29.34+176')) { throw 'versão v3.29.34 ausente' }
+          if (-not $media.Contains('repairEvidenceLibrary')) { throw 'reparo da biblioteca ausente' }
+          if (-not $media.Contains('restoreInspectionMedia')) { throw 'restauração por vistoria ausente' }
+          if (-not $settings.Contains('Reparar fotos do histórico')) { throw 'botão de reparo ausente' }
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
-
       - name: Preparar, analisar e testar Windows
         working-directory: app/Auditar_SST_v1_5_dashboard
         shell: pwsh
@@ -111,32 +79,21 @@ jobs:
           if (Test-Path 'test') { dart format test }
           flutter analyze --no-fatal-infos --no-fatal-warnings
           if ($LASTEXITCODE -ne 0) { throw 'flutter analyze falhou' }
-          if (Test-Path 'test') {
-            flutter test
-            if ($LASTEXITCODE -ne 0) { throw 'flutter test falhou' }
-          }
-
+          if (Test-Path 'test') { flutter test; if ($LASTEXITCODE -ne 0) { throw 'flutter test falhou' } }
       - name: Compilar Windows release
         working-directory: app/Auditar_SST_v1_5_dashboard
         shell: pwsh
         env:
           AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
-          AUDITAR_MEDIA_HOSTINGER_URL: ${{ secrets.AUDITAR_MEDIA_HOSTINGER_URL }}
-          AUDITAR_MEDIA_HOSTINGER_KEY: ${{ secrets.AUDITAR_MEDIA_HOSTINGER_KEY }}
         run: |
           if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
-          flutter build windows --release `
-            --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY" `
-            --dart-define=AUDITAR_MEDIA_HOSTINGER_URL="$env:AUDITAR_MEDIA_HOSTINGER_URL" `
-            --dart-define=AUDITAR_MEDIA_HOSTINGER_KEY="$env:AUDITAR_MEDIA_HOSTINGER_KEY"
-
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
       - name: Gerar portátil e instalador
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist/windows | Out-Null
           $release=(Resolve-Path 'app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release').Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.29.33-PORTATIL.zip' -Force
-
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.29.34-PORTATIL.zip' -Force
           $iscc='C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
           if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
           if (-not (Test-Path $iscc)) { throw 'Inno Setup não disponível' }
@@ -145,12 +102,12 @@ jobs:
           [Setup]
           AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}
           AppName=Auditar SST
-          AppVersion=3.29.33
+          AppVersion=3.29.34
           AppPublisher=Auditar Soluções
           DefaultDirName={autopf}\Auditar SST
           DefaultGroupName=Auditar SST
           OutputDir=$output
-          OutputBaseFilename=Auditar-SST-Setup-v3.29.33
+          OutputBaseFilename=Auditar-SST-Setup-v3.29.34
           Compression=lzma2
           SolidCompression=yes
           WizardStyle=modern
@@ -166,12 +123,9 @@ jobs:
           "@
           Set-Content "$env:RUNNER_TEMP\auditar.iss" $iss -Encoding UTF8
           & $iscc "$env:RUNNER_TEMP\auditar.iss"
-          if (-not (Test-Path 'dist/windows/Auditar-SST-Setup-v3.29.33.exe')) { throw 'instalador não foi gerado' }
-          if (-not (Test-Path 'dist/windows/Auditar-SST-Windows-v3.29.33-PORTATIL.zip')) { throw 'portátil não foi gerado' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.29.33.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.29.33.sha256.txt'
-
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.29.34.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.29.34.sha256.txt'
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.33-Windows
+          name: Auditar-SST-v3.29.34-Windows
           path: dist/windows/*
           retention-days: 30
