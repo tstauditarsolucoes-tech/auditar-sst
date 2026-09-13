@@ -1,0 +1,28 @@
+name: Diagnose PC Logo Recovery
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/diag-logo-pc.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Assemble current Windows source
+        run: python tools/assemble_sync_response_fix.py windows
+      - name: Inspect logo/media recovery
+        run: |
+          APP=app/Auditar_SST_v1_5_dashboard
+          echo '=== COMPANY LOGO MEDIA METHODS ==='
+          grep -n -A140 -B25 "registerCompanyLogo\|uploadCompanyLogoNow\|downloadMissing\|syncBackgroundBatch\|company_logo" "$APP/lib/services/media_sync_service.dart" || true
+          echo '=== COMPANY UI LOGO ==='
+          grep -n -A100 -B30 "logoPath\|_chooseLogo\|Image.file" "$APP/lib/screens/companies_screen.dart" || true
+          echo '=== DATABASE UPDATE LOGO ==='
+          grep -n -A60 -B20 "updateCompanyLogo\|logo_path" "$APP/lib/database.dart" || true
