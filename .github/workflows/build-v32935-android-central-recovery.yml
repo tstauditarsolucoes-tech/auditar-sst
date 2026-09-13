@@ -104,3 +104,5 @@ jobs:
           name: Auditar-SST-v3.29.35-Android
           path: dist/android/*
           retention-days: 30
+
+# Central Online hotfix validation trigger.
