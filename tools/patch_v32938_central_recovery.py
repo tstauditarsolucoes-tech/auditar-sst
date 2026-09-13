@@ -42,23 +42,24 @@ def main() -> int:
     pub = update_version(pubspec.read_text(encoding='utf-8'), target)
     pubspec.write_text(pub, encoding='utf-8')
 
+    # Mantém o comportamento estável que já funcionava nas versões anteriores:
+    # a URL /exec e a chave incorporadas no build são gravadas novamente a cada
+    # inicialização. Isso corrige instalações que ficaram com endpoint antigo ou
+    # temporário salvo no banco local, sem mudar nenhuma tela ou layout.
     config = web_config.read_text(encoding='utf-8')
-    old_apply = """  /// Grava os valores permanentes no banco local antes de abrir o app.\n  /// Assim, todas as funções existentes continuam usando a mesma fonte de\n  /// configuração, inclusive Painel, CIPA, Drive e Assistente IA.\n  static Future<void> applyEmbeddedConfiguration() async {\n    if (!isEmbedded) return;\n\n    final db = AppDatabase.instance;\n    await db.setSetting(\n      'management_panel_endpoint',\n      endpoint.trim(),\n    );\n    await db.setSetting(\n      'management_panel_sync_key',\n      syncKey.trim(),\n    );\n  }\n"""
-    new_apply = """  /// Usa a configuração incorporada somente como bootstrap.\n  /// Valores já gravados no dispositivo não são sobrescritos na inicialização.\n  /// Esta alteração é interna e não modifica telas, estrutura ou layout.\n  static Future<void> applyEmbeddedConfiguration() async {\n    if (!isEmbedded) return;\n\n    final db = AppDatabase.instance;\n    final savedEndpoint = (await db.getSetting(\n      'management_panel_endpoint',\n      fallback: '',\n    )).trim();\n    final savedSyncKey = (await db.getSetting(\n      'management_panel_sync_key',\n      fallback: '',\n    )).trim();\n\n    if (savedEndpoint.isEmpty) {\n      await db.setSetting('management_panel_endpoint', endpoint.trim());\n    }\n    if (savedSyncKey.isEmpty) {\n      await db.setSetting('management_panel_sync_key', syncKey.trim());\n    }\n  }\n"""
-
-    count = config.count(old_apply)
-    if count != 1:
-        raise RuntimeError(
-            f'web_service_config.dart: esperado 1 bloco, encontrado {count}'
-        )
-    web_config.write_text(
-        config.replace(old_apply, new_apply, 1),
-        encoding='utf-8',
-    )
+    required = [
+        "await db.setSetting(\n      'management_panel_endpoint',\n      endpoint.trim(),\n    );",
+        "await db.setSetting(\n      'management_panel_sync_key',\n      syncKey.trim(),\n    );",
+    ]
+    for marker in required:
+        if marker not in config:
+            raise RuntimeError('web_service_config.dart: configuração embutida permanente ausente')
+    if 'savedEndpoint' in config or 'savedSyncKey' in config:
+        raise RuntimeError('web_service_config.dart: bootstrap antigo ainda presente')
 
     version = 'v3.29.38+180' if target == 'windows' else 'v3.29.35+177'
     print(
-        f'Patch {version} aplicado somente em configuração interna; UI preservada.'
+        f'Patch {version} aplicado: Central embutida restaurada; UI preservada.'
     )
     return 0
 
