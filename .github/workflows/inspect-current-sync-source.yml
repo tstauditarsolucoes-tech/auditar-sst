@@ -55,13 +55,14 @@ jobs:
           python tools/patch_fresh_login_v32936_32939.py app/Auditar_SST_v1_5_dashboard windows
       - name: Collect sync sources
         run: |
-          mkdir -p inspect/lib/services inspect/lib/screens inspect/backend
+          mkdir -p inspect/lib/services inspect/lib/screens inspect/backend inspect/test
           cp app/Auditar_SST_v1_5_dashboard/lib/services/device_sync_service.dart inspect/lib/services/
           cp app/Auditar_SST_v1_5_dashboard/lib/services/sync_coordinator.dart inspect/lib/services/
           cp app/Auditar_SST_v1_5_dashboard/lib/services/apps_script_http.dart inspect/lib/services/
           cp app/Auditar_SST_v1_5_dashboard/lib/services/web_service_config.dart inspect/lib/services/
           cp app/Auditar_SST_v1_5_dashboard/lib/services/auth_service.dart inspect/lib/services/
           cp app/Auditar_SST_v1_5_dashboard/lib/screens/data_safety_screen.dart inspect/lib/screens/
+          cp app/Auditar_SST_v1_5_dashboard/test/device_sync_roundtrip_test.dart inspect/test/
           if [ -f app/Auditar_SST_v1_5_dashboard/painel_web_google_apps_script/MultiUser.gs ]; then cp app/Auditar_SST_v1_5_dashboard/painel_web_google_apps_script/MultiUser.gs inspect/backend/; fi
           cp app/Auditar_SST_v1_5_dashboard/pubspec.yaml inspect/
       - uses: actions/upload-artifact@v4
