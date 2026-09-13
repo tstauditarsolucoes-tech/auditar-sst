@@ -17,18 +17,12 @@ jobs:
       - uses: actions/checkout@v5
       - name: Assemble current Windows source
         run: python tools/assemble_sync_response_fix.py windows
-      - name: Locate data safety screen and sync hooks
+      - name: Inspect data safety screen and sync service
         run: |
           APP=app/Auditar_SST_v1_5_dashboard
-          echo '--- FILES MATCHING DATA SAFETY ---'
-          grep -RIl --include='*.dart' -E 'Segurança dos dados|Seguranca dos dados|Proteção e recuperação|Protecao e recuperacao' "$APP/lib" || true
-          echo '--- MATCHES ---'
-          grep -RIn --include='*.dart' -E 'Segurança dos dados|Seguranca dos dados|Proteção e recuperação|Protecao e recuperacao|CircularProgressIndicator|sincroniza' "$APP/lib/screens" | head -n 300 || true
-          echo '--- DEVICE SYNC API ---'
-          grep -n -E 'syncNow|sync|pending|progress|ValueNotifier|Stream|ChangeNotifier|countPending' "$APP/lib/services/device_sync_service.dart" | head -n 300 || true
-          echo '--- TARGET FILE CONTENT ---'
-          FILE=$(grep -RIl --include='*.dart' -E 'Segurança dos dados|Seguranca dos dados' "$APP/lib/screens" | head -n 1)
-          if [ -n "$FILE" ]; then
-            echo "FILE=$FILE"
-            nl -ba "$FILE" | sed -n '1,420p'
-          fi
+          echo '--- DATA SAFETY SCREEN ---'
+          nl -ba "$APP/lib/screens/data_safety_screen.dart" | sed -n '1,380p'
+          echo '--- DEVICE SYNC SERVICE 1-330 ---'
+          nl -ba "$APP/lib/services/device_sync_service.dart" | sed -n '1,330p'
+          echo '--- DEVICE SYNC SERVICE 630-820 ---'
+          nl -ba "$APP/lib/services/device_sync_service.dart" | sed -n '630,820p'
