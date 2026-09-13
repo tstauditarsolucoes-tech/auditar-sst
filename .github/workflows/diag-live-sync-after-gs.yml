@@ -1,3 +1,4 @@
+# Trigger manual diagnostic after deployed GS
 name: Diagnose Live Sync After GS Deploy
 
 on:
