@@ -1,0 +1,23 @@
+name: Diagnose Global Sync UI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/diag-sync-ui-global.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Assemble source
+        run: python tools/assemble_sync_response_fix.py windows
+      - name: Locate global sync indicator
+        run: |
+          APP=app/Auditar_SST_v1_5_dashboard
+          grep -Rni -A80 -B30 "Atualização continuará\|Sincronizando\|sync_rounded\|Icons.sync\|CircularProgressIndicator" "$APP/lib" | head -n 800 || true
