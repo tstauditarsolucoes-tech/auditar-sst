@@ -1,0 +1,65 @@
+name: Diagnose Live Sync After GS Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/diag-live-sync-after-gs.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ENDPOINT: https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec
+      AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+    steps:
+      - name: Testar respostas JSON da Central Online
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$AUDITAR_SYNC_KEY"
+          python - <<'PY'
+          import json, os, urllib.request, urllib.error
+          endpoint=os.environ['ENDPOINT']
+          key=os.environ['AUDITAR_SYNC_KEY']
+
+          tests=[
+            ('auth_status', {'action':'auth_status'}),
+            ('pull_legacy', {'action':'device_sync_pull','syncKey':key,'deviceId':'diag-live-sync','platform':'android','sinceVersion':0,'limit':1}),
+            ('pull_fake_token', {'action':'device_sync_pull','syncKey':key,'authToken':'diag-invalid-token','deviceId':'diag-live-sync','platform':'android','sinceVersion':0,'limit':1}),
+          ]
+          failed=False
+          for name,payload in tests:
+            req=urllib.request.Request(endpoint,data=json.dumps(payload).encode(),headers={'Content-Type':'application/json'},method='POST')
+            try:
+              with urllib.request.urlopen(req,timeout=30) as r:
+                body=r.read().decode('utf-8','replace')
+                print(f'[{name}] HTTP={r.status} final={r.geturl()} content-type={r.headers.get("content-type")}')
+                print(f'[{name}] body={body[:1200]}')
+            except urllib.error.HTTPError as e:
+              body=e.read().decode('utf-8','replace')
+              print(f'[{name}] HTTP_ERROR={e.code} body={body[:1200]}')
+              failed=True
+              continue
+            except Exception as e:
+              print(f'[{name}] TRANSPORT_ERROR={type(e).__name__}: {e}')
+              failed=True
+              continue
+            try:
+              obj=json.loads(body)
+              if not isinstance(obj,dict):
+                print(f'[{name}] INVALID_JSON_SHAPE')
+                failed=True
+              else:
+                print(f'[{name}] JSON_OK keys={sorted(obj.keys())}')
+            except Exception as e:
+              print(f'[{name}] INVALID_JSON={e}')
+              failed=True
+          if failed:
+            raise SystemExit(1)
+          PY
