@@ -15,14 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Assemble current Windows source
-        run: python tools/assemble_sync_response_fix.py windows
-      - name: Inspect data safety screen and sync service
+      - name: Assemble current Android source
+        run: python tools/assemble_sync_response_fix.py android
+      - name: Inspect Android data safety screen
         run: |
           APP=app/Auditar_SST_v1_5_dashboard
-          echo '--- DATA SAFETY SCREEN ---'
           nl -ba "$APP/lib/screens/data_safety_screen.dart" | sed -n '1,380p'
-          echo '--- DEVICE SYNC SERVICE 1-330 ---'
-          nl -ba "$APP/lib/services/device_sync_service.dart" | sed -n '1,330p'
-          echo '--- DEVICE SYNC SERVICE 630-820 ---'
-          nl -ba "$APP/lib/services/device_sync_service.dart" | sed -n '630,820p'
