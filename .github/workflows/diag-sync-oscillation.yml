@@ -1,0 +1,26 @@
+name: Diagnose Sync Oscillation
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/diag-sync-oscillation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Assemble current Windows source
+        run: python tools/assemble_sync_response_fix.py windows
+      - name: Inspect sync apply and dirty tracking
+        run: |
+          APP=app/Auditar_SST_v1_5_dashboard
+          echo '=== APPLY REMOTE ==='
+          grep -n -A180 -B30 "_applyRemoteChanges" "$APP/lib/services/device_sync_service.dart" || true
+          echo '=== MARK / PENDING ==='
+          grep -n -A120 -B20 "_mark.*ushed\|_pendingChanges\|dirty = 0\|device_sync_changes" "$APP/lib/services/device_sync_service.dart" || true
