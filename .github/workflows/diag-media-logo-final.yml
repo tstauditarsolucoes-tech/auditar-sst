@@ -1,0 +1,24 @@
+name: Diagnose Final Media Logo
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/diag-media-logo-final.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: python tools/assemble_sync_response_fix.py windows
+      - name: Show media top and sync top
+        run: |
+          APP=app/Auditar_SST_v1_5_dashboard
+          sed -n '1,180p' "$APP/lib/services/media_sync_service.dart"
+          echo '=== DEVICE SYNC 90-210 ==='
+          sed -n '90,210p' "$APP/lib/services/device_sync_service.dart"
