@@ -12,7 +12,7 @@ def run(*args):
     subprocess.run([str(x) for x in args], check=True)
 
 def unpack_b64(src, out):
-    packed=base64.b64decode(re.sub(r'[^A-Za-z0-9+/=]','',Path(src).read_text()))
+    packed=base64.b64decode(re.sub(r'[^A-Za-z0-9+/=]','',Path(src).read_text(encoding='utf-8')))
     Path(out).write_bytes(lzma.decompress(packed))
 
 def screen_hashes():
@@ -24,7 +24,7 @@ def screen_hashes():
 
 run(sys.executable, 'tools/assemble_v32920.py')
 parts=['part00.b64','part01.b64','part02.b64','part03.b64','part04.b64','part05.b64','part06.b64','part07a.b64','part07b.b64','part08.b64']
-packed=base64.b64decode(re.sub(r'[^A-Za-z0-9+/=]','', ''.join((root/'build_sources/v3.29.27-patch'/p).read_text() for p in parts)))
+packed=base64.b64decode(re.sub(r'[^A-Za-z0-9+/=]','', ''.join((root/'build_sources/v3.29.27-patch'/p).read_text(encoding='utf-8') for p in parts)))
 assert hashlib.sha256(packed).hexdigest()=='0b238c75455f7cb942acaa5a28e6f8c3eeb18be0fb52cdaac06b2f5ba8dc2c7c'
 Path('v32927.patch').write_bytes(lzma.decompress(packed))
 for src,out in [
@@ -61,10 +61,10 @@ after=screen_hashes()
 if before != after:
     raise RuntimeError('A interface/layout foi alterada pela correcao interna.')
 
-pub=(app/'pubspec.yaml').read_text()
+pub=(app/'pubspec.yaml').read_text(encoding='utf-8')
 target='version: 3.29.38+180' if platform=='android' else 'version: 3.29.41+183'
 assert target in pub
-assert '_pushChangesSafely' in (app/'lib/services/device_sync_service.dart').read_text()
-assert 'persistentConnection = false' in (app/'lib/services/apps_script_http.dart').read_text()
-assert 'cada nova inicialização do aplicativo exige senha novamente' in (app/'lib/services/auth_service.dart').read_text()
+assert '_pushChangesSafely' in (app/'lib/services/device_sync_service.dart').read_text(encoding='utf-8')
+assert 'persistentConnection = false' in (app/'lib/services/apps_script_http.dart').read_text(encoding='utf-8')
+assert 'restoreSavedSessionForTesting = false' in (app/'lib/services/auth_service.dart').read_text(encoding='utf-8')
 print(f'Fonte final montada e UI preservada: {target}')
