@@ -5,27 +5,35 @@ import re, sys
 root=Path(sys.argv[1]); platform=sys.argv[2].lower()
 if platform not in {'android','windows'}: raise SystemExit('platform')
 pubp=root/'pubspec.yaml'; syncp=root/'lib/services/device_sync_service.dart'; httpp=root/'lib/services/apps_script_http.dart'
-pub=pubp.read_text(); sync=syncp.read_text(); http=httpp.read_text()
+
+def read_any(path: Path) -> str:
+    data=path.read_bytes()
+    try:
+        return data.decode('utf-8')
+    except UnicodeDecodeError:
+        return data.decode('cp1252')
+
+def write_utf8(path: Path, text: str) -> None:
+    path.write_text(text, encoding='utf-8', newline='\n')
+
+pub=read_any(pubp); sync=read_any(syncp); http=read_any(httpp)
 expected='version: 3.29.36+178' if platform=='android' else 'version: 3.29.39+181'
 target='version: 3.29.38+180' if platform=='android' else 'version: 3.29.41+183'
 if target not in pub:
     if expected not in pub: raise RuntimeError(f'version missing {expected}')
     pub=pub.replace(expected,target,1)
 
-# Evita reutilizacao de conexao nos saltos temporarios do Apps Script.
 if '..persistentConnection = false' not in http:
     old="""            final request = http.Request(method, uri)\n              ..followRedirects = false\n"""
     new="""            final request = http.Request(method, uri)\n              ..followRedirects = false\n              ..persistentConnection = false\n"""
     if old not in http: raise RuntimeError('http request marker missing')
     http=http.replace(old,new,1)
 
-# Reduz resposta de pull para evitar respostas muito grandes do ContentService.
 if platform=='android':
     sync=sync.replace("'limit': 300,", "'limit': 100,", 1)
 else:
     sync=sync.replace('final pullLimit = isWindows ? 150 : 300;', 'final pullLimit = isWindows ? 100 : 100;', 1)
 
-# Tenta novamente respostas HTTP 2xx que nao sejam JSON valido.
 post_re = re.compile(r"  static Future<Map<String, dynamic>> _post\(.*?\n  \}\n\n  static int _asInt", re.S)
 if not post_re.search(sync): raise RuntimeError('_post block missing')
 new_post = r'''  static Future<Map<String, dynamic>> _post(
@@ -133,8 +141,6 @@ new_post = r'''  static Future<Map<String, dynamic>> _post(
       await _acknowledgeChanges(db, changes);
       return changes.length;
     } catch (error) {
-      // Se o Google devolver HTML/pagina temporaria para um lote, divide o lote
-      // e preserva o progresso dos registros que responderem corretamente.
       if (!_invalidCentralResponse(error) || changes.length == 1) {
         if (changes.length == 1 && _invalidCentralResponse(error)) {
           final item = changes.first;
@@ -171,7 +177,6 @@ new_post = r'''  static Future<Map<String, dynamic>> _post(
   static int _asInt'''
 sync=post_re.sub(new_post,sync, count=1)
 
-# Troca envio monolitico por envio com fallback/divisao de lote.
 old=re.compile(r"        final pushResponse = await _post\(uri, \{\n          'action': 'device_sync_push',.*?        sent \+= changes.length;\n", re.S)
 if platform=='android':
     replacement="""        sent += await _pushChangesSafely(\n          db: db,\n          endpoint: uri,\n          syncKey: syncKey,\n          deviceId: deviceId,\n          changes: changes,\n          timeout: const Duration(seconds: 30),\n        );\n"""
@@ -180,7 +185,7 @@ else:
 if not old.search(sync): raise RuntimeError('push block missing')
 sync=old.sub(replacement,sync,count=1)
 
-pubp.write_text(pub); syncp.write_text(sync); httpp.write_text(http)
+write_utf8(pubp,pub); write_utf8(syncp,sync); write_utf8(httpp,http)
 assert target in pub
 assert '_pushChangesSafely' in sync
 assert 'resposta inválida em $action' in sync
