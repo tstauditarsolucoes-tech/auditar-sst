@@ -23,6 +23,7 @@ jobs:
       - name: Montar fonte Windows e aplicar correções
         shell: pwsh
         run: |
+          $env:PYTHONIOENCODING='utf-8'
           python tools/assemble_sync_response_fix.py windows
           python tools/patch_sync_progress_v32939_32942.py "$env:APP_DIR" windows
           python tools/patch_sync_progress_compile_safety.py "$env:APP_DIR"
