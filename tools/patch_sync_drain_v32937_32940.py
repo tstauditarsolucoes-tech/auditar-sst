@@ -57,40 +57,48 @@ sync = replace_once(
     """  static Future<DeviceSyncResult>? _activeSync;\n  static Future<DeviceSyncResult>? _queuedForceSync;\n  static bool _changeTrackingReady = false;\n""",
     'fila de force',
 )
-old_start = """  static Future<DeviceSyncResult> synchronize({\n    bool force = false,\n    bool? syncMedia,\n  }) {\n    final active = _activeSync;\n    if (active != null) return active;\n\n    final shouldSyncMedia = syncMedia ?? !isWindows;\n"""
-new_start = """  static Future<DeviceSyncResult> synchronize({\n    bool force = false,\n    bool? syncMedia,\n  }) {\n    final active = _activeSync;\n    if (active != null) {\n      if (!force) return active;\n\n      // Um clique em \"Sincronizar tudo agora\" pode acontecer enquanto o\n      // ciclo automatico ainda esta terminando. Antes, o force=true era\n      // descartado e o usuario recebia somente o resultado do ciclo antigo.\n      // Agora enfileiramos exatamente uma passada forçada logo depois dele.\n      final queued = _queuedForceSync;\n      if (queued != null) return queued;\n\n      late final Future<DeviceSyncResult> followUp;\n      followUp = active.then<DeviceSyncResult>(\n        (_) => synchronize(force: true, syncMedia: syncMedia),\n        onError: (Object _, StackTrace __) =>\n            synchronize(force: true, syncMedia: syncMedia),\n      ).whenComplete(() {\n        if (identical(_queuedForceSync, followUp)) _queuedForceSync = null;\n      });\n      _queuedForceSync = followUp;\n      return followUp;\n    }\n\n    final shouldSyncMedia = syncMedia ?? !isWindows;\n"""
-sync = replace_once(sync, old_start, new_start, 'force nao pode ser descartado')
-sync = replace_once(
-    sync,
-    """      final pushPages = isWindows ? (force ? 5 : 1) : 8;\n""",
-    """      final pushPages = isWindows ? (force ? 5 : 2) : 8;\n""",
-    'duas paginas curtas no Windows',
-)
+
+if platform == 'windows':
+    old_start = """  static Future<DeviceSyncResult> synchronize({\n    bool force = false,\n    bool? syncMedia,\n  }) {\n    final active = _activeSync;\n    if (active != null) return active;\n\n    final shouldSyncMedia = syncMedia ?? !isWindows;\n"""
+    new_start = """  static Future<DeviceSyncResult> synchronize({\n    bool force = false,\n    bool? syncMedia,\n  }) {\n    final active = _activeSync;\n    if (active != null) {\n      if (!force) return active;\n\n      // Um clique em \"Sincronizar tudo agora\" pode acontecer enquanto o\n      // ciclo automatico ainda esta terminando. Antes, o force=true era\n      // descartado e o usuario recebia somente o resultado do ciclo antigo.\n      // Agora enfileiramos exatamente uma passada forçada logo depois dele.\n      final queued = _queuedForceSync;\n      if (queued != null) return queued;\n\n      late final Future<DeviceSyncResult> followUp;\n      followUp = active.then<DeviceSyncResult>(\n        (_) => synchronize(force: true, syncMedia: syncMedia),\n        onError: (Object _, StackTrace __) =>\n            synchronize(force: true, syncMedia: syncMedia),\n      ).whenComplete(() {\n        if (identical(_queuedForceSync, followUp)) _queuedForceSync = null;\n      });\n      _queuedForceSync = followUp;\n      return followUp;\n    }\n\n    final shouldSyncMedia = syncMedia ?? !isWindows;\n"""
+    sync = replace_once(sync, old_start, new_start, 'force Windows nao pode ser descartado')
+    sync = replace_once(
+        sync,
+        """      final pushPages = isWindows ? (force ? 5 : 1) : 8;\n""",
+        """      final pushPages = isWindows ? (force ? 5 : 2) : 8;\n""",
+        'duas paginas curtas no Windows',
+    )
+else:
+    old_start = """  static Future<DeviceSyncResult> synchronize({bool force = false}) {\n    final active = _activeSync;\n    if (active != null) return active;\n\n    late final Future<DeviceSyncResult> operation;\n"""
+    new_start = """  static Future<DeviceSyncResult> synchronize({bool force = false}) {\n    final active = _activeSync;\n    if (active != null) {\n      if (!force) return active;\n\n      // Se a sincronização automática estiver terminando, a ação manual não\n      // pode ser engolida. Enfileira uma única passada forçada em seguida.\n      final queued = _queuedForceSync;\n      if (queued != null) return queued;\n\n      late final Future<DeviceSyncResult> followUp;\n      followUp = active.then<DeviceSyncResult>(\n        (_) => synchronize(force: true),\n        onError: (Object _, StackTrace __) => synchronize(force: true),\n      ).whenComplete(() {\n        if (identical(_queuedForceSync, followUp)) _queuedForceSync = null;\n      });\n      _queuedForceSync = followUp;\n      return followUp;\n    }\n\n    late final Future<DeviceSyncResult> operation;\n"""
+    sync = replace_once(sync, old_start, new_start, 'force Android nao pode ser descartado')
+
 write('lib/services/device_sync_service.dart', sync)
 
-# 2) SyncCoordinator: se o proprio resultado diz que ainda ha fila, agenda de
-# verdade uma continuacao curta. O metodo existente continua respeitando rede,
-# login, lock e backoff, portanto nao cria loop agressivo.
-coord = read('lib/services/sync_coordinator.dart')
-coord = replace_once(
-    coord,
-    """  Timer? _maintenanceTimer;\n  DateTime? _lastSessionVerification;\n""",
-    """  Timer? _maintenanceTimer;\n  Timer? _continuationTimer;\n  DateTime? _lastSessionVerification;\n""",
-    'timer de continuacao',
-)
-coord = replace_once(
-    coord,
-    """    _maintenanceTimer?.cancel();\n    _indicatorTimer?.cancel();\n""",
-    """    _maintenanceTimer?.cancel();\n    _continuationTimer?.cancel();\n    _indicatorTimer?.cancel();\n""",
-    'cancelar timer de continuacao',
-)
-marker = """  Future<void> _tryAutoBackup() async {\n    if (!AuthService.isSignedIn) return;\n    try {\n      await BackupService.createAutomaticBackupIfDue();\n    } catch (_) {}\n  }\n\n"""
-insert = marker + """  void _schedulePartialContinuation() {\n    if (!Platform.isWindows || !mounted || !AuthService.isSignedIn) return;\n    _continuationTimer?.cancel();\n    _continuationTimer = Timer(const Duration(seconds: 20), () {\n      _continuationTimer = null;\n      if (!mounted || !AuthService.isSignedIn) return;\n      _trySync(deviceOnly: true);\n    });\n  }\n\n  void _clearPartialContinuation() {\n    _continuationTimer?.cancel();\n    _continuationTimer = null;\n  }\n\n"""
-coord = replace_once(coord, marker, insert, 'metodos de continuacao')
-old_result = """      if (result != null) {\n        _setDesktopStatus(\n          label: result.partial ? 'Atualização continuará em segundo plano' : 'Dados atualizados',\n          tone: result.partial ? _SyncTone.warning : _SyncTone.ok,\n        );\n      }\n"""
-new_result = """      if (result != null) {\n        if (result.partial) {\n          _schedulePartialContinuation();\n        } else {\n          _clearPartialContinuation();\n        }\n        _setDesktopStatus(\n          label: result.partial ? 'Atualização continuará em segundo plano' : 'Dados atualizados',\n          tone: result.partial ? _SyncTone.warning : _SyncTone.ok,\n        );\n      }\n"""
-coord = replace_once(coord, old_result, new_result, 'continuacao apos resultado parcial')
-write('lib/services/sync_coordinator.dart', coord)
+# 2) No Windows existe sincronizacao paginada/limitada. Se o resultado disser
+# que ainda ha fila, agenda de verdade uma continuacao curta. O metodo existente
+# continua respeitando rede, login, lock e backoff.
+if platform == 'windows':
+    coord = read('lib/services/sync_coordinator.dart')
+    coord = replace_once(
+        coord,
+        """  Timer? _maintenanceTimer;\n  DateTime? _lastSessionVerification;\n""",
+        """  Timer? _maintenanceTimer;\n  Timer? _continuationTimer;\n  DateTime? _lastSessionVerification;\n""",
+        'timer de continuacao',
+    )
+    coord = replace_once(
+        coord,
+        """    _maintenanceTimer?.cancel();\n    _indicatorTimer?.cancel();\n""",
+        """    _maintenanceTimer?.cancel();\n    _continuationTimer?.cancel();\n    _indicatorTimer?.cancel();\n""",
+        'cancelar timer de continuacao',
+    )
+    marker = """  Future<void> _tryAutoBackup() async {\n    if (!AuthService.isSignedIn) return;\n    try {\n      await BackupService.createAutomaticBackupIfDue();\n    } catch (_) {}\n  }\n\n"""
+    insert = marker + """  void _schedulePartialContinuation() {\n    if (!Platform.isWindows || !mounted || !AuthService.isSignedIn) return;\n    _continuationTimer?.cancel();\n    _continuationTimer = Timer(const Duration(seconds: 20), () {\n      _continuationTimer = null;\n      if (!mounted || !AuthService.isSignedIn) return;\n      _trySync(deviceOnly: true);\n    });\n  }\n\n  void _clearPartialContinuation() {\n    _continuationTimer?.cancel();\n    _continuationTimer = null;\n  }\n\n"""
+    coord = replace_once(coord, marker, insert, 'metodos de continuacao')
+    old_result = """      if (result != null) {\n        _setDesktopStatus(\n          label: result.partial ? 'Atualização continuará em segundo plano' : 'Dados atualizados',\n          tone: result.partial ? _SyncTone.warning : _SyncTone.ok,\n        );\n      }\n"""
+    new_result = """      if (result != null) {\n        if (result.partial) {\n          _schedulePartialContinuation();\n        } else {\n          _clearPartialContinuation();\n        }\n        _setDesktopStatus(\n          label: result.partial ? 'Atualização continuará em segundo plano' : 'Dados atualizados',\n          tone: result.partial ? _SyncTone.warning : _SyncTone.ok,\n        );\n      }\n"""
+    coord = replace_once(coord, old_result, new_result, 'continuacao apos resultado parcial')
+    write('lib/services/sync_coordinator.dart', coord)
 
 # 3) Teste de regressao: duas chamadas force=true simultaneas nao podem apontar
 # para o mesmo Future; a segunda deve ser executada como follow-up.
@@ -103,7 +111,7 @@ if test_path.exists():
     regression_name = 'force manual durante sync ativo ganha uma passada propria'
     if regression_name not in test:
         closing = """    timeout: const Timeout(Duration(seconds: 45)),\n  );\n}\n"""
-        addition = """    timeout: const Timeout(Duration(seconds: 45)),\n  );\n\n  test(\n    'force manual durante sync ativo ganha uma passada propria',\n    () async {\n      await _writeSession(\n        supportDir: supportDir,\n        userId: 'sync-force-user',\n        deviceId: 'force-device',\n        token: 'token-force',\n      );\n      await _configureSync(central.endpoint);\n\n      final db = await AppDatabase.instance.database;\n      await db.insert('companies', {\n        'id': 'empresa-force-${DateTime.now().microsecondsSinceEpoch}',\n        'name': 'Empresa para testar fila force',\n      });\n\n      final automaticLikeRun = DeviceSyncService.synchronize(force: true);\n      final manualForcedRun = DeviceSyncService.synchronize(force: true);\n\n      // Antes da correção, as duas variáveis eram exatamente o mesmo Future e\n      // o clique manual era perdido se um sync já estivesse ativo.\n      expect(identical(automaticLikeRun, manualForcedRun), isFalse);\n\n      await automaticLikeRun;\n      final followUp = await manualForcedRun;\n      expect(followUp.pending, 0);\n      expect(await DeviceSyncService.pendingChangesCount(), 0);\n    },\n    timeout: const Timeout(Duration(seconds: 45)),\n  );\n}\n"""
+        addition = """    timeout: const Timeout(Duration(seconds: 45)),\n  );\n\n  test(\n    'force manual durante sync ativo ganha uma passada propria',\n    () async {\n      await _writeSession(\n        supportDir: supportDir,\n        userId: 'sync-force-user',\n        deviceId: 'force-device',\n        token: 'token-force',\n      );\n      await _configureSync(central.endpoint);\n\n      final db = await AppDatabase.instance.database;\n      await db.insert('companies', {\n        'id': 'empresa-force-${DateTime.now().microsecondsSinceEpoch}',\n        'name': 'Empresa para testar fila force',\n      });\n\n      final automaticLikeRun = DeviceSyncService.synchronize(force: true);\n      final manualForcedRun = DeviceSyncService.synchronize(force: true);\n\n      // Antes da correção, as duas variáveis eram exatamente o mesmo Future e\n      // o clique manual era perdido se um sync já estivesse ativo.\n      expect(identical(automaticLikeRun, manualForcedRun), isFalse);\n\n      await automaticLikeRun;\n      final followUp = await manualForcedRun;\n      expect(followUp.skipped, isFalse);\n      expect(await DeviceSyncService.pendingChangesCount(), 0);\n    },\n    timeout: const Timeout(Duration(seconds: 45)),\n  );\n}\n"""
         if closing not in test:
             raise RuntimeError('Fim do arquivo de teste nao encontrado')
         test = test.replace(closing, addition, 1)
@@ -111,11 +119,14 @@ if test_path.exists():
 
 # Validacoes
 sync_check = read('lib/services/device_sync_service.dart')
-coord_check = read('lib/services/sync_coordinator.dart')
 assert target in read('pubspec.yaml')
 assert 'static Future<DeviceSyncResult>? _queuedForceSync;' in sync_check
 assert 'if (!force) return active;' in sync_check
-assert 'final pushPages = isWindows ? (force ? 5 : 2) : 8;' in sync_check
-assert 'Timer? _continuationTimer;' in coord_check
-assert 'Timer(const Duration(seconds: 20)' in coord_check
+if platform == 'windows':
+    coord_check = read('lib/services/sync_coordinator.dart')
+    assert 'final pushPages = isWindows ? (force ? 5 : 2) : 8;' in sync_check
+    assert 'Timer? _continuationTimer;' in coord_check
+    assert 'Timer(const Duration(seconds: 20)' in coord_check
+else:
+    assert '(_) => synchronize(force: true)' in sync_check
 print(f'Sync drain aplicado em {platform}: {target}')
