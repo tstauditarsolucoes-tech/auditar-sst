@@ -22,6 +22,15 @@ def screen_hashes():
             result.append((str(p.relative_to(app)), hashlib.sha256(p.read_bytes()).hexdigest()))
     return result
 
+def normalize_service_text(path: Path):
+    data=path.read_bytes()
+    try:
+        text=data.decode('utf-8')
+    except UnicodeDecodeError:
+        text=data.decode('cp1252')
+    text=text.replace('\r\n','\n').replace('\r','\n')
+    path.write_text(text, encoding='utf-8', newline='\n')
+
 run(sys.executable, 'tools/assemble_v32920.py')
 parts=['part00.b64','part01.b64','part02.b64','part03.b64','part04.b64','part05.b64','part06.b64','part07a.b64','part07b.b64','part08.b64']
 packed=base64.b64decode(re.sub(r'[^A-Za-z0-9+/=]','', ''.join((root/'build_sources/v3.29.27-patch'/p).read_text(encoding='utf-8') for p in parts)))
@@ -56,6 +65,8 @@ before=screen_hashes()
 run(sys.executable,'tools/patch_v32938_central_recovery.py',str(app),platform)
 run(sys.executable,'tools/patch_apps_script_transport_recovery.py',str(app))
 run(sys.executable,'tools/patch_fresh_login_v32936_32939.py',str(app),platform)
+for rel in ['lib/services/device_sync_service.dart','lib/services/apps_script_http.dart']:
+    normalize_service_text(app/rel)
 run(sys.executable,'tools/patch_sync_response_recovery_v32938_32941.py',str(app),platform)
 after=screen_hashes()
 if before != after:
