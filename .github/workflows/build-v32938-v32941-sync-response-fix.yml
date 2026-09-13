@@ -1,0 +1,235 @@
+name: Auditar SST Exact Sync Response Fix
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/build-v32938-v32941-sync-response-fix.yml"
+      - "tools/assemble_sync_response_fix.py"
+      - "tools/patch_sync_response_recovery_v32938_32941.py"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  ENDPOINT: https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec
+
+jobs:
+  android:
+    name: Android v3.29.38 Exact Sync Fix
+    runs-on: ubuntu-latest
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte final sem alterar telas
+        run: python tools/assemble_sync_response_fix.py android
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Analisar e testar Android
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          dart format lib
+          if [ -d test ]; then dart format test; fi
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if [ -d test ]; then flutter test; fi
+      - name: Testar transporte real contra a Central implantada
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY"
+          cat > test/live_central_transport_test.dart <<'DART'
+          import 'dart:convert';
+          import 'package:flutter_test/flutter_test.dart';
+          import '../lib/services/apps_script_http.dart';
+
+          void main() {
+            const endpoint = 'https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec';
+            const key = String.fromEnvironment('AUDITAR_SYNC_KEY');
+            test('Apps Script responde JSON válido em POST grande, push vazio e pull', () async {
+              expect(key, isNotEmpty);
+              final uri = Uri.parse(endpoint);
+              final padding = List<String>.filled(150000, 'x').join();
+              for (var i = 0; i < 4; i++) {
+                final push = await AppsScriptHttp.postJson(uri, {
+                  'action': 'device_sync_push',
+                  'syncKey': key,
+                  'deviceId': 'ci-android-json-$i',
+                  'platform': 'android',
+                  'changes': const [],
+                  'diagnosticPadding': padding,
+                });
+                expect(push.statusCode, 200);
+                final pushJson = jsonDecode(utf8.decode(push.bodyBytes));
+                expect(pushJson, isA<Map>());
+                expect((pushJson as Map)['ok'], true);
+              }
+              final pull = await AppsScriptHttp.postJson(uri, {
+                'action': 'device_sync_pull',
+                'syncKey': key,
+                'deviceId': 'ci-android-json-pull',
+                'platform': 'android',
+                'sinceVersion': 0,
+                'limit': 1,
+              });
+              expect(pull.statusCode, 200);
+              final pullJson = jsonDecode(utf8.decode(pull.bodyBytes));
+              expect(pullJson, isA<Map>());
+              expect((pullJson as Map)['ok'], true);
+            }, timeout: const Timeout(Duration(minutes: 2)));
+          }
+          DART
+          flutter test test/live_central_transport_test.dart --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+          rm test/live_central_transport_test.dart
+      - name: Compilar APK release
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+      - name: Preparar APK
+        run: |
+          mkdir -p dist/android
+          cp $APP_DIR/build/app/outputs/flutter-apk/app-release.apk dist/android/Auditar-SST-v3.29.38-CENTRAL-JSON-FIX.apk
+          sha256sum dist/android/Auditar-SST-v3.29.38-CENTRAL-JSON-FIX.apk > dist/android/Auditar-SST-v3.29.38-CENTRAL-JSON-FIX.sha256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.38-Android-Central-JSON-Fix
+          path: dist/android/*
+          retention-days: 30
+
+  windows:
+    name: Windows v3.29.41 Exact Sync Fix
+    runs-on: windows-latest
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte final sem alterar telas
+        shell: pwsh
+        run: python tools/assemble_sync_response_fix.py windows
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Analisar e testar Windows
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          flutter pub get
+          dart format lib
+          if (Test-Path 'test') { dart format test }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'flutter analyze falhou' }
+          if (Test-Path 'test') { flutter test; if ($LASTEXITCODE -ne 0) { throw 'flutter test falhou' } }
+      - name: Testar transporte real contra a Central implantada
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          @'
+          import 'dart:convert';
+          import 'package:flutter_test/flutter_test.dart';
+          import '../lib/services/apps_script_http.dart';
+
+          void main() {
+            const endpoint = 'https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec';
+            const key = String.fromEnvironment('AUDITAR_SYNC_KEY');
+            test('Apps Script responde JSON válido no Windows em POST grande, push vazio e pull', () async {
+              expect(key, isNotEmpty);
+              final uri = Uri.parse(endpoint);
+              final padding = List<String>.filled(150000, 'x').join();
+              for (var i = 0; i < 4; i++) {
+                final push = await AppsScriptHttp.postJson(uri, {
+                  'action': 'device_sync_push',
+                  'syncKey': key,
+                  'deviceId': 'ci-windows-json-$i',
+                  'platform': 'windows',
+                  'changes': const [],
+                  'diagnosticPadding': padding,
+                });
+                expect(push.statusCode, 200);
+                final pushJson = jsonDecode(utf8.decode(push.bodyBytes));
+                expect(pushJson, isA<Map>());
+                expect((pushJson as Map)['ok'], true);
+              }
+              final pull = await AppsScriptHttp.postJson(uri, {
+                'action': 'device_sync_pull',
+                'syncKey': key,
+                'deviceId': 'ci-windows-json-pull',
+                'platform': 'windows',
+                'sinceVersion': 0,
+                'limit': 1,
+              });
+              expect(pull.statusCode, 200);
+              final pullJson = jsonDecode(utf8.decode(pull.bodyBytes));
+              expect(pullJson, isA<Map>());
+              expect((pullJson as Map)['ok'], true);
+            }, timeout: const Timeout(Duration(minutes: 2)));
+          }
+          '@ | Set-Content test/live_central_transport_test.dart -Encoding UTF8
+          flutter test test/live_central_transport_test.dart --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+          if ($LASTEXITCODE -ne 0) { throw 'teste vivo da Central falhou' }
+          Remove-Item test/live_central_transport_test.dart -Force
+      - name: Compilar Windows release
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+      - name: Gerar portátil e instalador
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.29.41-CENTRAL-JSON-FIX-PORTATIL.zip' -Force
+          $iscc='C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          if (-not (Test-Path $iscc)) { throw 'Inno Setup não disponível' }
+          $output=(Resolve-Path 'dist/windows').Path
+          $iss=@"
+          [Setup]
+          AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}
+          AppName=Auditar SST
+          AppVersion=3.29.41
+          AppPublisher=Auditar Soluções
+          DefaultDirName={autopf}\Auditar SST
+          DefaultGroupName=Auditar SST
+          OutputDir=$output
+          OutputBaseFilename=Auditar-SST-Setup-v3.29.41-CENTRAL-JSON-FIX
+          Compression=lzma2
+          SolidCompression=yes
+          WizardStyle=modern
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          [Files]
+          Source: "$release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          [Icons]
+          Name: "{autoprograms}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          Name: "{autodesktop}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          [Run]
+          Filename: "{app}\auditar_sst.exe"; Description: "Abrir Auditar SST"; Flags: nowait postinstall skipifsilent
+          "@
+          Set-Content "$env:RUNNER_TEMP\auditar.iss" $iss -Encoding UTF8
+          & $iscc "$env:RUNNER_TEMP\auditar.iss"
+          if (-not (Test-Path 'dist/windows/Auditar-SST-Setup-v3.29.41-CENTRAL-JSON-FIX.exe')) { throw 'instalador não foi gerado' }
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.29.41-CENTRAL-JSON-FIX.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.29.41-CENTRAL-JSON-FIX.sha256.txt'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.41-Windows-Central-JSON-Fix
+          path: dist/windows/*
+          retention-days: 30
