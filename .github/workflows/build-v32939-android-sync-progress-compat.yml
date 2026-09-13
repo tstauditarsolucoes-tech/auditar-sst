@@ -1,0 +1,111 @@
+name: Auditar SST Android v3.29.39 Sync Progress Compat
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/build-v32939-android-sync-progress-compat.yml"
+      - "tools/patch_android_sync_progress_compat.py"
+      - "tools/patch_sync_progress_v32939_32942.py"
+      - "tools/patch_sync_progress_compile_safety.py"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  android:
+    name: Android v3.29.39 Sync Progress
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte e aplicar progresso real
+        run: |
+          python tools/assemble_sync_response_fix.py android
+          python tools/patch_android_sync_progress_compat.py "$APP_DIR"
+          python tools/patch_sync_progress_v32939_32942.py "$APP_DIR" android
+          python tools/patch_sync_progress_compile_safety.py "$APP_DIR"
+          grep -q 'version: 3.29.39+181' "$APP_DIR/pubspec.yaml"
+          grep -q 'Progresso da sincronização' "$APP_DIR/lib/screens/data_safety_screen.dart"
+          ! grep -q 'CircularProgressIndicator' "$APP_DIR/lib/screens/data_safety_screen.dart"
+          grep -q 'class DeviceSyncProgress' "$APP_DIR/lib/services/device_sync_service.dart"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Analisar e testar Android
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          dart format lib
+          if [ -d test ]; then dart format test; fi
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if [ -d test ]; then flutter test; fi
+      - name: Testar Central real
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY"
+          cat > test/live_sync_progress_test.dart <<'DART'
+          import 'dart:convert';
+          import 'package:flutter_test/flutter_test.dart';
+          import '../lib/services/apps_script_http.dart';
+
+          void main() {
+            const endpoint = 'https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec';
+            const key = String.fromEnvironment('AUDITAR_SYNC_KEY');
+            test('push e pull retornam JSON válido', () async {
+              expect(key, isNotEmpty);
+              final uri = Uri.parse(endpoint);
+              final push = await AppsScriptHttp.postJson(uri, {
+                'action': 'device_sync_push',
+                'syncKey': key,
+                'deviceId': 'ci-sync-progress-android-final',
+                'platform': 'android',
+                'changes': const [],
+              });
+              expect(push.statusCode, 200);
+              final pushJson = jsonDecode(utf8.decode(push.bodyBytes));
+              expect((pushJson as Map)['ok'], true);
+              final pull = await AppsScriptHttp.postJson(uri, {
+                'action': 'device_sync_pull',
+                'syncKey': key,
+                'deviceId': 'ci-sync-progress-android-final',
+                'platform': 'android',
+                'sinceVersion': 0,
+                'limit': 1,
+              });
+              expect(pull.statusCode, 200);
+              final pullJson = jsonDecode(utf8.decode(pull.bodyBytes));
+              expect((pullJson as Map)['ok'], true);
+            }, timeout: const Timeout(Duration(minutes: 2)));
+          }
+          DART
+          flutter test test/live_sync_progress_test.dart --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+          rm test/live_sync_progress_test.dart
+      - name: Compilar APK release
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+      - name: Preparar APK
+        run: |
+          mkdir -p dist/android
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/android/Auditar-SST-v3.29.39-SYNC-PROGRESS.apk
+          sha256sum dist/android/Auditar-SST-v3.29.39-SYNC-PROGRESS.apk > dist/android/Auditar-SST-v3.29.39-SYNC-PROGRESS.sha256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.39-Android-Sync-Progress
+          path: dist/android/*
+          retention-days: 30
