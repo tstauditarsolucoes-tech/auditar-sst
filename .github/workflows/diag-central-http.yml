@@ -57,3 +57,20 @@ jobs:
           cat app/Auditar_SST_v1_5_dashboard/lib/services/apps_script_http.dart
           echo '===== endpoint ====='
           grep -R "script.google.com/macros/s/" -n app/Auditar_SST_v1_5_dashboard/lib/services || true
+      - name: Testar implantação atual sem segredo
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL='https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec'
+          BODY='{"action":"device_sync_pull","syncKey":"diagnostic-invalid-key","deviceId":"github-diag","platform":"windows","sinceVersion":0,"limit":1}'
+          echo '===== curl -L endpoint ====='
+          curl --silent --show-error --location --max-time 30 \
+            --header 'Content-Type: application/json' \
+            --header 'Accept: application/json' \
+            --data "$BODY" \
+            --output /tmp/central-body.txt \
+            --write-out 'http_code=%{http_code}\nredirects=%{num_redirects}\nfinal_host=%{url_effective}\n' \
+            "$URL" | sed -E 's#(final_host=https://[^/]+).*#\1/#'
+          echo '===== body ====='
+          head -c 1200 /tmp/central-body.txt
+          echo
