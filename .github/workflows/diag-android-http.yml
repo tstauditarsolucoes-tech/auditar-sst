@@ -45,6 +45,7 @@ jobs:
           git apply --directory=app/Auditar_SST_v1_5_dashboard v32934.patch
       - name: Mostrar transporte Android
         run: |
+          echo '===== Android v3.29.34 ====='
           echo '===== device_sync_service.dart ====='
           sed -n '1,460p' app/Auditar_SST_v1_5_dashboard/lib/services/device_sync_service.dart
           echo '===== apps_script_http.dart ====='
