@@ -1,0 +1,110 @@
+name: Auditar SST v3.29.33 Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.33-photo-recovery]
+    paths:
+      - ".github/workflows/build-v32933-android.yml"
+      - "tools/patch_photo_recovery_v32933.py"
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android v3.29.33
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar base funcional v3.29.20
+        run: |
+          python tools/assemble_v32920.py
+          grep -q 'version: 3.29.20+163' app/Auditar_SST_v1_5_dashboard/pubspec.yaml
+
+      - name: Reconstruir patches até v3.29.32
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import base64, hashlib, lzma, re
+          root=Path('.')
+          parts=['part00.b64','part01.b64','part02.b64','part03.b64','part04.b64','part05.b64','part06.b64','part07a.b64','part07b.b64','part08.b64']
+          text=''.join((root/'build_sources/v3.29.27-patch'/p).read_text() for p in parts)
+          packed=base64.b64decode(re.sub(r'[^A-Za-z0-9+/=]','',text))
+          assert hashlib.sha256(packed).hexdigest()=='0b238c75455f7cb942acaa5a28e6f8c3eeb18be0fb52cdaac06b2f5ba8dc2c7c'
+          patch=lzma.decompress(packed)
+          assert hashlib.sha256(patch).hexdigest()=='860792297ff41e2267971e7bbe9551f24e371e2d3c766816c2c4fa805f08edc3'
+          Path('v32927.patch').write_bytes(patch)
+          for src,out,packed_sha,patch_sha in [
+            ('build_sources/v3.29.28-panel/v32927_to_v32928.patch.xz.b64','v32928.patch','9779b432169de1e7fa1df4501651e6449d0aab467b1a027d25373023d3eb9ef6','f47da23a6a6dd399b58c1f7e13e43f0fe07c038e430024d400531daa65e27e6e'),
+            ('build_sources/v3.29.31-pc-layout/v32930_to_v32931.patch.xz.b64','v32931.patch','2aeaf0d617547c609a51589502a654244581b73011b13269884e56fd0dedf3a5','15f360f51a032d7ca114919943e19b210b7609a7b5c818182f273b9ae60f5264'),
+            ('build_sources/v3.29.32-pc-premium/v32931_to_v32932.patch.xz.b64','v32932.patch','3a6b3ce5ded2017d1c4a38df41134ffda2c4fffb0bd436f3bf47849155ece2c8','04303227ec9eb1cceaca66390e6b300bab979f0579cbb312c99036531554aab6')]:
+              text=Path(src).read_text()
+              packed=base64.b64decode(re.sub(r'[^A-Za-z0-9+/=]','',text))
+              assert hashlib.sha256(packed).hexdigest()==packed_sha
+              patch=lzma.decompress(packed)
+              assert hashlib.sha256(patch).hexdigest()==patch_sha
+              Path(out).write_bytes(patch)
+          PY
+
+      - name: Aplicar v3.29.27 a v3.29.33
+        run: |
+          git apply --directory=app/Auditar_SST_v1_5_dashboard v32927.patch
+          git apply --directory=app/Auditar_SST_v1_5_dashboard build_sources/v3.29.27-patch/hotfix-sync-biblioteca.patch
+          git apply --directory=app/Auditar_SST_v1_5_dashboard v32928.patch
+          python tools/patch_tutorial_v32930.py app/Auditar_SST_v1_5_dashboard "$PWD"
+          git apply -p2 --directory=app/Auditar_SST_v1_5_dashboard v32931.patch
+          git apply -p2 --directory=app/Auditar_SST_v1_5_dashboard v32932.patch
+          python tools/patch_photo_recovery_v32933.py app/Auditar_SST_v1_5_dashboard
+          grep -q 'version: 3.29.33+175' app/Auditar_SST_v1_5_dashboard/pubspec.yaml
+          grep -q 'repairKnownLocalPaths' app/Auditar_SST_v1_5_dashboard/lib/services/media_sync_service.dart
+          grep -q 'needsMediaRecovery' app/Auditar_SST_v1_5_dashboard/lib/screens/checklist_screen.dart
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar, analisar e testar Android
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          dart format lib
+          if [ -d test ]; then dart format test; fi
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if [ -d test ]; then flutter test; fi
+
+      - name: Compilar APK release
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+          AUDITAR_MEDIA_HOSTINGER_URL: ${{ secrets.AUDITAR_MEDIA_HOSTINGER_URL }}
+          AUDITAR_MEDIA_HOSTINGER_KEY: ${{ secrets.AUDITAR_MEDIA_HOSTINGER_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY"
+          flutter build apk --release \
+            --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY" \
+            --dart-define=AUDITAR_MEDIA_HOSTINGER_URL="$AUDITAR_MEDIA_HOSTINGER_URL" \
+            --dart-define=AUDITAR_MEDIA_HOSTINGER_KEY="$AUDITAR_MEDIA_HOSTINGER_KEY"
+
+      - name: Preparar APK
+        run: |
+          mkdir -p dist/android
+          cp app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-release.apk dist/android/Auditar-SST-v3.29.33.apk
+          sha256sum dist/android/Auditar-SST-v3.29.33.apk > dist/android/Auditar-SST-v3.29.33.sha256.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.33-Android
+          path: dist/android/*
+          retention-days: 30
