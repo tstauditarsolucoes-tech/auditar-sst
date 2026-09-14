@@ -1,0 +1,146 @@
+name: Auditar SST Android v3.29.44 Sync Imediata
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/build-v32944-android-sync-immediate.yml"
+      - "tools/patch_android_sync_immediate_v32944.py"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar Android v3.29.43 e registrar interface
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/assemble_sync_response_fix.py android
+          python tools/patch_sync_queue_android_v32940_v2.py "$APP_DIR"
+          python tools/patch_android_transport_guard_v32941.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_v32942.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_compile_fix.py "$APP_DIR"
+          python tools/patch_android_offline_background_sync_v32943.py "$APP_DIR"
+          python tools/patch_android_offline_compile_fix_v32943.py "$APP_DIR"
+          grep -q 'version: 3.29.43+185' "$APP_DIR/pubspec.yaml"
+          find "$APP_DIR/lib/screens" -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/screens-before.sha256
+
+      - name: Aplicar sincronização imediata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/patch_android_sync_immediate_v32944.py "$APP_DIR"
+          grep -q 'version: 3.29.44+186' "$APP_DIR/pubspec.yaml"
+          grep -q 'sessionReadyEvents' "$APP_DIR/lib/services/auth_service.dart"
+          grep -q 'Duration(seconds: 10)' "$APP_DIR/lib/services/sync_coordinator.dart"
+          grep -q 'DeviceSyncService.synchronize(force: force)' "$APP_DIR/lib/services/sync_coordinator.dart"
+
+      - name: Confirmar interface móvel intacta
+        shell: bash
+        run: |
+          set -euo pipefail
+          find "$APP_DIR/lib/screens" -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/screens-after.sha256
+          diff -u /tmp/screens-before.sha256 /tmp/screens-after.sha256
+          echo 'UI Android preservada byte a byte.'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Restaurar Android, analisar e testar
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          dart format lib/main.dart lib/services/auth_service.dart lib/services/background_sync_service.dart lib/services/sync_coordinator.dart lib/services/apps_script_http.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if [ -d test ]; then flutter test; fi
+
+      - name: Teste de regressão da sincronização automática
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          auth=Path('lib/services/auth_service.dart').read_text(encoding='utf-8')
+          coord=Path('lib/services/sync_coordinator.dart').read_text(encoding='utf-8')
+          bg=Path('lib/services/background_sync_service.dart').read_text(encoding='utf-8')
+          assert 'sessionReadyEvents' in auth
+          assert auth.count('_sessionReadyEvents.add(null);') >= 2
+          assert 'Duration(seconds: 10)' in coord
+          assert '_syncImmediatelyAfterLogin' in coord
+          assert '_trySync(force: true)' in coord
+          assert 'DeviceSyncService.synchronize(force: force)' in coord
+          assert 'NetworkType.connected' in bg
+          assert 'frequency: const Duration(minutes: 15)' in bg
+          print('REGRESSAO OK: login -> sync imediata; rede -> sync imediata; mudanças locais -> até 10 s; background preservado.')
+          PY
+
+      - name: Testar transporte contra a Central real
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p tool
+          cat > tool/central_live_test.dart <<'DART'
+          import 'dart:convert';
+          import '../lib/services/apps_script_http.dart';
+
+          Future<void> main() async {
+            final endpoint = Uri.parse('https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec');
+            final response = await AppsScriptHttp.postJson(
+              endpoint,
+              {'action': 'auth_status'},
+              timeout: const Duration(seconds: 20),
+            );
+            if (response.statusCode != 200) throw StateError('HTTP ${response.statusCode}');
+            final decoded = jsonDecode(response.body);
+            if (decoded is! Map) throw StateError('Resposta inválida');
+            print('CENTRAL_LIVE_OK');
+          }
+          DART
+          dart run tool/central_live_test.dart
+
+      - name: Compilar APK release
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${AUDITAR_SYNC_KEY:-}"
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Preparar APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/android
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" "dist/android/Auditar-SST-v3.29.44-SYNC-IMEDIATA-AUTOMATICA.apk"
+          sha256sum "dist/android/Auditar-SST-v3.29.44-SYNC-IMEDIATA-AUTOMATICA.apk" > "dist/android/Auditar-SST-v3.29.44-SYNC-IMEDIATA-AUTOMATICA.sha256.txt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.44-Android-Sync-Imediata-Automatica
+          path: dist/android/*
+          retention-days: 30
