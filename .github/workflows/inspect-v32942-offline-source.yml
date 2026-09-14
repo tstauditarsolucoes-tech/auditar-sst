@@ -30,16 +30,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p inspect/lib/services inspect/android
+          mkdir -p inspect/lib/services inspect/lib/screens inspect/android
           cp "$APP_DIR/lib/main.dart" inspect/main.dart
+          cp "$APP_DIR/lib/database.dart" inspect/database.dart
           cp "$APP_DIR/lib/services/auth_service.dart" inspect/lib/services/auth_service.dart
+          cp "$APP_DIR/lib/services/auth_secure_store.dart" inspect/lib/services/auth_secure_store.dart
+          cp "$APP_DIR/lib/services/web_service_config.dart" inspect/lib/services/web_service_config.dart
           cp "$APP_DIR/lib/services/device_sync_service.dart" inspect/lib/services/device_sync_service.dart
           cp "$APP_DIR/lib/services/sync_coordinator.dart" inspect/lib/services/sync_coordinator.dart
           cp "$APP_DIR/lib/services/media_sync_service.dart" inspect/lib/services/media_sync_service.dart
+          cp "$APP_DIR/lib/screens/splash_screen.dart" inspect/lib/screens/splash_screen.dart
+          cp "$APP_DIR/lib/screens/login_screen.dart" inspect/lib/screens/login_screen.dart || true
           cp "$APP_DIR/pubspec.yaml" inspect/pubspec.yaml
           cp "$APP_DIR/android/app/src/main/AndroidManifest.xml" inspect/android/AndroidManifest.xml || true
+          cp "$APP_DIR/android/app/build.gradle.kts" inspect/android/build.gradle.kts || true
       - uses: actions/upload-artifact@v4
         with:
-          name: v32942-offline-inspection
+          name: v32942-offline-inspection-expanded
           path: inspect/**
           retention-days: 1
