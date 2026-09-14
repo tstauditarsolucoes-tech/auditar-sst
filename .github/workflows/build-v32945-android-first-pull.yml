@@ -1,0 +1,143 @@
+name: Auditar SST Android v3.29.45 First Pull Fix
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/build-v32945-android-first-pull.yml"
+      - "tools/patch_android_sync_first_pull_v32945.py"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar Android v3.29.44 e registrar interface
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/assemble_sync_response_fix.py android
+          python tools/patch_sync_queue_android_v32940_v2.py "$APP_DIR"
+          python tools/patch_android_transport_guard_v32941.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_v32942.py "$APP_DIR"
+          python tools/patch_android_offline_background_sync_v32943.py "$APP_DIR"
+          python tools/patch_android_offline_compile_fix_v32943.py "$APP_DIR"
+          python tools/patch_android_sync_immediate_v32944.py "$APP_DIR"
+          grep -q 'version: 3.29.44+186' "$APP_DIR/pubspec.yaml"
+          find "$APP_DIR/lib/screens" -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/screens-before.sha256
+
+      - name: Aplicar correção do primeiro pull
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/patch_android_sync_first_pull_v32945.py "$APP_DIR"
+          grep -q 'version: 3.29.45+187' "$APP_DIR/pubspec.yaml"
+
+      - name: Confirmar interface móvel intacta
+        shell: bash
+        run: |
+          set -euo pipefail
+          find "$APP_DIR/lib/screens" -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/screens-after.sha256
+          diff -u /tmp/screens-before.sha256 /tmp/screens-after.sha256
+          echo 'UI Android preservada byte a byte.'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Restaurar Android, analisar e testar
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          dart format lib/services/device_sync_service.dart lib/services/sync_coordinator.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if [ -d test ]; then flutter test; fi
+
+      - name: Teste de regressão da primeira sincronização
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          coord=Path('lib/services/sync_coordinator.dart').read_text(encoding='utf-8')
+          sync=Path('lib/services/device_sync_service.dart').read_text(encoding='utf-8')
+          assert 'pullWhenClean: true' in coord
+          assert "last_device_sync_success" in coord
+          assert 'if (lastSuccess.isNotEmpty) return;' in coord
+          assert 'Duration(seconds: 30)' in coord
+          assert 'static Future<DeviceSyncResult>? _queuedForceSync;' in sync
+          assert "await appDb.setSetting(_lastStatusSetting, 'Sincronizando dados...');" in sync
+          assert 'unawaited(_syncMediaBestEffort());' in sync
+          assert sync.find('final deviceId = await AuthService.deviceId();') < sync.find('MediaSyncService.uploadPending()')
+          assert sync.find("await appDb.setSetting(_lastSuccessSetting, now);") < sync.find('MediaSyncService.uploadPending()')
+          print('REGRESSAO OK: primeiro pull não depende de pendência local; mídia não bloqueia dados; force tem follow-up.')
+          PY
+
+      - name: Testar transporte da Central real
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p tool
+          cat > tool/central_live_test.dart <<'DART'
+          import 'dart:convert';
+          import '../lib/services/apps_script_http.dart';
+
+          Future<void> main() async {
+            final endpoint = Uri.parse('https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec');
+            final response = await AppsScriptHttp.postJson(
+              endpoint,
+              {'action': 'auth_status'},
+              timeout: const Duration(seconds: 20),
+            );
+            if (response.statusCode != 200) throw StateError('HTTP ${response.statusCode}');
+            final decoded = jsonDecode(response.body);
+            if (decoded is! Map) throw StateError('Resposta não JSON/mapa');
+            print('CENTRAL_LIVE_OK ${response.body}');
+          }
+          DART
+          dart run tool/central_live_test.dart
+
+      - name: Compilar APK release
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${AUDITAR_SYNC_KEY:-}"
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Preparar APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/android
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" "dist/android/Auditar-SST-v3.29.45-PRIMEIRO-SYNC-CORRIGIDO.apk"
+          sha256sum "dist/android/Auditar-SST-v3.29.45-PRIMEIRO-SYNC-CORRIGIDO.apk" > "dist/android/Auditar-SST-v3.29.45-PRIMEIRO-SYNC-CORRIGIDO.sha256.txt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.45-Android-Primeiro-Sync-Corrigido
+          path: dist/android/*
+          retention-days: 30
