@@ -1,0 +1,31 @@
+name: Diagnose Nine Pending Records
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/diag-nine-pending.yml"
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Assemble current Windows source
+        run: |
+          python tools/assemble_sync_response_fix.py windows
+          python tools/patch_sync_progress_v32939_32942.py app/Auditar_SST_v1_5_dashboard windows
+          python tools/patch_sync_progress_compile_safety.py app/Auditar_SST_v1_5_dashboard
+          python tools/patch_windows_sync_logo_stability_v32943.py app/Auditar_SST_v1_5_dashboard
+      - name: Inspect all writes that can re-dirty sync records
+        run: |
+          APP=app/Auditar_SST_v1_5_dashboard
+          echo '=== MEDIA FUNCTIONS ==='
+          grep -n -A80 -B20 "registerCompanyLogo\|recoverCompanyLogo\|repairKnownLocalPaths\|_discoverLocalMedia\|_ensureAsset\|_applyEntityPath\|media_assets\|logo_path\|drive_file_id\|updated_at" "$APP/lib/services/media_sync_service.dart" || true
+          echo '=== COMPANY LOGO WRITES ACROSS LIB ==='
+          grep -RIn "logo_path\|updateCompanyLogo\|registerCompanyLogo" "$APP/lib" || true
+          echo '=== MEDIA ASSET WRITES ACROSS LIB ==='
+          grep -RIn "media_assets" "$APP/lib" || true
+          echo '=== DEVICE SYNC TRACKING ==='
+          grep -n -A120 -B20 "pendingChangesCount\|_ensureChangeTracking\|_acknowledgeChanges\|_applyRemoteChanges" "$APP/lib/services/device_sync_service.dart" || true
