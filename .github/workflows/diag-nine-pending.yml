@@ -18,14 +18,10 @@ jobs:
           python tools/patch_sync_progress_v32939_32942.py app/Auditar_SST_v1_5_dashboard windows
           python tools/patch_sync_progress_compile_safety.py app/Auditar_SST_v1_5_dashboard
           python tools/patch_windows_sync_logo_stability_v32943.py app/Auditar_SST_v1_5_dashboard
-      - name: Inspect sync queue and automatic loop
+      - name: Inspect sync UI
         run: |
           APP=app/Auditar_SST_v1_5_dashboard
-          echo '=== SYNC COORDINATOR FULL ==='
-          sed -n '1,320p' "$APP/lib/services/sync_coordinator.dart" || true
-          echo '=== ALL AUTOMATIC SYNC CALLS ==='
-          grep -RIn -A8 -B8 "Timer.periodic\|DeviceSyncService.synchronize\|SyncCoordinator\|syncBackgroundBatch\|startAuto\|autoSync\|Duration(seconds: 15)\|Duration(seconds: 30)\|Duration(minutes:" "$APP/lib" || true
-          echo '=== DEVICE SYNC CORE ==='
-          sed -n '130,410p' "$APP/lib/services/device_sync_service.dart" || true
-          echo '=== MEDIA WRITES THAT CAN RE-DIRTY ==='
-          grep -n -A20 -B8 "db.update(\|db.insert(\|media_assets\|_downloadAsset\|uploadPending\|_localOnlyPathUpdate" "$APP/lib/services/media_sync_service.dart" || true
+          echo '=== COORDINATOR INDICATOR ==='
+          sed -n '300,470p' "$APP/lib/services/sync_coordinator.dart" || true
+          echo '=== DATA SAFETY PROGRESS UI ==='
+          grep -n -A120 -B40 "Progresso da sincronização\|LinearProgressIndicator\|syncPercent\|syncRunning" "$APP/lib/screens/data_safety_screen.dart" || true
