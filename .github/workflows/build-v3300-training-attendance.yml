@@ -1,0 +1,188 @@
+name: Auditar SST v3.30.0 Treinamentos e DDS Assinados
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/build-v3300-training-attendance.yml"
+      - "build_sources/v3.30.0-training-attendance/patch_training_attendance_v3300.py.xz.b64"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar base Android atual
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/assemble_sync_response_fix.py android
+          python tools/patch_sync_queue_android_v32940_v2.py "$APP_DIR"
+          python tools/patch_android_transport_guard_v32941.py "$APP_DIR"
+          grep -q 'version: 3.29.41+183' "$APP_DIR/pubspec.yaml"
+          find "$APP_DIR/lib/screens" -type f ! -name 'trainings_screen.dart' -print0 | sort -z | xargs -0 sha256sum > /tmp/screens-before.sha256
+
+      - name: Aplicar módulo de treinamento e DDS assinado
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import base64, lzma
+          src=Path('build_sources/v3.30.0-training-attendance/patch_training_attendance_v3300.py.xz.b64')
+          Path('/tmp/patch_training_attendance_v3300.py').write_bytes(lzma.decompress(base64.b64decode(src.read_text().strip())))
+          PY
+          python /tmp/patch_training_attendance_v3300.py "$APP_DIR" android
+          grep -q 'version: 3.30.0+184' "$APP_DIR/pubspec.yaml"
+          grep -q "title: 'Lista assinada'" "$APP_DIR/lib/screens/trainings_screen.dart"
+          test -f "$APP_DIR/lib/screens/training_attendance_screen.dart"
+          test -f "$APP_DIR/lib/services/training_attendance_pdf_service.dart"
+
+      - name: Confirmar demais telas móveis intactas
+        shell: bash
+        run: |
+          set -euo pipefail
+          find "$APP_DIR/lib/screens" -type f ! -name 'trainings_screen.dart' ! -name 'training_attendance_screen.dart' -print0 | sort -z | xargs -0 sha256sum > /tmp/screens-after.sha256
+          diff -u /tmp/screens-before.sha256 /tmp/screens-after.sha256
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Analisar, testar e compilar Android
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          dart format lib/database.dart lib/screens/trainings_screen.dart lib/screens/training_attendance_screen.dart lib/services/training_attendance_pdf_service.dart lib/services/device_sync_service.dart lib/services/media_sync_service.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if [ -d test ]; then flutter test; fi
+          test -n "${AUDITAR_SYNC_KEY:-}"
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Preparar APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/android
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" "dist/android/Auditar-SST-v3.30.0-TREINAMENTOS-DDS-ASSINADOS.apk"
+          sha256sum "dist/android/Auditar-SST-v3.30.0-TREINAMENTOS-DDS-ASSINADOS.apk" > "dist/android/Auditar-SST-v3.30.0-TREINAMENTOS-DDS-ASSINADOS.sha256.txt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.30.0-Android-Treinamentos-DDS-Assinados
+          path: dist/android/*
+          retention-days: 30
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar base Windows atual e aplicar módulo
+        shell: pwsh
+        run: |
+          $env:PYTHONIOENCODING='utf-8'
+          python tools/assemble_sync_response_fix.py windows
+          if ($LASTEXITCODE -ne 0) { throw 'assemble Windows falhou' }
+          python tools/patch_sync_progress_v32939_32942.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'patch progresso falhou' }
+          python tools/patch_sync_progress_compile_safety.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'compile-safety falhou' }
+          python tools/patch_windows_sync_logo_stability_v32943.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'patch logo falhou' }
+          python tools/patch_sync_queue_media_separation_v32940_32944.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'patch fila falhou' }
+          python -c "from pathlib import Path; import base64,lzma; p=Path('build_sources/v3.30.0-training-attendance/patch_training_attendance_v3300.py.xz.b64'); Path($env:RUNNER_TEMP + '/patch_training_attendance_v3300.py').write_bytes(lzma.decompress(base64.b64decode(p.read_text().strip())))"
+          python "$env:RUNNER_TEMP/patch_training_attendance_v3300.py" "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'módulo treinamento falhou' }
+          $pub=Get-Content "$env:APP_DIR/pubspec.yaml" -Raw
+          if (-not $pub.Contains('version: 3.30.0+187')) { throw 'versão Windows incorreta' }
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Analisar, testar e compilar Windows
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          flutter pub get
+          dart format lib/database.dart lib/screens/trainings_screen.dart lib/screens/training_attendance_screen.dart lib/services/training_attendance_pdf_service.dart lib/services/device_sync_service.dart lib/services/media_sync_service.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'flutter analyze falhou' }
+          if (Test-Path 'test') { flutter test; if ($LASTEXITCODE -ne 0) { throw 'flutter test falhou' } }
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+          if ($LASTEXITCODE -ne 0) { throw 'build Windows falhou' }
+
+      - name: Gerar portátil e instalador
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.0-TREINAMENTOS-DDS-ASSINADOS-PORTATIL.zip' -Force
+          $iscc='C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          if (-not (Test-Path $iscc)) { throw 'Inno Setup não disponível' }
+          $output=(Resolve-Path 'dist/windows').Path
+          $iss=@"
+          [Setup]
+          AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}
+          AppName=Auditar SST
+          AppVersion=3.30.0
+          AppPublisher=Auditar Soluções
+          DefaultDirName={autopf}\Auditar SST
+          DefaultGroupName=Auditar SST
+          OutputDir=$output
+          OutputBaseFilename=Auditar-SST-Setup-v3.30.0-TREINAMENTOS-DDS-ASSINADOS
+          Compression=lzma2
+          SolidCompression=yes
+          WizardStyle=modern
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          [Files]
+          Source: "$release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          [Icons]
+          Name: "{autoprograms}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          Name: "{autodesktop}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          [Run]
+          Filename: "{app}\auditar_sst.exe"; Description: "Abrir Auditar SST"; Flags: nowait postinstall skipifsilent
+          "@
+          Set-Content "$env:RUNNER_TEMP\auditar-v3300.iss" $iss -Encoding UTF8
+          & $iscc "$env:RUNNER_TEMP\auditar-v3300.iss"
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.0-TREINAMENTOS-DDS-ASSINADOS.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.0-TREINAMENTOS-DDS-ASSINADOS.sha256.txt'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.30.0-Windows-Treinamentos-DDS-Assinados
+          path: dist/windows/*
+          retention-days: 30
