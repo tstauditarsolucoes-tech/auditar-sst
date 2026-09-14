@@ -11,10 +11,12 @@ if platform not in {'android', 'windows'}:
 pubp = root / 'pubspec.yaml'
 syncp = root / 'lib/services/device_sync_service.dart'
 mediap = root / 'lib/services/media_sync_service.dart'
+coordp = root / 'lib/services/sync_coordinator.dart'
 
 pub = pubp.read_text(encoding='utf-8')
 sync = syncp.read_text(encoding='utf-8')
 media = mediap.read_text(encoding='utf-8')
+coord = coordp.read_text(encoding='utf-8')
 
 expected = 'version: 3.29.39+181' if platform == 'android' else 'version: 3.29.43+185'
 target = 'version: 3.29.40+182' if platform == 'android' else 'version: 3.29.44+186'
@@ -24,19 +26,18 @@ if target not in pub:
     pub = pub.replace(expected, target, 1)
 
 # ---------------------------------------------------------------------------
-# 1) O catálogo de mídia NÃO pertence à fila de dados estruturados.
-# Fotos, assinaturas e logos já têm MediaSyncService + Drive próprios.
-# Manter media_assets no device_sync gerava o ciclo 9 -> 0 -> 9 porque o
-# próprio upload/download atualiza drive_file_id/updated_at/local_path.
+# 1) media_assets é catálogo/cache de mídia. Ele pode continuar sendo aceito
+# no PULL por compatibilidade, mas NÃO deve integrar a fila outbound. Fotos,
+# assinaturas e logos são protegidas pelo MediaSyncService/Drive. Atualizações
+# de drive_file_id, local_path e updated_at não podem gerar 9 pendências novas.
 # ---------------------------------------------------------------------------
-old_all = "  static Set<String> get _allTables => {..._masterTables, ..._fieldTables};"
-new_all = "  static Set<String> get _allTables => {..._masterTables, ..._fieldTables}..remove('media_assets');"
-if old_all in sync:
-    sync = sync.replace(old_all, new_all, 1)
-elif new_all not in sync:
-    raise RuntimeError('Getter _allTables não localizado')
+old_outbound = '  static Set<String> get _outboundTables => _allTables;'
+new_outbound = "  static Set<String> get _outboundTables => {..._allTables}..remove('media_assets');"
+if old_outbound in sync:
+    sync = sync.replace(old_outbound, new_outbound, 1)
+elif new_outbound not in sync:
+    raise RuntimeError('Getter _outboundTables não localizado')
 
-# pendingChangesCount deve contar somente tabelas realmente publicáveis.
 old_pending = """    final result = await db.rawQuery(
       'SELECT COUNT(*) FROM $_changesTable WHERE dirty = 1',
     );
@@ -55,7 +56,6 @@ if old_pending in sync:
 elif "WHERE dirty = 1 AND table_name IN ($placeholders)" not in sync:
     raise RuntimeError('pendingChangesCount não localizado')
 
-# Limpa a fila antiga e remove triggers persistentes já existentes no banco.
 helper = r'''  static Future<void> _discardMediaAssetChanges(Database db) async {
     for (final suffix in const ['insert', 'update', 'delete']) {
       await db.execute('DROP TRIGGER IF EXISTS device_sync_media_assets_$suffix');
@@ -79,8 +79,8 @@ if '_discardMediaAssetChanges(Database db)' not in sync:
         raise RuntimeError('Marcador de descarte não localizado')
     sync = sync.replace(marker, helper + marker, 1)
 
-# Em qualquer caminho de _ensureChangeTracking, limpar mídia antiga antes de
-# calcular a fila. Isso resolve instalações que já possuem os 9 dirty antigos.
+# Limpa os 9 registros antigos mesmo em instalações existentes. Também remove
+# os triggers media_assets persistidos no SQLite para eles não voltarem.
 sync = sync.replace(
     "        await _discardBuiltInChecklistChanges(db);\n        return;",
     "        await _discardMediaAssetChanges(db);\n        await _discardBuiltInChecklistChanges(db);\n        return;",
@@ -92,8 +92,48 @@ sync = sync.replace(
     1,
 )
 
+# Uma tentativa automática não precisa ser considerada devida a cada 15 s.
+# O manual continua usando force:true e não é afetado.
+sync = sync.replace(
+    '        const Duration(seconds: 15);',
+    '        const Duration(seconds: 60);',
+    1,
+)
+
 # ---------------------------------------------------------------------------
-# 2) Caminhos locais são cache do dispositivo. No Android antigo ainda havia
+# 2) O timer rápido NÃO deve abrir uma sincronização de rede se não há nada
+# local para enviar. Isso elimina o estado "sincronizando" o tempo todo.
+# O ciclo completo de manutenção continua a cada 5 min (Android) / 10 min (PC)
+# para receber mudanças feitas em outro dispositivo.
+# ---------------------------------------------------------------------------
+early_marker = '''  Future<void> _trySync({bool deviceOnly = false}) async {
+    if (_syncing || _maintenanceBusy || !AuthService.isSignedIn) return;
+    final nextAttempt = _nextSyncAttempt;
+'''
+early_replacement = '''  Future<void> _trySync({bool deviceOnly = false}) async {
+    if (_syncing || _maintenanceBusy || !AuthService.isSignedIn) return;
+
+    // O timer rápido serve apenas para publicar trabalho novo. Sem alterações
+    // locais ele fica totalmente silencioso: não abre rede, não gira indicador
+    // e não reinicia porcentagem. O pull remoto continua no ciclo de manutenção.
+    if (deviceOnly) {
+      try {
+        final localPending = await DeviceSyncService.pendingChangesCount();
+        if (localPending == 0) return;
+      } catch (_) {
+        return;
+      }
+    }
+
+    final nextAttempt = _nextSyncAttempt;
+'''
+if 'final localPending = await DeviceSyncService.pendingChangesCount();' not in coord:
+    if early_marker not in coord:
+        raise RuntimeError('Início de _trySync não localizado')
+    coord = coord.replace(early_marker, early_replacement, 1)
+
+# ---------------------------------------------------------------------------
+# 3) Caminhos locais são cache do dispositivo. No Android antigo ainda havia
 # updates normais em path/logo_path que podiam gerar dirty. Reaproveitamos a
 # proteção já usada no Windows v3.29.43 também no Android.
 # ---------------------------------------------------------------------------
@@ -149,7 +189,6 @@ if '_localOnlyPathUpdate(' not in media:
         raise RuntimeError('Marcador _applyEntityPath não localizado')
     media = media.replace(helper_marker, local_helper + helper_marker, 1)
 
-# Troca a função _applyEntityPath inteira somente se ainda usar db.update direto.
 pattern = re.compile(
     r"  static Future<void> _applyEntityPath\([\s\S]*?\n  static Future<Map<String, dynamic>> _post\(",
     re.MULTILINE,
@@ -212,13 +251,18 @@ if 'await _localOnlyPathUpdate(' not in block:
 pubp.write_text(pub, encoding='utf-8', newline='\n')
 syncp.write_text(sync, encoding='utf-8', newline='\n')
 mediap.write_text(media, encoding='utf-8', newline='\n')
+coordp.write_text(coord, encoding='utf-8', newline='\n')
 
 final_sync = syncp.read_text(encoding='utf-8')
 final_media = mediap.read_text(encoding='utf-8')
+final_coord = coordp.read_text(encoding='utf-8')
 assert target in pubp.read_text(encoding='utf-8')
-assert "..remove('media_assets')" in final_sync
+assert "remove('media_assets')" in final_sync
 assert '_discardMediaAssetChanges' in final_sync
 assert "table_name = 'media_assets'" in final_sync
 assert 'WHERE dirty = 1 AND table_name IN ($placeholders)' in final_sync
+assert 'const Duration(seconds: 60)' in final_sync
 assert '_localOnlyPathUpdate' in final_media
-print(f'{target}: mídia separada da fila estruturada; pendências antigas de media_assets serão limpas.')
+assert 'final localPending = await DeviceSyncService.pendingChangesCount();' in final_coord
+assert 'if (localPending == 0) return;' in final_coord
+print(f'{target}: fila 9 corrigida e auto-sync ocioso desativado; pull periódico preservado.')
