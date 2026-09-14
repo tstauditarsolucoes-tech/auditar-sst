@@ -1,0 +1,22 @@
+name: Diagnose Android Sync Coordinator
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/diag-android-sync-coordinator.yml"
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Assemble Android and inspect coordinator
+        run: |
+          python tools/assemble_sync_response_fix.py android
+          APP=app/Auditar_SST_v1_5_dashboard
+          echo '=== COORDINATOR ==='
+          sed -n '1,380p' "$APP/lib/services/sync_coordinator.dart"
+          echo '=== SYNC SERVICE TIMERS ==='
+          grep -RIn -A12 -B12 "Timer.periodic\|synchronize(\|_trySync\|_attemptIsDue" "$APP/lib" || true
