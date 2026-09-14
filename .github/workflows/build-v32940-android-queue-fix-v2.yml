@@ -1,0 +1,96 @@
+name: Auditar SST Android v3.29.40 Queue Fix V2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/build-v32940-android-queue-fix-v2.yml"
+      - "tools/patch_sync_queue_android_v32940_v2.py"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar base Android e registrar UI
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/assemble_sync_response_fix.py android
+          grep -q 'version: 3.29.38+180' "$APP_DIR/pubspec.yaml"
+          find "$APP_DIR/lib/screens" -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/screens-before.sha256
+      - name: Aplicar correção interna da fila
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/patch_sync_queue_android_v32940_v2.py "$APP_DIR"
+          grep -q 'version: 3.29.40+182' "$APP_DIR/pubspec.yaml"
+          grep -q "_outboundTables => {..._allTables}..remove('media_assets')" "$APP_DIR/lib/services/device_sync_service.dart"
+          grep -q '_discardMediaAssetChanges' "$APP_DIR/lib/services/device_sync_service.dart"
+          grep -q 'if (localPending == 0) return;' "$APP_DIR/lib/services/sync_coordinator.dart"
+      - name: Confirmar interface móvel intacta
+        shell: bash
+        run: |
+          set -euo pipefail
+          find "$APP_DIR/lib/screens" -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/screens-after.sha256
+          diff -u /tmp/screens-before.sha256 /tmp/screens-after.sha256
+          echo 'UI Android preservada byte a byte.'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Analisar e testar Android
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter pub get
+          dart format lib
+          if [ -d test ]; then dart format test; fi
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if [ -d test ]; then flutter test; fi
+      - name: Teste de regressão exato
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('lib/services/device_sync_service.dart').read_text(encoding='utf-8')
+          c=Path('lib/services/sync_coordinator.dart').read_text(encoding='utf-8')
+          assert "_outboundTables => {..._allTables}..remove('media_assets')" in s
+          assert "DROP TRIGGER IF EXISTS device_sync_media_assets_$suffix" in s
+          assert "table_name = 'media_assets'" in s
+          assert "WHERE dirty = 1 AND table_name IN ($placeholders)" in s
+          assert "if (localPending == 0) return;" in c
+          print('REGRESSAO OK: media_assets não conta como pendência e idle não abre sync rápido.')
+          PY
+      - name: Compilar APK release
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${AUDITAR_SYNC_KEY:-}" ]; then echo 'AUDITAR_SYNC_KEY ausente'; exit 1; fi
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+      - name: Preparar APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/android
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" "dist/android/Auditar-SST-v3.29.40-FILA-SYNC-CORRIGIDA-UI-PRESERVADA.apk"
+          sha256sum "dist/android/Auditar-SST-v3.29.40-FILA-SYNC-CORRIGIDA-UI-PRESERVADA.apk" > "dist/android/Auditar-SST-v3.29.40-FILA-SYNC-CORRIGIDA-UI-PRESERVADA.sha256.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.40-Android-Fila-Sync-Corrigida-UI-Preservada
+          path: dist/android/*
+          retention-days: 30
