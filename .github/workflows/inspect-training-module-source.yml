@@ -36,6 +36,9 @@ jobs:
           cp "$APP_DIR/lib/brand.dart" inspect/lib/
           cp "$APP_DIR/lib/services/pdf_service.dart" inspect/lib/services/
           cp "$APP_DIR/lib/services/device_sync_service.dart" inspect/lib/services/
+          cp "$APP_DIR/lib/services/media_sync_service.dart" inspect/lib/services/
+          cp "$APP_DIR/lib/services/storage_service.dart" inspect/lib/services/
+          cp "$APP_DIR/lib/services/training_pending_pdf_service.dart" inspect/lib/services/
           cp "$APP_DIR/pubspec.yaml" inspect/
       - uses: actions/upload-artifact@v4
         with:
