@@ -1,0 +1,28 @@
+name: Diagnose Apps Script redirect
+
+on:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths: ['.github/workflows/diagnose-apps-script-redirect.yml']
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Testar endpoint e destino final
+        shell: bash
+        run: |
+          set -euo pipefail
+          ENDPOINT='https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec'
+          curl -sS --max-time 20 --max-redirs 0 -D /tmp/headers -o /tmp/body -X POST -H 'Content-Type: application/json' --data '{"action":"auth_status"}' "$ENDPOINT" || true
+          echo '--- HEADERS ---'
+          cat /tmp/headers
+          LOCATION=$(awk 'BEGIN{IGNORECASE=1} /^location:/ {sub(/\r$/, ""); sub(/^location:[[:space:]]*/, ""); print; exit}' /tmp/headers)
+          echo "REDIRECT_LOCATION=$LOCATION"
+          test -n "$LOCATION"
+          echo '--- DIRECT TARGET ---'
+          curl -sS --max-time 20 -D /tmp/direct_headers -o /tmp/direct_body -X POST -H 'Content-Type: application/json' --data '{"action":"auth_status"}' "$LOCATION"
+          head -30 /tmp/direct_headers
+          echo 'BODY:'
+          head -c 1000 /tmp/direct_body; echo
