@@ -1,0 +1,45 @@
+name: Inspect Android v3.29.42 Offline Source
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/inspect-v32942-offline-source.yml"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Assemble current Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/assemble_sync_response_fix.py android
+          python tools/patch_sync_queue_android_v32940_v2.py "$APP_DIR"
+          python tools/patch_android_transport_guard_v32941.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_v32942.py "$APP_DIR"
+      - name: Collect source files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p inspect/lib/services inspect/android
+          cp "$APP_DIR/lib/main.dart" inspect/main.dart
+          cp "$APP_DIR/lib/services/auth_service.dart" inspect/lib/services/auth_service.dart
+          cp "$APP_DIR/lib/services/device_sync_service.dart" inspect/lib/services/device_sync_service.dart
+          cp "$APP_DIR/lib/services/sync_coordinator.dart" inspect/lib/services/sync_coordinator.dart
+          cp "$APP_DIR/lib/services/media_sync_service.dart" inspect/lib/services/media_sync_service.dart
+          cp "$APP_DIR/pubspec.yaml" inspect/pubspec.yaml
+          cp "$APP_DIR/android/app/src/main/AndroidManifest.xml" inspect/android/AndroidManifest.xml || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v32942-offline-inspection
+          path: inspect/**
+          retention-days: 1
