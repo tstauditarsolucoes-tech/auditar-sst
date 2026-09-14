@@ -1,0 +1,124 @@
+name: Auditar SST Android v3.29.43 Offline Background Sync
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/build-v32943-android-offline-background-sync.yml"
+      - "tools/patch_android_offline_background_sync_v32943.py"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar Android v3.29.42 e registrar interface
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/assemble_sync_response_fix.py android
+          python tools/patch_sync_queue_android_v32940_v2.py "$APP_DIR"
+          python tools/patch_android_transport_guard_v32941.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_v32942.py "$APP_DIR"
+          grep -q 'version: 3.29.42+184' "$APP_DIR/pubspec.yaml"
+          find "$APP_DIR/lib/screens" -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/screens-before.sha256
+
+      - name: Aplicar modo offline e sincronização em segundo plano
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/patch_android_offline_background_sync_v32943.py "$APP_DIR"
+          grep -q 'version: 3.29.43+185' "$APP_DIR/pubspec.yaml"
+          grep -q 'workmanager: ^0.10.10' "$APP_DIR/pubspec.yaml"
+          grep -q 'initializeBackgroundSession' "$APP_DIR/lib/services/auth_service.dart"
+          grep -q 'auditarBackgroundSyncDispatcher' "$APP_DIR/lib/services/background_sync_service.dart"
+          grep -q 'ExistingPeriodicWorkPolicy.update' "$APP_DIR/lib/services/background_sync_service.dart"
+          grep -q 'NetworkType.connected' "$APP_DIR/lib/services/background_sync_service.dart"
+
+      - name: Confirmar telas móveis intactas
+        shell: bash
+        run: |
+          set -euo pipefail
+          find "$APP_DIR/lib/screens" -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/screens-after.sha256
+          diff -u /tmp/screens-before.sha256 /tmp/screens-after.sha256
+          echo 'UI Android preservada byte a byte.'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Restaurar Android, analisar e testar
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          dart format lib/main.dart lib/services/auth_service.dart lib/services/background_sync_service.dart lib/services/sync_coordinator.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if [ -d test ]; then flutter test; fi
+
+      - name: Teste de regressão do modo offline
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          auth=Path('lib/services/auth_service.dart').read_text(encoding='utf-8')
+          bg=Path('lib/services/background_sync_service.dart').read_text(encoding='utf-8')
+          main=Path('lib/main.dart').read_text(encoding='utf-8')
+          coord=Path('lib/services/sync_coordinator.dart').read_text(encoding='utf-8')
+          assert 'initializeBackgroundSession' in auth
+          assert '_loginOffline' in auth
+          assert '_offlineVerifier' in auth
+          assert 'senha nunca é gravada' in auth
+          assert 'AuthSecureStore.readSessionToken' in auth
+          assert "frequency: const Duration(minutes: 15)" in bg
+          assert 'NetworkType.connected' in bg
+          assert 'ExistingWorkPolicy.keep' in bg
+          assert 'DartPluginRegistrant.ensureInitialized()' in bg
+          assert 'BackgroundSyncService.initialize' in main
+          assert coord.count('BackgroundSyncService.armForNetworkReturn();') >= 2
+          print('REGRESSAO OK: login offline seguro + fila local + background network-return + periódico.')
+          PY
+
+      - name: Compilar APK release
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${AUDITAR_SYNC_KEY:-}"
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Preparar APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/android
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" "dist/android/Auditar-SST-v3.29.43-MODO-OFFLINE-SYNC-AUTOMATICA.apk"
+          sha256sum "dist/android/Auditar-SST-v3.29.43-MODO-OFFLINE-SYNC-AUTOMATICA.apk" > "dist/android/Auditar-SST-v3.29.43-MODO-OFFLINE-SYNC-AUTOMATICA.sha256.txt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.43-Android-Modo-Offline-Sync-Automatica
+          path: dist/android/*
+          retention-days: 30
