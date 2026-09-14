@@ -1,0 +1,262 @@
+name: Auditar SST Android v3.29.40 + Windows v3.29.44 Sync Queue Fix
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/build-v32940-v32944-sync-queue-fix.yml"
+      - "tools/patch_sync_queue_media_separation_v32940_32944.py"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar Android e aplicar correção exata da fila
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/assemble_sync_response_fix.py android
+          python tools/patch_sync_progress_v32939_32942.py "$APP_DIR" android
+          python tools/patch_sync_progress_compile_safety.py "$APP_DIR"
+          python tools/patch_sync_queue_media_separation_v32940_32944.py "$APP_DIR" android
+
+          grep -q 'version: 3.29.40+182' "$APP_DIR/pubspec.yaml"
+          grep -q "remove('media_assets')" "$APP_DIR/lib/services/device_sync_service.dart"
+          grep -q '_discardMediaAssetChanges' "$APP_DIR/lib/services/device_sync_service.dart"
+          grep -q 'if (localPending == 0) return;' "$APP_DIR/lib/services/sync_coordinator.dart"
+          if grep -A12 -B2 '_outboundTables' "$APP_DIR/lib/services/device_sync_service.dart" | grep -q "=> _allTables;"; then
+            echo 'ERRO: media_assets ainda pode entrar na fila outbound'; exit 1
+          fi
+          if grep -A8 -B8 "children: \[" "$APP_DIR/lib/screens/data_safety_screen.dart" | grep -q '_syncProgressCard()'; then
+            echo 'ERRO: barra grande de progresso ainda está no layout'; exit 1
+          fi
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Analisar e testar Android
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter pub get
+          dart format lib
+          if [ -d test ]; then dart format test; fi
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if [ -d test ]; then flutter test; fi
+
+      - name: Teste de regressão da fila de mídia
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('lib/services/device_sync_service.dart').read_text(encoding='utf-8')
+          c=Path('lib/services/sync_coordinator.dart').read_text(encoding='utf-8')
+          ui=Path('lib/screens/data_safety_screen.dart').read_text(encoding='utf-8')
+          assert "_outboundTables => {..._allTables}..remove('media_assets')" in s
+          assert "DROP TRIGGER IF EXISTS device_sync_media_assets_$suffix" in s
+          assert "where: \"table_name = 'media_assets'\"" in s
+          assert "WHERE dirty = 1 AND table_name IN ($placeholders)" in s
+          assert "if (localPending == 0) return;" in c
+          # O método pode continuar existindo, mas não pode ser inserido no layout.
+          build_tail=ui[ui.index('Widget build(BuildContext context)'):]
+          assert '_syncProgressCard(),' not in build_tail
+          print('REGRESSAO OK: media_assets fora da fila e auto-sync ocioso bloqueado.')
+          PY
+
+      - name: Compilar APK release
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${AUDITAR_SYNC_KEY:-}" ]; then echo 'AUDITAR_SYNC_KEY ausente'; exit 1; fi
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Preparar APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/android
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" \
+            "dist/android/Auditar-SST-v3.29.40-FILA-SYNC-CORRIGIDA.apk"
+          sha256sum "dist/android/Auditar-SST-v3.29.40-FILA-SYNC-CORRIGIDA.apk" \
+            > "dist/android/Auditar-SST-v3.29.40-FILA-SYNC-CORRIGIDA.sha256.txt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.40-Android-Fila-Sync-Corrigida
+          path: dist/android/*
+          retention-days: 30
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar Windows e aplicar correção exata da fila
+        shell: pwsh
+        run: |
+          python tools/assemble_sync_response_fix.py windows
+          if ($LASTEXITCODE -ne 0) { throw 'assemble Windows falhou' }
+          python tools/patch_sync_progress_v32939_32942.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'patch progresso falhou' }
+          python tools/patch_sync_progress_compile_safety.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'compile-safety falhou' }
+          python tools/patch_windows_sync_logo_stability_v32943.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'patch logo v3.29.43 falhou' }
+          python tools/patch_sync_queue_media_separation_v32940_32944.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'patch fila v3.29.44 falhou' }
+
+          $pub=Get-Content "$env:APP_DIR/pubspec.yaml" -Raw
+          $sync=Get-Content "$env:APP_DIR/lib/services/device_sync_service.dart" -Raw
+          $coord=Get-Content "$env:APP_DIR/lib/services/sync_coordinator.dart" -Raw
+          $screen=Get-Content "$env:APP_DIR/lib/screens/data_safety_screen.dart" -Raw
+          if (-not $pub.Contains('version: 3.29.44+186')) { throw 'versão Windows incorreta' }
+          if (-not $sync.Contains("remove('media_assets')")) { throw 'media_assets ainda está na fila outbound' }
+          if (-not $sync.Contains('_discardMediaAssetChanges')) { throw 'limpeza dos 9 antigos ausente' }
+          if (-not $coord.Contains('if (localPending == 0) return;')) { throw 'auto-sync ocioso ainda ativo' }
+          if (-not $coord.Contains('percent: _syncPercent')) { throw 'percentual compacto ausente' }
+          if (-not $coord.Contains("'${percent.clamp(0, 100)}%'")) { throw 'indicador ainda não usa percentual' }
+          $buildPos=$screen.IndexOf('Widget build(BuildContext context)')
+          if ($buildPos -ge 0 -and $screen.Substring($buildPos).Contains('_syncProgressCard(),')) { throw 'barra grande ainda está no layout' }
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Analisar e testar Windows
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          flutter pub get
+          dart format lib
+          if (Test-Path 'test') { dart format test }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'flutter analyze falhou' }
+          if (Test-Path 'test') { flutter test; if ($LASTEXITCODE -ne 0) { throw 'flutter test falhou' } }
+
+      - name: Testar Central Online real
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          @'
+          import 'dart:convert';
+          import 'package:flutter_test/flutter_test.dart';
+          import '../lib/services/apps_script_http.dart';
+
+          void main() {
+            const endpoint = 'https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec';
+            const key = String.fromEnvironment('AUDITAR_SYNC_KEY');
+            test('Central responde push/pull JSON valido', () async {
+              expect(key, isNotEmpty);
+              final uri = Uri.parse(endpoint);
+              final push = await AppsScriptHttp.postJson(uri, {
+                'action':'device_sync_push',
+                'syncKey':key,
+                'deviceId':'ci-v32944-queue-fix',
+                'platform':'windows',
+                'changes':const []
+              });
+              expect(push.statusCode, 200);
+              final pj=jsonDecode(utf8.decode(push.bodyBytes));
+              expect(pj, isA<Map>());
+              expect((pj as Map)['ok'], true);
+
+              final pull = await AppsScriptHttp.postJson(uri, {
+                'action':'device_sync_pull',
+                'syncKey':key,
+                'deviceId':'ci-v32944-queue-fix',
+                'platform':'windows',
+                'sinceVersion':0,
+                'limit':1
+              });
+              expect(pull.statusCode, 200);
+              final qj=jsonDecode(utf8.decode(pull.bodyBytes));
+              expect(qj, isA<Map>());
+              expect((qj as Map)['ok'], true);
+            }, timeout: const Timeout(Duration(minutes: 2)));
+          }
+          '@ | Set-Content test/live_queue_fix_test.dart -Encoding UTF8
+          flutter test test/live_queue_fix_test.dart --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+          if ($LASTEXITCODE -ne 0) { throw 'teste vivo da Central falhou' }
+          Remove-Item test/live_queue_fix_test.dart -Force
+
+      - name: Compilar Windows release
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+          if ($LASTEXITCODE -ne 0) { throw 'build Windows falhou' }
+
+      - name: Gerar portátil e instalador
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.29.44-FILA-SYNC-CORRIGIDA-PORTATIL.zip' -Force
+
+          $iscc='C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          if (-not (Test-Path $iscc)) { throw 'Inno Setup não disponível' }
+          $output=(Resolve-Path 'dist/windows').Path
+          $iss=@"
+          [Setup]
+          AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}
+          AppName=Auditar SST
+          AppVersion=3.29.44
+          AppPublisher=Auditar Soluções
+          DefaultDirName={autopf}\Auditar SST
+          DefaultGroupName=Auditar SST
+          OutputDir=$output
+          OutputBaseFilename=Auditar-SST-Setup-v3.29.44-FILA-SYNC-CORRIGIDA
+          Compression=lzma2
+          SolidCompression=yes
+          WizardStyle=modern
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          [Files]
+          Source: "$release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          [Icons]
+          Name: "{autoprograms}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          Name: "{autodesktop}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          [Run]
+          Filename: "{app}\auditar_sst.exe"; Description: "Abrir Auditar SST"; Flags: nowait postinstall skipifsilent
+          "@
+          Set-Content "$env:RUNNER_TEMP\auditar-v32944.iss" $iss -Encoding UTF8
+          & $iscc "$env:RUNNER_TEMP\auditar-v32944.iss"
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
+          if (-not (Test-Path 'dist/windows/Auditar-SST-Setup-v3.29.44-FILA-SYNC-CORRIGIDA.exe')) { throw 'instalador não foi gerado' }
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.29.44-FILA-SYNC-CORRIGIDA.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.29.44-FILA-SYNC-CORRIGIDA.sha256.txt'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.44-Windows-Fila-Sync-Corrigida
+          path: dist/windows/*
+          retention-days: 30
