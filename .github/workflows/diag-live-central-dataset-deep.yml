@@ -1,0 +1,159 @@
+name: Diagnose Live Central Dataset Deep
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/diag-live-central-dataset-deep.yml"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Montar transporte exato do Android atual
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/assemble_sync_response_fix.py android
+          python tools/patch_sync_queue_android_v32940_v2.py "$APP_DIR"
+          python tools/patch_android_transport_guard_v32941.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_v32942.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_compile_fix.py "$APP_DIR"
+          python tools/patch_android_offline_background_sync_v32943.py "$APP_DIR"
+          python tools/patch_android_offline_compile_fix_v32943.py "$APP_DIR"
+          python tools/patch_android_sync_immediate_v32944.py "$APP_DIR"
+          python tools/patch_android_sync_first_pull_v32945.py "$APP_DIR"
+          cd "$APP_DIR"
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst . >/dev/null
+          flutter pub get >/dev/null
+
+      - name: Inspecionar dataset real da Central sem expor conteúdo
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${AUDITAR_SYNC_KEY:-}"
+          mkdir -p tool
+          cat > tool/deep_central_dataset.dart <<'DART'
+          import 'dart:convert';
+          import '../lib/services/apps_script_http.dart';
+
+          const endpointText = 'https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec';
+          const syncKey = String.fromEnvironment('AUDITAR_SYNC_KEY');
+
+          Future<Map<String, dynamic>> post(Map<String, Object?> payload) async {
+            final response = await AppsScriptHttp.postJson(
+              Uri.parse(endpointText),
+              payload,
+              timeout: const Duration(seconds: 25),
+            );
+            print('HTTP ${response.statusCode} content-type=${response.headers['content-type'] ?? ''} bytes=${response.bodyBytes.length}');
+            final decoded = jsonDecode(utf8.decode(response.bodyBytes, allowMalformed: true));
+            if (decoded is! Map) throw StateError('Resposta não é mapa JSON');
+            return Map<String, dynamic>.from(decoded);
+          }
+
+          Future<void> main() async {
+            if (syncKey.isEmpty) throw StateError('AUDITAR_SYNC_KEY ausente');
+
+            final status = await post({'action': 'auth_status'});
+            print('AUTH_STATUS ok=${status['ok']} configured=${status['configured']} hasUsers=${status['hasUsers']}');
+
+            final invalidAuth = await post({
+              'action': 'device_sync_pull',
+              'syncKey': syncKey,
+              'authToken': 'diagnostic-invalid-token',
+              'deviceId': 'deep-diagnostic-invalid-auth',
+              'platform': 'android',
+              'sinceVersion': 0,
+              'limit': 1,
+            });
+            print('MULTIUSER_ROUTE_INVALID_TOKEN ok=${invalidAuth['ok']} code=${invalidAuth['code']} message=${invalidAuth['message']}');
+
+            var since = 0;
+            var pages = 0;
+            var total = 0;
+            var deleted = 0;
+            var currentVersion = 0;
+            final byTable = <String, int>{};
+            final byPlatform = <String, int>{};
+            final companyIds = <String>{};
+            var companyRows = 0;
+            var companyRowsWithPayload = 0;
+
+            while (pages < 100) {
+              final result = await post({
+                'action': 'device_sync_pull',
+                'syncKey': syncKey,
+                'deviceId': 'deep-diagnostic-readonly',
+                'platform': 'android',
+                'sinceVersion': since,
+                'limit': 500,
+              });
+              if (result['ok'] != true) {
+                throw StateError('Legacy pull falhou: ${result['message']}');
+              }
+              currentVersion = (result['version'] as num?)?.toInt() ?? currentVersion;
+              final next = (result['nextVersion'] as num?)?.toInt() ?? since;
+              final changes = result['changes'] is List ? result['changes'] as List : const [];
+              pages++;
+              for (final raw in changes) {
+                if (raw is! Map) continue;
+                total++;
+                final table = '${raw['table'] ?? ''}';
+                byTable[table] = (byTable[table] ?? 0) + 1;
+                final platform = '${raw['sourcePlatform'] ?? ''}';
+                byPlatform[platform] = (byPlatform[platform] ?? 0) + 1;
+                if (raw['deleted'] == true) deleted++;
+                if (table == 'companies') {
+                  companyRows++;
+                  final payload = raw['payload'];
+                  if (payload is Map && payload.isNotEmpty) {
+                    companyRowsWithPayload++;
+                    final id = '${payload['id'] ?? raw['id'] ?? ''}'.trim();
+                    if (id.isNotEmpty) companyIds.add(id);
+                  }
+                }
+              }
+              print('PAGE $pages since=$since next=$next changes=${changes.length} hasMore=${result['hasMore']} version=$currentVersion');
+              if (result['hasMore'] != true) break;
+              if (next <= since) throw StateError('Cursor não avançou: since=$since next=$next');
+              since = next;
+            }
+
+            final sortedTables = byTable.entries.toList()..sort((a,b) => a.key.compareTo(b.key));
+            final sortedPlatforms = byPlatform.entries.toList()..sort((a,b) => a.key.compareTo(b.key));
+            print('=== CENTRAL_DATASET_SUMMARY ===');
+            print('pages=$pages total_changes=$total current_version=$currentVersion deleted=$deleted');
+            print('companies=$companyRows companies_with_payload=$companyRowsWithPayload distinct_company_ids=${companyIds.length}');
+            print('tables=${sortedTables.map((e) => '${e.key}:${e.value}').join(',')}');
+            print('source_platforms=${sortedPlatforms.map((e) => '${e.key}:${e.value}').join(',')}');
+
+            final emptyPush = await post({
+              'action': 'device_sync_push',
+              'syncKey': syncKey,
+              'deviceId': 'deep-diagnostic-readonly',
+              'platform': 'android',
+              'changes': const <Object?>[],
+            });
+            print('EMPTY_PUSH ok=${emptyPush['ok']} accepted=${emptyPush['accepted']} version=${emptyPush['version']} message=${emptyPush['message']}');
+          }
+          DART
+          dart run --define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY" tool/deep_central_dataset.dart
