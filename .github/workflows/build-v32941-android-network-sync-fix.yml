@@ -1,0 +1,114 @@
+name: Auditar SST Android v3.29.41 Network Sync Fix
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/build-v32941-android-network-sync-fix.yml"
+      - "tools/patch_android_transport_guard_v32941.py"
+      - "tools/patch_sync_queue_android_v32940_v2.py"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar v3.29.40 e registrar interface
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/assemble_sync_response_fix.py android
+          python tools/patch_sync_queue_android_v32940_v2.py "$APP_DIR"
+          grep -q 'version: 3.29.40+182' "$APP_DIR/pubspec.yaml"
+          find "$APP_DIR/lib/screens" -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/screens-before.sha256
+
+      - name: Aplicar proteção contra DNS e timeout
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/patch_android_transport_guard_v32941.py "$APP_DIR"
+          grep -q 'version: 3.29.41+183' "$APP_DIR/pubspec.yaml"
+          grep -q 'CentralTransportException' "$APP_DIR/lib/services/apps_script_http.dart"
+          grep -q 'Duration(seconds: 24)' "$APP_DIR/lib/services/apps_script_http.dart"
+
+      - name: Confirmar interface móvel intacta
+        shell: bash
+        run: |
+          set -euo pipefail
+          find "$APP_DIR/lib/screens" -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/screens-after.sha256
+          diff -u /tmp/screens-before.sha256 /tmp/screens-after.sha256
+          echo 'UI Android preservada byte a byte.'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Restaurar estrutura Android moderna, analisar e testar
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          dart format lib/services/apps_script_http.dart lib/services/device_sync_service.dart lib/services/sync_coordinator.dart lib/services/media_sync_service.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if [ -d test ]; then flutter test; fi
+
+      - name: Teste de regressão da correção
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          h=Path('lib/services/apps_script_http.dart').read_text(encoding='utf-8')
+          s=Path('lib/services/device_sync_service.dart').read_text(encoding='utf-8')
+          c=Path('lib/services/sync_coordinator.dart').read_text(encoding='utf-8')
+          assert 'class CentralTransportException implements Exception' in h
+          assert 'Duration(seconds: 24)' in h
+          assert 'failed host lookup' in h.lower()
+          assert 'Seus dados continuam salvos no aparelho' in h
+          assert "remove('media_assets')" in s
+          assert 'if (localPending == 0) return;' in c
+          print('REGRESSAO OK: fila corrigida + DNS/timeout amigáveis + idle sem rede.')
+          PY
+
+      - name: Compilar APK release
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${AUDITAR_SYNC_KEY:-}"
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Preparar APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/android
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" "dist/android/Auditar-SST-v3.29.41-SYNC-DNS-TIMEOUT-CORRIGIDO-UI-PRESERVADA.apk"
+          sha256sum "dist/android/Auditar-SST-v3.29.41-SYNC-DNS-TIMEOUT-CORRIGIDO-UI-PRESERVADA.apk" > "dist/android/Auditar-SST-v3.29.41-SYNC-DNS-TIMEOUT-CORRIGIDO-UI-PRESERVADA.sha256.txt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.41-Android-Sync-DNS-Timeout-Corrigido
+          path: dist/android/*
+          retention-days: 30
