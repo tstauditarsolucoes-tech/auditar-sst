@@ -7,6 +7,8 @@ on:
     paths:
       - ".github/workflows/build-v32943-android-offline-background-sync.yml"
       - "tools/patch_android_offline_background_sync_v32943.py"
+      - "tools/patch_android_offline_compile_fix_v32943.py"
+      - "tools/patch_android_dns_bypass_compile_fix.py"
 
 permissions:
   contents: read
@@ -29,6 +31,7 @@ jobs:
           python tools/patch_sync_queue_android_v32940_v2.py "$APP_DIR"
           python tools/patch_android_transport_guard_v32941.py "$APP_DIR"
           python tools/patch_android_dns_bypass_v32942.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_compile_fix.py "$APP_DIR"
           grep -q 'version: 3.29.42+184' "$APP_DIR/pubspec.yaml"
           find "$APP_DIR/lib/screens" -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/screens-before.sha256
 
@@ -37,6 +40,7 @@ jobs:
         run: |
           set -euo pipefail
           python tools/patch_android_offline_background_sync_v32943.py "$APP_DIR"
+          python tools/patch_android_offline_compile_fix_v32943.py "$APP_DIR"
           grep -q 'version: 3.29.43+185' "$APP_DIR/pubspec.yaml"
           grep -q 'workmanager: ^0.10.10' "$APP_DIR/pubspec.yaml"
           grep -q 'initializeBackgroundSession' "$APP_DIR/lib/services/auth_service.dart"
@@ -70,7 +74,7 @@ jobs:
           flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
           if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
           flutter pub get
-          dart format lib/main.dart lib/services/auth_service.dart lib/services/background_sync_service.dart lib/services/sync_coordinator.dart
+          dart format lib/main.dart lib/services/auth_service.dart lib/services/background_sync_service.dart lib/services/sync_coordinator.dart lib/services/apps_script_http.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
           if [ -d test ]; then flutter test; fi
 
@@ -85,17 +89,20 @@ jobs:
           bg=Path('lib/services/background_sync_service.dart').read_text(encoding='utf-8')
           main=Path('lib/main.dart').read_text(encoding='utf-8')
           coord=Path('lib/services/sync_coordinator.dart').read_text(encoding='utf-8')
+          http=Path('lib/services/apps_script_http.dart').read_text(encoding='utf-8')
           assert 'initializeBackgroundSession' in auth
           assert '_loginOffline' in auth
           assert '_offlineVerifier' in auth
           assert 'senha nunca é gravada' in auth
           assert 'AuthSecureStore.readSessionToken' in auth
+          assert 'List<int> bytes = utf8.encode' in auth
           assert "frequency: const Duration(minutes: 15)" in bg
           assert 'NetworkType.connected' in bg
           assert 'ExistingWorkPolicy.keep' in bg
           assert 'DartPluginRegistrant.ensureInitialized()' in bg
           assert 'BackgroundSyncService.initialize' in main
           assert coord.count('BackgroundSyncService.armForNetworkReturn();') >= 2
+          assert 'io.connectionFactory' in http
           print('REGRESSAO OK: login offline seguro + fila local + background network-return + periódico.')
           PY
 
