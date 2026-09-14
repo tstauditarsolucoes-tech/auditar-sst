@@ -97,6 +97,9 @@ jobs:
               await databaseFactory.setDatabasesPath(tmp.path);
               await AppDatabase.activateUser('diag-live-fresh');
               final db=await AppDatabase.instance.database;
+              // Cria exatamente as tabelas/triggers auxiliares que o fluxo real
+              // cria antes de aplicar qualquer página recebida.
+              await DeviceSyncService.pendingChangesCount();
 
               var since=0;
               final all=<dynamic>[];
