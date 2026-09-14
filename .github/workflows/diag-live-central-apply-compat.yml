@@ -1,0 +1,151 @@
+name: Diagnose Live Central Apply Compatibility
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/diag-live-central-apply-compat.yml"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Montar fonte exata v3.29.45
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/assemble_sync_response_fix.py android
+          python tools/patch_sync_queue_android_v32940_v2.py "$APP_DIR"
+          python tools/patch_android_transport_guard_v32941.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_v32942.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_compile_fix.py "$APP_DIR"
+          python tools/patch_android_offline_background_sync_v32943.py "$APP_DIR"
+          python tools/patch_android_offline_compile_fix_v32943.py "$APP_DIR"
+          python tools/patch_android_sync_immediate_v32944.py "$APP_DIR"
+          python tools/patch_android_sync_first_pull_v32945.py "$APP_DIR"
+          cd "$APP_DIR"
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst . >/dev/null
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get >/dev/null
+
+      - name: Adicionar somente gancho temporário de diagnóstico
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('lib/services/device_sync_service.dart')
+          s=p.read_text(encoding='utf-8')
+          marker='  static Future<Map<String, dynamic>> _post('
+          hook="""  static Future<void> diagnosticApplyRemoteChanges(\n    Database db,\n    List<dynamic> changes,\n  ) => _applyRemoteChanges(db, changes);\n\n"""
+          if hook not in s:
+              if marker not in s: raise SystemExit('marker ausente')
+              s=s.replace(marker, hook+marker, 1)
+          p.write_text(s,encoding='utf-8')
+          PY
+          dart format lib/services/device_sync_service.dart >/dev/null
+
+      - name: Aplicar dataset real em banco local novo e detectar incompatibilidades
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${AUDITAR_SYNC_KEY:-}"
+          cat > test/live_central_apply_compat_test.dart <<'DART'
+          import 'dart:convert';
+          import 'dart:io';
+          import 'package:flutter_test/flutter_test.dart';
+          import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+          import 'package:auditar_sst/database.dart';
+          import 'package:auditar_sst/services/apps_script_http.dart';
+          import 'package:auditar_sst/services/device_sync_service.dart';
+
+          const endpointText='https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec';
+          const syncKey=String.fromEnvironment('AUDITAR_SYNC_KEY');
+
+          Future<Map<String,dynamic>> post(Map<String,Object?> payload) async {
+            final r=await AppsScriptHttp.postJson(Uri.parse(endpointText),payload,timeout: const Duration(seconds:30));
+            final x=jsonDecode(utf8.decode(r.bodyBytes,allowMalformed:true));
+            if(x is! Map) throw StateError('not map');
+            return Map<String,dynamic>.from(x);
+          }
+
+          void main() {
+            TestWidgetsFlutterBinding.ensureInitialized();
+            test('dataset live é aplicável ao SQLite atual', () async {
+              HttpOverrides.global=null;
+              sqfliteFfiInit();
+              databaseFactory=databaseFactoryFfi;
+              final tmp=await Directory.systemTemp.createTemp('auditar_live_apply_');
+              await databaseFactory.setDatabasesPath(tmp.path);
+              await AppDatabase.activateUser('diag-live-fresh');
+              final db=await AppDatabase.instance.database;
+
+              var since=0;
+              final all=<dynamic>[];
+              while(true){
+                final r=await post({
+                  'action':'device_sync_pull','syncKey':syncKey,
+                  'deviceId':'diag-apply-readonly','platform':'android',
+                  'sinceVersion':since,'limit':500,
+                });
+                expect(r['ok'],true);
+                final changes=r['changes'] is List ? r['changes'] as List : const [];
+                all.addAll(changes);
+                final next=(r['nextVersion'] as num?)?.toInt() ?? since;
+                if(r['hasMore']!=true) break;
+                expect(next,greaterThan(since));
+                since=next;
+              }
+
+              final failures=<String,int>{};
+              var failed=0;
+              var applied=0;
+              for(final raw in all){
+                if(raw is! Map) continue;
+                final table='${raw['table'] ?? ''}';
+                final id='${raw['id'] ?? ''}';
+                final version='${raw['serverVersion'] ?? ''}';
+                try{
+                  await DeviceSyncService.diagnosticApplyRemoteChanges(db,[raw]);
+                  applied++;
+                }catch(e){
+                  failed++;
+                  failures[table]=(failures[table]??0)+1;
+                  if(failed<=20){
+                    print('APPLY_FAIL table=$table id=$id version=$version error=$e');
+                  }
+                }
+              }
+
+              final companies=(await db.rawQuery('SELECT COUNT(*) c FROM companies')).first['c'];
+              final workers=(await db.rawQuery('SELECT COUNT(*) c FROM workers')).first['c'];
+              final inspections=(await db.rawQuery('SELECT COUNT(*) c FROM inspections')).first['c'];
+              print('=== APPLY_COMPAT_SUMMARY ===');
+              print('central_rows=${all.length} applied=$applied failed=$failed');
+              print('failures_by_table=$failures');
+              print('local_companies=$companies local_workers=$workers local_inspections=$inspections');
+
+              await AppDatabase.deactivateUser();
+              try{await tmp.delete(recursive:true);}catch(_){}
+            }, timeout: const Timeout(Duration(minutes: 10)));
+          }
+          DART
+          flutter test --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY" test/live_central_apply_compat_test.dart -r expanded
