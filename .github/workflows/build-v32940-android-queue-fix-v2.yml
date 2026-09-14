@@ -47,11 +47,17 @@ jobs:
         with:
           channel: stable
           cache: true
-      - name: Analisar e testar Android
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Restaurar estrutura Android moderna, analisar e testar
         working-directory: ${{ env.APP_DIR }}
         shell: bash
         run: |
           set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
           flutter pub get
           dart format lib
           if [ -d test ]; then dart format test; fi
