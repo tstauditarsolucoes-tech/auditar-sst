@@ -62,7 +62,7 @@ jobs:
         run: |
           flutter config --enable-windows-desktop
           flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
-          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String -Path 'test/widget_test.dart' -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
           flutter pub get
           dart format lib
           if (Test-Path 'test') { dart format test }
@@ -74,14 +74,25 @@ jobs:
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
         run: |
-          if (-not (Select-String 'lib/services/device_sync_service.dart' -SimpleMatch "remove('media_assets')" -Quiet)) { throw 'media_assets voltou para outbound' }
-          if (-not (Select-String 'lib/services/device_sync_service.dart' -SimpleMatch '_discardMediaAssetChanges' -Quiet)) { throw 'limpeza da fila antiga ausente' }
-          if (-not (Select-String 'lib/services/device_sync_service.dart' -SimpleMatch 'device_sync_media_assets_$suffix' -Quiet)) { throw 'triggers antigos de media_assets não são removidos' }
-          if (-not (Select-String 'lib/services/device_sync_service.dart' -SimpleMatch "table_name = 'media_assets'" -Quiet)) { throw 'registros media_assets antigos não são limpos' }
-          if (-not (Select-String 'lib/services/device_sync_service.dart' -SimpleMatch 'table_name IN ($placeholders)' -Quiet)) { throw 'contador não filtra outbound' }
-          if (-not (Select-String 'lib/services/sync_coordinator.dart' -SimpleMatch 'localPending == 0' -Quiet)) { throw 'idle ainda inicia rede' }
-          if (-not (Select-String 'lib/services/sync_coordinator.dart' -SimpleMatch 'percent: _syncPercent' -Quiet)) { throw 'percentual compacto ausente' }
-          Write-Host 'REGRESSAO OK: 9 media_assets fora da fila; idle silencioso; percentual compacto ativo.'
+          @'
+          from pathlib import Path
+          import re
+          sync=Path('lib/services/device_sync_service.dart').read_text(encoding='utf-8')
+          coord=Path('lib/services/sync_coordinator.dart').read_text(encoding='utf-8')
+          screen=Path('lib/screens/data_safety_screen.dart').read_text(encoding='utf-8')
+          assert "remove('media_assets')" in sync
+          assert '_discardMediaAssetChanges' in sync
+          assert 'device_sync_media_assets_$suffix' in sync
+          assert "table_name = 'media_assets'" in sync
+          assert re.search(r'table_name IN \(\$placeholders\)', sync)
+          assert re.search(r'localPending\s*==\s*0', coord)
+          assert 'percent: _syncPercent' in coord
+          assert 'percent.clamp(0, 100)' in coord
+          build_pos=screen.find('Widget build(BuildContext context)')
+          assert build_pos < 0 or '_syncProgressCard(),' not in screen[build_pos:]
+          print('REGRESSAO OK: 9 media_assets fora da fila; idle silencioso; percentual compacto ativo.')
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'teste de regressão da fila falhou' }
 
       - name: Testar Central Online real
         working-directory: ${{ env.APP_DIR }}
