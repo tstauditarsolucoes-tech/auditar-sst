@@ -1,0 +1,58 @@
+name: Diagnose Android v3.29.44 Sync Runtime
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/diag-v32944-runtime-source.yml"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Assemble exact v3.29.44 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/assemble_sync_response_fix.py android
+          python tools/patch_sync_queue_android_v32940_v2.py "$APP_DIR"
+          python tools/patch_android_transport_guard_v32941.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_v32942.py "$APP_DIR"
+          python tools/patch_android_offline_background_sync_v32943.py "$APP_DIR"
+          python tools/patch_android_offline_compile_fix_v32943.py "$APP_DIR"
+          python tools/patch_android_sync_immediate_v32944.py "$APP_DIR"
+          grep -n "version:" "$APP_DIR/pubspec.yaml"
+      - name: Inspect runtime source
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '===== SYNC COORDINATOR ====='
+          sed -n '1,360p' "$APP_DIR/lib/services/sync_coordinator.dart"
+          echo '===== AUTH LOGIN ====='
+          grep -n -A190 -B20 "static Future<AuditarUser> login" "$APP_DIR/lib/services/auth_service.dart" || true
+          echo '===== DEVICE SYNC ====='
+          sed -n '1,420p' "$APP_DIR/lib/services/device_sync_service.dart"
+          echo '===== WEB CONFIG ====='
+          cat "$APP_DIR/lib/services/web_service_config.dart"
+          echo '===== MAIN ====='
+          sed -n '1,170p' "$APP_DIR/lib/main.dart"
+      - name: Upload exact runtime files
+        uses: actions/upload-artifact@v4
+        with:
+          name: v32944-runtime-sync-source
+          path: |
+            ${{ env.APP_DIR }}/lib/services/sync_coordinator.dart
+            ${{ env.APP_DIR }}/lib/services/auth_service.dart
+            ${{ env.APP_DIR }}/lib/services/device_sync_service.dart
+            ${{ env.APP_DIR }}/lib/services/apps_script_http.dart
+            ${{ env.APP_DIR }}/lib/services/web_service_config.dart
+            ${{ env.APP_DIR }}/lib/main.dart
+          retention-days: 7
