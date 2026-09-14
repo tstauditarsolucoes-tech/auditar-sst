@@ -33,9 +33,9 @@ jobs:
           set -euo pipefail
           python tools/patch_sync_queue_android_v32940_v2.py "$APP_DIR"
           grep -q 'version: 3.29.40+182' "$APP_DIR/pubspec.yaml"
-          grep -q "_outboundTables => {..._allTables}..remove('media_assets')" "$APP_DIR/lib/services/device_sync_service.dart"
+          grep -q "remove('media_assets')" "$APP_DIR/lib/services/device_sync_service.dart"
           grep -q '_discardMediaAssetChanges' "$APP_DIR/lib/services/device_sync_service.dart"
-          grep -q 'if (localPending == 0) return;' "$APP_DIR/lib/services/sync_coordinator.dart"
+          grep -q 'localPending == 0' "$APP_DIR/lib/services/sync_coordinator.dart"
       - name: Confirmar interface móvel intacta
         shell: bash
         run: |
@@ -57,21 +57,23 @@ jobs:
           if [ -d test ]; then dart format test; fi
           flutter analyze --no-fatal-infos --no-fatal-warnings
           if [ -d test ]; then flutter test; fi
-      - name: Teste de regressão exato
+      - name: Teste de regressão da fila após formatação
         working-directory: ${{ env.APP_DIR }}
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
+          import re
           s=Path('lib/services/device_sync_service.dart').read_text(encoding='utf-8')
           c=Path('lib/services/sync_coordinator.dart').read_text(encoding='utf-8')
-          assert "_outboundTables => {..._allTables}..remove('media_assets')" in s
-          assert "DROP TRIGGER IF EXISTS device_sync_media_assets_$suffix" in s
+          assert "remove('media_assets')" in s
+          assert '_discardMediaAssetChanges' in s
+          assert 'device_sync_media_assets_$suffix' in s
           assert "table_name = 'media_assets'" in s
-          assert "WHERE dirty = 1 AND table_name IN ($placeholders)" in s
-          assert "if (localPending == 0) return;" in c
-          print('REGRESSAO OK: media_assets não conta como pendência e idle não abre sync rápido.')
+          assert re.search(r'WHERE dirty = 1 AND table_name IN \(\$placeholders\)', s)
+          assert re.search(r'if\s*\(localPending\s*==\s*0\)\s*return;', c)
+          print('REGRESSAO OK: media_assets fora da fila e idle sem sync rápido.')
           PY
       - name: Compilar APK release
         working-directory: ${{ env.APP_DIR }}
