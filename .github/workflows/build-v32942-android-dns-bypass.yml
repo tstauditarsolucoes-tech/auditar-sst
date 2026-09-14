@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/workflows/build-v32942-android-dns-bypass.yml"
       - "tools/patch_android_dns_bypass_v32942.py"
+      - "tools/patch_android_dns_bypass_compile_fix.py"
 
 permissions:
   contents: read
@@ -36,6 +37,7 @@ jobs:
         run: |
           set -euo pipefail
           python tools/patch_android_dns_bypass_v32942.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_compile_fix.py "$APP_DIR"
           grep -q 'version: 3.29.42+184' "$APP_DIR/pubspec.yaml"
           grep -q 'forceDnsFallbackForTesting' "$APP_DIR/lib/services/apps_script_http.dart"
           grep -q '1.1.1.1' "$APP_DIR/lib/services/apps_script_http.dart"
