@@ -1,0 +1,44 @@
+name: Inspect current training module source
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/inspect-training-module-source.yml"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Assemble latest Android source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/assemble_sync_response_fix.py android
+          python tools/patch_sync_queue_android_v32940_v2.py "$APP_DIR"
+          python tools/patch_android_transport_guard_v32941.py "$APP_DIR"
+          mkdir -p inspect/lib/screens inspect/lib/services
+          cp "$APP_DIR/lib/screens/trainings_screen.dart" inspect/lib/screens/
+          cp "$APP_DIR/lib/screens/signature_screen.dart" inspect/lib/screens/
+          cp "$APP_DIR/lib/screens/home_screen.dart" inspect/lib/screens/
+          cp "$APP_DIR/lib/screens/routine_hub_screen.dart" inspect/lib/screens/ || true
+          cp "$APP_DIR/lib/database.dart" inspect/lib/
+          cp "$APP_DIR/lib/models.dart" inspect/lib/
+          cp "$APP_DIR/lib/brand.dart" inspect/lib/
+          cp "$APP_DIR/lib/services/pdf_service.dart" inspect/lib/services/
+          cp "$APP_DIR/lib/services/device_sync_service.dart" inspect/lib/services/
+          cp "$APP_DIR/pubspec.yaml" inspect/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: current-training-source
+          path: inspect
+          retention-days: 1
