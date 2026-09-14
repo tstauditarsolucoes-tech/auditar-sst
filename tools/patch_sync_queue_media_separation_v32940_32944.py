@@ -12,11 +12,13 @@ pubp = root / 'pubspec.yaml'
 syncp = root / 'lib/services/device_sync_service.dart'
 mediap = root / 'lib/services/media_sync_service.dart'
 coordp = root / 'lib/services/sync_coordinator.dart'
+screenp = root / 'lib/screens/data_safety_screen.dart'
 
 pub = pubp.read_text(encoding='utf-8')
 sync = syncp.read_text(encoding='utf-8')
 media = mediap.read_text(encoding='utf-8')
 coord = coordp.read_text(encoding='utf-8')
+screen = screenp.read_text(encoding='utf-8')
 
 expected = 'version: 3.29.39+181' if platform == 'android' else 'version: 3.29.43+185'
 target = 'version: 3.29.40+182' if platform == 'android' else 'version: 3.29.44+186'
@@ -25,12 +27,8 @@ if target not in pub:
         raise RuntimeError(f'Versão base ausente: {expected}')
     pub = pub.replace(expected, target, 1)
 
-# ---------------------------------------------------------------------------
-# 1) media_assets é catálogo/cache de mídia. Ele pode continuar sendo aceito
-# no PULL por compatibilidade, mas NÃO deve integrar a fila outbound. Fotos,
-# assinaturas e logos são protegidas pelo MediaSyncService/Drive. Atualizações
-# de drive_file_id, local_path e updated_at não podem gerar 9 pendências novas.
-# ---------------------------------------------------------------------------
+# 1) media_assets continua aceito no PULL por compatibilidade, mas sai da fila
+# outbound. Fotos, assinaturas e logos usam MediaSyncService/Google Drive.
 old_outbound = '  static Set<String> get _outboundTables => _allTables;'
 new_outbound = "  static Set<String> get _outboundTables => {..._allTables}..remove('media_assets');"
 if old_outbound in sync:
@@ -79,8 +77,6 @@ if '_discardMediaAssetChanges(Database db)' not in sync:
         raise RuntimeError('Marcador de descarte não localizado')
     sync = sync.replace(marker, helper + marker, 1)
 
-# Limpa os 9 registros antigos mesmo em instalações existentes. Também remove
-# os triggers media_assets persistidos no SQLite para eles não voltarem.
 sync = sync.replace(
     "        await _discardBuiltInChecklistChanges(db);\n        return;",
     "        await _discardMediaAssetChanges(db);\n        await _discardBuiltInChecklistChanges(db);\n        return;",
@@ -92,20 +88,14 @@ sync = sync.replace(
     1,
 )
 
-# Uma tentativa automática não precisa ser considerada devida a cada 15 s.
-# O manual continua usando force:true e não é afetado.
+# Evita repetição agressiva de tentativas automáticas. Manual force:true segue imediato.
 sync = sync.replace(
     '        const Duration(seconds: 15);',
     '        const Duration(seconds: 60);',
     1,
 )
 
-# ---------------------------------------------------------------------------
-# 2) O timer rápido NÃO deve abrir uma sincronização de rede se não há nada
-# local para enviar. Isso elimina o estado "sincronizando" o tempo todo.
-# O ciclo completo de manutenção continua a cada 5 min (Android) / 10 min (PC)
-# para receber mudanças feitas em outro dispositivo.
-# ---------------------------------------------------------------------------
+# 2) Timer rápido só usa rede quando realmente existe alteração local.
 early_marker = '''  Future<void> _trySync({bool deviceOnly = false}) async {
     if (_syncing || _maintenanceBusy || !AuthService.isSignedIn) return;
     final nextAttempt = _nextSyncAttempt;
@@ -113,9 +103,6 @@ early_marker = '''  Future<void> _trySync({bool deviceOnly = false}) async {
 early_replacement = '''  Future<void> _trySync({bool deviceOnly = false}) async {
     if (_syncing || _maintenanceBusy || !AuthService.isSignedIn) return;
 
-    // O timer rápido serve apenas para publicar trabalho novo. Sem alterações
-    // locais ele fica totalmente silencioso: não abre rede, não gira indicador
-    // e não reinicia porcentagem. O pull remoto continua no ciclo de manutenção.
     if (deviceOnly) {
       try {
         final localPending = await DeviceSyncService.pendingChangesCount();
@@ -132,11 +119,128 @@ if 'final localPending = await DeviceSyncService.pendingChangesCount();' not in 
         raise RuntimeError('Início de _trySync não localizado')
     coord = coord.replace(early_marker, early_replacement, 1)
 
-# ---------------------------------------------------------------------------
-# 3) Caminhos locais são cache do dispositivo. No Android antigo ainda havia
-# updates normais em path/logo_path que podiam gerar dirty. Reaproveitamos a
-# proteção já usada no Windows v3.29.43 também no Android.
-# ---------------------------------------------------------------------------
+# 3) Indicador geral do Windows: porcentagem pequena no lugar do spinner.
+if 'StreamSubscription<DeviceSyncProgress>? _progressSubscription;' not in coord:
+    coord = coord.replace(
+        '  StreamSubscription<List<ConnectivityResult>>? _subscription;\n',
+        '  StreamSubscription<List<ConnectivityResult>>? _subscription;\n'
+        '  StreamSubscription<DeviceSyncProgress>? _progressSubscription;\n',
+        1,
+    )
+if '  int _syncPercent = 0;' not in coord:
+    coord = coord.replace(
+        '  bool _showIndicator = false;\n',
+        '  bool _showIndicator = false;\n  int _syncPercent = 0;\n',
+        1,
+    )
+
+listen_marker = '''    _subscription = Connectivity()
+        .onConnectivityChanged
+        .listen(_handleConnectivity);
+'''
+listen_replacement = '''    _subscription = Connectivity()
+        .onConnectivityChanged
+        .listen(_handleConnectivity);
+
+    final initialProgress = DeviceSyncService.lastProgress;
+    _syncPercent = initialProgress.percent.clamp(0, 100).toInt();
+    _progressSubscription = DeviceSyncService.progressEvents.listen((progress) {
+      if (!mounted) return;
+      setState(() {
+        _syncPercent = progress.percent.clamp(0, 100).toInt();
+      });
+    });
+'''
+if 'final initialProgress = DeviceSyncService.lastProgress;' not in coord:
+    if listen_marker not in coord:
+        raise RuntimeError('Listener de conectividade não localizado')
+    coord = coord.replace(listen_marker, listen_replacement, 1)
+
+if '_progressSubscription?.cancel();' not in coord:
+    coord = coord.replace(
+        '    _subscription?.cancel();\n',
+        '    _subscription?.cancel();\n    _progressSubscription?.cancel();\n',
+        1,
+    )
+
+if 'percent: _syncPercent,' not in coord:
+    coord = coord.replace(
+        '''            child: _SyncIndicator(
+              label: _statusLabel,
+              tone: _statusTone,
+            ),''',
+        '''            child: _SyncIndicator(
+              label: _statusLabel,
+              tone: _statusTone,
+              percent: _syncPercent,
+            ),''',
+        1,
+    )
+
+if 'final int percent;' not in coord:
+    coord = coord.replace(
+        '''class _SyncIndicator extends StatelessWidget {
+  final String label;
+  final _SyncTone tone;
+''',
+        '''class _SyncIndicator extends StatelessWidget {
+  final String label;
+  final _SyncTone tone;
+  final int percent;
+''',
+        1,
+    )
+    coord = coord.replace(
+        '''  const _SyncIndicator({
+    required this.label,
+    required this.tone,
+  });''',
+        '''  const _SyncIndicator({
+    required this.label,
+    required this.tone,
+    required this.percent,
+  });''',
+        1,
+    )
+
+spinner = '''            if (tone == _SyncTone.syncing)
+              SizedBox(
+                width: 15,
+                height: 15,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: foreground,
+                ),
+              )
+            else
+              Icon(icon, size: 17, color: foreground),'''
+percentage = '''            if (tone == _SyncTone.syncing)
+              Text(
+                '${percent.clamp(0, 100)}%',
+                style: TextStyle(
+                  color: foreground,
+                  fontSize: percent >= 100 ? 8.0 : 9.5,
+                  fontWeight: FontWeight.w900,
+                ),
+              )
+            else
+              Icon(icon, size: 17, color: foreground),'''
+if 'CircularProgressIndicator(' in coord and "'${percent.clamp(0, 100)}%'" not in coord:
+    if spinner not in coord:
+        raise RuntimeError('Spinner do indicador global não localizado')
+    coord = coord.replace(spinner, percentage, 1)
+
+# A barra grande criada na tela Segurança dos dados é removida. O percentual
+# permanece no botão de sincronização e, no PC, no indicador global compacto.
+screen = screen.replace(
+    '''            _syncProgressCard(),
+            if (syncRunning || syncPercent > 0) const SizedBox(height: 2),
+''',
+    '',
+    1,
+)
+
+# 4) Caminhos locais são cache e não devem recriar dirty nas tabelas principais.
 if '_localOnlyPathUpdate(' not in media:
     helper_marker = '  static Future<void> _applyEntityPath('
     local_helper = r'''  static Future<void> _localOnlyPathUpdate(
@@ -252,10 +356,12 @@ pubp.write_text(pub, encoding='utf-8', newline='\n')
 syncp.write_text(sync, encoding='utf-8', newline='\n')
 mediap.write_text(media, encoding='utf-8', newline='\n')
 coordp.write_text(coord, encoding='utf-8', newline='\n')
+screenp.write_text(screen, encoding='utf-8', newline='\n')
 
 final_sync = syncp.read_text(encoding='utf-8')
 final_media = mediap.read_text(encoding='utf-8')
 final_coord = coordp.read_text(encoding='utf-8')
+final_screen = screenp.read_text(encoding='utf-8')
 assert target in pubp.read_text(encoding='utf-8')
 assert "remove('media_assets')" in final_sync
 assert '_discardMediaAssetChanges' in final_sync
@@ -265,4 +371,8 @@ assert 'const Duration(seconds: 60)' in final_sync
 assert '_localOnlyPathUpdate' in final_media
 assert 'final localPending = await DeviceSyncService.pendingChangesCount();' in final_coord
 assert 'if (localPending == 0) return;' in final_coord
-print(f'{target}: fila 9 corrigida e auto-sync ocioso desativado; pull periódico preservado.')
+if platform == 'windows':
+    assert 'percent: _syncPercent' in final_coord
+    assert "'${percent.clamp(0, 100)}%'" in final_coord
+assert '            _syncProgressCard(),' not in final_screen
+print(f'{target}: fila 9 corrigida, auto-sync ocioso desativado e progresso compacto aplicado.')
