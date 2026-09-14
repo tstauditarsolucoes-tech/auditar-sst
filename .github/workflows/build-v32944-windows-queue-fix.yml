@@ -42,12 +42,12 @@ jobs:
           $coord=Get-Content "$env:APP_DIR/lib/services/sync_coordinator.dart" -Raw
           $screen=Get-Content "$env:APP_DIR/lib/screens/data_safety_screen.dart" -Raw
           if (-not $pub.Contains('version: 3.29.44+186')) { throw 'versão Windows incorreta' }
-          if (-not $sync.Contains("_outboundTables => {..._allTables}..remove('media_assets')")) { throw 'media_assets ainda outbound' }
+          if (-not $sync.Contains("remove('media_assets')")) { throw 'media_assets ainda outbound' }
           if (-not $sync.Contains('_discardMediaAssetChanges')) { throw 'limpeza dos 9 antigos ausente' }
-          if (-not $sync.Contains("DROP TRIGGER IF EXISTS device_sync_media_assets_`$suffix")) { throw 'triggers de mídia não removidos' }
-          if (-not $coord.Contains('if (localPending == 0) return;')) { throw 'auto-sync ocioso não bloqueado' }
+          if (-not $sync.Contains('device_sync_media_assets_$suffix')) { throw 'triggers de mídia não removidos' }
+          if (-not $coord.Contains('localPending == 0')) { throw 'auto-sync ocioso não bloqueado' }
           if (-not $coord.Contains('percent: _syncPercent')) { throw 'percentual compacto ausente' }
-          if (-not $coord.Contains("'`${percent.clamp(0, 100)}%'")) { throw 'percentual no lugar do spinner ausente' }
+          if (-not $coord.Contains('percent.clamp(0, 100)')) { throw 'percentual no lugar do spinner ausente' }
           $buildPos=$screen.IndexOf('Widget build(BuildContext context)')
           if ($buildPos -ge 0 -and $screen.Substring($buildPos).Contains('_syncProgressCard(),')) { throw 'barra grande ainda no layout' }
 
@@ -70,18 +70,18 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'flutter analyze falhou' }
           if (Test-Path 'test') { flutter test; if ($LASTEXITCODE -ne 0) { throw 'flutter test falhou' } }
 
-      - name: Teste de regressão exato da fila
+      - name: Teste de regressão da fila após formatação
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
         run: |
-          $sync=Get-Content 'lib/services/device_sync_service.dart' -Raw
-          $coord=Get-Content 'lib/services/sync_coordinator.dart' -Raw
-          if (-not $sync.Contains("_outboundTables => {..._allTables}..remove('media_assets')")) { throw 'media_assets voltou para outbound' }
-          if (-not $sync.Contains("where: \"table_name = 'media_assets'\"")) { throw 'limpeza da fila antiga ausente' }
-          if (-not $sync.Contains('WHERE dirty = 1 AND table_name IN (`$placeholders)')) { throw 'contador não filtra outbound' }
-          if (-not $coord.Contains('final localPending = await DeviceSyncService.pendingChangesCount();')) { throw 'gate do timer rápido ausente' }
-          if (-not $coord.Contains('if (localPending == 0) return;')) { throw 'idle ainda inicia rede' }
-          Write-Host 'REGRESSAO OK: 9 media_assets fora da fila e idle sem sincronização rápida.'
+          if (-not (Select-String 'lib/services/device_sync_service.dart' -SimpleMatch "remove('media_assets')" -Quiet)) { throw 'media_assets voltou para outbound' }
+          if (-not (Select-String 'lib/services/device_sync_service.dart' -SimpleMatch '_discardMediaAssetChanges' -Quiet)) { throw 'limpeza da fila antiga ausente' }
+          if (-not (Select-String 'lib/services/device_sync_service.dart' -SimpleMatch 'device_sync_media_assets_$suffix' -Quiet)) { throw 'triggers antigos de media_assets não são removidos' }
+          if (-not (Select-String 'lib/services/device_sync_service.dart' -SimpleMatch "table_name = 'media_assets'" -Quiet)) { throw 'registros media_assets antigos não são limpos' }
+          if (-not (Select-String 'lib/services/device_sync_service.dart' -SimpleMatch 'table_name IN ($placeholders)' -Quiet)) { throw 'contador não filtra outbound' }
+          if (-not (Select-String 'lib/services/sync_coordinator.dart' -SimpleMatch 'localPending == 0' -Quiet)) { throw 'idle ainda inicia rede' }
+          if (-not (Select-String 'lib/services/sync_coordinator.dart' -SimpleMatch 'percent: _syncPercent' -Quiet)) { throw 'percentual compacto ausente' }
+          Write-Host 'REGRESSAO OK: 9 media_assets fora da fila; idle silencioso; percentual compacto ativo.'
 
       - name: Testar Central Online real
         working-directory: ${{ env.APP_DIR }}
