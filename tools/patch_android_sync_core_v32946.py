@@ -25,10 +25,11 @@ if 'version: 3.29.46+188' not in pub:
 
 # 1) Login fresco não pode zerar o cursor de sincronização de uma conta já existente.
 # Banco novo já começa naturalmente em 0; banco existente mantém o último cursor confirmado.
+# Há mais de um caminho de aceitação de sessão no AuthService montado; nenhum deles deve
+# reiniciar o cursor porque cada usuário já possui seu próprio banco SQLite.
 auth = auth.replace(
     "    await AppDatabase.instance.setSetting('device_sync_server_version', '0');\n",
     '',
-    1,
 )
 
 # 2) Se há rede e o login online falha por DNS/timeout/transporte, não mascarar o erro
