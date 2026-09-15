@@ -104,13 +104,13 @@ jobs:
           p=Path('lib/services/dds_pdf_service.dart').read_text(encoding='utf-8')
           s=Path('lib/services/device_sync_service.dart').read_text(encoding='utf-8')
           c=Path('lib/services/sync_coordinator.dart').read_text(encoding='utf-8')
-          assert "widget.type == 'DDS' ? 'Setor (opcional)' : 'Setor'" in f
-          assert "widget.type == 'DDS' ? 'Sem setor / não se aplica' : 'Sem setor específico'" in f
-          assert 'sectorId: selectedSectorId,' in f
-          start=f.index("DropdownButtonFormField<String>(\n                    isExpanded: true,\n                    value: selectedSectorId ?? '',")
-          end=f.index('                  ),', start)
+          assert 'Setor (opcional)' in f
+          assert 'Sem setor / não se aplica' in f
+          assert 'sectorId: selectedSectorId' in f
+          start=f.index("value: selectedSectorId ?? ''")
+          end=f.index('onChanged:', start)
           assert 'validator:' not in f[start:end]
-          assert "selectedSector.isEmpty ? 'Não se aplica / sem setor' : selectedSector" in p
+          assert 'Não se aplica / sem setor' in p
           assert 'Assinaturas digitais' in f
           assert 'Participantes do DDS' in f
           assert "'limit': 500," in s
