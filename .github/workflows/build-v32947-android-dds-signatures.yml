@@ -1,0 +1,136 @@
+name: Auditar SST Android v3.29.47 DDS Digital Signatures
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/build-v32947-android-dds-signatures.yml"
+      - "tools/patch_dds_digital_signature_v32947.py"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar Android v3.29.46
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/assemble_sync_response_fix.py android
+          python tools/patch_sync_queue_android_v32940_v2.py "$APP_DIR"
+          python tools/patch_android_transport_guard_v32941.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_v32942.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_compile_fix.py "$APP_DIR"
+          python tools/patch_android_offline_background_sync_v32943.py "$APP_DIR"
+          python tools/patch_android_offline_compile_fix_v32943.py "$APP_DIR"
+          python tools/patch_android_sync_immediate_v32944.py "$APP_DIR"
+          python tools/patch_android_sync_first_pull_v32945.py "$APP_DIR"
+          python tools/patch_android_sync_core_v32946.py "$APP_DIR"
+          grep -q 'version: 3.29.46+188' "$APP_DIR/pubspec.yaml"
+          find "$APP_DIR/lib/screens" -type f \
+            ! -name 'sst_record_form_screen.dart' \
+            ! -name 'dds_signature_capture_screen.dart' \
+            -print0 | sort -z | xargs -0 sha256sum > /tmp/screens-before.sha256
+
+      - name: Aplicar módulo de assinatura digital do DDS
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/patch_dds_digital_signature_v32947.py "$APP_DIR"
+          grep -q 'version: 3.29.47+189' "$APP_DIR/pubspec.yaml"
+
+      - name: Confirmar demais telas móveis intactas
+        shell: bash
+        run: |
+          set -euo pipefail
+          find "$APP_DIR/lib/screens" -type f \
+            ! -name 'sst_record_form_screen.dart' \
+            ! -name 'dds_signature_capture_screen.dart' \
+            -print0 | sort -z | xargs -0 sha256sum > /tmp/screens-after.sha256
+          diff -u /tmp/screens-before.sha256 /tmp/screens-after.sha256
+          echo 'Demais telas Android preservadas byte a byte.'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Restaurar Android, analisar e testar
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          dart format \
+            lib/screens/sst_record_form_screen.dart \
+            lib/screens/dds_signature_capture_screen.dart \
+            lib/services/media_sync_service.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if [ -d test ]; then flutter test; fi
+
+      - name: Regressão do módulo DDS
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          form=Path('lib/screens/sst_record_form_screen.dart').read_text(encoding='utf-8')
+          capture=Path('lib/screens/dds_signature_capture_screen.dart').read_text(encoding='utf-8')
+          media=Path('lib/services/media_sync_service.dart').read_text(encoding='utf-8')
+          assert "'dds_signatures': ddsSignatures" in form
+          assert 'Assinaturas digitais' in form
+          assert 'Coletar assinatura' in form
+          assert 'Refazer assinatura' in form
+          assert 'Remover assinatura' in form
+          assert 'DdsSignatureCaptureScreen' in form
+          assert 'Assinatura do DDS' in capture
+          assert 'Assinar em tela cheia' in capture
+          assert 'Confirmar assinatura' in capture
+          assert 'registerDdsSignature' in media
+          assert 'ddsSignatureLocalPath' in media
+          assert "'dds_signature'" in media
+          print('REGRESSAO DDS OK: assinatura por participante + tela cheia + Drive.')
+          PY
+
+      - name: Compilar APK release
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${AUDITAR_SYNC_KEY:-}"
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Preparar APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/android
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" \
+            "dist/android/Auditar-SST-v3.29.47-DDS-ASSINATURA-DIGITAL.apk"
+          sha256sum "dist/android/Auditar-SST-v3.29.47-DDS-ASSINATURA-DIGITAL.apk" \
+            > "dist/android/Auditar-SST-v3.29.47-DDS-ASSINATURA-DIGITAL.sha256.txt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.47-Android-DDS-Assinatura-Digital
+          path: dist/android/*
+          retention-days: 30
