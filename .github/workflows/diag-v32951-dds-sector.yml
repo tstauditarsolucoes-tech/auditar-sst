@@ -1,0 +1,86 @@
+name: Diagnose v3.29.51 DDS Sector
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/diag-v32951-dds-sector.yml"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar v3.29.51
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/assemble_sync_response_fix.py android
+          python tools/patch_sync_queue_android_v32940_v2.py "$APP_DIR"
+          python tools/patch_android_transport_guard_v32941.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_v32942.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_compile_fix.py "$APP_DIR"
+          python tools/patch_android_offline_background_sync_v32943.py "$APP_DIR"
+          python tools/patch_android_offline_compile_fix_v32943.py "$APP_DIR"
+          python tools/patch_android_sync_immediate_v32944.py "$APP_DIR"
+          python tools/patch_android_sync_first_pull_v32945.py "$APP_DIR"
+          python tools/patch_android_sync_core_v32946.py "$APP_DIR"
+          python tools/patch_dds_digital_signature_v32947.py "$APP_DIR"
+          python tools/patch_dds_formal_pdf_v32948.py "$APP_DIR"
+          python tools/patch_dds_formal_pdf_compile_fix_v32948.py "$APP_DIR"
+          python tools/patch_android_transport_ipv4_redirect_v32949.py "$APP_DIR"
+          python - <<'PY'
+          from pathlib import Path
+          root=Path('app/Auditar_SST_v1_5_dashboard')
+          pub=root/'pubspec.yaml'; coord=root/'lib/services/sync_coordinator.dart'
+          p=pub.read_text(encoding='utf-8'); c=coord.read_text(encoding='utf-8')
+          p=p.replace('version: 3.29.49+191','version: 3.29.50+192',1)
+          c=c.replace("const Duration(seconds: 10),\n      (_) => _trySync(deviceOnly: true, force: true),",
+                      "const Duration(seconds: 2),\n      (_) => _trySync(deviceOnly: true, force: true),",1)
+          c=c.replace("const Duration(seconds: 30),\n      (_) {\n        _trySync(deviceOnly: true, force: true, pullWhenClean: true);\n        _tryAutoBackup();\n      },",
+                      "const Duration(seconds: 10),\n      (_) {\n        _trySync(deviceOnly: true, force: true, pullWhenClean: true);\n      },",1)
+          pub.write_text(p,encoding='utf-8'); coord.write_text(c,encoding='utf-8')
+          PY
+          python tools/patch_android_sync_latency_refresh_v32951.py "$APP_DIR"
+
+      - name: Mostrar validacao e campo Setor do DDS
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          f=Path('app/Auditar_SST_v1_5_dashboard/lib/screens/sst_record_form_screen.dart')
+          lines=f.read_text(encoding='utf-8').splitlines()
+          needles=('setor','sector','_selectedType','Tema do DDS','participante')
+          hits=[]
+          for i,line in enumerate(lines):
+              if any(n.lower() in line.lower() for n in needles):
+                  hits.append(i)
+          blocks=[]
+          used=set()
+          for i in hits:
+              a=max(0,i-8); b=min(len(lines),i+12)
+              key=(a,b)
+              if key in used: continue
+              used.add(key)
+              blocks.append((a,b))
+          print('=== DDS / SETOR SNIPPETS ===')
+          for a,b in blocks:
+              print(f'--- lines {a+1}-{b} ---')
+              for j in range(a,b): print(f'{j+1:04d}: {lines[j]}')
+          print('=== END ===')
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v32951-dds-form-source
+          path: ${{ env.APP_DIR }}/lib/screens/sst_record_form_screen.dart
+          retention-days: 7
