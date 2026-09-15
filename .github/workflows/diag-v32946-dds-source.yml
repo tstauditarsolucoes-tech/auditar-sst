@@ -52,6 +52,8 @@ jobs:
             lib/screens/signature_screen.dart \
             lib/services/pdf_service.dart \
             lib/services/storage_service.dart \
+            lib/services/media_sync_service.dart \
+            lib/services/device_sync_service.dart \
             pubspec.yaml
       - uses: actions/upload-artifact@v4
         with:
