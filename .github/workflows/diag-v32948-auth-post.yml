@@ -1,0 +1,148 @@
+name: Diagnose v3.29.48 Auth POST
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/diag-v32948-auth-post.yml"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  ENDPOINT: https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar exatamente a fonte v3.29.48
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/assemble_sync_response_fix.py android
+          python tools/patch_sync_queue_android_v32940_v2.py "$APP_DIR"
+          python tools/patch_android_transport_guard_v32941.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_v32942.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_compile_fix.py "$APP_DIR"
+          python tools/patch_android_offline_background_sync_v32943.py "$APP_DIR"
+          python tools/patch_android_offline_compile_fix_v32943.py "$APP_DIR"
+          python tools/patch_android_sync_immediate_v32944.py "$APP_DIR"
+          python tools/patch_android_sync_first_pull_v32945.py "$APP_DIR"
+          python tools/patch_android_sync_core_v32946.py "$APP_DIR"
+          python tools/patch_dds_digital_signature_v32947.py "$APP_DIR"
+          python tools/patch_dds_formal_pdf_v32948.py "$APP_DIR"
+          python tools/patch_dds_formal_pdf_compile_fix_v32948.py "$APP_DIR"
+          grep -q 'version: 3.29.48+190' "$APP_DIR/pubspec.yaml"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Preparar dependências
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter pub get
+
+      - name: GET simples da publicação
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '=== GET ==='
+          curl -sS -o /tmp/get.body -D /tmp/get.headers \
+            --connect-timeout 8 --max-time 20 \
+            -w 'GET http=%{http_code} total=%{time_total} redirect=%{redirect_url}\n' \
+            "$ENDPOINT"
+          sed -n '1,20p' /tmp/get.headers
+          head -c 300 /tmp/get.body | tr '\n' ' '; echo
+
+      - name: POST raw auth_status e auth_login inválido
+        shell: bash
+        run: |
+          set -euo pipefail
+          for payload in \
+            '{"action":"auth_status"}' \
+            '{"action":"auth_login","username":"__auditar_diag_usuario_inexistente__","email":"__auditar_diag_usuario_inexistente__","password":"__senha_diag_invalida__","deviceId":"diag-v32948","platform":"android"}'
+          do
+            echo '=== POST sem -L ==='
+            curl -sS -o /tmp/post.body -D /tmp/post.headers \
+              --connect-timeout 8 --max-time 30 \
+              -H 'Content-Type: application/json; charset=utf-8' \
+              -H 'Accept: application/json' \
+              --data "$payload" \
+              -w 'POST http=%{http_code} total=%{time_total} redirect=%{redirect_url}\n' \
+              "$ENDPOINT"
+            sed -n '1,25p' /tmp/post.headers
+            head -c 600 /tmp/post.body | tr '\n' ' '; echo
+            echo '=== POST com -L ==='
+            curl -sS -L -o /tmp/postl.body -D /tmp/postl.headers \
+              --connect-timeout 8 --max-time 30 \
+              -H 'Content-Type: application/json; charset=utf-8' \
+              -H 'Accept: application/json' \
+              --data "$payload" \
+              -w 'POSTL http=%{http_code} total=%{time_total} redirects=%{num_redirects}\n' \
+              "$ENDPOINT"
+            sed -n '1,40p' /tmp/postl.headers
+            head -c 600 /tmp/postl.body | tr '\n' ' '; echo
+          done
+
+      - name: Testar o mesmo AppsScriptHttp usado pelo app
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p tool
+          cat > tool/diag_auth_post.dart <<'DART'
+          import 'dart:convert';
+          import '../lib/services/apps_script_http.dart';
+
+          final endpoint = Uri.parse('https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec');
+
+          Future<void> probe(String name, Map<String,Object?> payload, {bool fallback=false}) async {
+            AppsScriptHttp.forceDnsFallbackForTesting = fallback;
+            final sw = Stopwatch()..start();
+            try {
+              final r = await AppsScriptHttp.postJson(endpoint, payload, timeout: const Duration(seconds: 30));
+              sw.stop();
+              final body = utf8.decode(r.bodyBytes, allowMalformed: true);
+              print('APPHTTP $name fallback=$fallback status=${r.statusCode} ms=${sw.elapsedMilliseconds} contentType=${r.headers['content-type']} body=${body.length > 700 ? body.substring(0,700) : body}');
+            } catch (e, st) {
+              sw.stop();
+              print('APPHTTP $name fallback=$fallback ERROR ms=${sw.elapsedMilliseconds} type=${e.runtimeType} e=$e');
+              print(st);
+              rethrow;
+            }
+          }
+
+          Future<void> main() async {
+            final status = <String,Object?>{'action':'auth_status'};
+            final badLogin = <String,Object?>{
+              'action':'auth_login',
+              'username':'__auditar_diag_usuario_inexistente__',
+              'email':'__auditar_diag_usuario_inexistente__',
+              'password':'__senha_diag_invalida__',
+              'deviceId':'diag-v32948-dart',
+              'platform':'android',
+            };
+            await probe('auth_status', status);
+            await probe('auth_login_invalid', badLogin);
+            await probe('auth_status_dns_fallback', status, fallback:true);
+            await probe('auth_login_invalid_dns_fallback', badLogin, fallback:true);
+          }
+          DART
+          dart run tool/diag_auth_post.dart
+
+      - name: Mostrar regras de timeout/redirect da fonte montada
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -n -E 'effectiveTimeout|Duration\(seconds: 24\)|redirectCodes|statusCode == 301|statusCode == 302|statusCode == 303|method = .GET.|auth_login' lib/services/apps_script_http.dart lib/services/auth_service.dart | head -80
