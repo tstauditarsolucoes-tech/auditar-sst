@@ -37,15 +37,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -RniE "DDS|Diálogo|Dialogo" "$APP_DIR/lib" | head -300 || true
+          grep -RniE "DDS|Diálogo|Dialogo|Participantes" "$APP_DIR/lib" | head -400 || true
       - name: Empacotar fontes relevantes
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist
           cd "$APP_DIR"
-          find lib -type f \( -iname '*dds*' -o -iname '*signature*' -o -iname '*database*' -o -iname '*pdf*' \) -print0 | tar --null -T - -czf ../../dist/dds-source-v32946.tar.gz
-          cp pubspec.yaml ../../dist/pubspec.yaml
+          tar -czf ../../dist/dds-source-v32946.tar.gz \
+            lib/database.dart \
+            lib/models.dart \
+            lib/screens/sst_record_form_screen.dart \
+            lib/screens/sst_records_screen.dart \
+            lib/screens/signature_screen.dart \
+            lib/services/pdf_service.dart \
+            lib/services/storage_service.dart \
+            pubspec.yaml
       - uses: actions/upload-artifact@v4
         with:
           name: DDS-Source-v3.29.46
