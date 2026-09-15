@@ -33,7 +33,7 @@ jobs:
           python tools/patch_android_sync_immediate_v32944.py "$APP_DIR"
           python tools/patch_android_sync_first_pull_v32945.py "$APP_DIR"
           python tools/patch_android_sync_core_v32946.py "$APP_DIR"
-          python tools/patch_android_dds_signatures_v32947.py "$APP_DIR"
+          python tools/patch_dds_digital_signature_v32947.py "$APP_DIR"
       - name: Empacotar fontes DDS v3.29.47
         shell: bash
         run: |
