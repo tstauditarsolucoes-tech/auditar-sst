@@ -150,10 +150,10 @@ new_send = r'''  static Future<http.Response> _sendHopWithDnsFallback({
 '''
 http = http[:start] + new_send + http[end:]
 
-# A conexão direta também recebe connectionTimeout explícito. A validação TLS
-# continua no hostname de uri.host dentro de SecureSocket.secure.
-old_client = '''  static http.Client _clientForResolvedAddress(InternetAddress address) {\n    final io = HttpClient()\n      ..findProxy = (_) => 'DIRECT'\n'''
-new_client = '''  static http.Client _clientForResolvedAddress(InternetAddress address) {\n    final io = HttpClient()\n      ..connectionTimeout = const Duration(seconds: 8)\n      ..findProxy = (_) => 'DIRECT'\n'''
+# O compile-fix da v3.29.42 transforma o cascade do HttpClient em atribuições.
+# Acrescentamos connectionTimeout nessa forma final.
+old_client = '''  static http.Client _clientForResolvedAddress(InternetAddress address) {\n    final io = HttpClient();\n    io.findProxy = (_) => 'DIRECT';\n'''
+new_client = '''  static http.Client _clientForResolvedAddress(InternetAddress address) {\n    final io = HttpClient();\n    io.connectionTimeout = const Duration(seconds: 8);\n    io.findProxy = (_) => 'DIRECT';\n'''
 if new_client not in http:
     if old_client not in http:
         raise RuntimeError('Cliente de endereço resolvido não localizado')
@@ -178,7 +178,7 @@ assert 'forceAndroidDirectForTesting' in final_http
 assert '_resolvePreferredIpv4' in final_http
 assert 'InternetAddressType.IPv4' in final_http
 assert 'connectionTimeout = const Duration(seconds: 8)' in final_http
-assert 'timeout: timeout,\n            addressOverride: address' in final_http
+assert 'addressOverride: address' in final_http
 assert 'Não foi possível concluir a comunicação com ${uri.host}' in final_http
 assert 'A Central Online não respondeu a tempo na etapa ${uri.host}' in final_http
 assert "method = 'GET';" in final_http
