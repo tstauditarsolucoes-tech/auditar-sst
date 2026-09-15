@@ -48,23 +48,11 @@ jobs:
           PY
           python tools/patch_android_sync_latency_refresh_v32951.py "$APP_DIR"
           python tools/patch_dds_sector_optional_v32952.py "$APP_DIR"
-      - name: Imprimir tela de registros SST
+      - name: Imprimir pontos de transporte da mídia
+        shell: bash
+        run: |
+          grep -n -C 30 -E 'static Future<Map<String, dynamic>> _post|_friendlyError|AppsScriptHttp.postJson|media_upload|media_download' "$APP_DIR/lib/services/media_sync_service.dart" | tail -n 520 || true
+      - name: Imprimir tela DDS
         shell: bash
         run: |
           sed -n '1,380p' "$APP_DIR/lib/screens/sst_records_screen.dart"
-      - name: Imprimir MediaSyncService
-        shell: bash
-        run: |
-          sed -n '1,760p' "$APP_DIR/lib/services/media_sync_service.dart"
-      - name: Imprimir AppsScriptHttp API
-        shell: bash
-        run: |
-          sed -n '1,520p' "$APP_DIR/lib/services/apps_script_http.dart"
-      - name: Imprimir coordenador mídia
-        shell: bash
-        run: |
-          grep -n -C 12 -E 'MediaSyncService|media|uploadPending|downloadMissing|_tryAutoBackup' "$APP_DIR/lib/services/sync_coordinator.dart" | head -n 520 || true
-      - name: Imprimir hub rotina DDS
-        shell: bash
-        run: |
-          sed -n '1,360p' "$APP_DIR/lib/screens/routine_hub_screen.dart" || true
