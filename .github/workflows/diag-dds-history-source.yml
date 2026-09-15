@@ -51,16 +51,20 @@ jobs:
       - name: Imprimir tela de registros SST
         shell: bash
         run: |
-          sed -n '1,360p' "$APP_DIR/lib/screens/sst_records_screen.dart"
-      - name: Imprimir API de registros SST no banco
+          sed -n '1,380p' "$APP_DIR/lib/screens/sst_records_screen.dart"
+      - name: Imprimir MediaSyncService
         shell: bash
         run: |
-          grep -n -C 8 -E 'SstRecord|getSst|sst_record|sstRecords' "$APP_DIR/lib/database.dart" | head -n 420 || true
-      - name: Imprimir modelo SstRecord
+          sed -n '1,760p' "$APP_DIR/lib/services/media_sync_service.dart"
+      - name: Imprimir AppsScriptHttp API
         shell: bash
         run: |
-          grep -n -C 20 -E 'class SstRecord|SstRecord\(' "$APP_DIR/lib/models.dart" | head -n 260 || true
-      - name: Imprimir módulos home
+          sed -n '1,520p' "$APP_DIR/lib/services/apps_script_http.dart"
+      - name: Imprimir coordenador mídia
         shell: bash
         run: |
-          grep -n -C 12 -E "SST|DDS|Registro|Campo rápido|Vistorias|_ModuleData" "$APP_DIR/lib/screens/home_screen.dart" | head -n 420 || true
+          grep -n -C 12 -E 'MediaSyncService|media|uploadPending|downloadMissing|_tryAutoBackup' "$APP_DIR/lib/services/sync_coordinator.dart" | head -n 520 || true
+      - name: Imprimir hub rotina DDS
+        shell: bash
+        run: |
+          sed -n '1,360p' "$APP_DIR/lib/screens/routine_hub_screen.dart" || true
