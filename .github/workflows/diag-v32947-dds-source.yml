@@ -1,0 +1,58 @@
+name: Diagnose v3.29.47 DDS Source
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/diag-v32947-dds-source.yml"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar v3.29.47
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/assemble_sync_response_fix.py android
+          python tools/patch_sync_queue_android_v32940_v2.py "$APP_DIR"
+          python tools/patch_android_transport_guard_v32941.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_v32942.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_compile_fix.py "$APP_DIR"
+          python tools/patch_android_offline_background_sync_v32943.py "$APP_DIR"
+          python tools/patch_android_offline_compile_fix_v32943.py "$APP_DIR"
+          python tools/patch_android_sync_immediate_v32944.py "$APP_DIR"
+          python tools/patch_android_sync_first_pull_v32945.py "$APP_DIR"
+          python tools/patch_android_sync_core_v32946.py "$APP_DIR"
+          python tools/patch_android_dds_signatures_v32947.py "$APP_DIR"
+      - name: Empacotar fontes DDS v3.29.47
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cd "$APP_DIR"
+          tar -czf ../../dist/dds-source-v32947.tar.gz \
+            lib/database.dart \
+            lib/models.dart \
+            lib/screens/sst_record_form_screen.dart \
+            lib/screens/sst_records_screen.dart \
+            lib/screens/dds_signature_capture_screen.dart \
+            lib/screens/signature_screen.dart \
+            lib/services/media_sync_service.dart \
+            lib/services/pdf_service.dart \
+            lib/services/storage_service.dart \
+            pubspec.yaml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DDS-Source-v3.29.47
+          path: dist/*
+          retention-days: 7
