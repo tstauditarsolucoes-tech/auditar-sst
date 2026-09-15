@@ -100,7 +100,7 @@ jobs:
           assert 'Histórico permanente de DDS' in l
           assert 'Retirar ficha do DDS' in l
           assert 'FICHA_DDS_' in l
-          assert "type == 'DDS' ? 'date DESC'" in d
+          assert "type == 'DDS'" in d and "'date DESC'" in d and "COALESCE(due_date, date)" in d
           assert '_postReliable(' in m
           assert 'O app tentará novamente automaticamente' in m
           assert 'dds_signature' in m
