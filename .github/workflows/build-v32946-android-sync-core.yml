@@ -1,0 +1,184 @@
+name: Auditar SST Android v3.29.46 Sync Core Fix
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/build-v32946-android-sync-core.yml"
+      - "tools/patch_android_sync_core_v32946.py"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar Android v3.29.45 e registrar interface
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/assemble_sync_response_fix.py android
+          python tools/patch_sync_queue_android_v32940_v2.py "$APP_DIR"
+          python tools/patch_android_transport_guard_v32941.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_v32942.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_compile_fix.py "$APP_DIR"
+          python tools/patch_android_offline_background_sync_v32943.py "$APP_DIR"
+          python tools/patch_android_offline_compile_fix_v32943.py "$APP_DIR"
+          python tools/patch_android_sync_immediate_v32944.py "$APP_DIR"
+          python tools/patch_android_sync_first_pull_v32945.py "$APP_DIR"
+          grep -q 'version: 3.29.45+187' "$APP_DIR/pubspec.yaml"
+          find "$APP_DIR/lib/screens" -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/screens-before.sha256
+
+      - name: Aplicar correção do núcleo de sincronização
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/patch_android_sync_core_v32946.py "$APP_DIR"
+          grep -q 'version: 3.29.46+188' "$APP_DIR/pubspec.yaml"
+
+      - name: Confirmar interface móvel intacta
+        shell: bash
+        run: |
+          set -euo pipefail
+          find "$APP_DIR/lib/screens" -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/screens-after.sha256
+          diff -u /tmp/screens-before.sha256 /tmp/screens-after.sha256
+          echo 'UI Android preservada byte a byte.'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Restaurar Android, analisar e testar
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          dart format lib/services/auth_service.dart lib/services/device_sync_service.dart lib/services/sync_coordinator.dart lib/services/apps_script_http.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if [ -d test ]; then flutter test; fi
+
+      - name: Regressão do núcleo de sincronização
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          auth=Path('lib/services/auth_service.dart').read_text(encoding='utf-8')
+          sync=Path('lib/services/device_sync_service.dart').read_text(encoding='utf-8')
+          screens=list(Path('lib/screens').glob('**/*'))
+          assert "setSetting('device_sync_server_version', '0')" not in auth
+          assert 'Não reutilizamos silenciosamente token antigo' in auth
+          assert 'ConnectivityResult.none' in auth
+          assert 'Seu usuário não possui nenhuma empresa liberada' in sync
+          assert sync.count('for (var page = 0; page < 60; page++) {') >= 2
+          assert sync.find('// Primeiro RECEBE a Central.') < sync.find('var sent = 0;')
+          assert sync.find('var sent = 0;') < sync.find('// Segundo pull: reconcilia')
+          assert 'final localDirty = await txn.query(' in sync
+          assert "'limit': 100," in sync
+          assert 'A Central Online não avançou o cursor de sincronização.' in sync
+          print('REGRESSAO OK: cursor preservado, sessão online não mascarada, pull-first, backlog completo e dirty local protegido.')
+          PY
+
+      - name: Validar profundidade da Central real
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${AUDITAR_SYNC_KEY:-}"
+          mkdir -p tool
+          cat > tool/central_deep_test.dart <<'DART'
+          import 'dart:convert';
+          import '../lib/services/apps_script_http.dart';
+
+          const endpointText='https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec';
+          const syncKey=String.fromEnvironment('AUDITAR_SYNC_KEY');
+
+          Future<Map<String,dynamic>> post(Map<String,Object?> body) async {
+            final r=await AppsScriptHttp.postJson(Uri.parse(endpointText),body,timeout:const Duration(seconds:30));
+            if(r.statusCode!=200) throw StateError('HTTP ${r.statusCode}');
+            final x=jsonDecode(utf8.decode(r.bodyBytes,allowMalformed:true));
+            if(x is! Map) throw StateError('Resposta não é mapa');
+            return Map<String,dynamic>.from(x);
+          }
+
+          Future<void> main() async {
+            var since=0;
+            var pages=0;
+            var total=0;
+            var companies=0;
+            var workers=0;
+            var inspections=0;
+            while(pages<60){
+              final r=await post({
+                'action':'device_sync_pull','syncKey':syncKey,
+                'deviceId':'v32946-depth-readonly','platform':'android',
+                'sinceVersion':since,'limit':100,
+              });
+              if(r['ok']!=true) throw StateError('${r['message']}');
+              final changes=r['changes'] is List ? r['changes'] as List : const [];
+              for(final raw in changes){
+                if(raw is! Map) continue;
+                final table='${raw['table'] ?? ''}';
+                if(table=='companies') companies++;
+                if(table=='workers') workers++;
+                if(table=='inspections') inspections++;
+              }
+              total += changes.length;
+              pages++;
+              final next=(r['nextVersion'] as num?)?.toInt() ?? since;
+              if(r['hasMore']!=true) break;
+              if(next<=since) throw StateError('Cursor não avançou');
+              since=next;
+            }
+            if(total<=1200) throw StateError('Dataset real não confirmou backlog profundo: $total');
+            if(companies<2 || workers<1 || inspections<1) {
+              throw StateError('Dataset incompleto: companies=$companies workers=$workers inspections=$inspections');
+            }
+            print('CENTRAL_DEEP_OK pages=$pages total=$total companies=$companies workers=$workers inspections=$inspections');
+          }
+          DART
+          dart run --define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY" tool/central_deep_test.dart
+
+      - name: Compilar APK release
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${AUDITAR_SYNC_KEY:-}"
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Preparar APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/android
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" "dist/android/Auditar-SST-v3.29.46-SYNC-CORE-CORRIGIDO.apk"
+          sha256sum "dist/android/Auditar-SST-v3.29.46-SYNC-CORE-CORRIGIDO.apk" > "dist/android/Auditar-SST-v3.29.46-SYNC-CORE-CORRIGIDO.sha256.txt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.46-Android-Sync-Core-Corrigido
+          path: dist/android/*
+          retention-days: 30
