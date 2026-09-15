@@ -1,0 +1,66 @@
+name: Diagnose DDS history source
+
+on:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/diag-dds-history-source.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar base atual v3.29.52
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/assemble_sync_response_fix.py android
+          python tools/patch_sync_queue_android_v32940_v2.py "$APP_DIR"
+          python tools/patch_android_transport_guard_v32941.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_v32942.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_compile_fix.py "$APP_DIR"
+          python tools/patch_android_offline_background_sync_v32943.py "$APP_DIR"
+          python tools/patch_android_offline_compile_fix_v32943.py "$APP_DIR"
+          python tools/patch_android_sync_immediate_v32944.py "$APP_DIR"
+          python tools/patch_android_sync_first_pull_v32945.py "$APP_DIR"
+          python tools/patch_android_sync_core_v32946.py "$APP_DIR"
+          python tools/patch_dds_digital_signature_v32947.py "$APP_DIR"
+          python tools/patch_dds_formal_pdf_v32948.py "$APP_DIR"
+          python tools/patch_dds_formal_pdf_compile_fix_v32948.py "$APP_DIR"
+          python tools/patch_android_transport_ipv4_redirect_v32949.py "$APP_DIR"
+          python - <<'PY'
+          from pathlib import Path
+          root=Path('app/Auditar_SST_v1_5_dashboard')
+          pub=root/'pubspec.yaml'; coord=root/'lib/services/sync_coordinator.dart'
+          p=pub.read_text(encoding='utf-8'); c=coord.read_text(encoding='utf-8')
+          p=p.replace('version: 3.29.49+191','version: 3.29.50+192',1)
+          c=c.replace("const Duration(seconds: 10),\n      (_) => _trySync(deviceOnly: true, force: true),","const Duration(seconds: 2),\n      (_) => _trySync(deviceOnly: true, force: true),",1)
+          c=c.replace("const Duration(seconds: 30),\n      (_) {\n        _trySync(deviceOnly: true, force: true, pullWhenClean: true);\n        _tryAutoBackup();\n      },","const Duration(seconds: 10),\n      (_) {\n        _trySync(deviceOnly: true, force: true, pullWhenClean: true);\n      },",1)
+          pub.write_text(p,encoding='utf-8'); coord.write_text(c,encoding='utf-8')
+          PY
+          python tools/patch_android_sync_latency_refresh_v32951.py "$APP_DIR"
+          python tools/patch_dds_sector_optional_v32952.py "$APP_DIR"
+      - name: Imprimir tela de registros SST
+        shell: bash
+        run: |
+          sed -n '1,360p' "$APP_DIR/lib/screens/sst_records_screen.dart"
+      - name: Imprimir API de registros SST no banco
+        shell: bash
+        run: |
+          grep -n -C 8 -E 'SstRecord|getSst|sst_record|sstRecords' "$APP_DIR/lib/database.dart" | head -n 420 || true
+      - name: Imprimir modelo SstRecord
+        shell: bash
+        run: |
+          grep -n -C 20 -E 'class SstRecord|SstRecord\(' "$APP_DIR/lib/models.dart" | head -n 260 || true
+      - name: Imprimir módulos home
+        shell: bash
+        run: |
+          grep -n -C 12 -E "SST|DDS|Registro|Campo rápido|Vistorias|_ModuleData" "$APP_DIR/lib/screens/home_screen.dart" | head -n 420 || true
