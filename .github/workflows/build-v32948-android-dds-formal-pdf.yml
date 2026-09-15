@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/workflows/build-v32948-android-dds-formal-pdf.yml"
       - "tools/patch_dds_formal_pdf_v32948.py"
+      - "tools/patch_dds_formal_pdf_compile_fix_v32948.py"
 
 permissions:
   contents: read
@@ -48,6 +49,7 @@ jobs:
         run: |
           set -euo pipefail
           python tools/patch_dds_formal_pdf_v32948.py "$APP_DIR"
+          python tools/patch_dds_formal_pdf_compile_fix_v32948.py "$APP_DIR"
           grep -q 'version: 3.29.48+190' "$APP_DIR/pubspec.yaml"
 
       - name: Confirmar demais telas móveis intactas
@@ -121,6 +123,7 @@ jobs:
           assert "_cell('Assinatura'" in pdf
           assert "_cell('Data/Hora'" in pdf
           assert 'Identificador do DDS' in pdf
+          assert 'final resolvedCompany = company;' in pdf
           assert 'Gerar PDF / lista de presença' in listing
           assert '// Primeiro RECEBE a Central.' in sync
           assert "setSetting('device_sync_server_version', '0')" not in Path('lib/services/auth_service.dart').read_text(encoding='utf-8')
