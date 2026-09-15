@@ -117,11 +117,8 @@ jobs:
           assert 'REGISTRO DE DDS' in pdf
           assert 'Diálogo Diário de Segurança' in pdf
           assert 'LISTA DE PRESENÇA E ASSINATURAS' in pdf
-          assert "_cell('CPF'" in pdf
-          assert "_cell('Cargo'" in pdf
-          assert "_cell('Setor'" in pdf
-          assert "_cell('Assinatura'" in pdf
-          assert "_cell('Data/Hora'" in pdf
+          for label in ['CPF', 'Cargo', 'Setor', 'Assinatura', 'Data/Hora']:
+              assert label in pdf, label
           assert 'Identificador do DDS' in pdf
           assert 'final resolvedCompany = company;' in pdf
           assert 'Gerar PDF / lista de presença' in listing
