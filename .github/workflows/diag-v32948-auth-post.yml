@@ -52,6 +52,26 @@ jobs:
           set -euo pipefail
           flutter pub get
 
+      - name: Reproduzir esqueleto Android do APK e inspecionar INTERNET
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          echo '=== MAIN MANIFEST (release herda este) ==='
+          cat android/app/src/main/AndroidManifest.xml
+          echo '=== DEBUG MANIFEST ==='
+          cat android/app/src/debug/AndroidManifest.xml || true
+          echo '=== PROFILE MANIFEST ==='
+          cat android/app/src/profile/AndroidManifest.xml || true
+          echo '=== INTERNET permission locations ==='
+          grep -R -n 'android.permission.INTERNET' android/app/src || true
+          if grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml; then
+            echo 'RELEASE_INTERNET_PERMISSION=YES'
+          else
+            echo 'RELEASE_INTERNET_PERMISSION=NO'
+          fi
+
       - name: GET simples da publicação
         shell: bash
         run: |
