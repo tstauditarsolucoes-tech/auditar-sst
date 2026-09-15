@@ -1,0 +1,182 @@
+name: Auditar SST Android v3.29.52 DDS Setor Opcional
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/build-v32952-android-dds-sector-optional.yml"
+      - "tools/patch_dds_sector_optional_v32952.py"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar base Android v3.29.51
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/assemble_sync_response_fix.py android
+          python tools/patch_sync_queue_android_v32940_v2.py "$APP_DIR"
+          python tools/patch_android_transport_guard_v32941.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_v32942.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_compile_fix.py "$APP_DIR"
+          python tools/patch_android_offline_background_sync_v32943.py "$APP_DIR"
+          python tools/patch_android_offline_compile_fix_v32943.py "$APP_DIR"
+          python tools/patch_android_sync_immediate_v32944.py "$APP_DIR"
+          python tools/patch_android_sync_first_pull_v32945.py "$APP_DIR"
+          python tools/patch_android_sync_core_v32946.py "$APP_DIR"
+          python tools/patch_dds_digital_signature_v32947.py "$APP_DIR"
+          python tools/patch_dds_formal_pdf_v32948.py "$APP_DIR"
+          python tools/patch_dds_formal_pdf_compile_fix_v32948.py "$APP_DIR"
+          python tools/patch_android_transport_ipv4_redirect_v32949.py "$APP_DIR"
+          python - <<'PY'
+          from pathlib import Path
+          root=Path('app/Auditar_SST_v1_5_dashboard')
+          pub=root/'pubspec.yaml'; coord=root/'lib/services/sync_coordinator.dart'
+          p=pub.read_text(encoding='utf-8'); c=coord.read_text(encoding='utf-8')
+          p=p.replace('version: 3.29.49+191','version: 3.29.50+192',1)
+          c=c.replace("const Duration(seconds: 10),\n      (_) => _trySync(deviceOnly: true, force: true),",
+                      "const Duration(seconds: 2),\n      (_) => _trySync(deviceOnly: true, force: true),",1)
+          c=c.replace("const Duration(seconds: 30),\n      (_) {\n        _trySync(deviceOnly: true, force: true, pullWhenClean: true);\n        _tryAutoBackup();\n      },",
+                      "const Duration(seconds: 10),\n      (_) {\n        _trySync(deviceOnly: true, force: true, pullWhenClean: true);\n      },",1)
+          pub.write_text(p,encoding='utf-8'); coord.write_text(c,encoding='utf-8')
+          assert 'version: 3.29.50+192' in p
+          PY
+          python tools/patch_android_sync_latency_refresh_v32951.py "$APP_DIR"
+          grep -q 'version: 3.29.51+193' "$APP_DIR/pubspec.yaml"
+          find "$APP_DIR/lib/screens" -type f ! -name 'sst_record_form_screen.dart' -print0 | sort -z | xargs -0 sha256sum > /tmp/screens-before.sha256
+
+      - name: Aplicar v3.29.52 setor opcional no DDS
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/patch_dds_sector_optional_v32952.py "$APP_DIR"
+          grep -q 'version: 3.29.52+194' "$APP_DIR/pubspec.yaml"
+
+      - name: Confirmar demais telas móveis intactas
+        shell: bash
+        run: |
+          set -euo pipefail
+          find "$APP_DIR/lib/screens" -type f ! -name 'sst_record_form_screen.dart' -print0 | sort -z | xargs -0 sha256sum > /tmp/screens-after.sha256
+          diff -u /tmp/screens-before.sha256 /tmp/screens-after.sha256
+          echo 'Demais telas Android preservadas byte a byte.'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Restaurar Android analisar e testar
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          dart format lib/screens/sst_record_form_screen.dart lib/services/dds_pdf_service.dart lib/services/device_sync_service.dart lib/services/sync_coordinator.dart lib/services/apps_script_http.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if [ -d test ]; then flutter test; fi
+
+      - name: Regressão DDS setor opcional e sync rápido
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          f=Path('lib/screens/sst_record_form_screen.dart').read_text(encoding='utf-8')
+          p=Path('lib/services/dds_pdf_service.dart').read_text(encoding='utf-8')
+          s=Path('lib/services/device_sync_service.dart').read_text(encoding='utf-8')
+          c=Path('lib/services/sync_coordinator.dart').read_text(encoding='utf-8')
+          assert "widget.type == 'DDS' ? 'Setor (opcional)' : 'Setor'" in f
+          assert "widget.type == 'DDS' ? 'Sem setor / não se aplica' : 'Sem setor específico'" in f
+          assert 'sectorId: selectedSectorId,' in f
+          start=f.index("DropdownButtonFormField<String>(\n                    isExpanded: true,\n                    value: selectedSectorId ?? '',")
+          end=f.index('                  ),', start)
+          assert 'validator:' not in f[start:end]
+          assert "selectedSector.isEmpty ? 'Não se aplica / sem setor' : selectedSector" in p
+          assert 'Assinaturas digitais' in f
+          assert 'Participantes do DDS' in f
+          assert "'limit': 500," in s
+          assert 'Duration(seconds: 2)' in c
+          assert 'Duration(seconds: 10)' in c
+          print('REGRESSAO_OK: DDS salva sem setor; assinatura/PDF e sync rápido preservados')
+          PY
+
+      - name: Testar Central real
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${AUDITAR_SYNC_KEY:-}"
+          mkdir -p tool
+          cat > tool/live_pull_500.dart <<'DART'
+          import 'dart:convert';
+          import '../lib/services/apps_script_http.dart';
+
+          const endpointText='https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec';
+          const syncKey=String.fromEnvironment('AUDITAR_SYNC_KEY');
+
+          Future<void> main() async {
+            AppsScriptHttp.forceAndroidDirectForTesting=true;
+            final r=await AppsScriptHttp.postJson(
+              Uri.parse(endpointText),
+              {
+                'action':'device_sync_pull',
+                'syncKey':syncKey,
+                'deviceId':'v32952-readonly',
+                'platform':'android',
+                'sinceVersion':0,
+                'limit':500,
+              },
+              timeout:const Duration(seconds:30),
+            );
+            if(r.statusCode!=200) throw StateError('HTTP ${r.statusCode}');
+            final x=jsonDecode(utf8.decode(r.bodyBytes,allowMalformed:true));
+            if(x is! Map || x['ok']!=true) throw StateError('Central inesperada: $x');
+            print('CENTRAL_REAL_OK changes=${x['changes'] is List ? (x['changes'] as List).length : 0}');
+          }
+          DART
+          dart run --define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY" tool/live_pull_500.dart
+
+      - name: Compilar APK release
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${AUDITAR_SYNC_KEY:-}"
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Preparar APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/android
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" "dist/android/Auditar-SST-v3.29.52-DDS-SETOR-OPCIONAL.apk"
+          sha256sum "dist/android/Auditar-SST-v3.29.52-DDS-SETOR-OPCIONAL.apk" > "dist/android/Auditar-SST-v3.29.52-DDS-SETOR-OPCIONAL.sha256.txt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.52-Android-DDS-Setor-Opcional
+          path: dist/android/*
+          retention-days: 30
