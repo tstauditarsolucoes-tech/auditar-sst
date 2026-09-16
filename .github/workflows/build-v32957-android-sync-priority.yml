@@ -130,6 +130,7 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
+          import re
           pub=Path('pubspec.yaml').read_text(encoding='utf-8')
           coord=Path('lib/services/sync_coordinator.dart').read_text(encoding='utf-8')
           dev=Path('lib/services/device_sync_service.dart').read_text(encoding='utf-8')
@@ -143,9 +144,10 @@ jobs:
           assert 'await ManagementPanelService.syncCompany(widget.company)' not in ronda
           assert 'Conclusão geral da ronda' in ronda
           assert 'Duration(seconds: 15)' in comp and 'missing.take(1)' in comp
-          pos=comp.find('MediaSyncService.uploadCompanyLogoNow(company.id)')
-          assert pos >= 0
-          assert 'DeviceSyncService.synchronize' not in comp[pos:pos+700]
+          upload=re.search(r'MediaSyncService\.uploadCompanyLogoNow\(\s*company\.id\s*\)', comp, re.S)
+          assert upload is not None
+          window=comp[upload.start():upload.start()+900]
+          assert 'DeviceSyncService.synchronize' not in window
           assert '_postReliable(' in media
           print('REGRESSAO_OK: sync 2s/10s e lote 500 priorizados; Ronda e logos fora do caminho crítico')
           PY
