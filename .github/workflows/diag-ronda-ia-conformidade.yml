@@ -1,0 +1,70 @@
+name: Diagnostico Ronda IA Conformidade
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/diag-ronda-ia-conformidade.yml"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte Android atual
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/assemble_sync_response_fix.py android
+          python tools/patch_sync_queue_android_v32940_v2.py "$APP_DIR"
+          python tools/patch_android_transport_guard_v32941.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_v32942.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_compile_fix.py "$APP_DIR"
+          python tools/patch_android_offline_background_sync_v32943.py "$APP_DIR"
+          python tools/patch_android_offline_compile_fix_v32943.py "$APP_DIR"
+          python tools/patch_android_sync_immediate_v32944.py "$APP_DIR"
+          python tools/patch_android_sync_first_pull_v32945.py "$APP_DIR"
+          python tools/patch_android_sync_core_v32946.py "$APP_DIR"
+          python tools/patch_dds_digital_signature_v32947.py "$APP_DIR"
+          python tools/patch_dds_formal_pdf_v32948.py "$APP_DIR"
+          python tools/patch_dds_formal_pdf_compile_fix_v32948.py "$APP_DIR"
+          python tools/patch_android_transport_ipv4_redirect_v32949.py "$APP_DIR"
+          python - <<'PY'
+          from pathlib import Path
+          root=Path('app/Auditar_SST_v1_5_dashboard')
+          pub=root/'pubspec.yaml'; coord=root/'lib/services/sync_coordinator.dart'
+          p=pub.read_text(encoding='utf-8'); c=coord.read_text(encoding='utf-8')
+          p=p.replace('version: 3.29.49+191','version: 3.29.50+192',1)
+          c=c.replace("const Duration(seconds: 10),\n      (_) => _trySync(deviceOnly: true, force: true),","const Duration(seconds: 2),\n      (_) => _trySync(deviceOnly: true, force: true),",1)
+          c=c.replace("const Duration(seconds: 30),\n      (_) {\n        _trySync(deviceOnly: true, force: true, pullWhenClean: true);\n        _tryAutoBackup();\n      },","const Duration(seconds: 10),\n      (_) {\n        _trySync(deviceOnly: true, force: true, pullWhenClean: true);\n      },",1)
+          pub.write_text(p,encoding='utf-8'); coord.write_text(c,encoding='utf-8')
+          PY
+          python tools/patch_android_sync_latency_refresh_v32951.py "$APP_DIR"
+          python tools/patch_dds_sector_optional_v32952.py "$APP_DIR"
+          python tools/patch_dds_history_media_retry_v32953.py "$APP_DIR"
+          python tools/patch_company_logo_persistence_v32954_v3303.py "$APP_DIR" android
+      - name: Mostrar fonte da Ronda e IA
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '===== EXPRESS ROUND ====='
+          sed -n '1,1400p' lib/screens/express_round_screen.dart || true
+          echo '===== AI SERVICE INDEX ====='
+          grep -RniE "class .*Ai|analy.*photo|photo.*analy|Gemini|generateContent|review|report|checklist" lib/services lib/screens | head -n 300 || true
+          echo '===== AI ASSISTANT ====='
+          sed -n '1,900p' lib/services/ai_assistant_service.dart || true
+          echo '===== DATABASE ROUND/OBSERVATION ====='
+          grep -nE "express|round|observation|safety_observation|inspection" lib/database.dart | head -n 300 || true
+          echo '===== MODELS ====='
+          grep -RniE "class .*Observation|class .*Inspection|class .*Action" lib/models.dart lib/models 2>/dev/null | head -n 200 || true
+          echo '===== PDF SERVICES ====='
+          ls lib/services/*pdf* 2>/dev/null || true
+          grep -RniE "SafetyObservation|observation|Relat.rio|N.o Conformidade|Conformidade" lib/services/*pdf* lib/screens/report_screen.dart 2>/dev/null | head -n 300 || true
