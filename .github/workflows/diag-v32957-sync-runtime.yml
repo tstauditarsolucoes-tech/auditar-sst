@@ -95,6 +95,8 @@ jobs:
           cp "$APP_DIR/lib/screens/companies_screen.dart" diag/
           cp "$APP_DIR/lib/screens/dashboard_screen.dart" diag/
           cp "$APP_DIR/lib/screens/workers_screen.dart" diag/
+          cp "$APP_DIR/lib/screens/home_screen.dart" diag/
+          cp "$APP_DIR/lib/screens/settings_screen.dart" diag/
           cp "$APP_DIR/lib/screens/inspections_screen.dart" diag/ 2>/dev/null || true
           grep -RniE "DeviceSyncService.events|DeviceSyncService.synchronize|Timer.periodic|Duration\(seconds:|_syncMediaBestEffort|uploadPending|downloadMissing|pullWhenClean|pendingChangesCount" diag > diag/markers.txt || true
           grep -RniE "DeviceSyncService\.events|events\.listen|last_device_sync_success|last_device_sync_status|StreamSubscription<.*DeviceSyncResult|received" "$APP_DIR/lib" > diag/all_event_refs.txt || true
