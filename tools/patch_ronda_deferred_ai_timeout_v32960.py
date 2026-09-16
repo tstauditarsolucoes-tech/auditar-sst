@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import re
 import sys
 
 root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path('app/Auditar_SST_v1_5_dashboard')
@@ -24,14 +25,24 @@ ai = once(
     'marcador rondaDeferred',
 )
 
-# O Checklist permanece com 55 s. Somente a Ronda pos-campo recebe 95 s, pois
-# ela nao esta mais no caminho critico da vistoria e o Gemini pode oscilar.
-ai = once(
-    ai,
-    """    final aiMode = '${payload['mode'] ?? ''}';\n    final requestTimeout =\n        aiMode == 'checklist_photo' || aiMode == 'safety_observation_photo'\n            ? const Duration(seconds: 55)\n            : aiMode == 'report_review_chat'\n                ? const Duration(seconds: 75)\n                : const Duration(seconds: 65);\n""",
-    """    final aiMode = '${payload['mode'] ?? ''}';\n    final rondaDeferred = payload['rondaDeferred'] == true;\n    final requestTimeout = rondaDeferred\n        ? const Duration(seconds: 95)\n        : aiMode == 'checklist_photo' || aiMode == 'safety_observation_photo'\n            ? const Duration(seconds: 55)\n            : aiMode == 'report_review_chat'\n                ? const Duration(seconds: 75)\n                : const Duration(seconds: 65);\n""",
-    'timeout seletivo da IA',
-)
+# O bloco foi formatado de maneiras diferentes ao longo das versoes. Substitui
+# apenas a expressao requestTimeout, preservando o restante do servico.
+if "final rondaDeferred = payload['rondaDeferred'] == true;" not in ai:
+    pattern = re.compile(
+        r"    final requestTimeout\s*=\s*.*?const Duration\(seconds:\s*65\);",
+        re.S,
+    )
+    replacement = """    final rondaDeferred = payload['rondaDeferred'] == true;
+    final requestTimeout = rondaDeferred
+        ? const Duration(seconds: 95)
+        : aiMode == 'checklist_photo' || aiMode == 'safety_observation_photo'
+            ? const Duration(seconds: 55)
+            : aiMode == 'report_review_chat'
+                ? const Duration(seconds: 75)
+                : const Duration(seconds: 65);"""
+    ai, count = pattern.subn(replacement, ai, count=1)
+    if count != 1:
+        raise RuntimeError('Marcador ausente: timeout seletivo da IA')
 
 aip.write_text(ai, encoding='utf-8', newline='\n')
 
