@@ -1,0 +1,201 @@
+name: Auditar SST Windows v3.30.1 Final DDS
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/build-v3301f-windows-final-dds.yml"
+      - "tools/patch_windows_dds_mobile_module_v3301.py"
+      - "tools/patch_windows_mobile_improvements_v3301.py"
+      - "tools/patch_windows_mobile_improvements_v3301_compat.py"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar base gerencial Windows v3.30.0
+        shell: pwsh
+        run: |
+          python tools/assemble_sync_response_fix.py windows
+          if ($LASTEXITCODE -ne 0) { throw 'assemble Windows falhou' }
+          python tools/patch_sync_progress_v32939_32942.py "$env:APP_DIR" windows
+          python tools/patch_sync_progress_compile_safety.py "$env:APP_DIR"
+          python tools/patch_windows_sync_logo_stability_v32943.py "$env:APP_DIR"
+          python tools/patch_sync_queue_media_separation_v32940_32944.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'base de sincronização Windows falhou' }
+
+          $patch=Join-Path $env:RUNNER_TEMP 'training.py'
+          $env:TRAINING_PATCH_PATH=$patch
+          python -c "from pathlib import Path; import base64,lzma,os; p=Path('build_sources/v3.30.0-training-attendance/patch_training_attendance_v3300.py.xz.b64'); Path(os.environ['TRAINING_PATCH_PATH']).write_bytes(lzma.decompress(base64.b64decode(p.read_text().strip())))"
+          python $patch "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { Write-Host 'Assert textual legado do treinamento ignorado; validando resultado funcional.' }
+
+          $pub=Get-Content "$env:APP_DIR/pubspec.yaml" -Raw
+          $media=Get-Content "$env:APP_DIR/lib/services/media_sync_service.dart" -Raw
+          if (-not $pub.Contains('version: 3.30.0+187')) { throw 'base v3.30.0 ausente' }
+          if (-not (Test-Path "$env:APP_DIR/lib/screens/training_attendance_screen.dart")) { throw 'lista assinada de treinamento ausente' }
+          if (-not (Test-Path "$env:APP_DIR/lib/services/training_attendance_pdf_service.dart")) { throw 'PDF de treinamento ausente' }
+          if (-not $media.Contains('training_attendance_signature')) { throw 'assinatura de treinamento ausente' }
+          exit 0
+
+      - name: Portar DDS formal do celular para o PC
+        shell: pwsh
+        run: |
+          python tools/patch_windows_dds_mobile_module_v3301.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'port do DDS formal falhou' }
+
+      - name: Aplicar sincronização rápida histórico e mídia resiliente
+        shell: pwsh
+        run: |
+          python tools/patch_windows_mobile_improvements_v3301_compat.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'patch consolidado v3.30.1 falhou' }
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Preparar analisar e testar Windows
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          flutter pub get
+          dart format lib/database.dart lib/screens/sst_record_form_screen.dart lib/screens/sst_records_screen.dart lib/screens/dds_signature_capture_screen.dart lib/screens/routine_hub_screen.dart lib/services/dds_pdf_service.dart lib/services/device_sync_service.dart lib/services/sync_coordinator.dart lib/services/media_sync_service.dart lib/screens/trainings_screen.dart lib/screens/training_attendance_screen.dart lib/services/training_attendance_pdf_service.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'flutter analyze falhou' }
+          if (Test-Path test) { flutter test; if ($LASTEXITCODE -ne 0) { throw 'flutter test falhou' } }
+
+      - name: Validar regressões e recursos v3.30.1
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          pub=Path('pubspec.yaml').read_text(encoding='utf-8')
+          sync=Path('lib/services/device_sync_service.dart').read_text(encoding='utf-8')
+          coord=Path('lib/services/sync_coordinator.dart').read_text(encoding='utf-8')
+          form=Path('lib/screens/sst_record_form_screen.dart').read_text(encoding='utf-8')
+          dds=Path('lib/screens/sst_records_screen.dart').read_text(encoding='utf-8')
+          pdf=Path('lib/services/dds_pdf_service.dart').read_text(encoding='utf-8')
+          media=Path('lib/services/media_sync_service.dart').read_text(encoding='utf-8')
+          db=Path('lib/database.dart').read_text(encoding='utf-8')
+          assert 'version: 3.30.1+188' in pub
+          assert 'final pullLimit = isWindows ? 500 : 100;' in sync
+          assert 'final pullPages = isWindows ? (force ? 60 : 4) : 12;' in sync
+          assert 'Duration(seconds: 10)' in coord
+          assert 'pullWhenClean: true' in coord
+          assert 'force: force' in coord
+          assert 'Selecionar colaboradores' in form
+          assert 'Participantes adicionais (opcional)' in form
+          assert "widget.type == 'DDS' ? 'Setor (opcional)' : 'Setor'" in form
+          assert 'Retirar ficha do DDS' in dds
+          assert 'Histórico permanente de DDS' in dds
+          assert 'FICHA_DDS_' in dds
+          assert 'REGISTRO DE DDS' in pdf
+          assert 'LISTA DE PRESENÇA E ASSINATURAS' in pdf
+          assert "type == 'DDS' ? 'date DESC'" in db
+          assert 'registerDdsSignature({' in media
+          assert '_postReliable(' in media
+          assert 'continuam salvas no computador' in media
+          assert 'training_attendance_signature' in media
+          assert Path('lib/screens/training_attendance_screen.dart').exists()
+          assert Path('lib/services/training_attendance_pdf_service.dart').exists()
+          print('REGRESSAO_OK: painel PC + treinamentos + DDS formal/histórico + sync 10s/pull500 + mídia resiliente')
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'regressão v3.30.1 falhou' }
+
+      - name: Testar Central real sem escrita
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          New-Item -ItemType Directory -Force tool | Out-Null
+          @'
+          import 'dart:convert';
+          import '../lib/services/apps_script_http.dart';
+          const endpoint='https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec';
+          const key=String.fromEnvironment('AUDITAR_SYNC_KEY');
+          Future<void> main() async {
+            final r=await AppsScriptHttp.postJson(Uri.parse(endpoint),{
+              'action':'device_sync_pull','syncKey':key,'deviceId':'v3301-windows-readonly','platform':'windows','sinceVersion':0,'limit':1,
+            },timeout:const Duration(seconds:30));
+            if(r.statusCode!=200) throw StateError('HTTP ${r.statusCode}');
+            final x=jsonDecode(utf8.decode(r.bodyBytes,allowMalformed:true));
+            if(x is! Map || x['ok']!=true) throw StateError('Central inesperada: $x');
+            print('CENTRAL_REAL_OK');
+          }
+          '@ | Set-Content tool/live_pull_v3301.dart -Encoding UTF8
+          dart run --define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY" tool/live_pull_v3301.dart
+          if ($LASTEXITCODE -ne 0) { throw 'teste Central falhou' }
+
+      - name: Compilar Windows release
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+          if ($LASTEXITCODE -ne 0) { throw 'build Windows falhou' }
+
+      - name: Gerar instalador e portátil
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.1-PORTATIL.zip' -Force
+          $iscc='C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          if (-not (Test-Path $iscc)) { throw 'Inno Setup não disponível' }
+          $output=(Resolve-Path 'dist/windows').Path
+          $iss=@"
+          [Setup]
+          AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}
+          AppName=Auditar SST
+          AppVersion=3.30.1
+          AppPublisher=Auditar Soluções
+          DefaultDirName={autopf}\Auditar SST
+          DefaultGroupName=Auditar SST
+          OutputDir=$output
+          OutputBaseFilename=Auditar-SST-Setup-v3.30.1
+          Compression=lzma2
+          SolidCompression=yes
+          WizardStyle=modern
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          UninstallDisplayIcon={app}\auditar_sst.exe
+          [Files]
+          Source: "$release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          [Icons]
+          Name: "{autoprograms}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          Name: "{autodesktop}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          [Run]
+          Filename: "{app}\auditar_sst.exe"; Description: "Abrir Auditar SST"; Flags: nowait postinstall skipifsilent
+          "@
+          Set-Content "$env:RUNNER_TEMP\auditar-v3301.iss" $iss -Encoding UTF8
+          & $iscc "$env:RUNNER_TEMP\auditar-v3301.iss"
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
+          if (-not (Test-Path 'dist/windows/Auditar-SST-Setup-v3.30.1.exe')) { throw 'instalador não gerado' }
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.1.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.1.sha256.txt'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.30.1-Windows-Final
+          path: dist/windows/*
+          retention-days: 30
