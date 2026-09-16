@@ -1,0 +1,114 @@
+name: Diagnose Logo Persistence Current
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/diag-logo-persistence-current.yml"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar Android atual
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/assemble_sync_response_fix.py android
+          python tools/patch_sync_queue_android_v32940_v2.py "$APP_DIR"
+          python tools/patch_android_transport_guard_v32941.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_v32942.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_compile_fix.py "$APP_DIR"
+          python tools/patch_android_offline_background_sync_v32943.py "$APP_DIR"
+          python tools/patch_android_offline_compile_fix_v32943.py "$APP_DIR"
+          python tools/patch_android_sync_immediate_v32944.py "$APP_DIR"
+          python tools/patch_android_sync_first_pull_v32945.py "$APP_DIR"
+          python tools/patch_android_sync_core_v32946.py "$APP_DIR"
+          python tools/patch_dds_digital_signature_v32947.py "$APP_DIR"
+          python tools/patch_dds_formal_pdf_v32948.py "$APP_DIR"
+          python tools/patch_dds_formal_pdf_compile_fix_v32948.py "$APP_DIR"
+          python tools/patch_android_transport_ipv4_redirect_v32949.py "$APP_DIR"
+          python - <<'PY'
+          from pathlib import Path
+          root=Path('app/Auditar_SST_v1_5_dashboard')
+          pub=root/'pubspec.yaml'; coord=root/'lib/services/sync_coordinator.dart'
+          p=pub.read_text(encoding='utf-8'); c=coord.read_text(encoding='utf-8')
+          p=p.replace('version: 3.29.49+191','version: 3.29.50+192',1)
+          c=c.replace("const Duration(seconds: 10),\n      (_) => _trySync(deviceOnly: true, force: true),","const Duration(seconds: 2),\n      (_) => _trySync(deviceOnly: true, force: true),",1)
+          c=c.replace("const Duration(seconds: 30),\n      (_) {\n        _trySync(deviceOnly: true, force: true, pullWhenClean: true);\n        _tryAutoBackup();\n      },","const Duration(seconds: 10),\n      (_) {\n        _trySync(deviceOnly: true, force: true, pullWhenClean: true);\n      },",1)
+          pub.write_text(p,encoding='utf-8'); coord.write_text(c,encoding='utf-8')
+          PY
+          python tools/patch_android_sync_latency_refresh_v32951.py "$APP_DIR"
+          python tools/patch_dds_sector_optional_v32952.py "$APP_DIR"
+          python tools/patch_dds_history_media_retry_v32953.py "$APP_DIR"
+      - name: Exportar trechos Android
+        shell: bash
+        run: |
+          mkdir -p diag/android
+          cp "$APP_DIR/lib/services/device_sync_service.dart" diag/android/
+          cp "$APP_DIR/lib/services/media_sync_service.dart" diag/android/
+          cp "$APP_DIR/lib/screens/companies_screen.dart" diag/android/
+          cp "$APP_DIR/lib/services/storage_service.dart" diag/android/
+          cp "$APP_DIR/lib/database.dart" diag/android/
+          cp "$APP_DIR/lib/models.dart" diag/android/ || true
+          cp "$APP_DIR/pubspec.yaml" diag/android/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: diag-logo-android-current
+          path: diag/android/*
+          retention-days: 2
+
+  windows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar Windows atual
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/assemble_sync_response_fix.py windows
+          python tools/patch_sync_progress_v32939_32942.py "$APP_DIR" windows
+          python tools/patch_sync_progress_compile_safety.py "$APP_DIR"
+          python tools/patch_windows_sync_logo_stability_v32943.py "$APP_DIR"
+          python tools/patch_sync_queue_media_separation_v32940_32944.py "$APP_DIR" windows
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma,subprocess,sys
+          p=Path('build_sources/v3.30.0-training-attendance/patch_training_attendance_v3300.py.xz.b64')
+          out=Path('/tmp/training.py')
+          out.write_bytes(lzma.decompress(base64.b64decode(p.read_text().strip())))
+          subprocess.run([sys.executable,str(out),'app/Auditar_SST_v1_5_dashboard','windows'],check=False)
+          PY
+          python tools/patch_windows_dds_mobile_module_v3301.py "$APP_DIR"
+          python tools/patch_windows_mobile_improvements_v3301_compat.py "$APP_DIR"
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('app/Auditar_SST_v1_5_dashboard/pubspec.yaml')
+          s=p.read_text(encoding='utf-8').replace('version: 3.30.1+188','version: 3.30.2+189',1)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Exportar trechos Windows
+        shell: bash
+        run: |
+          mkdir -p diag/windows
+          cp "$APP_DIR/lib/services/device_sync_service.dart" diag/windows/
+          cp "$APP_DIR/lib/services/media_sync_service.dart" diag/windows/
+          cp "$APP_DIR/lib/screens/companies_screen.dart" diag/windows/
+          cp "$APP_DIR/lib/services/storage_service.dart" diag/windows/
+          cp "$APP_DIR/lib/database.dart" diag/windows/
+          cp "$APP_DIR/lib/models.dart" diag/windows/ || true
+          cp "$APP_DIR/pubspec.yaml" diag/windows/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: diag-logo-windows-current
+          path: diag/windows/*
+          retention-days: 2
