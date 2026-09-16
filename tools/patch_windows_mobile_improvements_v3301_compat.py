@@ -9,6 +9,7 @@ if len(sys.argv) < 2:
 root = Path(sys.argv[1])
 syncp = root / 'lib/services/device_sync_service.dart'
 coordp = root / 'lib/services/sync_coordinator.dart'
+dbp = root / 'lib/database.dart'
 
 # Estrutura real do Windows: pullLimit/pullPages em variáveis.
 sync = syncp.read_text(encoding='utf-8')
@@ -44,6 +45,23 @@ try:
         pass
 finally:
     sys.argv = old_argv
+
+# Mantém a regra de ordenação do histórico DDS legível e estável mesmo após
+# `dart format`: DDS recentes primeiro; demais rotinas conservam a ordem antiga.
+db = dbp.read_text(encoding='utf-8')
+old_order = "      orderBy: type == 'DDS' ? 'date DESC' : 'COALESCE(due_date, date) ASC, date DESC',\n"
+if old_order in db and '_sstOrderForType' not in db:
+    class_marker = 'class AppDatabase {'
+    helper = """const _sstDefaultRecordOrder = 'COALESCE(due_date, date) ASC, date DESC';
+String _sstOrderForType(String type) =>
+    type == 'DDS' ? 'date DESC' : _sstDefaultRecordOrder;
+
+"""
+    if class_marker not in db:
+        raise RuntimeError('Classe AppDatabase não localizada')
+    db = db.replace(class_marker, helper + class_marker, 1)
+    db = db.replace(old_order, '      orderBy: _sstOrderForType(type),\n', 1)
+dbp.write_text(db, encoding='utf-8', newline='\n')
 
 # Coordenador real do Windows v3.30.0. O patch principal pode ter alterado o
 # callback antes desta camada; por isso o intervalo é trocado separadamente.
@@ -123,7 +141,7 @@ sync = syncp.read_text(encoding='utf-8')
 coord = coordp.read_text(encoding='utf-8')
 dds = (root / 'lib/screens/sst_records_screen.dart').read_text(encoding='utf-8')
 media = (root / 'lib/services/media_sync_service.dart').read_text(encoding='utf-8')
-db = (root / 'lib/database.dart').read_text(encoding='utf-8')
+db = dbp.read_text(encoding='utf-8')
 
 assert 'version: 3.30.1+188' in pub
 assert 'final pullLimit = isWindows ? 500 : 100;' in sync
