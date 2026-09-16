@@ -9,13 +9,11 @@ pub = root / 'pubspec.yaml'
 
 s = screen.read_text(encoding='utf-8')
 
-# Estado da conclusão final.
 old = "  Map<String, dynamic> roundAiReview = const {};\n"
 new = "  Map<String, dynamic> roundAiReview = const {};\n  String roundAiConclusion = '';\n"
 assert old in s, 'estado roundAiReview não encontrado'
 s = s.replace(old, new, 1)
 
-# Recupera conclusão já preparada para a ronda atual.
 old = "    final activeRound = storedRound.isEmpty ? uuid.v4() : storedRound;\n"
 new = "    final activeRound = storedRound.isEmpty ? uuid.v4() : storedRound;\n    final storedConclusion =\n        (await db.getSetting('express_round_conclusion_$activeRound')).trim();\n"
 assert old in s, 'activeRound não encontrado'
@@ -25,7 +23,6 @@ new = "      roundRecords = current;\n      roundAiConclusion = storedConclusion
 assert old in s, 'setState load não encontrado'
 s = s.replace(old, new, 1)
 
-# Insere helpers antes da revisão da ronda.
 anchor = "  Future<void> _reviewRoundWithAi() async {\n"
 assert anchor in s, 'método _reviewRoundWithAi não encontrado'
 helpers = r'''  String _fallbackRoundConclusion() {
@@ -186,13 +183,7 @@ helpers = r'''  String _fallbackRoundConclusion() {
     final edited = await _editRoundConclusion(suggested);
     if (!mounted || edited == null) return false;
     final finalText = edited.trim().isEmpty ? _fallbackRoundConclusion() : edited.trim();
-    setState(() {
-      roundAiConclusion = finalText;
-      roundAiReview = <String, dynamic>{
-        ...roundAiReview,
-        'finalConclusion': finalText,
-      };
-    });
+    setState(() => roundAiConclusion = finalText);
     await AppDatabase.instance.setSetting(
       'express_round_conclusion_$roundId',
       finalText,
@@ -203,10 +194,8 @@ helpers = r'''  String _fallbackRoundConclusion() {
 '''
 s = s.replace(anchor, helpers + anchor, 1)
 
-# Substitui revisão antiga por fluxo completo e editável.
 start = s.index("  Future<void> _reviewRoundWithAi() async {\n")
 end = s.index("  List<Widget> _reviewWidgets", start)
-old_method = s[start:end]
 new_method = r'''  Future<void> _reviewRoundWithAi() async {
     if (roundRecords.isEmpty || reviewingRoundWithAi) return;
     await _prepareRoundConclusion(showFullReview: true);
@@ -215,7 +204,6 @@ new_method = r'''  Future<void> _reviewRoundWithAi() async {
 '''
 s = s[:start] + new_method + s[end:]
 
-# Geração de relatório exige conclusão preparada/revisada.
 old = "  Future<void> _shareRoundReport(ExpressRoundReportStyle style) async {\n    if (roundRecords.isEmpty || generatingReport) return;\n    setState(() => generatingReport = true);\n"
 new = "  Future<void> _shareRoundReport(ExpressRoundReportStyle style) async {\n    if (roundRecords.isEmpty || generatingReport) return;\n    if (roundAiConclusion.trim().isEmpty) {\n      final prepared = await _prepareRoundConclusion();\n      if (!prepared || !mounted) return;\n    }\n    setState(() => generatingReport = true);\n"
 assert old in s, '_shareRoundReport inicial não encontrado'
@@ -226,7 +214,6 @@ new = "        aiReview: roundAiReview,\n        aiConclusion: roundAiConclusion
 assert old in s, 'chamada PDF não encontrada'
 s = s.replace(old, new, 1)
 
-# Exibe status da conclusão no resumo final.
 old = "              const SizedBox(height: 16),\n              FilledButton.icon(\n"
 new = "              const SizedBox(height: 12),\n              if (roundAiConclusion.trim().isNotEmpty) ...[\n                Container(\n                  padding: const EdgeInsets.all(12),\n                  decoration: BoxDecoration(\n                    color: AuditarBrand.greenSoft,\n                    borderRadius: BorderRadius.circular(12),\n                  ),\n                  child: const Row(\n                    children: [\n                      Icon(Icons.check_circle_outline_rounded, color: AuditarBrand.greenDark),\n                      SizedBox(width: 8),\n                      Expanded(child: Text('Conclusão da IA revisada e pronta para entrar no relatório.')),\n                    ],\n                  ),\n                ),\n                const SizedBox(height: 10),\n              ],\n              const SizedBox(height: 4),\n              FilledButton.icon(\n"
 assert old in s, 'bloco antes do botão IA não encontrado'
@@ -234,7 +221,6 @@ s = s.replace(old, new, 1)
 
 screen.write_text(s, encoding='utf-8')
 
-# PDF: recebe e imprime uma conclusão final dedicada.
 p = pdf.read_text(encoding='utf-8')
 old = "    Map<String, dynamic> aiReview = const {},\n  }) async {\n"
 new = "    Map<String, dynamic> aiReview = const {},\n    String aiConclusion = '',\n  }) async {\n"
@@ -244,6 +230,13 @@ old = "          if (aiReview.isNotEmpty) ...[\n            pw.SizedBox(height: 
 new = "          if (aiReview.isNotEmpty) ...[\n            pw.SizedBox(height: 14),\n            _aiReviewSection(aiReview),\n          ],\n          if (aiConclusion.trim().isNotEmpty) ...[\n            pw.SizedBox(height: 14),\n            _finalConclusionSection(aiConclusion),\n          ],\n          pw.SizedBox(height: 22),\n"
 assert old in p, 'posição da conclusão no PDF não encontrada'
 p = p.replace(old, new, 1)
+
+# A seção de revisão não repete a conclusão, que agora possui bloco próprio.
+old = "      if (entry.key == 'automaticChecks' || entry.key == 'metrics') continue;\n"
+new = "      if (entry.key == 'automaticChecks' ||\n          entry.key == 'metrics' ||\n          entry.key == 'conclusion' ||\n          entry.key == 'conclusao' ||\n          entry.key == 'finalConclusion' ||\n          entry.key == 'conclusaoFinal') continue;\n"
+assert old in p, 'filtro _aiReviewSection não encontrado'
+p = p.replace(old, new, 1)
+
 anchor = "  static pw.Widget _labelValue(String label, String value) => pw.Padding(\n"
 assert anchor in p, '_labelValue não encontrado'
 section = r'''  static pw.Widget _finalConclusionSection(String conclusion) => pw.Container(
@@ -282,7 +275,6 @@ section = r'''  static pw.Widget _finalConclusionSection(String conclusion) => p
 p = p.replace(anchor, section + anchor, 1)
 pdf.write_text(p, encoding='utf-8')
 
-# Reforça a instrução para a IA devolver conclusão geral útil.
 a = ai.read_text(encoding='utf-8')
 old = "Revisar a ronda como apoio ao responsável técnico. Valorizar conformidades registradas e priorizar as não conformidades. Referências normativas devem ser tratadas como prováveis para conferência, sem inventar fatos não observados."
 new = "Revisar a ronda como apoio ao responsável técnico. Valorizar conformidades registradas e priorizar as não conformidades. Produzir obrigatoriamente uma conclusão geral em texto corrido, equilibrando principais riscos, pontos críticos, conformidades/boas práticas, recomendações gerais e necessidade de acompanhamento. Referências normativas devem ser tratadas como prováveis para conferência, sem inventar fatos não observados."
