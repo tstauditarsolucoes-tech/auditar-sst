@@ -8,8 +8,11 @@ if len(sys.argv) < 2:
 
 root = Path(sys.argv[1])
 syncp = root / 'lib/services/device_sync_service.dart'
+coordp = root / 'lib/services/sync_coordinator.dart'
 
-# A base Windows usa pullLimit em variável, diferente do Android.
+# ---------------------------------------------------------------------------
+# Estrutura real do Windows: pullLimit/pullPages em variáveis.
+# ---------------------------------------------------------------------------
 sync = syncp.read_text(encoding='utf-8')
 sync = sync.replace(
     'final pullLimit = isWindows ? 100 : 100;',
@@ -21,12 +24,19 @@ sync = sync.replace(
     'final pullLimit = isWindows ? 500 : 300;',
     1,
 )
+sync = sync.replace(
+    'final pullPages = isWindows ? (force ? 5 : 2) : 12;',
+    'final pullPages = isWindows ? (force ? 60 : 4) : 12;',
+    1,
+)
 syncp.write_text(sync, encoding='utf-8', newline='\n')
 
-# O patch principal foi escrito para aceitar também a forma literal limit:.
-# Na base Windows ele pode terminar somente na asserção final de formato; as
-# alterações já foram gravadas. Capturamos apenas esse AssertionError e depois
-# fazemos validação funcional compatível com o Windows.
+# ---------------------------------------------------------------------------
+# Aplica histórico DDS + ficha PDF + retry de mídia do patch consolidado.
+# A asserção final do patch original procura a forma Android literal de limit;
+# no Windows as alterações funcionais já foram gravadas, então a validação
+# específica desta camada é feita abaixo.
+# ---------------------------------------------------------------------------
 old_argv = sys.argv[:]
 try:
     sys.argv = [
@@ -40,9 +50,89 @@ try:
 finally:
     sys.argv = old_argv
 
+# ---------------------------------------------------------------------------
+# Coordenador real do Windows v3.30.0:
+# - antes: consulta automática a cada 75 s e só sincroniza se houver fila local;
+# - agora: consulta a Central a cada 10 s, mesmo com fila local limpa;
+# - mídia continua fora do caminho crítico do sync estruturado.
+# ---------------------------------------------------------------------------
+coord = coordp.read_text(encoding='utf-8')
+coord = coord.replace(
+    """      Platform.isWindows
+          ? const Duration(seconds: 75)
+          : const Duration(seconds: 45),
+      (_) => _trySync(deviceOnly: true),
+""",
+    """      Platform.isWindows
+          ? const Duration(seconds: 10)
+          : const Duration(seconds: 45),
+      (_) => _trySync(
+        deviceOnly: true,
+        force: true,
+        pullWhenClean: true,
+      ),
+""",
+    1,
+)
+
+coord = coord.replace(
+    '  Future<void> _trySync({bool deviceOnly = false}) async {',
+    """  Future<void> _trySync({
+    bool deviceOnly = false,
+    bool force = false,
+    bool pullWhenClean = false,
+  }) async {""",
+    1,
+)
+
+coord = coord.replace(
+    """    if (deviceOnly) {
+      try {
+        final localPending = await DeviceSyncService.pendingChangesCount();
+        if (localPending == 0) return;
+      } catch (_) {
+        return;
+      }
+    }
+""",
+    """    if (deviceOnly && !pullWhenClean) {
+      try {
+        final localPending = await DeviceSyncService.pendingChangesCount();
+        if (localPending == 0) return;
+      } catch (_) {
+        return;
+      }
+    }
+""",
+    1,
+)
+
+coord = coord.replace(
+    '    if (nextAttempt != null && DateTime.now().isBefore(nextAttempt)) return;',
+    '    if (!force && nextAttempt != null && DateTime.now().isBefore(nextAttempt)) return;',
+    1,
+)
+
+coord = coord.replace(
+    """        result = await DeviceSyncService.synchronize(
+          syncMedia: Platform.isWindows ? false : null,
+        );
+""",
+    """        result = await DeviceSyncService.synchronize(
+          force: force,
+          syncMedia: Platform.isWindows ? false : null,
+        );
+""",
+    1,
+)
+coordp.write_text(coord, encoding='utf-8', newline='\n')
+
+# ---------------------------------------------------------------------------
+# Validação funcional específica do Windows.
+# ---------------------------------------------------------------------------
 pub = (root / 'pubspec.yaml').read_text(encoding='utf-8')
 sync = syncp.read_text(encoding='utf-8')
-coord = (root / 'lib/services/sync_coordinator.dart').read_text(encoding='utf-8')
+coord = coordp.read_text(encoding='utf-8')
 dds = (root / 'lib/screens/sst_records_screen.dart').read_text(encoding='utf-8')
 media = (root / 'lib/services/media_sync_service.dart').read_text(encoding='utf-8')
 db = (root / 'lib/database.dart').read_text(encoding='utf-8')
@@ -51,13 +141,17 @@ assert 'version: 3.30.1+188' in pub
 assert (
     'final pullLimit = isWindows ? 500 : 100;' in sync
     or 'final pullLimit = isWindows ? 500 : 300;' in sync
-    or "'limit': 500," in sync
 )
-assert 'Duration(seconds: 10)' in coord
+assert 'final pullPages = isWindows ? (force ? 60 : 4) : 12;' in sync
+assert '? const Duration(seconds: 10)' in coord
+assert 'pullWhenClean: true' in coord
+assert 'bool pullWhenClean = false' in coord
+assert 'force: force' in coord
+assert 'if (!force && nextAttempt != null' in coord
 assert 'Retirar ficha do DDS' in dds
 assert 'Histórico permanente de DDS' in dds
 assert 'FICHA_DDS_' in dds
 assert "type == 'DDS' ? 'date DESC'" in db
 assert '_postReliable(' in media
 assert 'continuam salvas no computador' in media
-print('Windows v3.30.1 compatível: pull 500 + sync rápido + histórico DDS + mídia resiliente.')
+print('Windows v3.30.1 compatível: pull 500/60 páginas + consulta 10s + DDS histórico/ficha + mídia resiliente.')
