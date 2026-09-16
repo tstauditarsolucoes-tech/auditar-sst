@@ -1,0 +1,21 @@
+name: DIAG GS Deploy Path
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths: ['.github/workflows/diag-gs-deploy-path.yml']
+permissions:
+  contents: read
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Procurar deploy e hotfixes GS
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '=== referencias em workflows/tools ==='
+          grep -RniE 'clasp|script\.google|apps.?script|deployment|deploy|GEMINI_API|GOOGLE_.*(KEY|TOKEN|CRED)|AI_PHOTO_FAILED|AI_TEMPORARILY_UNAVAILABLE' .github tools source_overrides build_sources --exclude-dir=.git || true
+          echo '=== arquivos GS e manifests ==='
+          find . -type f \( -name '*.gs' -o -name 'appsscript.json' -o -name '.clasp.json' \) -print | sort
