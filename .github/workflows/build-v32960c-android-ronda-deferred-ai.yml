@@ -6,6 +6,7 @@ on:
     branches: [build-v3.29.38-central-recovery]
     paths:
       - ".github/workflows/build-v32960c-android-ronda-deferred-ai.yml"
+      - "tools/patch_ronda_deferred_ai_timeout_v32960.py"
 
 permissions:
   contents: read
