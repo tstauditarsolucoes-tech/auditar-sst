@@ -59,6 +59,26 @@ jobs:
         run: |
           set -euo pipefail
           python tools/patch_company_logo_persistence_v32954_v3303.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('app/Auditar_SST_v1_5_dashboard/lib/screens/companies_screen.dart')
+          s=p.read_text(encoding='utf-8')
+          old="""      await DeviceSyncService.synchronize(
+                  force: true,
+                  syncMedia: false,
+                ).timeout(const Duration(seconds: 45));"""
+          if old not in s:
+            old="""      await DeviceSyncService.synchronize(
+                force: true,
+                syncMedia: false,
+              ).timeout(const Duration(seconds: 45));"""
+          assert old in s, 'bloco syncMedia Android não encontrado'
+          new="""      await DeviceSyncService.synchronize(
+                force: true,
+              ).timeout(const Duration(seconds: 45));"""
+          s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+          PY
           grep -q 'version: 3.29.54+196' "$APP_DIR/pubspec.yaml"
 
       - uses: subosito/flutter-action@v2
@@ -102,6 +122,7 @@ jobs:
           assert 'uploadCompanyLogoNow' in media
           assert 'MediaSyncService.restoreCompanyLogos' in comp
           assert 'MediaSyncService.uploadCompanyLogoNow' in comp
+          assert 'syncMedia: false' not in comp
           assert "'companies': {'logo_path'}" in sync
           assert 'Duration(seconds: 2)' in coord
           assert 'Duration(seconds: 10)' in coord
