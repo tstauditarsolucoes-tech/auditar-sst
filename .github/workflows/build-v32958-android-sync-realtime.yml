@@ -129,6 +129,7 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
+          import re
           pub=Path('pubspec.yaml').read_text(encoding='utf-8')
           coord=Path('lib/services/sync_coordinator.dart').read_text(encoding='utf-8')
           dev=Path('lib/services/device_sync_service.dart').read_text(encoding='utf-8')
@@ -143,9 +144,9 @@ jobs:
           assert 'Duration(seconds: 5)' in coord
           assert dev.count("'limit': 500,") >= 2
           assert '_lastAutoMediaKick' in dev
-          assert 'MediaSyncService.uploadPending(limit: 1)' in dev
+          assert re.search(r'MediaSyncService\s*\.uploadPending\(\s*limit:\s*1,?\s*\)', dev, re.S)
           assert 'MediaSyncService.downloadMissing().timeout' not in dev
-          assert 'uploadPending({int limit = 40})' in media
+          assert re.search(r'uploadPending\(\{\s*int limit = 40\s*\}\)', media, re.S)
           assert 'limit: batchLimit' in media
           assert '_deviceRefreshDebounce' in home
           assert 'DeviceSyncService.events.listen' in comp
