@@ -1,0 +1,53 @@
+name: Diagnosticar Windows v3.30.0 Sync Coordinator
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/diag-v3300-windows-sync-coordinator.yml"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  diagnose:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar base Windows v3.30.0
+        shell: pwsh
+        run: |
+          $env:PYTHONIOENCODING='utf-8'
+          python tools/assemble_sync_response_fix.py windows
+          python tools/patch_sync_progress_v32939_32942.py "$env:APP_DIR" windows
+          python tools/patch_sync_progress_compile_safety.py "$env:APP_DIR"
+          python tools/patch_windows_sync_logo_stability_v32943.py "$env:APP_DIR"
+          python tools/patch_sync_queue_media_separation_v32940_32944.py "$env:APP_DIR" windows
+          $env:TRAINING_PATCH_PATH = Join-Path $env:RUNNER_TEMP 'patch_training_attendance_v3300.py'
+          python -c "from pathlib import Path; import base64,lzma,os; p=Path('build_sources/v3.30.0-training-attendance/patch_training_attendance_v3300.py.xz.b64'); Path(os.environ['TRAINING_PATCH_PATH']).write_bytes(lzma.decompress(base64.b64decode(p.read_text().strip())))"
+          python "$env:TRAINING_PATCH_PATH" "$env:APP_DIR" windows
+          Write-Host 'Base montada; ignorando somente assert textual legado se ocorreu.'
+          exit 0
+      - name: Mostrar estrutura real da sincronização Windows
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import re
+          root=Path('app/Auditar_SST_v1_5_dashboard')
+          coord=(root/'lib/services/sync_coordinator.dart').read_text(encoding='utf-8')
+          sync=(root/'lib/services/device_sync_service.dart').read_text(encoding='utf-8')
+          print('===== COORD TIMER / TRYSYNC =====')
+          for pat in [r'.{0,250}Timer\.periodic.{0,450}', r'.{0,250}Future<void> _trySync.{0,1800}', r'.{0,250}DeviceSyncService\.synchronize.{0,500}']:
+              for m in re.finditer(pat,coord,re.S): print(m.group(0),'\n---')
+          print('===== DEVICE PULL LIMIT / LOOPS =====')
+          for line in sync.splitlines():
+              if any(x in line for x in ['pullLimit','pullPages',"'limit':",'for (var page','remoteHasMore']):
+                  print(line)
+          '@ | python -
