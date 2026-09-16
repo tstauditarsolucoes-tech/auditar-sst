@@ -1,0 +1,47 @@
+name: DIAG Live AI Text vs Image
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/diag-live-ai-text-vs-image.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Comparar chamadas
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, urllib.request, time, base64
+          endpoint='https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec'
+          key=os.environ['AUDITAR_SYNC_KEY']
+          # PNG 1x1 conhecido e válido, apenas para separar erro de imagem vs esquema/modelo.
+          png='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z8O0AAAAASUVORK5CYII='
+          tests=[
+            ('text_company', {'mode':'company_priorities','companyData':{'empresa':'Teste Auditar','conformidade':80,'naoConformidadesAbertas':2}}),
+            ('text_report', {'mode':'report_conclusion','inspectionData':{'empresa':'Teste Auditar','achados':['Teste sem imagem']}}),
+            ('image_company_png', {'mode':'company_priorities','companyData':{'empresa':'Teste Auditar','contexto':'Considere a imagem.'},'images':['data:image/png;base64,'+png]}),
+            ('image_checklist_png', {'mode':'checklist_photo','companyName':'Teste Auditar','area':'Teste','question':'Descreva a imagem','category':'Teste','reference':'','technicianContext':'Teste','images':['data:image/png;base64,'+png]}),
+          ]
+          for name,payload in tests:
+              body=json.dumps({'action':'ai_assistant','syncKey':key,'payload':payload}).encode()
+              req=urllib.request.Request(endpoint,data=body,headers={'Content-Type':'application/json'},method='POST')
+              t=time.time()
+              try:
+                  with urllib.request.urlopen(req,timeout=70) as r:
+                      raw=r.read().decode('utf-8','replace')
+                      print(name,'MS=',round((time.time()-t)*1000),'BODY=',raw)
+              except Exception as e:
+                  print(name,'EXC=',repr(e),'MS=',round((time.time()-t)*1000))
+          PY
