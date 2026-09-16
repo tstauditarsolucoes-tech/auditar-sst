@@ -1,0 +1,47 @@
+name: DIAG Live AI Image Modes HTTP
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/diag-live-ai-image-modes-http.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Testar modos da Central com a mesma imagem
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, urllib.request, urllib.error, time
+          endpoint='https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec'
+          key=os.environ['AUDITAR_SYNC_KEY']
+          jpg=open('tools/live_ai_probe_extinguisher.jpg.b64','r',encoding='utf-8').read().strip()
+          modes=[
+            ('company_priorities', {'companyData': {'empresa':'Teste Auditar','contexto':'Analise a imagem como registro de SST. Descreva somente o que é visível e indique prioridades práticas.'}}),
+            ('report_conclusion', {'inspectionData': {'empresa':'Teste Auditar','contexto':'Use a imagem como evidência de campo e faça observações objetivas.'}}),
+            ('checklist_photo', {'companyName':'Teste Auditar','area':'Ronda Expressa','question':'Descreva somente o que é visível na imagem.','category':'Ronda Expressa','reference':'','technicianContext':'Teste técnico.'}),
+            ('safety_observation_photo', {'companyName':'Teste Auditar','observationKind':'Condição insegura','sectorName':'Ronda Expressa','location':'Teste','technicianContext':'Teste técnico.'}),
+          ]
+          for mode, extra in modes:
+              payload={'mode':mode,'images':['data:image/jpeg;base64,'+jpg], **extra}
+              body=json.dumps({'action':'ai_assistant','syncKey':key,'payload':payload}).encode()
+              req=urllib.request.Request(endpoint,data=body,headers={'Content-Type':'application/json'},method='POST')
+              start=time.time()
+              try:
+                  with urllib.request.urlopen(req, timeout=70) as r:
+                      raw=r.read().decode('utf-8','replace')
+                      print('MODE=',mode,'HTTP=',r.status,'MS=',round((time.time()-start)*1000),'BODY=',raw)
+              except Exception as e:
+                  print('MODE=',mode,'EXC=',repr(e),'MS=',round((time.time()-start)*1000))
+          PY
