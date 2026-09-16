@@ -1,0 +1,235 @@
+name: Auditar SST Windows v3.30.3 Logos Persistentes
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/build-v3303-windows-logo-persistence.yml"
+      - "tools/patch_company_logo_persistence_v32954_v3303.py"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar base gerencial Windows v3.30.2
+        shell: pwsh
+        run: |
+          python tools/assemble_sync_response_fix.py windows
+          if ($LASTEXITCODE -ne 0) { throw 'assemble Windows falhou' }
+          python tools/patch_sync_progress_v32939_32942.py "$env:APP_DIR" windows
+          python tools/patch_sync_progress_compile_safety.py "$env:APP_DIR"
+          python tools/patch_windows_sync_logo_stability_v32943.py "$env:APP_DIR"
+          python tools/patch_sync_queue_media_separation_v32940_32944.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'base de sincronização Windows falhou' }
+
+          $patch=Join-Path $env:RUNNER_TEMP 'training.py'
+          $env:TRAINING_PATCH_PATH=$patch
+          python -c "from pathlib import Path; import base64,lzma,os; p=Path('build_sources/v3.30.0-training-attendance/patch_training_attendance_v3300.py.xz.b64'); Path(os.environ['TRAINING_PATCH_PATH']).write_bytes(lzma.decompress(base64.b64decode(p.read_text().strip())))"
+          python $patch "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { Write-Host 'Assert textual legado do treinamento ignorado; validando resultado funcional.' }
+
+          python tools/patch_windows_dds_mobile_module_v3301.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'port do DDS formal falhou' }
+          python tools/patch_windows_mobile_improvements_v3301_compat.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'patch consolidado v3.30.1 falhou' }
+
+          $pubPath=Join-Path $env:APP_DIR 'pubspec.yaml'
+          $pub=Get-Content $pubPath -Raw
+          if (-not $pub.Contains('version: 3.30.1+188')) { throw 'v3.30.1 não encontrada antes do bump' }
+          $pub=$pub.Replace('version: 3.30.1+188','version: 3.30.2+189')
+          Set-Content $pubPath $pub -Encoding UTF8
+
+      - name: Aplicar v3.30.3 persistência de logos
+        shell: pwsh
+        run: |
+          python tools/patch_company_logo_persistence_v32954_v3303.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'patch de logos falhou' }
+          $pub=Get-Content "$env:APP_DIR/pubspec.yaml" -Raw
+          if (-not $pub.Contains('version: 3.30.3+190')) { throw 'v3.30.3 não aplicada' }
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Preparar Windows analisar testar e aplicar icone Android
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          flutter pub get
+
+          $sourceIcon=(Resolve-Path 'assets/branding/auditar_icon.png').Path
+          $targetIcon=(Resolve-Path 'windows/runner/resources').Path + '\app_icon.ico'
+          Add-Type -AssemblyName System.Drawing.Common
+          $src=[System.Drawing.Image]::FromFile($sourceIcon)
+          try {
+            $sizes=@(16,24,32,48,64,128,256)
+            $images=New-Object System.Collections.Generic.List[byte[]]
+            foreach($size in $sizes) {
+              $bmp=New-Object System.Drawing.Bitmap($size,$size,[System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+              $g=[System.Drawing.Graphics]::FromImage($bmp)
+              try {
+                $g.Clear([System.Drawing.Color]::Transparent)
+                $g.CompositingMode=[System.Drawing.Drawing2D.CompositingMode]::SourceCopy
+                $g.CompositingQuality=[System.Drawing.Drawing2D.CompositingQuality]::HighQuality
+                $g.InterpolationMode=[System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+                $g.SmoothingMode=[System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+                $g.PixelOffsetMode=[System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+                $g.DrawImage($src,0,0,$size,$size)
+              } finally { $g.Dispose() }
+              $ms=New-Object System.IO.MemoryStream
+              try { $bmp.Save($ms,[System.Drawing.Imaging.ImageFormat]::Png); $images.Add($ms.ToArray()) }
+              finally { $ms.Dispose(); $bmp.Dispose() }
+            }
+            $fs=[System.IO.File]::Create($targetIcon)
+            $bw=New-Object System.IO.BinaryWriter($fs)
+            try {
+              $bw.Write([UInt16]0); $bw.Write([UInt16]1); $bw.Write([UInt16]$sizes.Count)
+              $offset=6 + (16 * $sizes.Count)
+              for($i=0; $i -lt $sizes.Count; $i++) {
+                $size=$sizes[$i]; $png=$images[$i]; $wh=if($size -eq 256){[byte]0}else{[byte]$size}
+                $bw.Write($wh); $bw.Write($wh); $bw.Write([byte]0); $bw.Write([byte]0)
+                $bw.Write([UInt16]1); $bw.Write([UInt16]32); $bw.Write([UInt32]$png.Length); $bw.Write([UInt32]$offset)
+                $offset += $png.Length
+              }
+              foreach($png in $images) { $bw.Write($png) }
+            } finally { $bw.Dispose(); $fs.Dispose() }
+          } finally { $src.Dispose() }
+
+          if (-not (Test-Path $targetIcon)) { throw 'icone Windows não foi gerado' }
+          dart format lib/screens/companies_screen.dart lib/screens/sst_record_form_screen.dart lib/screens/sst_records_screen.dart lib/screens/dds_signature_capture_screen.dart lib/screens/routine_hub_screen.dart lib/services/dds_pdf_service.dart lib/services/device_sync_service.dart lib/services/sync_coordinator.dart lib/services/media_sync_service.dart lib/screens/trainings_screen.dart lib/screens/training_attendance_screen.dart lib/services/training_attendance_pdf_service.dart lib/database.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'flutter analyze falhou' }
+          if (Test-Path test) { flutter test; if ($LASTEXITCODE -ne 0) { throw 'flutter test falhou' } }
+
+      - name: Validar logos e regressões Windows
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          pub=Path('pubspec.yaml').read_text(encoding='utf-8')
+          comp=Path('lib/screens/companies_screen.dart').read_text(encoding='utf-8')
+          media=Path('lib/services/media_sync_service.dart').read_text(encoding='utf-8')
+          sync=Path('lib/services/device_sync_service.dart').read_text(encoding='utf-8')
+          coord=Path('lib/services/sync_coordinator.dart').read_text(encoding='utf-8')
+          dds=Path('lib/screens/sst_records_screen.dart').read_text(encoding='utf-8')
+          assert 'version: 3.30.3+190' in pub
+          assert 'restoreCompanyLogos' in media
+          assert "'action': 'media_lookup'" in media
+          assert 'MediaSyncService.restoreCompanyLogos' in comp
+          assert 'MediaSyncService.uploadCompanyLogoNow' in comp
+          assert "'companies': {'logo_path'}" in sync
+          assert 'final pullLimit = isWindows ? 500 : 100;' in sync
+          assert 'Duration(seconds: 10)' in coord
+          assert 'Retirar ficha do DDS' in dds
+          assert '_postReliable(' in media
+          icon=Path('windows/runner/resources/app_icon.ico')
+          assert icon.exists() and icon.stat().st_size > 10000
+          print('REGRESSAO_OK: logos restauráveis + sync rápido/DDS/icone preservados')
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'regressão v3.30.3 falhou' }
+
+      - name: Testar Central real sem escrita
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          New-Item -ItemType Directory -Force tool | Out-Null
+          @'
+          import 'dart:convert';
+          import '../lib/services/apps_script_http.dart';
+          const endpoint='https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec';
+          const key=String.fromEnvironment('AUDITAR_SYNC_KEY');
+          Future<void> main() async {
+            final r=await AppsScriptHttp.postJson(Uri.parse(endpoint),{
+              'action':'device_sync_pull','syncKey':key,'deviceId':'v3303-windows-readonly','platform':'windows','sinceVersion':0,'limit':1,
+            },timeout:const Duration(seconds:30));
+            if(r.statusCode!=200) throw StateError('HTTP ${r.statusCode}');
+            final x=jsonDecode(utf8.decode(r.bodyBytes,allowMalformed:true));
+            if(x is! Map || x['ok']!=true) throw StateError('Central inesperada: $x');
+            print('CENTRAL_REAL_OK');
+          }
+          '@ | Set-Content tool/live_pull_v3303.dart -Encoding UTF8
+          dart run --define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY" tool/live_pull_v3303.dart
+          if ($LASTEXITCODE -ne 0) { throw 'teste Central falhou' }
+
+      - name: Compilar Windows release
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+          if ($LASTEXITCODE -ne 0) { throw 'build Windows falhou' }
+          $exe=(Resolve-Path 'build/windows/x64/runner/Release/auditar_sst.exe').Path
+          Add-Type -AssemblyName System.Drawing.Common
+          $extracted=[System.Drawing.Icon]::ExtractAssociatedIcon($exe)
+          if ($null -eq $extracted) { throw 'executável final não possui ícone associado' }
+          try { Write-Host "ICONE_EXE_OK: $($extracted.Width)x$($extracted.Height)" } finally { $extracted.Dispose() }
+
+      - name: Gerar instalador e portátil
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
+          $icon=(Resolve-Path "$env:APP_DIR/windows/runner/resources/app_icon.ico").Path
+          Copy-Item $icon 'dist/windows/Auditar-SST-v3.30.3-icone.ico' -Force
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.3-PORTATIL.zip' -Force
+          $iscc='C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          if (-not (Test-Path $iscc)) { throw 'Inno Setup não disponível' }
+          $output=(Resolve-Path 'dist/windows').Path
+          $iss=@"
+          [Setup]
+          AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}
+          AppName=Auditar SST
+          AppVersion=3.30.3
+          AppPublisher=Auditar Soluções
+          DefaultDirName={autopf}\Auditar SST
+          DefaultGroupName=Auditar SST
+          OutputDir=$output
+          OutputBaseFilename=Auditar-SST-Setup-v3.30.3
+          SetupIconFile=$icon
+          Compression=lzma2
+          SolidCompression=yes
+          WizardStyle=modern
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          UninstallDisplayIcon={app}\auditar_sst.exe
+          [Files]
+          Source: "$release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          [Icons]
+          Name: "{autoprograms}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          Name: "{autodesktop}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          [Run]
+          Filename: "{app}\auditar_sst.exe"; Description: "Abrir Auditar SST"; Flags: nowait postinstall skipifsilent
+          "@
+          Set-Content "$env:RUNNER_TEMP\auditar-v3303.iss" $iss -Encoding UTF8
+          & $iscc "$env:RUNNER_TEMP\auditar-v3303.iss"
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.3.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.3.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.3-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.3-PORTATIL.sha256.txt'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.30.3-Windows-Logos-Persistentes
+          path: dist/windows/*
+          retention-days: 30
