@@ -1,0 +1,75 @@
+name: DIAG Live AI Image Modes
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/diag-live-ai-image-modes.yml"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Montar transporte Android atual
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/assemble_sync_response_fix.py android
+          python tools/patch_sync_queue_android_v32940_v2.py "$APP_DIR"
+          python tools/patch_android_transport_guard_v32941.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_v32942.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_compile_fix.py "$APP_DIR"
+          python tools/patch_android_transport_ipv4_redirect_v32949.py "$APP_DIR"
+          python tools/patch_ronda_ai_long_timeout_v32959.py "$APP_DIR" || true
+      - name: Testar imagem em esquemas alternativos
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${AUDITAR_SYNC_KEY:-}"
+          mkdir -p tool
+          cp "$GITHUB_WORKSPACE/tools/live_ai_probe_extinguisher.jpg.b64" tool/probe.b64
+          cat > tool/probe_modes.dart <<'DART'
+          import 'dart:convert';
+          import 'dart:io';
+          import '../lib/services/apps_script_http.dart';
+          const endpoint='https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec';
+          const key=String.fromEnvironment('AUDITAR_SYNC_KEY');
+          Future<void> probe(String mode, Map<String,Object?> extra) async {
+            final jpg=File('tool/probe.b64').readAsStringSync().trim();
+            final payload=<String,Object?>{'mode':mode,'images':['data:image/jpeg;base64,$jpg'],...extra};
+            final sw=Stopwatch()..start();
+            final r=await AppsScriptHttp.postJson(Uri.parse(endpoint),{'action':'ai_assistant','syncKey':key,'payload':payload},timeout:const Duration(seconds:55),allowLongAndroidRequest:true);
+            sw.stop();
+            final body=utf8.decode(r.bodyBytes,allowMalformed:true);
+            print('MODE=$mode HTTP=${r.statusCode} MS=${sw.elapsedMilliseconds} BODY=$body');
+          }
+          Future<void> main() async {
+            AppsScriptHttp.forceAndroidDirectForTesting=true;
+            await probe('company_priorities',{
+              'companyData':{'empresa':'Teste Auditar','contexto':'Analise a imagem como registro de SST; descreva o que é visível, riscos, prioridade e ações sem inventar.'}
+            });
+            await probe('report_conclusion',{
+              'inspectionData':{'empresa':'Teste Auditar','contexto':'Use a imagem como evidência de campo e descreva observações, riscos e recomendações.'}
+            });
+            await probe('safety_observation_photo',{
+              'companyName':'Teste Auditar','observationKind':'Condição insegura','sectorName':'Ronda Expressa','location':'Teste','technicianContext':'Teste de imagem.'
+            });
+          }
+          DART
+          dart run --define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY" tool/probe_modes.dart
