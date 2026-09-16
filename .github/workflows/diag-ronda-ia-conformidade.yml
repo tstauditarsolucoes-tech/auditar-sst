@@ -50,21 +50,22 @@ jobs:
           python tools/patch_dds_sector_optional_v32952.py "$APP_DIR"
           python tools/patch_dds_history_media_retry_v32953.py "$APP_DIR"
           python tools/patch_company_logo_persistence_v32954_v3303.py "$APP_DIR" android
-      - name: Mostrar fonte da Ronda e IA
+      - name: Mostrar fonte da Ronda IA observações e PDF
         working-directory: ${{ env.APP_DIR }}
         shell: bash
         run: |
           set -euo pipefail
           echo '===== EXPRESS ROUND ====='
-          sed -n '1,1400p' lib/screens/express_round_screen.dart || true
-          echo '===== AI SERVICE INDEX ====='
-          grep -RniE "class .*Ai|analy.*photo|photo.*analy|Gemini|generateContent|review|report|checklist" lib/services lib/screens | head -n 300 || true
-          echo '===== AI ASSISTANT ====='
-          sed -n '1,900p' lib/services/ai_assistant_service.dart || true
-          echo '===== DATABASE ROUND/OBSERVATION ====='
-          grep -nE "express|round|observation|safety_observation|inspection" lib/database.dart | head -n 300 || true
-          echo '===== MODELS ====='
-          grep -RniE "class .*Observation|class .*Inspection|class .*Action" lib/models.dart lib/models 2>/dev/null | head -n 200 || true
-          echo '===== PDF SERVICES ====='
-          ls lib/services/*pdf* 2>/dev/null || true
-          grep -RniE "SafetyObservation|observation|Relat.rio|N.o Conformidade|Conformidade" lib/services/*pdf* lib/screens/report_screen.dart 2>/dev/null | head -n 300 || true
+          sed -n '1,900p' lib/screens/express_round_screen.dart || true
+          echo '===== SAFETY OBS SCREEN AI ====='
+          grep -nE "AiAssistant|analyzeSafety|_analy|aiBusy|suggest|result\[|observationKind" lib/screens/safety_observations_screen.dart || true
+          sed -n '1,700p' lib/screens/safety_observations_screen.dart || true
+          echo '===== SAFETY OBS PDF ====='
+          sed -n '1,420p' lib/services/safety_observation_pdf_service.dart || true
+          echo '===== SST RECORD MODEL ====='
+          grep -n "class SstRecord" lib/models.dart || true
+          sed -n '520,700p' lib/models.dart || true
+          echo '===== DATABASE SST METHODS ====='
+          grep -nE "SstRecord|getSstRecords|upsertSstRecord|deleteSstRecord" lib/database.dart || true
+          echo '===== AI SAFETY METHOD ====='
+          sed -n '130,230p' lib/services/ai_assistant_service.dart || true
