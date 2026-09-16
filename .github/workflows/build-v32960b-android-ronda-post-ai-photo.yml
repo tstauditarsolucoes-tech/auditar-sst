@@ -126,10 +126,10 @@ jobs:
           assert 'Analisar agora com IA (opcional)' in ronda
           assert 'somente ao finalizar a ronda' in ronda
           assert 'await ManagementPanelService.syncCompany(widget.company)' not in ronda
-          print('REGRESSAO_OK v3.29.60: coleta sem espera, IA pos-campo, foto compacta e sync preservado')
+          print('REGRESSAO_OK v3.29.60: coleta sem espera, IA pos-campo, foto normalizada e sync preservado')
           PY
 
-      - name: Testar Central e IA real de foto
+      - name: Testar Central e IA real com JPEG normalizado
         working-directory: ${{ env.APP_DIR }}
         shell: bash
         env:
@@ -138,10 +138,10 @@ jobs:
           set -euo pipefail
           test -n "${AUDITAR_SYNC_KEY:-}"
           mkdir -p tool
-          cp "$GITHUB_WORKSPACE/tools/live_ai_probe_extinguisher.jpg.b64" tool/probe.b64
           cat > tool/live_services.dart <<'DART'
           import 'dart:convert';
-          import 'dart:io';
+          import 'dart:typed_data';
+          import 'package:image/image.dart' as img;
           import '../lib/services/apps_script_http.dart';
           const endpoint='https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec';
           const key=String.fromEnvironment('AUDITAR_SYNC_KEY');
@@ -152,6 +152,14 @@ jobs:
             if(x is! Map) throw StateError('JSON inesperado');
             return Map<String,dynamic>.from(x);
           }
+          Uint8List normalizedJpeg(){
+            const png='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z8O0AAAAASUVORK5CYII=';
+            final decoded=img.decodeImage(base64Decode(png));
+            if(decoded==null) throw StateError('PNG de teste invalido');
+            final sanitized=img.Image(width:decoded.width,height:decoded.height,numChannels:3);
+            img.compositeImage(sanitized,decoded);
+            return Uint8List.fromList(img.encodeJpg(sanitized,quality:55));
+          }
           Future<void> main() async {
             AppsScriptHttp.forceAndroidDirectForTesting=true;
             final pullSw=Stopwatch()..start();
@@ -159,12 +167,15 @@ jobs:
             pullSw.stop();
             if(pull['ok']!=true) throw StateError('Central: $pull');
             print('CENTRAL_REAL_OK ${pullSw.elapsedMilliseconds}ms');
-            final jpg=File('tool/probe.b64').readAsStringSync().trim();
+            final jpg=normalizedJpeg();
+            if(jpg.length<4 || jpg[0]!=0xFF || jpg[1]!=0xD8) throw StateError('JPEG normalizado invalido');
             final aiSw=Stopwatch()..start();
-            final ai=await post({'action':'ai_assistant','syncKey':key,'payload':{'mode':'checklist_photo','companyName':'Teste Auditar','area':'Ronda Expressa','question':'Descreva de forma breve apenas o que é visível nesta imagem de teste.','category':'Ronda Expressa','reference':'','technicianContext':'Teste técnico sem gravação de dados.','images':['data:image/jpeg;base64,$jpg']}},long:true);
+            final ai=await post({'action':'ai_assistant','syncKey':key,'payload':{'mode':'checklist_photo','companyName':'Teste Auditar','area':'Ronda Expressa','question':'Descreva de forma breve apenas o que é visível nesta imagem de teste.','category':'Ronda Expressa','reference':'','technicianContext':'Teste técnico sem gravação de dados.','images':['data:image/jpeg;base64,${base64Encode(jpg)}']}},long:true);
             aiSw.stop();
-            if(ai['ok']!=true || ai['result'] is! Map) throw StateError('IA foto: $ai');
-            print('AI_PHOTO_REAL_OK ${aiSw.elapsedMilliseconds}ms jpegBytes=${base64Decode(jpg).length}');
+            if(ai['ok']!=true || ai['result'] is! Map) throw StateError('IA foto normalizada: $ai');
+            final result=Map<String,dynamic>.from(ai['result'] as Map);
+            if('${result['description']??''}'.trim().isEmpty) throw StateError('IA sem descricao: $ai');
+            print('AI_PHOTO_NORMALIZED_OK ${aiSw.elapsedMilliseconds}ms jpegBytes=${jpg.length}');
           }
           DART
           dart run --define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY" tool/live_services.dart
