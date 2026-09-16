@@ -10,9 +10,7 @@ root = Path(sys.argv[1])
 syncp = root / 'lib/services/device_sync_service.dart'
 coordp = root / 'lib/services/sync_coordinator.dart'
 
-# ---------------------------------------------------------------------------
 # Estrutura real do Windows: pullLimit/pullPages em variáveis.
-# ---------------------------------------------------------------------------
 sync = syncp.read_text(encoding='utf-8')
 sync = sync.replace(
     'final pullLimit = isWindows ? 100 : 100;',
@@ -31,12 +29,9 @@ sync = sync.replace(
 )
 syncp.write_text(sync, encoding='utf-8', newline='\n')
 
-# ---------------------------------------------------------------------------
 # Aplica histórico DDS + ficha PDF + retry de mídia do patch consolidado.
 # A asserção final do patch original procura a forma Android literal de limit;
-# no Windows as alterações funcionais já foram gravadas, então a validação
-# específica desta camada é feita abaixo.
-# ---------------------------------------------------------------------------
+# no Windows as alterações funcionais já foram gravadas, então validamos abaixo.
 old_argv = sys.argv[:]
 try:
     sys.argv = [
@@ -50,28 +45,23 @@ try:
 finally:
     sys.argv = old_argv
 
-# ---------------------------------------------------------------------------
-# Coordenador real do Windows v3.30.0:
-# - antes: consulta automática a cada 75 s e só sincroniza se houver fila local;
-# - agora: consulta a Central a cada 10 s, mesmo com fila local limpa;
-# - mídia continua fora do caminho crítico do sync estruturado.
-# ---------------------------------------------------------------------------
+# Coordenador real do Windows v3.30.0. O patch principal pode ter alterado o
+# callback antes desta camada; por isso o intervalo é trocado separadamente.
 coord = coordp.read_text(encoding='utf-8')
 coord = coord.replace(
-    """      Platform.isWindows
-          ? const Duration(seconds: 75)
-          : const Duration(seconds: 45),
-      (_) => _trySync(deviceOnly: true),
-""",
-    """      Platform.isWindows
-          ? const Duration(seconds: 10)
-          : const Duration(seconds: 45),
-      (_) => _trySync(
+    '? const Duration(seconds: 75)',
+    '? const Duration(seconds: 10)',
+    1,
+)
+
+# Garante callback de consulta remota mesmo quando não existe fila local.
+coord = coord.replace(
+    '      (_) => _trySync(deviceOnly: true),',
+    """      (_) => _trySync(
         deviceOnly: true,
         force: true,
         pullWhenClean: true,
-      ),
-""",
+      ),""",
     1,
 )
 
@@ -127,9 +117,7 @@ coord = coord.replace(
 )
 coordp.write_text(coord, encoding='utf-8', newline='\n')
 
-# ---------------------------------------------------------------------------
 # Validação funcional específica do Windows.
-# ---------------------------------------------------------------------------
 pub = (root / 'pubspec.yaml').read_text(encoding='utf-8')
 sync = syncp.read_text(encoding='utf-8')
 coord = coordp.read_text(encoding='utf-8')
@@ -138,10 +126,7 @@ media = (root / 'lib/services/media_sync_service.dart').read_text(encoding='utf-
 db = (root / 'lib/database.dart').read_text(encoding='utf-8')
 
 assert 'version: 3.30.1+188' in pub
-assert (
-    'final pullLimit = isWindows ? 500 : 100;' in sync
-    or 'final pullLimit = isWindows ? 500 : 300;' in sync
-)
+assert 'final pullLimit = isWindows ? 500 : 100;' in sync
 assert 'final pullPages = isWindows ? (force ? 60 : 4) : 12;' in sync
 assert '? const Duration(seconds: 10)' in coord
 assert 'pullWhenClean: true' in coord
