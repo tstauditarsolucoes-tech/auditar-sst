@@ -1,0 +1,193 @@
+name: Auditar SST Android v3.29.60b Ronda Pos IA Foto
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/build-v32960b-android-ronda-post-ai-photo.yml"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar fonte Android v3.29.60
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/assemble_sync_response_fix.py android
+          python tools/patch_sync_queue_android_v32940_v2.py "$APP_DIR"
+          python tools/patch_android_transport_guard_v32941.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_v32942.py "$APP_DIR"
+          python tools/patch_android_dns_bypass_compile_fix.py "$APP_DIR"
+          python tools/patch_android_offline_background_sync_v32943.py "$APP_DIR"
+          python tools/patch_android_offline_compile_fix_v32943.py "$APP_DIR"
+          python tools/patch_android_sync_immediate_v32944.py "$APP_DIR"
+          python tools/patch_android_sync_first_pull_v32945.py "$APP_DIR"
+          python tools/patch_android_sync_core_v32946.py "$APP_DIR"
+          python tools/patch_dds_digital_signature_v32947.py "$APP_DIR"
+          python tools/patch_dds_formal_pdf_v32948.py "$APP_DIR"
+          python tools/patch_dds_formal_pdf_compile_fix_v32948.py "$APP_DIR"
+          python tools/patch_android_transport_ipv4_redirect_v32949.py "$APP_DIR"
+          python - <<'PY'
+          from pathlib import Path
+          root=Path('app/Auditar_SST_v1_5_dashboard')
+          pub=root/'pubspec.yaml'; coord=root/'lib/services/sync_coordinator.dart'
+          p=pub.read_text(encoding='utf-8'); c=coord.read_text(encoding='utf-8')
+          p=p.replace('version: 3.29.49+191','version: 3.29.50+192',1)
+          c=c.replace("const Duration(seconds: 10),\n      (_) => _trySync(deviceOnly: true, force: true),","const Duration(seconds: 2),\n      (_) => _trySync(deviceOnly: true, force: true),",1)
+          c=c.replace("const Duration(seconds: 30),\n      (_) {\n        _trySync(deviceOnly: true, force: true, pullWhenClean: true);\n        _tryAutoBackup();\n      },","const Duration(seconds: 10),\n      (_) {\n        _trySync(deviceOnly: true, force: true, pullWhenClean: true);\n      },",1)
+          pub.write_text(p,encoding='utf-8'); coord.write_text(c,encoding='utf-8')
+          PY
+          python tools/patch_android_sync_latency_refresh_v32951.py "$APP_DIR"
+          python tools/patch_dds_sector_optional_v32952.py "$APP_DIR"
+          python tools/patch_dds_history_media_retry_v32953.py "$APP_DIR"
+          python tools/patch_company_logo_persistence_v32954_v3303.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          import re,base64,lzma
+          p=Path('app/Auditar_SST_v1_5_dashboard/lib/screens/companies_screen.dart')
+          s=p.read_text(encoding='utf-8')
+          s=re.sub(r'^\s*syncMedia:\s*false,\s*$', '', s, flags=re.M)
+          p.write_text(s,encoding='utf-8')
+          src=Path('build_sources/v3.29.55-ronda-ia-conformidade/patch_express_round_ai_conformity_v32955_v3304.py.xz.b64')
+          Path('/tmp/patch_ronda.py').write_bytes(lzma.decompress(base64.b64decode(src.read_text().strip())))
+          PY
+          python /tmp/patch_ronda.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          r=Path('app/Auditar_SST_v1_5_dashboard/lib/screens/express_round_screen.dart')
+          s=r.read_text(encoding='utf-8').replace('    final context = <String>[','    final technicianContext = <String>[',1).replace('      technicianContext: context,','      technicianContext: technicianContext,',1)
+          r.write_text(s,encoding='utf-8')
+          p=Path('app/Auditar_SST_v1_5_dashboard/lib/services/express_round_pdf_service.dart')
+          x=p.read_text(encoding='utf-8').replace('company.cnpj.trim().isNotEmpty', "(company.cnpj ?? '').trim().isNotEmpty").replace("_tableRow('CNPJ', company.cnpj)", "_tableRow('CNPJ', company.cnpj ?? '')")
+          p.write_text(x,encoding='utf-8')
+          PY
+          python tools/patch_ronda_ai_final_conclusion_v32956.py "$APP_DIR"
+          python tools/patch_sync_priority_v32957.py "$APP_DIR"
+          python tools/patch_sync_realtime_restore_v32958.py "$APP_DIR"
+          python tools/patch_ronda_ai_long_timeout_v32959.py "$APP_DIR"
+          python tools/patch_ronda_post_ai_photo_v32960.py "$APP_DIR"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Analisar e testar
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          dart format lib/screens/express_round_screen.dart lib/services/ai_assistant_service.dart lib/services/apps_script_http.dart lib/services/sync_coordinator.dart lib/services/device_sync_service.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+
+      - name: Regressao funcional
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          pub=Path('pubspec.yaml').read_text(encoding='utf-8')
+          coord=Path('lib/services/sync_coordinator.dart').read_text(encoding='utf-8')
+          dev=Path('lib/services/device_sync_service.dart').read_text(encoding='utf-8')
+          http=Path('lib/services/apps_script_http.dart').read_text(encoding='utf-8')
+          ai=Path('lib/services/ai_assistant_service.dart').read_text(encoding='utf-8')
+          ronda=Path('lib/screens/express_round_screen.dart').read_text(encoding='utf-8')
+          assert 'version: 3.29.60+202' in pub
+          assert 'Duration(seconds: 2)' in coord and 'Duration(seconds: 5)' in coord
+          assert dev.count("'limit': 500,") >= 2
+          assert 'androidDirect && !allowLongAndroidRequest' in http
+          assert re.search(r'allowLongAndroidRequest\s*:\s*true', ai)
+          assert "'mode': 'checklist_photo'" in ai
+          assert '_prepareRoundPhotoForAi' in ai and 'maxDimension = 720' in ai and 'quality: 55' in ai
+          assert re.search(r"'aiStatus'\s*:\s*photoPath\.isEmpty", ronda, re.S)
+          assert '_analyzePendingRoundPhotos' in ronda and '_pendingPhotoAiCount' in ronda
+          assert 'Analisar agora com IA (opcional)' in ronda
+          assert 'somente ao finalizar a ronda' in ronda
+          assert 'await ManagementPanelService.syncCompany(widget.company)' not in ronda
+          print('REGRESSAO_OK v3.29.60: coleta sem espera, IA pos-campo, foto compacta e sync preservado')
+          PY
+
+      - name: Testar Central e IA real de foto
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${AUDITAR_SYNC_KEY:-}"
+          mkdir -p tool
+          cp ../../../tools/live_ai_probe_extinguisher.jpg.b64 tool/probe.b64
+          cat > tool/live_services.dart <<'DART'
+          import 'dart:convert';
+          import 'dart:io';
+          import '../lib/services/apps_script_http.dart';
+          const endpoint='https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec';
+          const key=String.fromEnvironment('AUDITAR_SYNC_KEY');
+          Future<Map<String,dynamic>> post(Map<String,Object?> body,{bool long=false}) async {
+            final r=await AppsScriptHttp.postJson(Uri.parse(endpoint),body,timeout:Duration(seconds:long?55:30),allowLongAndroidRequest:long);
+            if(r.statusCode!=200) throw StateError('HTTP ${r.statusCode}');
+            final x=jsonDecode(utf8.decode(r.bodyBytes,allowMalformed:true));
+            if(x is! Map) throw StateError('JSON inesperado');
+            return Map<String,dynamic>.from(x);
+          }
+          Future<void> main() async {
+            AppsScriptHttp.forceAndroidDirectForTesting=true;
+            final pullSw=Stopwatch()..start();
+            final pull=await post({'action':'device_sync_pull','syncKey':key,'deviceId':'v32960b-readonly','platform':'android','sinceVersion':0,'limit':1});
+            pullSw.stop();
+            if(pull['ok']!=true) throw StateError('Central: $pull');
+            print('CENTRAL_REAL_OK ${pullSw.elapsedMilliseconds}ms');
+            final jpg=File('tool/probe.b64').readAsStringSync().trim();
+            final aiSw=Stopwatch()..start();
+            final ai=await post({'action':'ai_assistant','syncKey':key,'payload':{'mode':'checklist_photo','companyName':'Teste Auditar','area':'Ronda Expressa','question':'Descreva de forma breve apenas o que é visível nesta imagem de teste.','category':'Ronda Expressa','reference':'','technicianContext':'Teste técnico sem gravação de dados.','images':['data:image/jpeg;base64,$jpg']}},long:true);
+            aiSw.stop();
+            if(ai['ok']!=true || ai['result'] is! Map) throw StateError('IA foto: $ai');
+            print('AI_PHOTO_REAL_OK ${aiSw.elapsedMilliseconds}ms jpegBytes=${base64Decode(jpg).length}');
+          }
+          DART
+          dart run --define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY" tool/live_services.dart
+
+      - name: Compilar APK release
+        working-directory: ${{ env.APP_DIR }}
+        shell: bash
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          set -euo pipefail
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Preparar APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/android
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" "dist/android/Auditar-SST-v3.29.60-RONDA-IA-POS-CAMPO.apk"
+          sha256sum "dist/android/Auditar-SST-v3.29.60-RONDA-IA-POS-CAMPO.apk" > "dist/android/Auditar-SST-v3.29.60-RONDA-IA-POS-CAMPO.sha256.txt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.60-Android-Ronda-IA-Pos-Campo
+          path: dist/android/*
+          retention-days: 30
