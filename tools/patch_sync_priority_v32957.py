@@ -40,6 +40,8 @@ else:
         flags=re.S,
     )
 assert 'await ManagementPanelService.syncCompany(widget.company)' not in r
+# O import ficou sem uso após desacoplar a Ronda do sync gerencial.
+r = r.replace("import '../services/management_panel_service.dart';\n", '')
 round_screen.write_text(r, encoding='utf-8')
 
 # Empresas/logos: upload da logo não deve disparar um sync estruturado completo.
@@ -51,9 +53,10 @@ pattern = re.compile(
     flags=re.S,
 )
 match = pattern.search(c)
+marker = "// Regression marker: MediaSyncService.uploadCompanyLogoNow(company.id)"
 if match:
     c = pattern.sub(
-        r"\1\n      // A logo é mídia independente. O coordenador global cuida dos dados estruturados.\n      synced = true;",
+        r"\1\n      // A logo é mídia independente. O coordenador global cuida dos dados estruturados.\n      // Regression marker: MediaSyncService.uploadCompanyLogoNow(company.id)\n      synced = true;",
         c,
         count=1,
     )
@@ -72,10 +75,22 @@ else:
         const Duration(seconds: 45),
       );
       // A logo é mídia independente. O coordenador global cuida dos dados estruturados.
+      // Regression marker: MediaSyncService.uploadCompanyLogoNow(company.id)
       synced = true;
 """,
         1,
     )
+
+# Se a chamada foi formatada de outra forma, acrescenta somente o marcador após confirmar
+# que o patch realmente retirou o segundo sync estruturado.
+if marker not in c:
+    pos0 = c.find('MediaSyncService.uploadCompanyLogoNow(company.id)')
+    assert pos0 >= 0, 'upload imediato da logo não encontrado'
+    window0 = c[pos0:pos0+700]
+    assert 'DeviceSyncService.synchronize' not in window0
+    insertion = c.find('synced = true;', pos0)
+    assert insertion >= 0
+    c = c[:insertion] + f'{marker}\n      ' + c[insertion:]
 
 # Recuperação de logos continua automática, mas só depois do primeiro ciclo do sync rápido.
 old_call = "    _restoreMissingCompanyLogos(result);\n"
@@ -105,11 +120,12 @@ companies.write_text(c, encoding='utf-8')
 assert 'version: 3.29.57+199' in pub.read_text(encoding='utf-8')
 assert 'Duration(seconds: 15)' in c
 assert 'missing.take(1)' in c
+assert marker in c
 assert 'await ManagementPanelService.syncCompany(widget.company)' not in r
 # Não aceita sync estruturado imediatamente depois do upload de logo.
-pos = c.find('MediaSyncService.uploadCompanyLogoNow(company.id)')
+pos = c.find(marker)
 assert pos >= 0
-window = c[pos:pos+700]
+window = c[max(0, pos-700):pos+700]
 assert 'DeviceSyncService.synchronize' not in window
 
 print('Android v3.29.57+199: sync estruturado priorizado; logos e Ronda desacoplados do caminho crítico.')
