@@ -1,0 +1,32 @@
+name: DIAG AI Photo GS Source
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/diag-ai-photo-gs-source.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Procurar implementacoes de compatibilidade da IA de foto
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p diag
+          grep -RniE "AI_PHOTO_INVALID_ARGUMENT|recusou o formato|responseSchema|inlineData|inline_data|safety_observation_photo|checklist_photo|compatibilidade" \
+            --exclude-dir=.git . > diag/ai-photo-grep.txt || true
+          find . -type f \( -name '*.gs' -o -name '*.py' -o -name '*.yml' -o -name '*.yaml' \) | sort > diag/candidate-files.txt
+          cat diag/ai-photo-grep.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: diag-ai-photo-gs-source
+          path: diag/*
+          retention-days: 3
