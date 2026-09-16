@@ -24,6 +24,8 @@ jobs:
         run: |
           set -euo pipefail
           echo '=== AI SERVICE _send / decode ==='
-          grep -n -C 18 -E 'static Future<AiAssistantReply> _send|jsonDecode|response\.body|bodyBytes|utf8\.decode|AI_TEMPORARILY_UNAVAILABLE|AI_PHOTO_FAILED' "$APP_DIR/lib/services/ai_assistant_service.dart" || true
+          sed -n '680,860p' "$APP_DIR/lib/services/ai_assistant_service.dart" || true
+          echo '=== RONDA mensagens IA ==='
+          grep -n -C 8 -E 'possÃ|NÃ|estÃ|anÃ|Não foi possível concluir a análise das fotos|temporariamente indisponível|Nenhum dado da vistoria foi alterado' "$APP_DIR/lib/screens/express_round_screen.dart" "$APP_DIR/lib/services/ai_assistant_service.dart" || true
           echo '=== APPS SCRIPT HTTP response constructors ==='
           grep -n -C 12 -E 'http\.Response|Response\.bytes|bodyBytes|utf8|latin1|headers' "$APP_DIR/lib/services/apps_script_http.dart" || true
