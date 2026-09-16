@@ -139,7 +139,7 @@ jobs:
           assert 'version: 3.29.57+199' in pub
           assert 'Duration(seconds: 2)' in coord
           assert 'Duration(seconds: 10)' in coord
-          assert 'limit: 500' in dev or 'pullLimit = 500' in dev or 'pullLimit: 500' in dev
+          assert dev.count("'limit': 500,") >= 2
           assert 'await ManagementPanelService.syncCompany(widget.company)' not in ronda
           assert 'Conclusão geral da ronda' in ronda
           assert 'Duration(seconds: 15)' in comp and 'missing.take(1)' in comp
@@ -147,7 +147,7 @@ jobs:
           assert pos >= 0
           assert 'DeviceSyncService.synchronize' not in comp[pos:pos+700]
           assert '_postReliable(' in media
-          print('REGRESSAO_OK: sync 2s/10s priorizado; Ronda e logos fora do caminho crítico')
+          print('REGRESSAO_OK: sync 2s/10s e lote 500 priorizados; Ronda e logos fora do caminho crítico')
           PY
 
       - name: Testar Central real sem escrita
