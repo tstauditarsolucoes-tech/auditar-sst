@@ -50,22 +50,15 @@ jobs:
           python tools/patch_dds_sector_optional_v32952.py "$APP_DIR"
           python tools/patch_dds_history_media_retry_v32953.py "$APP_DIR"
           python tools/patch_company_logo_persistence_v32954_v3303.py "$APP_DIR" android
-      - name: Mostrar fonte da Ronda IA observações e PDF
+      - name: Mostrar modos e metodos de IA
         working-directory: ${{ env.APP_DIR }}
         shell: bash
         run: |
           set -euo pipefail
-          echo '===== EXPRESS ROUND ====='
-          sed -n '1,900p' lib/screens/express_round_screen.dart || true
-          echo '===== SAFETY OBS SCREEN AI ====='
-          grep -nE "AiAssistant|analyzeSafety|_analy|aiBusy|suggest|result\[|observationKind" lib/screens/safety_observations_screen.dart || true
-          sed -n '1,700p' lib/screens/safety_observations_screen.dart || true
-          echo '===== SAFETY OBS PDF ====='
-          sed -n '1,420p' lib/services/safety_observation_pdf_service.dart || true
-          echo '===== SST RECORD MODEL ====='
-          grep -n "class SstRecord" lib/models.dart || true
-          sed -n '520,700p' lib/models.dart || true
-          echo '===== DATABASE SST METHODS ====='
-          grep -nE "SstRecord|getSstRecords|upsertSstRecord|deleteSstRecord" lib/database.dart || true
-          echo '===== AI SAFETY METHOD ====='
-          sed -n '130,230p' lib/services/ai_assistant_service.dart || true
+          echo '===== AI METHODS ====='
+          grep -n "static Future<AiAssistantReply>" lib/services/ai_assistant_service.dart || true
+          echo '===== AI MODES ====='
+          grep -n "'mode':" lib/services/ai_assistant_service.dart || true
+          echo '===== REPORT AI CONTEXT ====='
+          grep -nE "reviewFinalReport|executive|followUp|actionPlan|report" lib/services/ai_assistant_service.dart | head -n 200 || true
+          sed -n '230,520p' lib/services/ai_assistant_service.dart || true
