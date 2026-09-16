@@ -1,0 +1,56 @@
+name: Diagnosticar DDS Windows v3.30.0
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - ".github/workflows/diag-v3300-windows-dds-source.yml"
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  diagnose:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar base Windows v3.30.0
+        shell: pwsh
+        run: |
+          python tools/assemble_sync_response_fix.py windows
+          python tools/patch_sync_progress_v32939_32942.py "$env:APP_DIR" windows
+          python tools/patch_sync_progress_compile_safety.py "$env:APP_DIR"
+          python tools/patch_windows_sync_logo_stability_v32943.py "$env:APP_DIR"
+          python tools/patch_sync_queue_media_separation_v32940_32944.py "$env:APP_DIR" windows
+          $patch=Join-Path $env:RUNNER_TEMP 'training.py'
+          $env:TRAINING_PATCH_PATH=$patch
+          python -c "from pathlib import Path; import base64,lzma,os; p=Path('build_sources/v3.30.0-training-attendance/patch_training_attendance_v3300.py.xz.b64'); Path(os.environ['TRAINING_PATCH_PATH']).write_bytes(lzma.decompress(base64.b64decode(p.read_text().strip())))"
+          python $patch "$env:APP_DIR" windows
+          exit 0
+      - name: Mostrar trecho DDS real
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          p=Path('app/Auditar_SST_v1_5_dashboard/lib/screens/sst_records_screen.dart')
+          lines=p.read_text(encoding='utf-8').splitlines()
+          keys=['DDS','_generateDds','pdf','PDF','lista de presença','filename','fileName','sharePdf','Gerar']
+          hits=[]
+          for i,line in enumerate(lines):
+              if any(k in line for k in keys):
+                  hits.append(i)
+          shown=set()
+          for i in hits:
+              a=max(0,i-5); b=min(len(lines),i+12)
+              key=(a,b)
+              if key in shown: continue
+              shown.add(key)
+              print(f'===== linhas {a+1}-{b} =====')
+              for j in range(a,b): print(f'{j+1:04d}: {lines[j]}')
+          '@ | python -
