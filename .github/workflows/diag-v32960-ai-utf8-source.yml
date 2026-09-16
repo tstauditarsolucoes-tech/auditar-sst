@@ -1,0 +1,29 @@
+name: DIAG v3.29.60 AI UTF8 Source
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths: ['.github/workflows/diag-v32960-ai-utf8-source.yml']
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.29.60
+        run: bash tools/assemble_android_v32960.sh "$APP_DIR"
+      - name: Mostrar decodificacao e tratamento IA
+        run: |
+          set -euo pipefail
+          echo '=== AI SERVICE _send / decode ==='
+          grep -n -C 18 -E 'static Future<AiAssistantReply> _send|jsonDecode|response\.body|bodyBytes|utf8\.decode|AI_TEMPORARILY_UNAVAILABLE|AI_PHOTO_FAILED' "$APP_DIR/lib/services/ai_assistant_service.dart" || true
+          echo '=== APPS SCRIPT HTTP response constructors ==='
+          grep -n -C 12 -E 'http\.Response|Response\.bytes|bodyBytes|utf8|latin1|headers' "$APP_DIR/lib/services/apps_script_http.dart" || true
