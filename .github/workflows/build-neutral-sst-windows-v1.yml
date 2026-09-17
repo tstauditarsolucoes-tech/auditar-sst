@@ -31,7 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Montar edicao neutra em copia temporaria isolada
+      - name: Montar edicao neutra em clone temporario isolado
         shell: pwsh
         run: |
           $appDir = Join-Path $env:RUNNER_TEMP 'SST_Gestao_Neutro'
@@ -41,14 +41,13 @@ jobs:
           $tmpRepo = Join-Path $env:RUNNER_TEMP 'sst-neutral-source-repo'
           if (Test-Path $tmpRepo) { Remove-Item $tmpRepo -Recurse -Force }
           if (Test-Path $appDir) { Remove-Item $appDir -Recurse -Force }
-          New-Item -ItemType Directory -Force $tmpRepo | Out-Null
 
-          Get-ChildItem $env:GITHUB_WORKSPACE -Force |
-            Where-Object { $_.Name -ne '.git' } |
-            ForEach-Object { Copy-Item $_.FullName $tmpRepo -Recurse -Force }
-
+          git clone --no-hardlinks "$env:GITHUB_WORKSPACE" "$tmpRepo"
+          if ($LASTEXITCODE -ne 0) { throw 'falha ao criar clone temporario' }
           Push-Location $tmpRepo
           try {
+            git checkout --detach "$env:GITHUB_SHA"
+            if ($LASTEXITCODE -ne 0) { throw 'falha ao fixar commit no clone temporario' }
             python tools/assemble_neutral_windows_v1.py "$env:SOURCE_DIR"
             if ($LASTEXITCODE -ne 0) { throw 'montagem neutra falhou' }
           } finally {
@@ -66,7 +65,7 @@ jobs:
           } finally {
             Pop-Location
           }
-          Write-Host 'BASE_AUDITAR_INTACTA: montagem ocorreu somente na copia temporaria.'
+          Write-Host 'BASE_AUDITAR_INTACTA: montagem ocorreu somente no clone temporario.'
 
       - uses: subosito/flutter-action@v2
         with:
