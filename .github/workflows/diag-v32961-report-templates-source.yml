@@ -23,6 +23,18 @@ jobs:
       - name: Montar fonte Android v3.29.61
         run: bash tools/assemble_android_v32961.sh "$APP_DIR"
 
+      - name: Preparar fontes de referencia
+        run: |
+          mkdir -p /tmp/report-source
+          cp "$APP_DIR/lib/services/pdf_service.dart" /tmp/report-source/pdf_service.dart
+          cp "$APP_DIR/lib/screens/report_screen.dart" /tmp/report-source/report_screen.dart
+          cp "$APP_DIR/pubspec.yaml" /tmp/report-source/pubspec.yaml
+          sha256sum \
+            "$APP_DIR/lib/services/sync_coordinator.dart" \
+            "$APP_DIR/lib/services/device_sync_service.dart" \
+            "$APP_DIR/lib/services/apps_script_http.dart" \
+            > /tmp/report-source/sync-critical.sha256
+
       - name: Inspecionar pontos de extensao dos relatorios
         run: |
           python - <<'PY'
@@ -43,9 +55,6 @@ jobs:
 
           for path in candidates:
               print(f'\n===== FILE {path} =====')
-              if not path.exists():
-                  print('MISSING')
-                  continue
               lines = path.read_text(encoding='utf-8').splitlines()
               hits = [i for i, line in enumerate(lines) if rx.search(line)]
               blocks = []
@@ -59,16 +68,11 @@ jobs:
                   print(f'--- lines {a+1}-{b} ---')
                   for n in range(a,b):
                       print(f'{n+1:04d}: {lines[n]}')
-
-          print('\n===== REPORT-RELATED DART FILES =====')
-          for path in sorted((root/'lib').rglob('*.dart')):
-              low = path.name.lower()
-              if any(k in low for k in ('report','pdf','checklist','inspection','vistoria','round')):
-                  print(path)
-
-          pub = (root/'pubspec.yaml').read_text(encoding='utf-8')
-          for line in pub.splitlines():
-              if line.startswith('version:'):
-                  print('\nCURRENT_VERSION', line)
-                  break
           PY
+
+      - name: Publicar fontes de referencia
+        uses: actions/upload-artifact@v4
+        with:
+          name: v32961-report-source-reference
+          path: /tmp/report-source
+          retention-days: 1
