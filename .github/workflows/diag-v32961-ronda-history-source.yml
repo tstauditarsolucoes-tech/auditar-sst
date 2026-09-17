@@ -20,17 +20,15 @@ jobs:
       - uses: actions/checkout@v5
       - name: Montar fonte v3.29.60
         run: bash tools/assemble_android_v32960.sh "$APP_DIR"
-      - name: Mostrar fluxo da Ronda e pontos de navegação
+      - name: Mostrar UI final e fluxo de fechamento
         run: |
           set -euo pipefail
           F="$APP_DIR/lib/screens/express_round_screen.dart"
-          echo '=== EXPRESS ROUND CABECALHO ==='
-          sed -n '1,220p' "$F"
-          echo '=== EXPRESS ROUND HISTORY/FINISH ==='
-          grep -n -E 'class ExpressRound|_showRoundHistory|_finish\(|roundId|express_round_open_|OBSERVACAO_SEGURANCA|Navigator|AppBar|Scaffold' "$F" | head -n 160
-          echo '=== EXPRESS ROUND 350-760 ==='
-          sed -n '350,760p' "$F"
-          echo '=== EXPRESS ROUND 760-1180 ==='
-          sed -n '760,1180p' "$F"
-          echo '=== REFERENCES TO ExpressRoundScreen ==='
-          grep -R -n -E 'ExpressRoundScreen|Ronda Expressa|express_round' "$APP_DIR/lib" | head -n 220
+          echo '=== FINISH 1030-1210 ==='
+          sed -n '1030,1210p' "$F"
+          echo '=== UI 1210-1660 ==='
+          sed -n '1210,1660p' "$F"
+          echo '=== COMPANY DETAIL 370-425 ==='
+          sed -n '370,425p' "$APP_DIR/lib/screens/company_detail_screen.dart"
+          echo '=== COMPANIES 500-545 ==='
+          sed -n '500,545p' "$APP_DIR/lib/screens/companies_screen.dart"
