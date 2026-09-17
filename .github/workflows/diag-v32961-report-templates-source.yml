@@ -28,47 +28,15 @@ jobs:
           mkdir -p /tmp/report-source
           cp "$APP_DIR/lib/services/pdf_service.dart" /tmp/report-source/pdf_service.dart
           cp "$APP_DIR/lib/screens/report_screen.dart" /tmp/report-source/report_screen.dart
+          cp "$APP_DIR/lib/services/report_file_service.dart" /tmp/report-source/report_file_service.dart
+          cp "$APP_DIR/lib/database.dart" /tmp/report-source/database.dart
+          cp "$APP_DIR/lib/models.dart" /tmp/report-source/models.dart
           cp "$APP_DIR/pubspec.yaml" /tmp/report-source/pubspec.yaml
           sha256sum \
             "$APP_DIR/lib/services/sync_coordinator.dart" \
             "$APP_DIR/lib/services/device_sync_service.dart" \
             "$APP_DIR/lib/services/apps_script_http.dart" \
             > /tmp/report-source/sync-critical.sha256
-
-      - name: Inspecionar pontos de extensao dos relatorios
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import re
-
-          root = Path('app/Auditar_SST_v1_5_dashboard')
-          candidates = [
-              root / 'lib/services/pdf_service.dart',
-              root / 'lib/screens/report_screen.dart',
-          ]
-          patterns = [
-              r'executive', r'Executivo', r'Relat[oó]rio', r'PdfService',
-              r'generate', r'includeActionPlan', r'Segmentation', r'ChoiceChip',
-              r'RadioListTile', r'Dropdown', r'header', r'checklist',
-          ]
-          rx = re.compile('|'.join(patterns), re.I)
-
-          for path in candidates:
-              print(f'\n===== FILE {path} =====')
-              lines = path.read_text(encoding='utf-8').splitlines()
-              hits = [i for i, line in enumerate(lines) if rx.search(line)]
-              blocks = []
-              for i in hits:
-                  a, b = max(0, i-5), min(len(lines), i+8)
-                  if blocks and a <= blocks[-1][1] + 2:
-                      blocks[-1] = (blocks[-1][0], max(blocks[-1][1], b))
-                  else:
-                      blocks.append((a,b))
-              for a,b in blocks[:35]:
-                  print(f'--- lines {a+1}-{b} ---')
-                  for n in range(a,b):
-                      print(f'{n+1:04d}: {lines[n]}')
-          PY
 
       - name: Publicar fontes de referencia
         uses: actions/upload-artifact@v4
