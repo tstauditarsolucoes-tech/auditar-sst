@@ -54,7 +54,10 @@ jobs:
             cp "$f" "$RUNNER_TEMP/check.js"
             node --check "$RUNNER_TEMP/check.js"
           done
-          ! grep -RniEi 'AUDITAR_|setupAuditar|Auditar SST|Auditar Solu[cç][oõ]es|epi_sync_merge' "$OUT"
+          if grep -RniEi 'AUDITAR_|setupAuditar|Auditar SST|Auditar Solu[cç][oõ]es|epi_sync_merge' "$OUT"; then
+            echo 'Referência antiga encontrada na Central neutra.'
+            exit 1
+          fi
           grep -Rni 'SST_GESTAO_SYNC_KEY' "$OUT"
           grep -Rni 'setupSstGestao' "$OUT"
 
