@@ -9,6 +9,7 @@ on:
       - 'tools/assemble_windows_v3305_report_templates.py'
       - 'tools/patch_report_templates_v32962.py'
       - 'tools/patch_report_templates_compile_fix_v32962.py'
+      - 'tools/patch_report_templates_windows_compat_v3305.py'
       - 'tools/regression_report_templates_v32962.py'
 
 permissions:
