@@ -1,0 +1,85 @@
+name: SST Gestao Neutro Android v1.0.0
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [neutral-sst-separate-edition]
+    paths:
+      - '.github/workflows/build-neutral-sst-android-v1.yml'
+      - 'tools/assemble_neutral_android_v1.sh'
+      - 'tools/patch_neutral_sst_edition_v1.py'
+      - 'tools/patch_neutral_env_v1.py'
+      - 'tools/regression_neutral_sst_v1.py'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar edicao neutra e proteger nucleo
+        run: bash tools/assemble_neutral_android_v1.sh "$APP_DIR"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Criar plataforma Android separada
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          set -euo pipefail
+          rm -rf android
+          flutter create --no-pub --platforms=android --org br.com.sstgestao --project-name sst_gestao .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          sed -i 's/android:label="sst_gestao"/android:label="SST Gestão"/' android/app/src/main/AndroidManifest.xml
+          find android/app/src/main/res -type f -name 'ic_launcher.png' -print0 | while IFS= read -r -d '' f; do cp assets/branding/sst_icon.png "$f"; done
+          flutter pub get
+          grep -R "applicationId = \"br.com.sstgestao.sst_gestao\"" android/app/build.gradle.kts
+          grep -F 'android:label="SST Gestão"' android/app/src/main/AndroidManifest.xml
+
+      - name: Analyze e testes
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          dart format lib/brand.dart lib/widgets/auditar_brand_logo.dart lib/services/report_template_service.dart lib/services/pdf_service.dart lib/services/styled_report_pdf_service.dart lib/services/backup_service.dart lib/screens/login_screen.dart lib/screens/splash_screen.dart lib/screens/home_screen.dart lib/screens/settings_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+
+      - name: Regressao neutra
+        run: python tools/regression_neutral_sst_v1.py "$APP_DIR"
+
+      - name: Compilar APK neutro
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          SST_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$SST_SYNC_KEY"
+          flutter build apk --release --dart-define=SST_SYNC_KEY="$SST_SYNC_KEY"
+
+      - name: Validar artefato sem branding Auditar
+        run: |
+          set -euo pipefail
+          APK="$APP_DIR/build/app/outputs/flutter-apk/app-release.apk"
+          unzip -l "$APK" | grep -qi 'assets/branding/auditar' && { echo 'Ativo Auditar encontrado no APK'; exit 1; } || true
+          mkdir -p dist/neutral
+          cp "$APK" 'dist/neutral/SST-Gestao-v1.0.0-Android.apk'
+          sha256sum 'dist/neutral/SST-Gestao-v1.0.0-Android.apk' > 'dist/neutral/SST-Gestao-v1.0.0-Android.sha256.txt'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SST-Gestao-Neutro-v1.0.0-Android
+          path: dist/neutral/*
+          retention-days: 30
