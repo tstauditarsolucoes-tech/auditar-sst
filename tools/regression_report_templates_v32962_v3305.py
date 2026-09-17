@@ -56,8 +56,12 @@ def main() -> int:
     check('editor visual', all(token in report for token in (
         'Cor principal', 'Cor de destaque', 'Cabeçalho', 'Rodapé',
     )))
-    check('opções de composição', all(token in report for token in (
-        'Capa', 'Fotos', 'Assinaturas', 'Logo Auditar', 'Logo da empresa',
+    # Use identificadores persistidos, não rótulos visuais, para evitar falso negativo
+    # quando o texto da interface muda sem alterar a funcionalidade.
+    composition_source = report + '\n' + pdf
+    check('opções de composição', all(token in composition_source for token in (
+        'show_cover', 'show_photos', 'show_signatures',
+        'show_auditar_logo', 'show_company_logo',
     )))
     check('resolução automática no PDF', all(token in pdf for token in (
         'effectiveTemplateId', 'report_template_user_default', 'report_template_company_',
