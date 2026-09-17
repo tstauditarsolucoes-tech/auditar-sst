@@ -51,6 +51,7 @@ shared = subprocess.run(
 )
 if shared.returncode != 0:
     run('tools/patch_report_templates_windows_compat_v3305.py', root)
+run('tools/patch_report_templates_user_default_v32962.py', root)
 run('tools/patch_report_templates_compile_fix_v32962.py', root)
 
 # A patch compartilhada usa numeração Android; restaura a linha Windows monotônica.
@@ -76,9 +77,11 @@ templates = (root / 'lib/services/report_template_service.dart').read_text(encod
 pdf = (root / 'lib/services/pdf_service.dart').read_text(encoding='utf-8')
 assert "name: 'Padrão Auditar atual'" in templates
 assert 'useLegacyRenderer: true' in templates
+assert 'selectDefaultForCurrentUser' in templates
+assert 'AuthService.currentUser?.id' in templates
 assert 'if (!reportTemplate.useLegacyRenderer)' in pdf
 assert 'version: 3.30.5+192' in pub.read_text(encoding='utf-8')
 
-print('WINDOWS_V3305_OK: modelos adicionados; arquivos de sincronização/login/mídia/Drive/banco permanecem byte por byte idênticos à base v3.30.4.')
+print('WINDOWS_V3305_OK: modelos + padrão individual por usuário adicionados; arquivos de sincronização/login/mídia/Drive/banco permanecem byte por byte idênticos à base v3.30.4.')
 for path in protected:
     print('SYNC_PROTEGIDO_OK', path.relative_to(root), after[path])
