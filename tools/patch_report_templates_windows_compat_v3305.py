@@ -22,8 +22,17 @@ if 'Biblioteca e editor de modelos de relatório' not in text:
     button_pos=text.rfind('FilledButton.icon(',0,save_pos)
     if button_pos<0:
         raise SystemExit('início do botão Salvar não encontrado no Settings Windows')
-    line_start=text.rfind('\n',0,button_pos)+1
-    indent=text[line_start:button_pos]
+
+    # No Windows o FilledButton fica normalmente dentro de um SizedBox com
+    # `child: FilledButton.icon`. Inserimos o novo botão ANTES desse SizedBox,
+    # como widget irmão, sem desmontar a árvore atual da tela.
+    sized_pos=text.rfind('SizedBox(', max(0, button_pos-500), button_pos)
+    target_pos=sized_pos if sized_pos>=0 else button_pos
+    line_start=text.rfind('\n',0,target_pos)+1
+    line=text[line_start:]
+    whitespace=re.match(r'[ \t]*', line).group(0)
+    indent=whitespace
+
     block=(
         f"{indent}OutlinedButton.icon(\n"
         f"{indent}  onPressed: () => Navigator.of(context).push(\n"
