@@ -13,12 +13,14 @@ secure_path = root / 'lib/services/auth_secure_store.dart'
 secure = secure_path.read_text(encoding='utf-8') if secure_path.exists() else ''
 web = (root / 'lib/services/web_service_config.dart').read_text(encoding='utf-8')
 backup = (root / 'lib/services/backup_service.dart').read_text(encoding='utf-8')
+main = (root / 'lib/main.dart').read_text(encoding='utf-8')
 
 assert 'name: sst_gestao' in pub
 assert 'version: 1.0.0+1' in pub
 assert "assets/branding/sst_icon.png" in brand
 assert "assets/branding/sst_logo.png" in brand
-assert 'SST Gestão' in (root / 'lib/widgets/auditar_brand_logo.dart').read_text(encoding='utf-8')
+assert 'SST Gestão' in (root / 'lib/widgets/sst_brand_logo.dart').read_text(encoding='utf-8')
+assert not (root / 'lib/widgets/auditar_brand_logo.dart').exists()
 assert not (root / 'assets/branding/auditar_icon.png').exists()
 assert not (root / 'assets/branding/auditar_icon_transparent.png').exists()
 assert not (root / 'assets/branding/auditar_logo.jpg').exists()
@@ -32,6 +34,24 @@ assert "name: 'Obra SST'" in report_templates
 assert "name: 'Técnico Clean'" in report_templates
 assert "name: 'NR-12 SST'" in report_templates
 assert 'useLegacyRenderer: true' in report_templates
+for expected in [
+    'sst_atual',
+    'sst_executivo',
+    'sst_fotografico',
+    'sst_obra',
+    'sst_tecnico_clean',
+    'sst_nr12',
+]:
+    assert expected in report_templates, f'ID neutro de relatório ausente: {expected}'
+for legacy in [
+    'auditar_atual',
+    'auditar_executivo',
+    'auditar_fotografico',
+    'auditar_obra',
+    'auditar_tecnico_clean',
+    'auditar_nr12',
+]:
+    assert legacy not in report_templates, f'ID legado de relatório presente: {legacy}'
 
 # Isolamento local. Android e Windows não possuem exatamente a mesma superfície
 # de persistência da autenticação, então validamos apenas mecanismos realmente
@@ -41,6 +61,8 @@ assert 'auditar_sst.db' not in database
 assert 'sst_gestao_auth.json' in auth
 assert 'auditar_sst_auth.json' not in auth
 assert 'auditar_offline_' not in auth
+assert 'AuditarUser' not in auth
+assert 'SstUser' in auth
 if 'offline' in auth.lower():
     assert 'sst_gestao_' in auth
 if secure:
@@ -56,6 +78,9 @@ assert 'SST_Gestao_AutoBackup_' in backup
 assert 'SST_Gestao_Backup_Completo_' in backup
 assert 'Auditar_SST_AutoBackup_' not in backup
 assert 'Auditar_SST_Backup_Completo_' not in backup
+assert 'AuditarSstApp' not in main
+assert 'SstGestaoApp' in main
+assert "startsWith('auditar_sst')" not in main
 
 all_text = '\n'.join(
     p.read_text(encoding='utf-8', errors='ignore')
@@ -65,6 +90,8 @@ for forbidden in [
     'Auditar SST',
     'AUDITAR SST',
     'Central Auditar',
+    'Central de Gestão Auditar',
+    'Central de Gestao Auditar',
     'Padrão Auditar',
     'Auditar Executivo',
     'Auditar Fotográfico',
@@ -75,8 +102,15 @@ for forbidden in [
     'Auditar + cliente',
     'Somente Auditar',
     'Substituído pela Auditar',
+    'auditarsolucoes@gmail.com',
+    '3221-1549',
+    'AuditarSstApp',
+    'AuditarBrandLogo',
+    'AuditarUser',
+    'auditarBackgroundSyncDispatcher',
+    'auditar_brand_logo.dart',
 ]:
-    assert forbidden not in all_text, f'identidade visível remanescente: {forbidden}'
+    assert forbidden.lower() not in all_text.lower(), f'identidade remanescente: {forbidden}'
 
 # A edição neutra é um produto separado, mas o motor principal continua presente.
 for rel in [
@@ -91,4 +125,4 @@ for rel in [
 ]:
     assert (root / rel).exists(), f'arquivo funcional ausente: {rel}'
 
-print('NEUTRAL_REGRESSION_OK: SST Gestão sem identidade visual Auditar; persistência local isolada conforme a plataforma; recursos principais preservados.')
+print('NEUTRAL_REGRESSION_OK: SST Gestão v1.0 com identidade final neutra; persistência isolada; recursos principais preservados.')
