@@ -1,0 +1,168 @@
+name: Auditar SST Windows v3.30.5 Modelos de Relatorio
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/build-v3305-windows-report-templates.yml'
+      - 'tools/assemble_windows_v3305_report_templates.py'
+      - 'tools/patch_report_templates_v32962.py'
+      - 'tools/patch_report_templates_compile_fix_v32962.py'
+      - 'tools/regression_report_templates_v32962.py'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar Windows v3.30.5 e proteger sincronizacao
+        shell: pwsh
+        run: |
+          python tools/assemble_windows_v3305_report_templates.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'montagem v3.30.5 falhou' }
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar Windows e icone Auditar
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        run: |
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if (Test-Path 'test/widget_test.dart') {
+            if ((Get-Content 'test/widget_test.dart' -Raw) -match 'MyApp') { Remove-Item 'test/widget_test.dart' -Force }
+          }
+          $sourceIcon=(Resolve-Path 'assets/branding/auditar_icon.png').Path
+          $targetIcon=(Resolve-Path 'windows/runner/resources').Path + '\app_icon.ico'
+          Add-Type -AssemblyName System.Drawing.Common
+          $src=[System.Drawing.Image]::FromFile($sourceIcon)
+          try {
+            $sizes=@(16,24,32,48,64,128,256)
+            $images=New-Object System.Collections.Generic.List[byte[]]
+            foreach($size in $sizes) {
+              $bmp=New-Object System.Drawing.Bitmap($size,$size,[System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+              $g=[System.Drawing.Graphics]::FromImage($bmp)
+              try {
+                $g.Clear([System.Drawing.Color]::Transparent)
+                $g.CompositingMode=[System.Drawing.Drawing2D.CompositingMode]::SourceCopy
+                $g.CompositingQuality=[System.Drawing.Drawing2D.CompositingQuality]::HighQuality
+                $g.InterpolationMode=[System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+                $g.SmoothingMode=[System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+                $g.PixelOffsetMode=[System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+                $g.DrawImage($src,0,0,$size,$size)
+              } finally { $g.Dispose() }
+              $ms=New-Object System.IO.MemoryStream
+              try { $bmp.Save($ms,[System.Drawing.Imaging.ImageFormat]::Png); $images.Add($ms.ToArray()) }
+              finally { $ms.Dispose(); $bmp.Dispose() }
+            }
+            $fs=[System.IO.File]::Create($targetIcon)
+            $bw=New-Object System.IO.BinaryWriter($fs)
+            try {
+              $bw.Write([UInt16]0); $bw.Write([UInt16]1); $bw.Write([UInt16]$sizes.Count)
+              $offset=6 + (16 * $sizes.Count)
+              for($i=0; $i -lt $sizes.Count; $i++) {
+                $size=$sizes[$i]; $png=$images[$i]; $wh=if($size -eq 256){[byte]0}else{[byte]$size}
+                $bw.Write($wh); $bw.Write($wh); $bw.Write([byte]0); $bw.Write([byte]0)
+                $bw.Write([UInt16]1); $bw.Write([UInt16]32); $bw.Write([UInt32]$png.Length); $bw.Write([UInt32]$offset)
+                $offset += $png.Length
+              }
+              foreach($png in $images) { $bw.Write($png) }
+            } finally { $bw.Dispose(); $fs.Dispose() }
+          } finally { $src.Dispose() }
+
+      - name: Dependencias e formatacao somente de relatorios
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        run: |
+          flutter pub get
+          dart format lib/services/report_template_service.dart lib/services/styled_report_pdf_service.dart lib/screens/report_template_library_screen.dart lib/screens/report_screen.dart lib/screens/settings_screen.dart lib/services/pdf_service.dart
+
+      - name: Analyze e testes existentes
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        run: |
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'flutter analyze falhou' }
+          flutter test
+          if ($LASTEXITCODE -ne 0) { throw 'flutter test falhou' }
+
+      - name: Regressao modelos de relatorio
+        shell: pwsh
+        run: |
+          python tools/regression_report_templates_v32962.py "$env:APP_DIR" 3.30.5+192
+          if ($LASTEXITCODE -ne 0) { throw 'regressão modelos falhou' }
+
+      - name: Compilar Windows release
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+          if ($LASTEXITCODE -ne 0) { throw 'build Windows falhou' }
+
+      - name: Gerar instalador e portatil
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
+          $icon=(Resolve-Path "$env:APP_DIR/windows/runner/resources/app_icon.ico").Path
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.5-PORTATIL.zip' -Force
+          $iscc='C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          if (-not (Test-Path $iscc)) { throw 'Inno Setup não disponível' }
+          $output=(Resolve-Path 'dist/windows').Path
+          $iss=@"
+          [Setup]
+          AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}
+          AppName=Auditar SST
+          AppVersion=3.30.5
+          AppPublisher=Auditar Soluções
+          DefaultDirName={autopf}\Auditar SST
+          DefaultGroupName=Auditar SST
+          OutputDir=$output
+          OutputBaseFilename=Auditar-SST-Setup-v3.30.5
+          SetupIconFile=$icon
+          Compression=lzma2
+          SolidCompression=yes
+          WizardStyle=modern
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          UninstallDisplayIcon={app}\auditar_sst.exe
+          [Files]
+          Source: "$release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          [Icons]
+          Name: "{autoprograms}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          Name: "{autodesktop}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          [Run]
+          Filename: "{app}\auditar_sst.exe"; Description: "Abrir Auditar SST"; Flags: nowait postinstall skipifsilent
+          "@
+          Set-Content "$env:RUNNER_TEMP\auditar-v3305.iss" $iss -Encoding UTF8
+          & $iscc "$env:RUNNER_TEMP\auditar-v3305.iss"
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.5.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.5.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.5-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.5-PORTATIL.sha256.txt'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.30.5-Windows-Modelos-Relatorio
+          path: dist/windows/*
+          retention-days: 30
