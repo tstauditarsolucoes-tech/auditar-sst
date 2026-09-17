@@ -72,6 +72,7 @@ code = re.sub(
     code,
     flags=re.S,
 )
+code = re.sub(r'^\\s*//.*EpiSync.*\\n?', '', code, flags=re.M | re.I)
 
 # Identidade de armazenamento: Drive e planilha são da edição SST Gestão.
 code = code.replace("const DRIVE_ROOT_FOLDER = 'SST Gestão';", "const DRIVE_ROOT_FOLDER = 'SST Gestão';")
@@ -136,6 +137,24 @@ for path in out.iterdir():
         text = text.replace('auditar', 'sst_gestao')
         path.write_text(text, encoding='utf-8', newline='\n')
 
+# Acabamento visual: identificadores técnicos continuam SstGestao, mas nenhum
+# texto exibido ao usuário deve aparecer com esse formato.
+for html_name in ('Index.html', 'Votacao.html'):
+    html_path = out / html_name
+    if html_path.exists():
+        html = html_path.read_text(encoding='utf-8', errors='ignore')
+        html = html.replace('SstGestao <span>SST</span>', 'SST <span>Gestão</span>')
+        html = html.replace('Últimas atividades da SstGestao', 'Últimas atividades de SST')
+        html = html.replace('pela SstGestao', 'pelo SST Gestão')
+        html = html.replace('Indicador gerencial SstGestao', 'Indicador gerencial SST Gestão')
+        html_path.write_text(html, encoding='utf-8', newline='\n')
+
+readme_path = out / 'LEIA-ME-ATIVACAO.txt'
+if readme_path.exists():
+    readme_text = readme_path.read_text(encoding='utf-8', errors='ignore')
+    readme_text = readme_text.replace('Central SstGestao', 'Central SST Gestão')
+    readme_path.write_text(readme_text, encoding='utf-8', newline='\n')
+
 # Validações: backend independente e sem vestígio de marca/armazenamento antigo.
 all_text = '\n'.join(
     p.read_text(encoding='utf-8', errors='ignore')
@@ -148,6 +167,15 @@ required = [
     'SST_GESTAO_DEVICE_SYNC_VERSION',
     'setupSstGestao',
     'SST Gestão',
+    'auth_status',
+    'auth_bootstrap_admin',
+    'device_sync_push',
+    'device_sync_pull',
+    'drive_connect',
+    'drive_upload',
+    'ai_assistant',
+    'cipa_publish',
+    'test_notifications',
 ]
 for token in required:
     if token not in all_text:
@@ -165,6 +193,7 @@ for forbidden in [
     'Auditar',
     'auditar',
     'epi_sync_merge',
+    'EpiSync',
 ]:
     if forbidden.lower() in all_text.lower():
         raise SystemExit(f'Backend neutro contém referência proibida: {forbidden}')
