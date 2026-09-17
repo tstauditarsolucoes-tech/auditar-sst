@@ -13,24 +13,38 @@ env:
   APP_DIR: app/Auditar_SST_v1_5_dashboard
 
 jobs:
-  scan:
+  scan_android:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
       - name: Montar edicao neutra Android v1.0.0
         run: bash tools/assemble_neutral_android_v1.sh "$APP_DIR"
-      - name: Inventario final de identidade
+      - name: Inventario final Android
         shell: bash
         run: |
           set -euo pipefail
-          echo '=== OCORRENCIAS AUDITAR NA FONTE NEUTRA MONTADA ==='
+          echo '=== ANDROID: OCORRENCIAS AUDITAR ==='
           grep -RniEi 'auditar|solu[cç][oõ]es|tstauditarsolucoes|br\.com\.auditar|auditar_sst|central auditar' \
-            "$APP_DIR/lib" "$APP_DIR/pubspec.yaml" "$APP_DIR/android" "$APP_DIR/windows" 2>/dev/null | \
-            grep -vE '/build/|\.dart_tool/' | sed -n '1,900p' || true
-          echo '=== CONTATOS DA MARCA ANTIGA ==='
+            "$APP_DIR/lib" "$APP_DIR/pubspec.yaml" 2>/dev/null | sed -n '1,900p' || true
+          echo '=== ANDROID: CONTATOS ANTIGOS ==='
           grep -RniE 'auditarsolucoes@gmail\.com|3221-1549|86.?3221.?1549' \
             "$APP_DIR/lib" "$APP_DIR/pubspec.yaml" 2>/dev/null | sed -n '1,300p' || true
-          echo '=== NOMES INTERNOS PRIORITARIOS ==='
-          grep -RniE 'AuditarSstApp|AuditarBrandLogo|AuditarUser|auditar_(executivo|fotografico|obra|tecnico_clean|nr12|atual)' \
-            "$APP_DIR/lib" 2>/dev/null | sed -n '1,500p' || true
+
+  scan_windows:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar edicao neutra Windows v1.0.0
+        run: python tools/assemble_neutral_windows_v1.py "$APP_DIR"
+      - name: Inventario final Windows
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '=== WINDOWS: OCORRENCIAS AUDITAR ==='
+          grep -RniEi 'auditar|solu[cç][oõ]es|tstauditarsolucoes|br\.com\.auditar|auditar_sst|central auditar' \
+            "$APP_DIR/lib" "$APP_DIR/pubspec.yaml" 2>/dev/null | sed -n '1,1100p' || true
+          echo '=== WINDOWS: CONTATOS ANTIGOS ==='
+          grep -RniE 'auditarsolucoes@gmail\.com|3221-1549|86.?3221.?1549' \
+            "$APP_DIR/lib" "$APP_DIR/pubspec.yaml" 2>/dev/null | sed -n '1,400p' || true
