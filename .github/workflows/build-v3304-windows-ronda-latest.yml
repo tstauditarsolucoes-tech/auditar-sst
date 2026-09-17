@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.4 Ronda Atualizada Final 3
+name: Auditar SST Windows v3.30.4 Ronda Atualizada Final 4
 
 on:
   workflow_dispatch:
@@ -9,6 +9,7 @@ on:
       - 'tools/assemble_windows_v3304_ronda_latest.py'
       - 'tools/patch_windows_ronda_compile_safety_v3304.py'
       - 'tools/regression_windows_v3304.py'
+      - 'tools/live_ronda_ai_probe_v3304_windows.dart'
 
 permissions:
   contents: read
@@ -49,7 +50,6 @@ jobs:
             if ((Get-Content 'test/widget_test.dart' -Raw) -match 'MyApp') { Remove-Item 'test/widget_test.dart' -Force }
           }
 
-          # Restaura o mesmo ícone oficial Auditar usado na v3.30.3.
           $sourceIcon=(Resolve-Path 'assets/branding/auditar_icon.png').Path
           $targetIcon=(Resolve-Path 'windows/runner/resources').Path + '\app_icon.ico'
           Add-Type -AssemblyName System.Drawing.Common
@@ -110,7 +110,7 @@ jobs:
         run: |
           if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
           New-Item -ItemType Directory -Force tool | Out-Null
-          Copy-Item '..\..\tools\live_ronda_ai_probe_v32960.dart' 'tool\live_ronda_ai_probe.dart' -Force
+          Copy-Item '..\..\tools\live_ronda_ai_probe_v3304_windows.dart' 'tool\live_ronda_ai_probe.dart' -Force
           dart run --define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY" tool/live_ronda_ai_probe.dart
           if ($LASTEXITCODE -ne 0) { throw 'teste real da IA/Central falhou' }
 
