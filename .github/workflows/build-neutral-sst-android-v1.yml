@@ -22,7 +22,6 @@ permissions:
 
 env:
   SOURCE_DIR: app/Auditar_SST_v1_5_dashboard
-  APP_DIR: ${{ runner.temp }}/SST_Gestao_Neutro
 
 jobs:
   android:
@@ -34,6 +33,7 @@ jobs:
       - name: Montar edicao neutra em copia temporaria isolada
         run: |
           set -euo pipefail
+          APP_DIR="$RUNNER_TEMP/SST_Gestao_Neutro"
           test -z "$(git status --porcelain -- "$SOURCE_DIR")"
 
           TMP_REPO="$RUNNER_TEMP/sst-neutral-source-repo"
@@ -44,7 +44,6 @@ jobs:
           cd "$TMP_REPO"
           bash tools/assemble_neutral_android_v1.sh "$SOURCE_DIR"
 
-          mkdir -p "$(dirname "$APP_DIR")"
           cp -a "$TMP_REPO/$SOURCE_DIR" "$APP_DIR"
 
           cd "$GITHUB_WORKSPACE"
@@ -63,7 +62,7 @@ jobs:
           java-version: '17'
 
       - name: Criar plataforma Android separada
-        working-directory: ${{ env.APP_DIR }}
+        working-directory: ${{ runner.temp }}/SST_Gestao_Neutro
         run: |
           set -euo pipefail
           rm -rf android
@@ -76,7 +75,7 @@ jobs:
           grep -F 'android:label="SST Gestão"' android/app/src/main/AndroidManifest.xml
 
       - name: Analyze e testes
-        working-directory: ${{ env.APP_DIR }}
+        working-directory: ${{ runner.temp }}/SST_Gestao_Neutro
         run: |
           set -euo pipefail
           dart format \
@@ -97,10 +96,10 @@ jobs:
           flutter test
 
       - name: Regressao neutra final
-        run: python tools/regression_neutral_sst_v1.py "$APP_DIR"
+        run: python tools/regression_neutral_sst_v1.py "$RUNNER_TEMP/SST_Gestao_Neutro"
 
       - name: Compilar APK neutro ofuscado
-        working-directory: ${{ env.APP_DIR }}
+        working-directory: ${{ runner.temp }}/SST_Gestao_Neutro
         env:
           SST_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
         run: |
@@ -114,6 +113,7 @@ jobs:
       - name: Validar artefato totalmente neutro e base congelada
         run: |
           set -euo pipefail
+          APP_DIR="$RUNNER_TEMP/SST_Gestao_Neutro"
           APK="$APP_DIR/build/app/outputs/flutter-apk/app-release.apk"
           test -f "$APK"
           unzip -l "$APK" | grep -qi 'assets/branding/auditar' && { echo 'Ativo da marca antiga encontrado no APK'; exit 1; } || true
