@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.61 Ronda History Review
+name: Auditar SST Android v3.29.61 Ronda History Review Final
 
 on:
   workflow_dispatch:
@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Montar v3.29.61
+      - name: Montar v3.29.61 com compile fix
         run: bash tools/assemble_android_v32961.sh "$APP_DIR"
 
       - uses: subosito/flutter-action@v2
