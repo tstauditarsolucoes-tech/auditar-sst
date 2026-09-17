@@ -1,0 +1,171 @@
+name: SST Gestao Neutro Windows v1.0.0
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [neutral-sst-separate-edition]
+    paths:
+      - '.github/workflows/build-neutral-sst-windows-v1.yml'
+      - 'tools/assemble_neutral_windows_v1.py'
+      - 'tools/patch_neutral_sst_edition_v1.py'
+      - 'tools/patch_neutral_env_v1.py'
+      - 'tools/regression_neutral_sst_v1.py'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar edicao neutra e proteger nucleo
+        shell: pwsh
+        run: |
+          python tools/assemble_neutral_windows_v1.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'montagem neutra falhou' }
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Criar plataforma Windows separada e icone neutro
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        run: |
+          if (Test-Path 'windows') { Remove-Item 'windows' -Recurse -Force }
+          flutter create --no-pub --platforms=windows --org br.com.sstgestao --project-name sst_gestao .
+          if (Test-Path 'test/widget_test.dart') {
+            if ((Get-Content 'test/widget_test.dart' -Raw) -match 'MyApp') { Remove-Item 'test/widget_test.dart' -Force }
+          }
+          $main='windows/runner/main.cpp'
+          $txt=Get-Content $main -Raw
+          $txt=$txt.Replace('L"sst_gestao"','L"SST Gestão"')
+          Set-Content $main $txt -Encoding UTF8
+
+          $sourceIcon=(Resolve-Path 'assets/branding/sst_icon.png').Path
+          $targetIcon=(Resolve-Path 'windows/runner/resources').Path + '\app_icon.ico'
+          Add-Type -AssemblyName System.Drawing.Common
+          $src=[System.Drawing.Image]::FromFile($sourceIcon)
+          try {
+            $sizes=@(16,24,32,48,64,128,256)
+            $images=New-Object System.Collections.Generic.List[byte[]]
+            foreach($size in $sizes) {
+              $bmp=New-Object System.Drawing.Bitmap($size,$size,[System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+              $g=[System.Drawing.Graphics]::FromImage($bmp)
+              try {
+                $g.Clear([System.Drawing.Color]::Transparent)
+                $g.CompositingMode=[System.Drawing.Drawing2D.CompositingMode]::SourceCopy
+                $g.CompositingQuality=[System.Drawing.Drawing2D.CompositingQuality]::HighQuality
+                $g.InterpolationMode=[System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+                $g.SmoothingMode=[System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+                $g.PixelOffsetMode=[System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+                $g.DrawImage($src,0,0,$size,$size)
+              } finally { $g.Dispose() }
+              $ms=New-Object System.IO.MemoryStream
+              try { $bmp.Save($ms,[System.Drawing.Imaging.ImageFormat]::Png); $images.Add($ms.ToArray()) }
+              finally { $ms.Dispose(); $bmp.Dispose() }
+            }
+            $fs=[System.IO.File]::Create($targetIcon)
+            $bw=New-Object System.IO.BinaryWriter($fs)
+            try {
+              $bw.Write([UInt16]0); $bw.Write([UInt16]1); $bw.Write([UInt16]$sizes.Count)
+              $offset=6+(16*$sizes.Count)
+              for($i=0;$i -lt $sizes.Count;$i++) {
+                $size=$sizes[$i]; $png=$images[$i]; $wh=if($size -eq 256){[byte]0}else{[byte]$size}
+                $bw.Write($wh);$bw.Write($wh);$bw.Write([byte]0);$bw.Write([byte]0)
+                $bw.Write([UInt16]1);$bw.Write([UInt16]32);$bw.Write([UInt32]$png.Length);$bw.Write([UInt32]$offset)
+                $offset += $png.Length
+              }
+              foreach($png in $images){$bw.Write($png)}
+            } finally { $bw.Dispose(); $fs.Dispose() }
+          } finally { $src.Dispose() }
+          flutter pub get
+
+      - name: Analyze e testes
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        run: |
+          dart format lib/brand.dart lib/widgets/auditar_brand_logo.dart lib/services/report_template_service.dart lib/services/pdf_service.dart lib/services/styled_report_pdf_service.dart lib/services/backup_service.dart lib/screens/login_screen.dart lib/screens/splash_screen.dart lib/screens/home_screen.dart lib/screens/settings_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'flutter analyze falhou' }
+          flutter test
+          if ($LASTEXITCODE -ne 0) { throw 'flutter test falhou' }
+
+      - name: Regressao neutra
+        shell: pwsh
+        run: |
+          python tools/regression_neutral_sst_v1.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'regressao neutra falhou' }
+
+      - name: Compilar Windows neutro
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        env:
+          SST_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:SST_SYNC_KEY)) { throw 'SST_SYNC_KEY ausente' }
+          flutter build windows --release --dart-define=SST_SYNC_KEY="$env:SST_SYNC_KEY"
+          if ($LASTEXITCODE -ne 0) { throw 'build Windows falhou' }
+
+      - name: Gerar instalador separado e portatil
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/neutral | Out-Null
+          $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
+          $icon=(Resolve-Path "$env:APP_DIR/windows/runner/resources/app_icon.ico").Path
+          if (-not (Test-Path "$release\sst_gestao.exe")) { throw 'Executável neutro não encontrado' }
+          Compress-Archive "$release/*" 'dist/neutral/SST-Gestao-Windows-v1.0.0-PORTATIL.zip' -Force
+
+          $iscc='C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          if (-not (Test-Path $iscc)) { throw 'Inno Setup não disponível' }
+          $output=(Resolve-Path 'dist/neutral').Path
+          $iss=@"
+          [Setup]
+          AppId={{B4C2873E-3E7A-4B8B-9F1E-6B9652FA712C}
+          AppName=SST Gestão
+          AppVersion=1.0.0
+          AppPublisher=SST Gestão
+          DefaultDirName={autopf}\SST Gestão
+          DefaultGroupName=SST Gestão
+          OutputDir=$output
+          OutputBaseFilename=SST-Gestao-Setup-v1.0.0
+          SetupIconFile=$icon
+          Compression=lzma2
+          SolidCompression=yes
+          WizardStyle=modern
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          UninstallDisplayIcon={app}\sst_gestao.exe
+          [Files]
+          Source: "$release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          [Icons]
+          Name: "{autoprograms}\SST Gestão"; Filename: "{app}\sst_gestao.exe"
+          Name: "{autodesktop}\SST Gestão"; Filename: "{app}\sst_gestao.exe"
+          [Run]
+          Filename: "{app}\sst_gestao.exe"; Description: "Abrir SST Gestão"; Flags: nowait postinstall skipifsilent
+          "@
+          Set-Content "$env:RUNNER_TEMP\sst-gestao-v1.iss" $iss -Encoding UTF8
+          & $iscc "$env:RUNNER_TEMP\sst-gestao-v1.iss"
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
+          Get-FileHash 'dist/neutral/SST-Gestao-Setup-v1.0.0.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/neutral/SST-Gestao-Setup-v1.0.0.sha256.txt'
+          Get-FileHash 'dist/neutral/SST-Gestao-Windows-v1.0.0-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/neutral/SST-Gestao-Windows-v1.0.0-PORTATIL.sha256.txt'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SST-Gestao-Neutro-v1.0.0-Windows
+          path: dist/neutral/*
+          retention-days: 30
