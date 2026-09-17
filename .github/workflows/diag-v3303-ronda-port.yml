@@ -1,0 +1,66 @@
+name: Diagnostico Windows v3.30.3 Ronda Port
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths: ['.github/workflows/diag-v3303-ronda-port.yml']
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  diagnose:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar exatamente a base Windows v3.30.3
+        shell: pwsh
+        run: |
+          python tools/assemble_sync_response_fix.py windows
+          python tools/patch_sync_progress_v32939_32942.py "$env:APP_DIR" windows
+          python tools/patch_sync_progress_compile_safety.py "$env:APP_DIR"
+          python tools/patch_windows_sync_logo_stability_v32943.py "$env:APP_DIR"
+          python tools/patch_sync_queue_media_separation_v32940_32944.py "$env:APP_DIR" windows
+          $patch=Join-Path $env:RUNNER_TEMP 'training.py'
+          $env:TRAINING_PATCH_PATH=$patch
+          python -c "from pathlib import Path; import base64,lzma,os; p=Path('build_sources/v3.30.0-training-attendance/patch_training_attendance_v3300.py.xz.b64'); Path(os.environ['TRAINING_PATCH_PATH']).write_bytes(lzma.decompress(base64.b64decode(p.read_text().strip())))"
+          python $patch "$env:APP_DIR" windows
+          python tools/patch_windows_dds_mobile_module_v3301.py "$env:APP_DIR"
+          python tools/patch_windows_mobile_improvements_v3301_compat.py "$env:APP_DIR"
+          $pubPath=Join-Path $env:APP_DIR 'pubspec.yaml'
+          $pub=Get-Content $pubPath -Raw
+          $pub=$pub.Replace('version: 3.30.1+188','version: 3.30.2+189')
+          Set-Content $pubPath $pub -Encoding UTF8
+          python tools/patch_company_logo_persistence_v32954_v3303.py "$env:APP_DIR" windows
+
+      - name: Diagnosticar Ronda e patch v3.30.4 existente
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import base64,lzma
+          root=Path(r"app/Auditar_SST_v1_5_dashboard")
+          pub=(root/'pubspec.yaml').read_text(encoding='utf-8')
+          print('PUBSPEC=', next(x for x in pub.splitlines() if x.startswith('version:')))
+          for rel in ['lib/screens/express_round_screen.dart','lib/services/ai_assistant_service.dart','lib/services/sync_coordinator.dart','lib/services/device_sync_service.dart']:
+              p=root/rel
+              print('\nFILE',rel,'EXISTS',p.exists())
+              if not p.exists(): continue
+              t=p.read_text(encoding='utf-8')
+              needles=['Ronda Expressa','roundId','_showRoundsArchive','_loadRoundById','_reviewDeferredAiSuggestion','_analyzePendingRoundPhotos','rondaDeferred','_prepareRoundPhotoForAi','maxDimension = 720','Duration(seconds: 95)','Analisar agora com IA','aiStatus','Histórico de Rondas Expressas']
+              for n in needles:
+                  if n in t: print('HAS',n)
+          p=Path('build_sources/v3.29.55-ronda-ia-conformidade/patch_express_round_ai_conformity_v32955_v3304.py.xz.b64')
+          raw=lzma.decompress(base64.b64decode(p.read_text().strip())).decode('utf-8')
+          print('\nV3304_PATCH_LEN',len(raw))
+          for n in ['version: 3.30.4','express_round_screen.dart','ai_assistant_service.dart','rondaDeferred','_prepareRoundPhotoForAi','_showRoundsArchive','_reviewDeferredAiSuggestion','3.29.55','3.30.3']:
+              print('PATCH_HAS',n,n in raw)
+          print('\nPATCH_HEAD')
+          print('\n'.join(raw.splitlines()[:80]))
+          '@ | python -
