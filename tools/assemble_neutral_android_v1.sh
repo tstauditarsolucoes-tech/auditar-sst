@@ -19,7 +19,7 @@ state={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p
 Path('/tmp/sst_neutral_android_protected.json').write_text(json.dumps(state,indent=2),encoding='utf-8')
 PY
 
-python3 tools/patch_neutral_sst_edition_v1_fixed.py "$ROOT"
+python3 tools/patch_neutral_sst_edition_v1_fixed2.py "$ROOT"
 python3 tools/patch_neutral_env_v1.py "$ROOT"
 python3 tools/regression_neutral_sst_v1.py "$ROOT"
 
