@@ -6,7 +6,10 @@ import sys
 import zipfile
 from pathlib import Path
 
+# Varredura deliberadamente estrita: a edição v1.0 neutra não deve carregar
+# nenhuma ocorrência textual da marca/base antiga no artefato distribuído.
 FORBIDDEN = [
+    'Auditar',
     'Auditar SST',
     'AUDITAR SST',
     'Auditar Soluções',
@@ -18,6 +21,7 @@ FORBIDDEN = [
     'Central de Gestão Auditar',
     'Central de Gestao Auditar',
     'AuditarSstApp',
+    'AuditarBrand',
     'AuditarBrandLogo',
     'AuditarUser',
     'auditarBackgroundSyncDispatcher',
@@ -39,6 +43,7 @@ def byte_needles():
         for enc in ('utf-8', 'utf-16le', 'utf-16be'):
             out.append((term, enc, term.encode(enc)))
     return out
+
 
 NEEDLES = byte_needles()
 
