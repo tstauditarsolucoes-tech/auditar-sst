@@ -1,0 +1,134 @@
+name: Auditar SST Windows v3.30.4 Ronda Atualizada
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths: ['.github/workflows/build-v3304-windows-ronda-latest.yml']
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar Windows v3.30.4
+        shell: pwsh
+        run: |
+          python tools/assemble_windows_v3304_ronda_latest.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'montagem v3.30.4 falhou' }
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Flutter analyze e testes
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        run: |
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if (Test-Path 'test/widget_test.dart') {
+            if ((Get-Content 'test/widget_test.dart' -Raw) -match 'MyApp') { Remove-Item 'test/widget_test.dart' -Force }
+          }
+          flutter pub get
+          dart format lib/screens/express_round_screen.dart lib/services/ai_assistant_service.dart lib/services/express_round_pdf_service.dart lib/services/sync_coordinator.dart lib/services/device_sync_service.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'flutter analyze falhou' }
+          flutter test
+          if ($LASTEXITCODE -ne 0) { throw 'flutter test falhou' }
+
+      - name: Regressao Windows v3.30.4
+        shell: pwsh
+        run: |
+          python tools/regression_windows_v3304.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'regressão v3.30.4 falhou' }
+
+      - name: Teste real Central e IA de foto da Ronda
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          New-Item -ItemType Directory -Force tool | Out-Null
+          Copy-Item '..\..\tools\live_ronda_ai_probe_v32960.dart' 'tool\live_ronda_ai_probe.dart' -Force
+          dart run --define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY" tool/live_ronda_ai_probe.dart
+          if ($LASTEXITCODE -ne 0) { throw 'teste real da IA/Central falhou' }
+
+      - name: Compilar Windows release
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+          if ($LASTEXITCODE -ne 0) { throw 'build Windows falhou' }
+          $exe=(Resolve-Path 'build/windows/x64/runner/Release/auditar_sst.exe').Path
+          Add-Type -AssemblyName System.Drawing.Common
+          $extracted=[System.Drawing.Icon]::ExtractAssociatedIcon($exe)
+          if ($null -eq $extracted) { throw 'executável final não possui ícone associado' }
+          try { Write-Host "ICONE_EXE_OK: $($extracted.Width)x$($extracted.Height)" } finally { $extracted.Dispose() }
+
+      - name: Gerar instalador e portátil
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
+          $icon=(Resolve-Path "$env:APP_DIR/windows/runner/resources/app_icon.ico").Path
+          Copy-Item $icon 'dist/windows/Auditar-SST-v3.30.4-icone.ico' -Force
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.4-PORTATIL.zip' -Force
+          $iscc='C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          if (-not (Test-Path $iscc)) { throw 'Inno Setup não disponível' }
+          $output=(Resolve-Path 'dist/windows').Path
+          $iss=@"
+          [Setup]
+          AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}
+          AppName=Auditar SST
+          AppVersion=3.30.4
+          AppPublisher=Auditar Soluções
+          DefaultDirName={autopf}\Auditar SST
+          DefaultGroupName=Auditar SST
+          OutputDir=$output
+          OutputBaseFilename=Auditar-SST-Setup-v3.30.4
+          SetupIconFile=$icon
+          Compression=lzma2
+          SolidCompression=yes
+          WizardStyle=modern
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          UninstallDisplayIcon={app}\auditar_sst.exe
+          [Files]
+          Source: "$release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          [Icons]
+          Name: "{autoprograms}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          Name: "{autodesktop}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          [Run]
+          Filename: "{app}\auditar_sst.exe"; Description: "Abrir Auditar SST"; Flags: nowait postinstall skipifsilent
+          "@
+          Set-Content "$env:RUNNER_TEMP\auditar-v3304.iss" $iss -Encoding UTF8
+          & $iscc "$env:RUNNER_TEMP\auditar-v3304.iss"
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.4.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.4.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.4-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.4-PORTATIL.sha256.txt'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.30.4-Windows-Ronda-Historico-Revisao-IA
+          path: dist/windows/*
+          retention-days: 30
