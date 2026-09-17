@@ -1,0 +1,37 @@
+name: Diagnostico identidade para edicao neutra
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [neutral-sst-separate-edition]
+    paths: ['.github/workflows/diag-neutral-brand-scan.yml']
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar base atual Android v3.29.62
+        run: bash tools/assemble_android_v32962.sh "$APP_DIR"
+      - name: Inventario de identidade
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '=== BRAND.DART ==='
+          sed -n '1,240p' "$APP_DIR/lib/brand.dart" || true
+          echo '=== ASSETS BRANDING ==='
+          find "$APP_DIR/assets" -maxdepth 3 -type f | sort | sed -n '1,240p' || true
+          echo '=== ARQUIVOS COM IDENTIDADE AUDITAR ==='
+          grep -RIlEi 'auditar|solu[cç][oõ]es|tstauditarsolucoes|br\.com\.auditar|auditar_sst|central auditar' \
+            "$APP_DIR/lib" "$APP_DIR/pubspec.yaml" "$APP_DIR/android" "$APP_DIR/windows" 2>/dev/null | sort | sed -n '1,260p' || true
+          echo '=== OCORRENCIAS RELEVANTES ==='
+          grep -RniEi 'auditar|solu[cç][oõ]es|tstauditarsolucoes|br\.com\.auditar|auditar_sst|central auditar' \
+            "$APP_DIR/lib" "$APP_DIR/pubspec.yaml" "$APP_DIR/android" "$APP_DIR/windows" 2>/dev/null | \
+            grep -vE '/build/|\.dart_tool/' | sed -n '1,520p' || true
