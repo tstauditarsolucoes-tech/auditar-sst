@@ -1,0 +1,73 @@
+name: DIAG Live Deploy Ronda e Checklist
+
+on:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths: ['.github/workflows/diag-live-deployed-ronda-checklist.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Testar Checklist e Ronda na Central publicada
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, urllib.request, time, base64
+
+          endpoint='https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec'
+          key=os.environ['AUDITAR_SYNC_KEY']
+          png='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z8O0AAAAASUVORK5CYII='
+
+          def call(name, payload, timeout=100):
+              body=json.dumps({'action':'ai_assistant','syncKey':key,'payload':payload}).encode('utf-8')
+              req=urllib.request.Request(endpoint,data=body,headers={'Content-Type':'application/json; charset=utf-8'},method='POST')
+              started=time.time()
+              try:
+                  with urllib.request.urlopen(req,timeout=timeout) as r:
+                      raw=r.read().decode('utf-8','replace')
+                      elapsed=round((time.time()-started)*1000)
+                      print(name,'HTTP',r.status,'MS',elapsed,'BODY',raw)
+                      try: return json.loads(raw)
+                      except Exception: return {'ok':False,'code':'INVALID_JSON','raw':raw}
+              except Exception as e:
+                  elapsed=round((time.time()-started)*1000)
+                  print(name,'EXC',repr(e),'MS',elapsed)
+                  return {'ok':False,'code':'EXCEPTION','message':repr(e)}
+
+          common={
+            'mode':'checklist_photo',
+            'companyName':'Teste Auditar',
+            'area':'Teste',
+            'question':'Descreva objetivamente a imagem sem inventar fatos.',
+            'category':'Teste',
+            'reference':'',
+            'technicianContext':'Teste técnico de integração após implantação do GS.',
+            'images':['data:image/png;base64,'+png]
+          }
+
+          checklist=call('CHECKLIST_NORMAL', dict(common))
+          ronda_payload=dict(common)
+          ronda_payload['rondaDeferred']=True
+          ronda=call('RONDA_DEFERRED', ronda_payload)
+
+          print('CHECKLIST_RESULT', json.dumps(checklist, ensure_ascii=False))
+          print('RONDA_RESULT', json.dumps(ronda, ensure_ascii=False))
+
+          # Não falha por indisponibilidade transitória do Gemini; falha apenas por
+          # regressão estrutural evidente da rota/publicação.
+          structural_codes={'INVALID_JSON','EXCEPTION','AI_NOT_CONFIGURED','AI_IMAGE_FORMAT_INVALID','AI_PHOTO_INVALID_ARGUMENT'}
+          if checklist.get('code') in structural_codes:
+              raise SystemExit('Checklist apresentou falha estrutural: '+str(checklist))
+          if ronda.get('code') in structural_codes:
+              raise SystemExit('Ronda apresentou falha estrutural: '+str(ronda))
+          PY
