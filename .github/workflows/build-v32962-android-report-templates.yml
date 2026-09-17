@@ -37,9 +37,13 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Dependencias
+      - name: Preparar plataforma Android atual
         working-directory: ${{ env.APP_DIR }}
-        run: flutter pub get
+        run: |
+          set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
 
       - name: Formatar somente arquivos de relatorio
         working-directory: ${{ env.APP_DIR }}
