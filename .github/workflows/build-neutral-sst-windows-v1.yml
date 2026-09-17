@@ -8,8 +8,14 @@ on:
       - '.github/workflows/build-neutral-sst-windows-v1.yml'
       - 'tools/assemble_neutral_windows_v1.py'
       - 'tools/patch_neutral_sst_edition_v1.py'
+      - 'tools/patch_neutral_sst_edition_v1_fixed.py'
+      - 'tools/patch_neutral_sst_edition_v1_fixed2.py'
+      - 'tools/patch_neutral_brand_widget_compat_v1.py'
       - 'tools/patch_neutral_env_v1.py'
+      - 'tools/patch_neutral_final_identity_v1.py'
+      - 'tools/patch_neutral_tests_v1.py'
       - 'tools/regression_neutral_sst_v1.py'
+      - 'tools/scan_neutral_artifact_v1.py'
 
 permissions:
   contents: read
@@ -98,27 +104,49 @@ jobs:
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
         run: |
-          dart format lib/brand.dart lib/widgets/auditar_brand_logo.dart lib/services/report_template_service.dart lib/services/pdf_service.dart lib/services/styled_report_pdf_service.dart lib/services/backup_service.dart lib/screens/login_screen.dart lib/screens/splash_screen.dart lib/screens/home_screen.dart lib/screens/settings_screen.dart
+          dart format `
+            lib/brand.dart `
+            lib/widgets/sst_brand_logo.dart `
+            lib/services/report_template_service.dart `
+            lib/services/pdf_service.dart `
+            lib/services/styled_report_pdf_service.dart `
+            lib/services/backup_service.dart `
+            lib/services/auth_service.dart `
+            lib/services/background_sync_service.dart `
+            lib/screens/login_screen.dart `
+            lib/screens/splash_screen.dart `
+            lib/screens/home_screen.dart `
+            lib/screens/settings_screen.dart `
+            lib/main.dart
+          if ($LASTEXITCODE -ne 0) { throw 'dart format falhou' }
           flutter analyze --no-fatal-infos --no-fatal-warnings
           if ($LASTEXITCODE -ne 0) { throw 'flutter analyze falhou' }
           flutter test
           if ($LASTEXITCODE -ne 0) { throw 'flutter test falhou' }
 
-      - name: Regressao neutra
+      - name: Regressao neutra final
         shell: pwsh
         run: |
           python tools/regression_neutral_sst_v1.py "$env:APP_DIR"
           if ($LASTEXITCODE -ne 0) { throw 'regressao neutra falhou' }
 
-      - name: Compilar Windows neutro
+      - name: Compilar Windows neutro ofuscado
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
         env:
           SST_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
         run: |
           if ([string]::IsNullOrWhiteSpace($env:SST_SYNC_KEY)) { throw 'SST_SYNC_KEY ausente' }
-          flutter build windows --release --dart-define=SST_SYNC_KEY="$env:SST_SYNC_KEY"
+          flutter build windows --release --obfuscate --split-debug-info=build/symbols-neutral/windows --dart-define=SST_SYNC_KEY="$env:SST_SYNC_KEY"
           if ($LASTEXITCODE -ne 0) { throw 'build Windows falhou' }
+
+      - name: Validar binarios Windows totalmente neutros
+        shell: pwsh
+        run: |
+          $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
+          if (-not (Test-Path "$release\sst_gestao.exe")) { throw 'Executável neutro não encontrado' }
+          python tools/scan_neutral_artifact_v1.py "$release"
+          if ($LASTEXITCODE -ne 0) { throw 'referência da edição antiga encontrada no Windows' }
 
       - name: Gerar instalador separado e portatil
         shell: pwsh
@@ -126,7 +154,6 @@ jobs:
           New-Item -ItemType Directory -Force dist/neutral | Out-Null
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
           $icon=(Resolve-Path "$env:APP_DIR/windows/runner/resources/app_icon.ico").Path
-          if (-not (Test-Path "$release\sst_gestao.exe")) { throw 'Executável neutro não encontrado' }
           Compress-Archive "$release/*" 'dist/neutral/SST-Gestao-Windows-v1.0.0-PORTATIL.zip' -Force
 
           $iscc='C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
@@ -161,6 +188,10 @@ jobs:
           Set-Content "$env:RUNNER_TEMP\sst-gestao-v1.iss" $iss -Encoding UTF8
           & $iscc "$env:RUNNER_TEMP\sst-gestao-v1.iss"
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
+
+          python tools/scan_neutral_artifact_v1.py 'dist/neutral/SST-Gestao-Windows-v1.0.0-PORTATIL.zip' 'dist/neutral/SST-Gestao-Setup-v1.0.0.exe'
+          if ($LASTEXITCODE -ne 0) { throw 'artefato Windows final contém referência da edição antiga' }
+
           Get-FileHash 'dist/neutral/SST-Gestao-Setup-v1.0.0.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/neutral/SST-Gestao-Setup-v1.0.0.sha256.txt'
           Get-FileHash 'dist/neutral/SST-Gestao-Windows-v1.0.0-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/neutral/SST-Gestao-Windows-v1.0.0-PORTATIL.sha256.txt'
 
