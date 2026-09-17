@@ -20,6 +20,7 @@ Path('/tmp/sst_neutral_android_protected.json').write_text(json.dumps(state,inde
 PY
 
 python3 tools/patch_neutral_sst_edition_v1_fixed2.py "$ROOT"
+python3 tools/patch_neutral_brand_widget_compat_v1.py "$ROOT"
 python3 tools/patch_neutral_env_v1.py "$ROOT"
 python3 tools/regression_neutral_sst_v1.py "$ROOT"
 
