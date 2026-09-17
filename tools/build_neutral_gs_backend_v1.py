@@ -157,3 +157,5 @@ if (out / 'EpiSync.gs').exists():
     raise SystemExit('EpiSync.gs não pode integrar a Central neutra de vistoria')
 
 print('SST_GESTAO_GS_OK: Central independente gerada com funções SST preservadas e armazenamento separado.')
+
+# Build da Central SST Gestão independente.
