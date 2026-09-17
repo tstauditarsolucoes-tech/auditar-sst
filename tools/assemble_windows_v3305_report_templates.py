@@ -42,8 +42,15 @@ run('tools/assemble_windows_v3304_ronda_latest.py', root)
 protected = protected_files()
 before = {path: digest(path) for path in protected}
 
-# Recurso novo: somente relatórios/modelos.
-run('tools/patch_report_templates_v32962.py', root)
+# Recurso novo: somente relatórios/modelos. A base Windows tem pequena diferença
+# de layout no Settings; o patch compartilhado chega até esse ponto e o
+# complemento Windows termina somente Settings/PDF/versionamento.
+shared = subprocess.run(
+    [py, str(repo / 'tools/patch_report_templates_v32962.py'), str(root)],
+    cwd=repo,
+)
+if shared.returncode != 0:
+    run('tools/patch_report_templates_windows_compat_v3305.py', root)
 run('tools/patch_report_templates_compile_fix_v32962.py', root)
 
 # A patch compartilhada usa numeração Android; restaura a linha Windows monotônica.
