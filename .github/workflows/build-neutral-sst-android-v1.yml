@@ -22,7 +22,7 @@ permissions:
 
 env:
   SOURCE_DIR: app/Auditar_SST_v1_5_dashboard
-  APP_DIR: app/SST_Gestao_Neutro
+  APP_DIR: ${{ runner.temp }}/SST_Gestao_Neutro
 
 jobs:
   android:
@@ -31,13 +31,26 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Montar copia neutra sem alterar base Auditar
+      - name: Montar edicao neutra em copia temporaria isolada
         run: |
           set -euo pipefail
+          test -z "$(git status --porcelain -- "$SOURCE_DIR")"
+
+          TMP_REPO="$RUNNER_TEMP/sst-neutral-source-repo"
+          rm -rf "$TMP_REPO" "$APP_DIR"
+          mkdir -p "$TMP_REPO"
+          rsync -a --delete --exclude='.git' "$GITHUB_WORKSPACE/" "$TMP_REPO/"
+
+          cd "$TMP_REPO"
           bash tools/assemble_neutral_android_v1.sh "$SOURCE_DIR"
-          rm -rf "$APP_DIR"
+
           mkdir -p "$(dirname "$APP_DIR")"
-          cp -a "$SOURCE_DIR" "$APP_DIR"
+          cp -a "$TMP_REPO/$SOURCE_DIR" "$APP_DIR"
+
+          cd "$GITHUB_WORKSPACE"
+          test -z "$(git status --porcelain -- "$SOURCE_DIR")"
+          git diff --exit-code -- "$SOURCE_DIR"
+          echo 'BASE_AUDITAR_INTACTA: montagem ocorreu somente na copia temporaria.'
 
       - uses: subosito/flutter-action@v2
         with:
@@ -98,16 +111,19 @@ jobs:
             --split-debug-info=build/symbols-neutral/android \
             --dart-define=SST_SYNC_KEY="$SST_SYNC_KEY"
 
-      - name: Validar artefato totalmente neutro
+      - name: Validar artefato totalmente neutro e base congelada
         run: |
           set -euo pipefail
           APK="$APP_DIR/build/app/outputs/flutter-apk/app-release.apk"
           test -f "$APK"
           unzip -l "$APK" | grep -qi 'assets/branding/auditar' && { echo 'Ativo da marca antiga encontrado no APK'; exit 1; } || true
           python tools/scan_neutral_artifact_v1.py "$APK"
+          test -z "$(git status --porcelain -- "$SOURCE_DIR")"
+          git diff --exit-code -- "$SOURCE_DIR"
           mkdir -p dist/neutral
           cp "$APK" 'dist/neutral/SST-Gestao-v1.0.0-Android.apk'
           sha256sum 'dist/neutral/SST-Gestao-v1.0.0-Android.apk' > 'dist/neutral/SST-Gestao-v1.0.0-Android.sha256.txt'
+          echo 'BASE_AUDITAR_INTACTA_FINAL: nenhuma alteracao na fonte original.'
 
       - uses: actions/upload-artifact@v4
         with:
