@@ -22,7 +22,6 @@ permissions:
 
 env:
   SOURCE_DIR: app/Auditar_SST_v1_5_dashboard
-  APP_DIR: ${{ runner.temp }}/SST_Gestao_Neutro
   PYTHONIOENCODING: utf-8
 
 jobs:
@@ -35,12 +34,13 @@ jobs:
       - name: Montar edicao neutra em copia temporaria isolada
         shell: pwsh
         run: |
+          $appDir = Join-Path $env:RUNNER_TEMP 'SST_Gestao_Neutro'
           $dirty = git status --porcelain -- "$env:SOURCE_DIR"
           if (-not [string]::IsNullOrWhiteSpace($dirty)) { throw 'A base Auditar iniciou alterada no checkout' }
 
           $tmpRepo = Join-Path $env:RUNNER_TEMP 'sst-neutral-source-repo'
           if (Test-Path $tmpRepo) { Remove-Item $tmpRepo -Recurse -Force }
-          if (Test-Path $env:APP_DIR) { Remove-Item $env:APP_DIR -Recurse -Force }
+          if (Test-Path $appDir) { Remove-Item $appDir -Recurse -Force }
           New-Item -ItemType Directory -Force $tmpRepo | Out-Null
 
           Get-ChildItem $env:GITHUB_WORKSPACE -Force |
@@ -55,7 +55,7 @@ jobs:
             Pop-Location
           }
 
-          Copy-Item (Join-Path $tmpRepo $env:SOURCE_DIR) $env:APP_DIR -Recurse -Force
+          Copy-Item (Join-Path $tmpRepo $env:SOURCE_DIR) $appDir -Recurse -Force
 
           Push-Location $env:GITHUB_WORKSPACE
           try {
@@ -79,7 +79,7 @@ jobs:
           java-version: '17'
 
       - name: Criar plataforma Windows separada e icone neutro
-        working-directory: ${{ env.APP_DIR }}
+        working-directory: ${{ runner.temp }}/SST_Gestao_Neutro
         shell: pwsh
         run: |
           if (Test-Path 'windows') { Remove-Item 'windows' -Recurse -Force }
@@ -132,7 +132,7 @@ jobs:
           flutter pub get
 
       - name: Analyze e testes
-        working-directory: ${{ env.APP_DIR }}
+        working-directory: ${{ runner.temp }}/SST_Gestao_Neutro
         shell: pwsh
         run: |
           dart format `
@@ -158,11 +158,12 @@ jobs:
       - name: Regressao neutra final
         shell: pwsh
         run: |
-          python tools/regression_neutral_sst_v1.py "$env:APP_DIR"
+          $appDir = Join-Path $env:RUNNER_TEMP 'SST_Gestao_Neutro'
+          python tools/regression_neutral_sst_v1.py "$appDir"
           if ($LASTEXITCODE -ne 0) { throw 'regressao neutra falhou' }
 
       - name: Compilar Windows neutro ofuscado
-        working-directory: ${{ env.APP_DIR }}
+        working-directory: ${{ runner.temp }}/SST_Gestao_Neutro
         shell: pwsh
         env:
           SST_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
@@ -174,7 +175,8 @@ jobs:
       - name: Validar binarios Windows totalmente neutros e base congelada
         shell: pwsh
         run: |
-          $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
+          $appDir = Join-Path $env:RUNNER_TEMP 'SST_Gestao_Neutro'
+          $release=(Resolve-Path "$appDir/build/windows/x64/runner/Release").Path
           if (-not (Test-Path "$release\sst_gestao.exe")) { throw 'Executável neutro não encontrado' }
           python tools/scan_neutral_artifact_v1.py "$release"
           if ($LASTEXITCODE -ne 0) { throw 'referência da edição antiga encontrada no Windows' }
@@ -187,9 +189,10 @@ jobs:
       - name: Gerar instalador separado e portatil
         shell: pwsh
         run: |
+          $appDir = Join-Path $env:RUNNER_TEMP 'SST_Gestao_Neutro'
           New-Item -ItemType Directory -Force dist/neutral | Out-Null
-          $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          $icon=(Resolve-Path "$env:APP_DIR/windows/runner/resources/app_icon.ico").Path
+          $release=(Resolve-Path "$appDir/build/windows/x64/runner/Release").Path
+          $icon=(Resolve-Path "$appDir/windows/runner/resources/app_icon.ico").Path
           Compress-Archive "$release/*" 'dist/neutral/SST-Gestao-Windows-v1.0.0-PORTATIL.zip' -Force
 
           $iscc='C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
