@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
 import hashlib
-import json
 import subprocess
 import sys
 
@@ -30,7 +29,7 @@ protected=[
 ]
 before={p:digest(p) for p in protected}
 
-run('tools/patch_neutral_sst_edition_v1.py',root)
+run('tools/patch_neutral_sst_edition_v1_fixed.py',root)
 run('tools/patch_neutral_env_v1.py',root)
 run('tools/regression_neutral_sst_v1.py',root)
 
