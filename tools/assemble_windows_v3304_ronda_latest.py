@@ -108,6 +108,8 @@ aip.write_text(ai, encoding='utf-8', newline='\n')
 # Histórico de rondas encerradas + revisao/edicao/aprovacao humana da sugestao IA.
 run('tools/patch_ronda_history_review_v32961.py', root)
 run('tools/patch_ronda_history_review_compile_fix_v32961.py', root)
+# Ajustes exclusivos de tipagem/nulabilidade da base Windows atual.
+run('tools/patch_windows_ronda_compile_safety_v3304.py', root)
 set_version('version: 3.29.61+203', 'version: 3.30.4+191')
 
 # Validacoes estruturais do port Windows.
@@ -116,6 +118,7 @@ ronda = (root / 'lib/screens/express_round_screen.dart').read_text(encoding='utf
 ai = aip.read_text(encoding='utf-8')
 coord = (root / 'lib/services/sync_coordinator.dart').read_text(encoding='utf-8')
 dev = (root / 'lib/services/device_sync_service.dart').read_text(encoding='utf-8')
+pdf = (root / 'lib/services/express_round_pdf_service.dart').read_text(encoding='utf-8')
 
 assert 'version: 3.30.4+191' in pub
 assert '_showRoundsArchive' in ronda and 'Histórico de Rondas Expressas' in ronda
@@ -125,11 +128,14 @@ assert 'A IA não altera o registro automaticamente' in ronda
 assert 'Aprovar e salvar' in ronda and 'Manter pendente' in ronda
 assert "..['aiReviewedByTechnician'] = true" in ronda
 assert "..['aiStatus'] = 'CONCLUIDA'" in ronda
+assert 'context: this.context,' in ronda
 assert "'rondaDeferred': true" in ai
 assert "final rondaDeferred = payload['rondaDeferred'] == true;" in ai
 assert '_prepareRoundPhotoForAi' in ai and 'maxDimension = 720' in ai and 'quality: 55' in ai
 assert 'const Duration(seconds: 95)' in ai and 'const Duration(seconds: 55)' in ai
+assert "company.cnpj.trim()" not in pdf
+assert "_tableRow('CNPJ', company.cnpj ?? '')" in pdf
 assert 'Duration(seconds: 10)' in coord, 'sync Windows de 10 s foi alterado'
 assert 'final pullLimit = isWindows ? 500 : 100;' in dev
 assert 'ManagementPanelService.syncCompany(widget.company)' in ronda
-print('WINDOWS_V3304_OK: Ronda atualizada ate historico/revisao IA; sync Windows 10 s/500 e sync gerencial preservados.')
+print('WINDOWS_V3304_OK: Ronda atualizada ate historico/revisao IA; compile-safety e sync Windows preservados.')
