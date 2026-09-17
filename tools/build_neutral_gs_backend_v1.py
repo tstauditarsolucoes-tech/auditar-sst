@@ -72,7 +72,7 @@ code = re.sub(
     code,
     flags=re.S,
 )
-code = re.sub(r'^\\s*//.*EpiSync.*\\n?', '', code, flags=re.M | re.I)
+code = re.sub(r'^\s*//.*EpiSync.*\n?', '', code, flags=re.M | re.I)
 
 # Identidade de armazenamento: Drive e planilha são da edição SST Gestão.
 code = code.replace("const DRIVE_ROOT_FOLDER = 'SST Gestão';", "const DRIVE_ROOT_FOLDER = 'SST Gestão';")
@@ -135,7 +135,7 @@ for path in out.iterdir():
         text = text.replace('setupAuditar', 'setupSstGestao')
         text = text.replace('Auditar', 'SstGestao')
         text = text.replace('auditar', 'sst_gestao')
-        text = re.sub(r'^.*EpiSync.*\\n?', '', text, flags=re.M | re.I)
+        text = re.sub(r'^.*EpiSync.*\n?', '', text, flags=re.M | re.I)
         path.write_text(text, encoding='utf-8', newline='\n')
 
 # Acabamento visual: identificadores técnicos continuam SstGestao, mas nenhum
