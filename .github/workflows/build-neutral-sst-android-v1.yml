@@ -30,7 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Montar edicao neutra em copia temporaria isolada
+      - name: Montar edicao neutra em clone temporario isolado
         run: |
           set -euo pipefail
           APP_DIR="$RUNNER_TEMP/SST_Gestao_Neutro"
@@ -38,10 +38,9 @@ jobs:
 
           TMP_REPO="$RUNNER_TEMP/sst-neutral-source-repo"
           rm -rf "$TMP_REPO" "$APP_DIR"
-          mkdir -p "$TMP_REPO"
-          rsync -a --delete --exclude='.git' "$GITHUB_WORKSPACE/" "$TMP_REPO/"
-
+          git clone --no-hardlinks "$GITHUB_WORKSPACE" "$TMP_REPO"
           cd "$TMP_REPO"
+          git checkout --detach "$GITHUB_SHA"
           bash tools/assemble_neutral_android_v1.sh "$SOURCE_DIR"
 
           cp -a "$TMP_REPO/$SOURCE_DIR" "$APP_DIR"
@@ -49,7 +48,7 @@ jobs:
           cd "$GITHUB_WORKSPACE"
           test -z "$(git status --porcelain -- "$SOURCE_DIR")"
           git diff --exit-code -- "$SOURCE_DIR"
-          echo 'BASE_AUDITAR_INTACTA: montagem ocorreu somente na copia temporaria.'
+          echo 'BASE_AUDITAR_INTACTA: montagem ocorreu somente no clone temporario.'
 
       - uses: subosito/flutter-action@v2
         with:
