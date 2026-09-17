@@ -39,6 +39,9 @@ for path in out.iterdir():
     text = text.replace('AUDITAR_SPREADSHEET_ID', 'SST_GESTAO_SPREADSHEET_ID')
     text = text.replace('AUDITAR_SYNC_KEY', 'SST_GESTAO_SYNC_KEY')
     text = text.replace('AUDITAR_AI_MODEL', 'SST_GESTAO_AI_MODEL')
+    # Qualquer constante/cache técnico restante da base antiga também recebe
+    # prefixo próprio da Central neutra (ex.: WEEKLY_* e AUTH_*).
+    text = text.replace('AUDITAR_', 'SST_GESTAO_')
     text = text.replace('setupAuditar', 'setupSstGestao')
 
     # Identidade visível da Central independente.
@@ -140,6 +143,7 @@ for token in required:
         raise SystemExit(f'Backend neutro incompleto: ausente {token}')
 
 for forbidden in [
+    'AUDITAR_',
     'AUDITAR_SPREADSHEET_ID',
     'AUDITAR_SYNC_KEY',
     'AUDITAR_DEVICE_SYNC_VERSION',
