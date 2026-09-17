@@ -21,6 +21,7 @@ permissions:
   contents: read
 
 env:
+  SOURCE_DIR: app/Auditar_SST_v1_5_dashboard
   APP_DIR: app/SST_Gestao_Neutro
   PYTHONIOENCODING: utf-8
 
@@ -31,11 +32,13 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Montar edicao neutra e proteger nucleo
+      - name: Montar copia neutra sem alterar base Auditar
         shell: pwsh
         run: |
-          python tools/assemble_neutral_windows_v1.py "$env:APP_DIR"
+          python tools/assemble_neutral_windows_v1.py "$env:SOURCE_DIR"
           if ($LASTEXITCODE -ne 0) { throw 'montagem neutra falhou' }
+          if (Test-Path "$env:APP_DIR") { Remove-Item "$env:APP_DIR" -Recurse -Force }
+          Copy-Item "$env:SOURCE_DIR" "$env:APP_DIR" -Recurse -Force
 
       - uses: subosito/flutter-action@v2
         with:
