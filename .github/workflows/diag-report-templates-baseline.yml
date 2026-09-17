@@ -1,0 +1,51 @@
+name: Diagnostico base modelos de relatorio
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/diag-report-templates-baseline.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar Android v3.29.61
+        run: bash tools/assemble_android_v32961.sh app/Auditar_SST_v1_5_dashboard
+      - name: Inspecionar pontos de extensao dos relatorios
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          root=Path('app/Auditar_SST_v1_5_dashboard')
+          specs={
+            'REPORT_SCREEN': (root/'lib/screens/report_screen.dart', ['generate','PdfService','report','Relatório','plano de ação','executive','signature']),
+            'PDF_SERVICE': (root/'lib/services/pdf_service.dart', ['class PdfService','generate','build','executive','reportFooter','company','logo','MultiPage','Page(']),
+            'SETTINGS': (root/'lib/screens/settings_screen.dart', ['class Settings','Relatório','Configura','ListTile','setting']),
+            'AUTH': (root/'lib/services/auth_service.dart', ['currentUser','User','user','email','id']),
+            'DATABASE': (root/'lib/database.dart', ['getSetting','setSetting','class AppDatabase']),
+            'MODELS': (root/'lib/models.dart', ['class Company','class AppUser','class User','logo']),
+          }
+          for title,(path,needles) in specs.items():
+            print('\n===== '+title+' :: '+str(path)+' =====')
+            if not path.exists():
+              print('AUSENTE'); continue
+            lines=path.read_text(encoding='utf-8').splitlines()
+            hits=[]
+            for i,line in enumerate(lines):
+              if any(n.lower() in line.lower() for n in needles): hits.append(i)
+            seen=set()
+            for i in hits[:45]:
+              a=max(0,i-5); b=min(len(lines),i+12)
+              key=(a,b)
+              if key in seen: continue
+              seen.add(key)
+              print(f'--- linhas {a+1}-{b} ---')
+              for j in range(a,b): print(f'{j+1:04d}: {lines[j]}')
+          PY
