@@ -25,6 +25,7 @@ Path('/tmp/auditar_report_templates_android_protected.json').write_text(json.dum
 PY
 
 python3 tools/patch_report_templates_v32962.py "$ROOT"
+python3 tools/patch_report_templates_user_default_v32962.py "$ROOT"
 python3 tools/patch_report_templates_compile_fix_v32962.py "$ROOT"
 
 python3 - "$ROOT" <<'PY'
@@ -47,8 +48,10 @@ pdf=(root/'lib/services/pdf_service.dart').read_text(encoding='utf-8')
 assert 'version: 3.29.62+204' in pub
 assert "name: 'Padrão Auditar atual'" in templates
 assert 'useLegacyRenderer: true' in templates
+assert 'selectDefaultForCurrentUser' in templates
+assert 'AuthService.currentUser?.id' in templates
 assert 'if (!reportTemplate.useLegacyRenderer)' in pdf
-print('ANDROID_V32962_OK: modelos adicionados; sincronização/login/mídia/Drive/banco preservados byte por byte.')
+print('ANDROID_V32962_OK: modelos + padrão individual por usuário adicionados; sincronização/login/mídia/Drive/banco preservados byte por byte.')
 PY
 
 echo "Fonte Android v3.29.62 montada."
