@@ -28,7 +28,11 @@ assert 'A IA não altera o registro automaticamente' in ronda
 assert 'Aprovar e salvar' in ronda and 'Manter pendente' in ronda
 assert "..['aiReviewedByTechnician'] = true" in ronda
 assert "..['aiStatus'] = 'CONCLUIDA'" in ronda
-assert re.search(r'final approved = await _reviewDeferredAiSuggestion\(record, reply\.result\);', ronda)
+assert re.search(
+    r'final\s+approved\s*=\s*await\s+_reviewDeferredAiSuggestion\(\s*record\s*,\s*reply\.result\s*,?\s*\);',
+    ronda,
+    re.S,
+)
 # Garante que a análise em lote não grava resultado da IA antes da confirmação do técnico.
 batch = ronda.split('Future<void> _analyzePendingRoundPhotos() async {',1)[1].split('Future<void> _showRoundHistory() async {',1)[0]
 assert batch.index('_reviewDeferredAiSuggestion') < batch.index("..['aiAssisted'] = true")
