@@ -1,0 +1,20 @@
+name: Diagnostico identidade usuario modelos
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths: ['.github/workflows/diag-auth-session-v32962.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: bash tools/assemble_android_v32961.sh app/Auditar_SST_v1_5_dashboard >/dev/null
+      - name: Auth service identity surface
+        run: |
+          echo '--- auth symbols ---'
+          grep -n -E "class AuthService|current|session|email|username|userId|user_id|logged|login" app/Auditar_SST_v1_5_dashboard/lib/services/auth_service.dart | head -n 260 || true
+          echo '--- session refs across lib/services ---'
+          grep -R -n -E "currentUser|current_user|currentSession|userEmail|username|loggedUser|sessionUser|AuthSession" app/Auditar_SST_v1_5_dashboard/lib/services app/Auditar_SST_v1_5_dashboard/lib/screens | head -n 260 || true
