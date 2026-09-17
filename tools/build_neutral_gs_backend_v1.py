@@ -47,8 +47,7 @@ for path in out.iterdir():
     text = text.replace('Auditar Soluções', 'SST Gestão')
     text = text.replace('Auditar Solucoes', 'SST Gestão')
     text = text.replace('Auditar EPI', 'SST Gestão')
-    text = text.replace('Auditar', 'SST Gestão')
-    text = text.replace('auditar', 'sst_gestao')
+    # O restante costuma ser identificador técnico. Use nomes sem espaço para\n    # manter o JavaScript válido; textos visíveis mais comuns já foram tratados acima.\n    text = text.replace('Auditar', 'SstGestao')\n    text = text.replace('auditar', 'sst_gestao')
 
     path.write_text(text, encoding='utf-8', newline='\n')
 
