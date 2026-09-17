@@ -1,0 +1,43 @@
+name: Diagnostico hooks modelos de relatorio
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/diag-report-templates-hooks.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar Android v3.29.61
+        run: bash tools/assemble_android_v32961.sh app/Auditar_SST_v1_5_dashboard
+      - name: Hooks exatos
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          root=Path('app/Auditar_SST_v1_5_dashboard')
+          def dump(path,a,b,title):
+            p=root/path; lines=p.read_text(encoding='utf-8').splitlines()
+            print(f'\n===== {title} {a}-{b} / {len(lines)} =====')
+            for i in range(max(0,a-1), min(len(lines),b)):
+              print(f'{i+1:04d}: {lines[i]}')
+          dump(Path('lib/screens/report_screen.dart'), 520, 900, 'REPORT_UI')
+          dump(Path('lib/services/report_file_service.dart'), 1, 240, 'REPORT_FILE')
+          dump(Path('lib/services/pdf_service.dart'), 29, 130, 'PDF_DATA')
+          dump(Path('lib/models.dart'), 300, 620, 'MODELS_MID')
+          dump(Path('lib/database.dart'), 1600, 1920, 'DB_INSPECTION')
+          print('\n===== GREP GENERATION =====')
+          for p in (root/'lib').rglob('*.dart'):
+            text=p.read_text(encoding='utf-8')
+            for needle in ['generateInspectionPdf(', 'savePdfLocally(', '_sendToDrive(', 'getInspectionHeader(']:
+              for i,line in enumerate(text.splitlines(),1):
+                if needle in line: print(f'{p.relative_to(root)}:{i}: {line.strip()}')
+          PY
