@@ -1,0 +1,74 @@
+name: SST Gestao Central GS Independente
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [neutral-sst-separate-edition]
+    paths:
+      - '.github/workflows/build-neutral-gs-backend-v1.yml'
+      - 'tools/build_neutral_gs_backend_v1.py'
+      - 'tools/assemble_neutral_android_v1.sh'
+      - 'tools/patch_neutral_sst_edition_v1.py'
+      - 'tools/patch_neutral_sst_edition_v1_fixed.py'
+      - 'tools/patch_neutral_sst_edition_v1_fixed2.py'
+      - 'tools/patch_neutral_env_v1.py'
+      - 'tools/patch_neutral_final_identity_v1.py'
+
+permissions:
+  contents: read
+
+env:
+  SOURCE_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  gs_backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar fonte neutra em clone temporario
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain -- "$SOURCE_DIR")"
+          TMP_REPO="$RUNNER_TEMP/sst-neutral-gs-source"
+          rm -rf "$TMP_REPO"
+          git clone --no-hardlinks "$GITHUB_WORKSPACE" "$TMP_REPO"
+          cd "$TMP_REPO"
+          git checkout --detach "$GITHUB_SHA"
+          bash tools/assemble_neutral_android_v1.sh "$SOURCE_DIR"
+
+          OUT="$GITHUB_WORKSPACE/dist/SST-Gestao-Central-GS-v1.0.0"
+          python tools/build_neutral_gs_backend_v1.py "$SOURCE_DIR" "$OUT"
+
+          cd "$GITHUB_WORKSPACE"
+          test -z "$(git status --porcelain -- "$SOURCE_DIR")"
+          git diff --exit-code -- "$SOURCE_DIR"
+          echo 'BASE_AUDITAR_INTACTA: backend neutro gerado fora da fonte original.'
+
+      - name: Validar JavaScript da Central
+        run: |
+          set -euo pipefail
+          OUT="dist/SST-Gestao-Central-GS-v1.0.0"
+          for f in "$OUT"/*.gs; do
+            cp "$f" "$RUNNER_TEMP/check.js"
+            node --check "$RUNNER_TEMP/check.js"
+          done
+          ! grep -RniEi 'AUDITAR_|setupAuditar|Auditar SST|Auditar Solu[cç][oõ]es|epi_sync_merge' "$OUT"
+          grep -Rni 'SST_GESTAO_SYNC_KEY' "$OUT"
+          grep -Rni 'setupSstGestao' "$OUT"
+
+      - name: Empacotar Central independente
+        run: |
+          set -euo pipefail
+          cd dist
+          zip -r SST-Gestao-Central-GS-v1.0.0.zip SST-Gestao-Central-GS-v1.0.0
+          sha256sum SST-Gestao-Central-GS-v1.0.0.zip > SST-Gestao-Central-GS-v1.0.0.sha256.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SST-Gestao-Central-GS-v1.0.0
+          path: |
+            dist/SST-Gestao-Central-GS-v1.0.0.zip
+            dist/SST-Gestao-Central-GS-v1.0.0.sha256.txt
+          retention-days: 30
