@@ -1,0 +1,42 @@
+name: Diagnostico auth SST Gestao neutro
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [neutral-sst-separate-edition]
+    paths:
+      - '.github/workflows/diag-neutral-auth-v101.yml'
+
+permissions:
+  contents: read
+
+env:
+  SOURCE_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  auth_source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar fonte neutra em clone isolado
+        run: |
+          set -euo pipefail
+          TMP_REPO="$RUNNER_TEMP/sst-neutral-auth-source"
+          rm -rf "$TMP_REPO"
+          git clone --no-hardlinks "$GITHUB_WORKSPACE" "$TMP_REPO"
+          cd "$TMP_REPO"
+          git checkout --detach "$GITHUB_SHA"
+          bash tools/assemble_neutral_android_v1.sh "$SOURCE_DIR"
+          mkdir -p "$GITHUB_WORKSPACE/dist/auth-source"
+          cp "$SOURCE_DIR/lib/services/auth_service.dart" "$GITHUB_WORKSPACE/dist/auth-source/"
+          cp "$SOURCE_DIR/lib/screens/login_screen.dart" "$GITHUB_WORKSPACE/dist/auth-source/"
+          cp "$SOURCE_DIR/lib/services/web_service_config.dart" "$GITHUB_WORKSPACE/dist/auth-source/"
+          cp "$SOURCE_DIR/lib/services/apps_script_http.dart" "$GITHUB_WORKSPACE/dist/auth-source/"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SST-Gestao-Neutro-v1.0.1-auth-source
+          path: dist/auth-source/*
+          retention-days: 7
