@@ -21,7 +21,7 @@ permissions:
   contents: read
 
 env:
-  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  APP_DIR: app/SST_Gestao_Neutro
 
 jobs:
   android:
