@@ -11,14 +11,10 @@ def main() -> int:
         print('uso: assemble_windows_v3305_report_templates.py <raiz-do-app>', file=sys.stderr)
         return 2
 
-    root = Path(sys.argv[1]).resolve()
-    repo = Path(
-        subprocess.check_output(
-            ['git', 'rev-parse', '--show-toplevel'],
-            cwd=root,
-            text=True,
-        ).strip()
-    ).resolve()
+    repo = Path(__file__).resolve().parent.parent
+    root_arg = Path(sys.argv[1])
+    root = root_arg if root_arg.is_absolute() else (repo / root_arg)
+    root = root.resolve()
 
     subprocess.run(
         [sys.executable, str(repo / 'tools/assemble_windows_v3304_ronda_latest.py'), str(root)],
