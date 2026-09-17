@@ -1,0 +1,74 @@
+name: Diagnostico v3.29.61 Fonte Relatorios e Modelos
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths:
+      - '.github/workflows/diag-v32961-report-templates-source.yml'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar fonte Android v3.29.61
+        run: bash tools/assemble_android_v32961.sh "$APP_DIR"
+
+      - name: Inspecionar pontos de extensao dos relatorios
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path('app/Auditar_SST_v1_5_dashboard')
+          candidates = [
+              root / 'lib/services/pdf_service.dart',
+              root / 'lib/screens/report_screen.dart',
+          ]
+          patterns = [
+              r'executive', r'Executivo', r'Relat[oó]rio', r'PdfService',
+              r'generate', r'includeActionPlan', r'Segmentation', r'ChoiceChip',
+              r'RadioListTile', r'Dropdown', r'header', r'checklist',
+          ]
+          rx = re.compile('|'.join(patterns), re.I)
+
+          for path in candidates:
+              print(f'\n===== FILE {path} =====')
+              if not path.exists():
+                  print('MISSING')
+                  continue
+              lines = path.read_text(encoding='utf-8').splitlines()
+              hits = [i for i, line in enumerate(lines) if rx.search(line)]
+              blocks = []
+              for i in hits:
+                  a, b = max(0, i-5), min(len(lines), i+8)
+                  if blocks and a <= blocks[-1][1] + 2:
+                      blocks[-1] = (blocks[-1][0], max(blocks[-1][1], b))
+                  else:
+                      blocks.append((a,b))
+              for a,b in blocks[:35]:
+                  print(f'--- lines {a+1}-{b} ---')
+                  for n in range(a,b):
+                      print(f'{n+1:04d}: {lines[n]}')
+
+          print('\n===== REPORT-RELATED DART FILES =====')
+          for path in sorted((root/'lib').rglob('*.dart')):
+              low = path.name.lower()
+              if any(k in low for k in ('report','pdf','checklist','inspection','vistoria','round')):
+                  print(path)
+
+          pub = (root/'pubspec.yaml').read_text(encoding='utf-8')
+          for line in pub.splitlines():
+              if line.startswith('version:'):
+                  print('\nCURRENT_VERSION', line)
+                  break
+          PY
