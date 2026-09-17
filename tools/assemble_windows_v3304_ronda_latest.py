@@ -131,5 +131,5 @@ assert '_prepareRoundPhotoForAi' in ai and 'maxDimension = 720' in ai and 'quali
 assert 'const Duration(seconds: 95)' in ai and 'const Duration(seconds: 55)' in ai
 assert 'Duration(seconds: 10)' in coord, 'sync Windows de 10 s foi alterado'
 assert 'final pullLimit = isWindows ? 500 : 100;' in dev
-assert 'await ManagementPanelService.syncCompany(widget.company)' not in ronda
-print('WINDOWS_V3304_OK: Ronda atualizada ate historico/revisao IA; sync Windows 10 s/500 preservado.')
+assert 'ManagementPanelService.syncCompany(widget.company)' in ronda
+print('WINDOWS_V3304_OK: Ronda atualizada ate historico/revisao IA; sync Windows 10 s/500 e sync gerencial preservados.')
