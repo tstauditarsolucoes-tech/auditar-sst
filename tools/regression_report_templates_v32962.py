@@ -33,6 +33,15 @@ assert "_selectionKey(String companyId)" in templates
 assert "report_templates_custom_v1" in templates
 assert "saveCustom" in templates and "deleteCustom" in templates
 
+# Padrão é individual por usuário autenticado; empresa pode sobrescrever.
+assert "_userDefaultPrefix = 'report_template_user_default_v1'" in templates
+assert 'AuthService.currentUser?.id' in templates
+assert 'selectDefaultForCurrentUser' in templates
+assert 'selectedDefaultForCurrentUser' in templates
+assert 'final userDefault = await selectedDefaultForCurrentUser();' in templates
+assert 'fallback: userDefault.id' in templates
+assert 'orElse: () => userDefault' in templates
+
 assert 'StyledReportPdfService.generateInspectionPdf' in pdf
 assert 'if (!reportTemplate.useLegacyRenderer)' in pdf
 # O fluxo antigo deve continuar presente depois do roteamento.
@@ -48,7 +57,10 @@ assert 'ReportFileService.savePdfLocally' in report
 assert 'Platform.isWindows' in library
 assert 'Salvar como novo modelo' in library
 assert 'Pré-visualizar' in library
-assert 'Usar este modelo' in library
+assert 'Definir como meu padrão' in library
+assert 'Usar nesta empresa' in library
+assert 'Meu padrão' in library
+assert 'Padrão da empresa' in library
 assert "fullEditor: Platform.isWindows" in library
 assert 'Biblioteca e editor de modelos de relatório' in settings
 assert 'Modelos de relatório' in settings
@@ -61,4 +73,4 @@ new_code='\n'.join([templates, styled, library])
 for forbidden in ['DeviceSyncService', 'MediaSyncService', 'AppsScriptHttp', 'WebServiceConfig', 'syncNow(', 'device_pull', 'device_push']:
     assert forbidden not in new_code, f'acoplamento proibido detectado nos modelos: {forbidden}'
 
-print('REPORT_TEMPLATES_REGRESSION_OK: legado preservado como fallback; 5 modelos novos + editor/seleção isolados do sync.')
+print('REPORT_TEMPLATES_REGRESSION_OK: legado preservado; 5 modelos novos; padrão individual por usuário + override por empresa; editor/seleção isolados do sync.')
