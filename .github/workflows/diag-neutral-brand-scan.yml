@@ -24,12 +24,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo '=== ANDROID: OCORRENCIAS AUDITAR ==='
-          grep -RniEi 'auditar|solu[cç][oõ]es|tstauditarsolucoes|br\.com\.auditar|auditar_sst|central auditar' \
-            "$APP_DIR/lib" "$APP_DIR/pubspec.yaml" 2>/dev/null | sed -n '1,900p' || true
-          echo '=== ANDROID: CONTATOS ANTIGOS ==='
-          grep -RniE 'auditarsolucoes@gmail\.com|3221-1549|86.?3221.?1549' \
-            "$APP_DIR/lib" "$APP_DIR/pubspec.yaml" 2>/dev/null | sed -n '1,300p' || true
+          echo '=== ANDROID: TODAS AS OCORRENCIAS REMANESCENTES ==='
+          grep -RniEi 'auditar|auditar_sst|tstauditarsolucoes|br\.com\.auditar' \
+            "$APP_DIR/lib" "$APP_DIR/pubspec.yaml" 2>/dev/null | sed -n '1,1400p' || true
 
   scan_windows:
     runs-on: ubuntu-latest
@@ -42,9 +39,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo '=== WINDOWS: OCORRENCIAS AUDITAR ==='
-          grep -RniEi 'auditar|solu[cç][oõ]es|tstauditarsolucoes|br\.com\.auditar|auditar_sst|central auditar' \
-            "$APP_DIR/lib" "$APP_DIR/pubspec.yaml" 2>/dev/null | sed -n '1,1100p' || true
-          echo '=== WINDOWS: CONTATOS ANTIGOS ==='
-          grep -RniE 'auditarsolucoes@gmail\.com|3221-1549|86.?3221.?1549' \
-            "$APP_DIR/lib" "$APP_DIR/pubspec.yaml" 2>/dev/null | sed -n '1,400p' || true
+          echo '=== WINDOWS: TODAS AS OCORRENCIAS REMANESCENTES ==='
+          grep -RniEi 'auditar|auditar_sst|tstauditarsolucoes|br\.com\.auditar' \
+            "$APP_DIR/lib" "$APP_DIR/pubspec.yaml" 2>/dev/null | sed -n '1,1600p' || true
