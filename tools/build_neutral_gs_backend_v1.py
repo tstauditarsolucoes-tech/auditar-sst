@@ -121,9 +121,20 @@ O build do SST Gestão deve receber:
 - SST_APPS_SCRIPT_URL = URL /exec desta Central
 - SST_SYNC_KEY = valor de SST_GESTAO_SYNC_KEY
 
-NÃO use a URL nem a chave da Central Auditar.
+NÃO use a URL nem a chave da Central original.
 """
 (out / 'LEIA-ME-ATIVACAO.txt').write_text(readme, encoding='utf-8', newline='\n')
+
+# Passagem final defensiva: nenhum arquivo distribuído pode manter o prefixo,
+# nome ou função de instalação da Central original.
+for path in out.iterdir():
+    if path.is_file() and path.suffix.lower() in text_ext:
+        text = path.read_text(encoding='utf-8', errors='ignore')
+        text = text.replace('AUDITAR_', 'SST_GESTAO_')
+        text = text.replace('setupAuditar', 'setupSstGestao')
+        text = text.replace('Auditar', 'SstGestao')
+        text = text.replace('auditar', 'sst_gestao')
+        path.write_text(text, encoding='utf-8', newline='\n')
 
 # Validações: backend independente e sem vestígio de marca/armazenamento antigo.
 all_text = '\n'.join(
@@ -151,6 +162,8 @@ for forbidden in [
     'Auditar SST',
     'AUDITAR SST',
     'Auditar Soluções',
+    'Auditar',
+    'auditar',
     'epi_sync_merge',
 ]:
     if forbidden.lower() in all_text.lower():
