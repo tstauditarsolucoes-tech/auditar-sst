@@ -1,0 +1,31 @@
+name: Diagnostico modelos relatorio hooks 2
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths: ['.github/workflows/diag-report-templates-hooks2.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - run: bash tools/assemble_android_v32961.sh app/Auditar_SST_v1_5_dashboard
+      - shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          r=Path('app/Auditar_SST_v1_5_dashboard')
+          def d(rel,a,b):
+            lines=(r/rel).read_text(encoding='utf-8').splitlines()
+            print('\n====',rel,a,b,'====')
+            for i in range(a-1,min(b,len(lines))): print(f'{i+1:04d}: {lines[i]}')
+          d('lib/screens/report_screen.dart',1,165)
+          d('lib/screens/settings_screen.dart',1,100)
+          d('lib/screens/settings_screen.dart',620,735)
+          d('lib/services/drive_service.dart',215,265)
+          d('lib/database.dart',2310,2395)
+          d('lib/models.dart',1,120)
+          PY
