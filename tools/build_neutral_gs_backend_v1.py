@@ -135,6 +135,7 @@ for path in out.iterdir():
         text = text.replace('setupAuditar', 'setupSstGestao')
         text = text.replace('Auditar', 'SstGestao')
         text = text.replace('auditar', 'sst_gestao')
+        text = re.sub(r'^.*EpiSync.*\\n?', '', text, flags=re.M | re.I)
         path.write_text(text, encoding='utf-8', newline='\n')
 
 # Acabamento visual: identificadores técnicos continuam SstGestao, mas nenhum
