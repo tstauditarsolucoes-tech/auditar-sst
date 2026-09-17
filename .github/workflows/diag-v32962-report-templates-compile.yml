@@ -1,0 +1,64 @@
+name: Diagnostico v3.29.62 Modelos de Relatorio
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/diag-v32962-report-templates-compile.yml'
+      - 'tools/patch_report_templates_v32962.py'
+      - 'tools/patch_report_templates_compile_fix_v32962.py'
+      - 'tools/assemble_android_v32962.sh'
+      - 'tools/regression_report_templates_v32962.py'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar v3.29.62 e provar sync inalterado
+        run: bash tools/assemble_android_v32962.sh "$APP_DIR"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Dependencias
+        working-directory: ${{ env.APP_DIR }}
+        run: flutter pub get
+
+      - name: Formatar somente arquivos de relatorio alterados
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          dart format \
+            lib/services/report_template_service.dart \
+            lib/services/styled_report_pdf_service.dart \
+            lib/screens/report_template_library_screen.dart \
+            lib/screens/report_screen.dart \
+            lib/screens/settings_screen.dart \
+            lib/services/pdf_service.dart
+
+      - name: Flutter analyze
+        working-directory: ${{ env.APP_DIR }}
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Testes existentes
+        working-directory: ${{ env.APP_DIR }}
+        run: flutter test
+
+      - name: Regressao modelos
+        run: python tools/regression_report_templates_v32962.py "$APP_DIR" 3.29.62+204
