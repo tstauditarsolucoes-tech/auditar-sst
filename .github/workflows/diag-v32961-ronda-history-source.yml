@@ -1,0 +1,36 @@
+name: DIAG v3.29.61 Ronda History Source
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [build-v3.29.38-central-recovery]
+    paths: ['.github/workflows/diag-v32961-ronda-history-source.yml']
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte v3.29.60
+        run: bash tools/assemble_android_v32960.sh "$APP_DIR"
+      - name: Mostrar fluxo da Ronda e pontos de navegação
+        run: |
+          set -euo pipefail
+          F="$APP_DIR/lib/screens/express_round_screen.dart"
+          echo '=== EXPRESS ROUND CABECALHO ==='
+          sed -n '1,220p' "$F"
+          echo '=== EXPRESS ROUND HISTORY/FINISH ==='
+          grep -n -E 'class ExpressRound|_showRoundHistory|_finish\(|roundId|express_round_open_|OBSERVACAO_SEGURANCA|Navigator|AppBar|Scaffold' "$F" | head -n 160
+          echo '=== EXPRESS ROUND 350-760 ==='
+          sed -n '350,760p' "$F"
+          echo '=== EXPRESS ROUND 760-1180 ==='
+          sed -n '760,1180p' "$F"
+          echo '=== REFERENCES TO ExpressRoundScreen ==='
+          grep -R -n -E 'ExpressRoundScreen|Ronda Expressa|express_round' "$APP_DIR/lib" | head -n 220
