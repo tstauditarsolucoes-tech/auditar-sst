@@ -1,4 +1,4 @@
-name: Diagnostico identidade para edicao neutra
+name: Diagnostico identidade final da edicao neutra
 
 on:
   workflow_dispatch:
@@ -15,23 +15,22 @@ env:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
-      - name: Montar base atual Android v3.29.62
-        run: bash tools/assemble_android_v32962.sh "$APP_DIR"
-      - name: Inventario de identidade
+      - name: Montar edicao neutra Android v1.0.0
+        run: bash tools/assemble_neutral_android_v1.sh "$APP_DIR"
+      - name: Inventario final de identidade
         shell: bash
         run: |
           set -euo pipefail
-          echo '=== BRAND.DART ==='
-          sed -n '1,240p' "$APP_DIR/lib/brand.dart" || true
-          echo '=== ASSETS BRANDING ==='
-          find "$APP_DIR/assets" -maxdepth 3 -type f | sort | sed -n '1,240p' || true
-          echo '=== ARQUIVOS COM IDENTIDADE AUDITAR ==='
-          grep -RIlEi 'auditar|solu[cç][oõ]es|tstauditarsolucoes|br\.com\.auditar|auditar_sst|central auditar' \
-            "$APP_DIR/lib" "$APP_DIR/pubspec.yaml" "$APP_DIR/android" "$APP_DIR/windows" 2>/dev/null | sort | sed -n '1,260p' || true
-          echo '=== OCORRENCIAS RELEVANTES ==='
+          echo '=== OCORRENCIAS AUDITAR NA FONTE NEUTRA MONTADA ==='
           grep -RniEi 'auditar|solu[cç][oõ]es|tstauditarsolucoes|br\.com\.auditar|auditar_sst|central auditar' \
             "$APP_DIR/lib" "$APP_DIR/pubspec.yaml" "$APP_DIR/android" "$APP_DIR/windows" 2>/dev/null | \
-            grep -vE '/build/|\.dart_tool/' | sed -n '1,520p' || true
+            grep -vE '/build/|\.dart_tool/' | sed -n '1,900p' || true
+          echo '=== CONTATOS DA MARCA ANTIGA ==='
+          grep -RniE 'auditarsolucoes@gmail\.com|3221-1549|86.?3221.?1549' \
+            "$APP_DIR/lib" "$APP_DIR/pubspec.yaml" 2>/dev/null | sed -n '1,300p' || true
+          echo '=== NOMES INTERNOS PRIORITARIOS ==='
+          grep -RniE 'AuditarSstApp|AuditarBrandLogo|AuditarUser|auditar_(executivo|fotografico|obra|tecnico_clean|nr12|atual)' \
+            "$APP_DIR/lib" 2>/dev/null | sed -n '1,500p' || true
