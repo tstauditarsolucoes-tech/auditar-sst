@@ -18,18 +18,27 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Montar e mostrar linhas dos erros
+      - name: Montar fonte
         shell: pwsh
         run: |
           python tools/assemble_windows_v3304_ronda_latest.py "$env:APP_DIR"
           if ($LASTEXITCODE -ne 0) { throw 'montagem falhou' }
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Formatar e mostrar linhas exatas dos erros
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        run: |
+          dart format lib/screens/express_round_screen.dart lib/services/express_round_pdf_service.dart
           @'
           from pathlib import Path
           for rel, ranges in {
-              'lib/screens/express_round_screen.dart': [(232,255)],
-              'lib/services/express_round_pdf_service.dart': [(210,255)],
+              'lib/screens/express_round_screen.dart': [(238,252)],
+              'lib/services/express_round_pdf_service.dart': [(216,250)],
           }.items():
-              p=Path(r'''${{ env.APP_DIR }}''')/rel
+              p=Path(rel)
               lines=p.read_text(encoding='utf-8').splitlines()
               print('\n###', rel)
               for a,b in ranges:
