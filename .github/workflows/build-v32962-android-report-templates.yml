@@ -1,0 +1,82 @@
+name: Auditar SST Android v3.29.62 Modelos de Relatorio
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/build-v32962-android-report-templates.yml'
+      - 'tools/assemble_android_v32962.sh'
+      - 'tools/patch_report_templates_v32962.py'
+      - 'tools/patch_report_templates_compile_fix_v32962.py'
+      - 'tools/regression_report_templates_v32962.py'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar Android v3.29.62 e proteger sincronizacao
+        run: bash tools/assemble_android_v32962.sh "$APP_DIR"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Dependencias
+        working-directory: ${{ env.APP_DIR }}
+        run: flutter pub get
+
+      - name: Formatar somente arquivos de relatorio
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          dart format \
+            lib/services/report_template_service.dart \
+            lib/services/styled_report_pdf_service.dart \
+            lib/screens/report_template_library_screen.dart \
+            lib/screens/report_screen.dart \
+            lib/screens/settings_screen.dart \
+            lib/services/pdf_service.dart
+
+      - name: Analyze e testes existentes
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+
+      - name: Regressao modelos de relatorio
+        run: python tools/regression_report_templates_v32962.py "$APP_DIR" 3.29.62+204
+
+      - name: Compilar APK release
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY"
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Preparar APK e SHA256
+        run: |
+          mkdir -p dist/android
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" 'dist/android/Auditar-SST-v3.29.62-MODELOS-RELATORIO.apk'
+          sha256sum 'dist/android/Auditar-SST-v3.29.62-MODELOS-RELATORIO.apk' > 'dist/android/Auditar-SST-v3.29.62-MODELOS-RELATORIO.sha256.txt'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.62-Android-Modelos-Relatorio
+          path: dist/android/*
+          retention-days: 30
