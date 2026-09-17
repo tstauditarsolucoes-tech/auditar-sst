@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from pathlib import Path
-import re
 import sys
 
 root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path('app/Auditar_SST_v1_5_dashboard')
@@ -37,12 +36,13 @@ assert '_prepareRoundPhotoForAi' in ai
 assert 'maxDimension = 720' in ai and 'quality: 55' in ai
 assert 'const Duration(seconds: 95)' in ai and 'const Duration(seconds: 55)' in ai
 
-# Windows mantém exatamente a estratégia própria de sincronização.
+# Windows mantém exatamente a estratégia própria de sincronização. A chamada
+# ManagementPanelService da Ronda já existia no PC e é preservada de propósito.
 assert 'Duration(seconds: 10)' in coord
 assert 'final pullLimit = isWindows ? 500 : 100;' in dev
 assert 'pullWhenClean: true' in coord
 assert 'force: force' in coord
-assert 'await ManagementPanelService.syncCompany(widget.company)' not in ronda
+assert 'ManagementPanelService.syncCompany(widget.company)' in ronda
 
 # Regressões de funções já existentes no PC v3.30.3.
 assert 'restoreCompanyLogos' in media
@@ -55,4 +55,4 @@ assert 'Retirar ficha do DDS' in dds
 icon = root / 'windows/runner/resources/app_icon.ico'
 assert icon.exists() and icon.stat().st_size > 10000
 
-print('REGRESSAO_OK: Windows sync 10s/500, logos e DDS preservados; Ronda pós-fechamento + revisão IA ativos.')
+print('REGRESSAO_OK: Windows sync 10s/500 e sync gerencial preservados; logos/DDS preservados; Ronda pós-fechamento + revisão IA ativos.')
