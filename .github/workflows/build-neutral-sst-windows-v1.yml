@@ -1,4 +1,4 @@
-name: SST Gestao Neutro Windows v1.0.1
+name: SST Gestao Neutro Windows v1.1.0
 
 on:
   workflow_dispatch:
@@ -180,7 +180,7 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($env:SST_SYNC_KEY)) { throw 'SST_SYNC_KEY ausente' }
           if ($env:SST_APPS_SCRIPT_URL -notmatch '^https://script\.google\.com/macros/s/.+/exec$') { throw 'SST_APPS_SCRIPT_URL invalida' }
           $pub=Get-Content pubspec.yaml -Raw
-          $pub=[regex]::Replace($pub,'(?m)^version:.*$','version: 1.0.1+2')
+          $pub=[regex]::Replace($pub,'(?m)^version:.*$','version: 1.1.0+4')
           Set-Content pubspec.yaml $pub -Encoding UTF8
           flutter build windows --release --obfuscate --split-debug-info=build/symbols-neutral/windows --dart-define=SST_APPS_SCRIPT_URL="$env:SST_APPS_SCRIPT_URL" --dart-define=SST_SYNC_KEY="$env:SST_SYNC_KEY"
           if ($LASTEXITCODE -ne 0) { throw 'build Windows falhou' }
@@ -206,7 +206,7 @@ jobs:
           New-Item -ItemType Directory -Force dist/neutral | Out-Null
           $release=(Resolve-Path "$appDir/build/windows/x64/runner/Release").Path
           $icon=(Resolve-Path "$appDir/windows/runner/resources/app_icon.ico").Path
-          Compress-Archive "$release/*" 'dist/neutral/SST-Gestao-Windows-v1.0.1-PORTATIL.zip' -Force
+          Compress-Archive "$release/*" 'dist/neutral/SST-Gestao-Windows-v1.1.0-PORTATIL.zip' -Force
 
           $iscc='C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
           if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
@@ -216,12 +216,12 @@ jobs:
           [Setup]
           AppId={{B4C2873E-3E7A-4B8B-9F1E-6B9652FA712C}
           AppName=SST Gestão
-          AppVersion=1.0.1
+          AppVersion=1.1.0
           AppPublisher=SST Gestão
           DefaultDirName={autopf}\SST Gestão
           DefaultGroupName=SST Gestão
           OutputDir=$output
-          OutputBaseFilename=SST-Gestao-Setup-v1.0.1
+          OutputBaseFilename=SST-Gestao-Setup-v1.1.0
           SetupIconFile=$icon
           Compression=lzma2
           SolidCompression=yes
@@ -241,14 +241,14 @@ jobs:
           & $iscc "$env:RUNNER_TEMP\sst-gestao-v1.iss"
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
 
-          python tools/scan_neutral_artifact_v1.py 'dist/neutral/SST-Gestao-Windows-v1.0.1-PORTATIL.zip' 'dist/neutral/SST-Gestao-Setup-v1.0.1.exe'
+          python tools/scan_neutral_artifact_v1.py 'dist/neutral/SST-Gestao-Windows-v1.1.0-PORTATIL.zip' 'dist/neutral/SST-Gestao-Setup-v1.1.0.exe'
           if ($LASTEXITCODE -ne 0) { throw 'artefato Windows final contém referência da edição antiga' }
 
-          Get-FileHash 'dist/neutral/SST-Gestao-Setup-v1.0.1.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/neutral/SST-Gestao-Setup-v1.0.1.sha256.txt'
-          Get-FileHash 'dist/neutral/SST-Gestao-Windows-v1.0.1-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/neutral/SST-Gestao-Windows-v1.0.0-PORTATIL.sha256.txt'
+          Get-FileHash 'dist/neutral/SST-Gestao-Setup-v1.1.0.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/neutral/SST-Gestao-Setup-v1.1.0.sha256.txt'
+          Get-FileHash 'dist/neutral/SST-Gestao-Windows-v1.1.0-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/neutral/SST-Gestao-Windows-v1.1.0-PORTATIL.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: SST-Gestao-Neutro-v1.0.1-Windows
+          name: SST-Gestao-Neutro-v1.1.0-Windows
           path: dist/neutral/*
           retention-days: 30
