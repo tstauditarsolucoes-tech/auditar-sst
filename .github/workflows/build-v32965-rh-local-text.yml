@@ -1,0 +1,80 @@
+name: Auditar SST Android v3.29.65 RH Texto Local
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/build-v32965-rh-local-text.yml'
+      - 'tools/assemble_android_v32965.sh'
+      - 'tools/patch_rh_pdf_local_text_v32965.py'
+      - 'tools/regression_rh_pdf_import_v32965.py'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar v3.29.65 com leitura local do PDF
+        run: bash tools/assemble_android_v32965.sh "$APP_DIR"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar Android atual
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+
+      - name: Formatar somente importador RH
+        working-directory: ${{ env.APP_DIR }}
+        run: dart format lib/services/worker_import_service.dart
+
+      - name: Analyze e testes existentes
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+
+      - name: Regressoes RH e modelos
+        run: |
+          python tools/regression_rh_pdf_import_v32965.py "$APP_DIR"
+          python tools/regression_report_templates_v32962.py "$APP_DIR"
+
+      - name: Compilar APK release
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY"
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Preparar APK
+        run: |
+          mkdir -p dist/android
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" 'dist/android/Auditar-SST-v3.29.65-RH-Texto-Local.apk'
+          sha256sum 'dist/android/Auditar-SST-v3.29.65-RH-Texto-Local.apk' > 'dist/android/Auditar-SST-v3.29.65-RH-Texto-Local.sha256.txt'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.65-Android-RH-Texto-Local
+          path: dist/android/*
+          retention-days: 30
