@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/build-neutral-gs-backend-v1.yml'
       - 'tools/build_neutral_gs_backend_v1.py'
+      - 'tools/compact_gs_backend.py'
       - 'tools/assemble_neutral_android_v1.sh'
       - 'tools/patch_neutral_sst_edition_v1.py'
       - 'tools/patch_neutral_sst_edition_v1_fixed.py'
@@ -68,9 +69,16 @@ jobs:
       - name: Empacotar Central independente
         run: |
           set -euo pipefail
+          python tools/compact_gs_backend.py             dist/SST-Gestao-Central-GS-v1.1.0-EPI             dist/SST-Gestao-Central-GS-v1.1.0-EPI-COMPACTO
+          for f in dist/SST-Gestao-Central-GS-v1.1.0-EPI-COMPACTO/*.gs; do
+            cp "$f" "$RUNNER_TEMP/compact-check.js"
+            node --check "$RUNNER_TEMP/compact-check.js"
+          done
           cd dist
           zip -r SST-Gestao-Central-GS-v1.1.0-EPI.zip SST-Gestao-Central-GS-v1.1.0-EPI
+          zip -r SST-Gestao-Central-GS-v1.1.0-EPI-COMPACTO.zip SST-Gestao-Central-GS-v1.1.0-EPI-COMPACTO
           sha256sum SST-Gestao-Central-GS-v1.1.0-EPI.zip > SST-Gestao-Central-GS-v1.1.0-EPI.sha256.txt
+          sha256sum SST-Gestao-Central-GS-v1.1.0-EPI-COMPACTO.zip > SST-Gestao-Central-GS-v1.1.0-EPI-COMPACTO.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
@@ -78,4 +86,6 @@ jobs:
           path: |
             dist/SST-Gestao-Central-GS-v1.1.0-EPI.zip
             dist/SST-Gestao-Central-GS-v1.1.0-EPI.sha256.txt
+            dist/SST-Gestao-Central-GS-v1.1.0-EPI-COMPACTO.zip
+            dist/SST-Gestao-Central-GS-v1.1.0-EPI-COMPACTO.sha256.txt
           retention-days: 30
