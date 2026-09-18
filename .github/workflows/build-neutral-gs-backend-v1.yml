@@ -13,6 +13,7 @@ on:
       - 'tools/patch_neutral_sst_edition_v1_fixed2.py'
       - 'tools/patch_neutral_env_v1.py'
       - 'tools/patch_neutral_final_identity_v1.py'
+      - 'neutral_modules/epi/EpiModule.gs'
 
 permissions:
   contents: read
@@ -54,12 +55,15 @@ jobs:
             cp "$f" "$RUNNER_TEMP/check.js"
             node --check "$RUNNER_TEMP/check.js"
           done
-          if grep -RniEi 'AUDITAR_|setupAuditar|Auditar SST|Auditar Solu[cç][oõ]es|epi_sync_merge' "$OUT"; then
+          if grep -RniEi 'AUDITAR_|setupAuditar|Auditar SST|Auditar Solu[cç][oõ]es' "$OUT"; then
             echo 'Referência antiga encontrada na Central neutra.'
             exit 1
           fi
           grep -Rni 'SST_GESTAO_SYNC_KEY' "$OUT"
           grep -Rni 'setupSstGestao' "$OUT"
+          grep -Rni 'epi_sync_merge' "$OUT"
+          grep -Rni 'epi_ai_assistant' "$OUT"
+          grep -Rni 'sstEpiInvoicePdf_' "$OUT"
 
       - name: Empacotar Central independente
         run: |
