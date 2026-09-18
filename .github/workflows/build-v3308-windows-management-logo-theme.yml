@@ -1,0 +1,91 @@
+name: Auditar SST Windows v3.30.8 Painel por Logo
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/build-v3308-windows-management-logo-theme.yml'
+      - 'tools/patch_management_panel_logo_theme_v32970_v3308.py'
+      - 'tools/regression_management_panel_logo_theme_v32970_v3308.py'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 140
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar base v3.30.7
+        shell: pwsh
+        run: |
+          python tools/assemble_windows_v3305_report_templates.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'base v3.30.5 falhou' }
+          python tools/patch_training_records_media_v32968_v3306.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'base v3.30.6 falhou' }
+          python tools/patch_internal_management_training_v32969_v3307.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'base v3.30.7 falhou' }
+
+      - name: Aplicar identidade da empresa
+        shell: pwsh
+        run: |
+          python tools/patch_management_panel_logo_theme_v32970_v3308.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'patch do tema falhou' }
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Preparar analisar testar
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          flutter pub get
+          dart format lib/screens/management_panel_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'analyze falhou' }
+          flutter test
+          if ($LASTEXITCODE -ne 0) { throw 'testes falharam' }
+
+      - name: Regressões
+        shell: pwsh
+        run: |
+          python tools/regression_management_panel_logo_theme_v32970_v3308.py "$env:APP_DIR" 3.30.8+195
+          if ($LASTEXITCODE -ne 0) { throw 'regressão tema falhou' }
+          python tools/regression_internal_management_training_v32969_v3307.py "$env:APP_DIR" 3.30.8+195
+          if ($LASTEXITCODE -ne 0) { throw 'regressão painel falhou' }
+          python tools/regression_training_records_v32968_v3306.py "$env:APP_DIR" 3.30.8+195
+          if ($LASTEXITCODE -ne 0) { throw 'regressão treinamentos falhou' }
+
+      - name: Compilar Windows
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+          if ($LASTEXITCODE -ne 0) { throw 'build Windows falhou' }
+
+      - name: Empacotar portátil
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.8-PORTATIL.zip' -Force
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.30.8-Windows-Painel-Logo-Empresa
+          path: dist/windows/*
+          retention-days: 30
