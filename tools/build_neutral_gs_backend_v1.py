@@ -227,13 +227,14 @@ for forbidden in [
     'Auditar Soluções',
     'Auditar',
     'auditar',
-    'epi_sync_merge',
 ]:
     if forbidden.lower() in all_text.lower():
         raise SystemExit(f'Backend neutro contém referência proibida: {forbidden}')
 
 if (out / 'EpiSync.gs').exists():
-    raise SystemExit('EpiSync.gs não pode integrar a Central neutra de vistoria')
+    raise SystemExit('EpiSync.gs legado não pode integrar a Central neutra')
+if not (out / 'EpiModule.gs').exists():
+    raise SystemExit('EpiModule.gs neutro não foi incluído')
 
 print('SST_GESTAO_GS_OK: Central independente gerada com funções SST preservadas e armazenamento separado.')
 
