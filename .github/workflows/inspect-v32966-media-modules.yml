@@ -33,6 +33,8 @@ jobs:
           cp "$APP_DIR/lib/screens/trainings_screen.dart" inspect/lib/screens/ || true
           cp "$APP_DIR/lib/screens/training_attendance_screen.dart" inspect/lib/screens/ || true
           cp "$APP_DIR/lib/services/media_sync_service.dart" inspect/lib/services/
+          cp "$APP_DIR/lib/services/management_panel_service.dart" inspect/lib/services/
+          cp "$APP_DIR/lib/services/storage_service.dart" inspect/lib/services/
           cp "$APP_DIR/lib/services/device_sync_service.dart" inspect/lib/services/
           cp "$APP_DIR/lib/services/dds_pdf_service.dart" inspect/lib/services/ || true
           cp "$APP_DIR/lib/services/training_attendance_pdf_service.dart" inspect/lib/services/ || true
