@@ -1937,6 +1937,9 @@ class TrainingRecordPdfService {
       );
     }
 
+    final photoWidgets =
+        photoPaths.isEmpty ? <pw.Widget>[] : await _photoRows(photoPaths);
+
     doc.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
@@ -2040,7 +2043,7 @@ class TrainingRecordPdfService {
               style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
             ),
             pw.SizedBox(height: 6),
-            ...await _photoRows(photoPaths),
+            ...photoWidgets,
           ],
         ],
       ),
