@@ -1,0 +1,118 @@
+name: Auditar SST Android v3.29.67 Logos Extintores
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/build-v32967-logo-extinguisher.yml'
+      - 'tools/patch_logo_extinguisher_media_v32967.py'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar base estável v3.29.66
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          protected=[
+            root/'lib/services/device_sync_service.dart',
+            root/'lib/services/apps_script_http.dart',
+            root/'lib/services/sync_coordinator.dart',
+            root/'lib/services/auth_service.dart',
+            root/'lib/services/drive_service.dart',
+            root/'lib/database.dart',
+            root/'lib/services/worker_import_service.dart',
+            root/'painel_web_google_apps_script/Code.gs',
+          ]
+          state={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in protected if p.exists()}
+          Path('/tmp/v32967_protected.json').write_text(json.dumps(state),encoding='utf-8')
+          PY
+
+      - name: Aplicar correção
+        run: python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+
+      - name: Confirmar núcleo v3.29.66 intacto
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          before=json.loads(Path('/tmp/v32967_protected.json').read_text(encoding='utf-8'))
+          changed=[]
+          for rel,old in before.items():
+            new=hashlib.sha256((root/rel).read_bytes()).hexdigest()
+            if new!=old: changed.append(rel)
+            else: print('PROTEGIDO_OK',rel,new)
+          if changed:
+            raise SystemExit('Arquivos protegidos alterados: '+', '.join(changed))
+          print('NUCLEO_V32966_PRESERVADO_OK')
+          PY
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar Android
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          python ../../tools/fix_read_pdf_text_r8_v32965.py .
+
+      - name: Formatar analisar e testar
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          dart format lib/screens/companies_screen.dart lib/screens/extinguishers_screen.dart lib/services/media_sync_service.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+
+      - name: Regressões críticas
+        run: |
+          python tools/regression_rh_pdf_import_v32966.py "$APP_DIR"
+          python tools/regression_report_templates_v32962.py "$APP_DIR"
+          grep -q "registerExtinguisherPhoto" "$APP_DIR/lib/services/media_sync_service.dart"
+          grep -q "restoreExtinguisherPhotos" "$APP_DIR/lib/services/media_sync_service.dart"
+          grep -q "Ver foto do local" "$APP_DIR/lib/screens/extinguishers_screen.dart"
+          grep -q "unawaited(_restoreMissingCompanyLogos(result))" "$APP_DIR/lib/screens/companies_screen.dart"
+
+      - name: Compilar APK release
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY"
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Preparar APK
+        run: |
+          mkdir -p dist/android
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" 'dist/android/Auditar-SST-v3.29.67-LOGOS-EXTINTORES.apk'
+          sha256sum 'dist/android/Auditar-SST-v3.29.67-LOGOS-EXTINTORES.apk' > 'dist/android/Auditar-SST-v3.29.67-LOGOS-EXTINTORES.sha256.txt'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.67-Android-Logos-Extintores
+          path: dist/android/*
+          retention-days: 30
