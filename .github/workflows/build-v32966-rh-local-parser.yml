@@ -1,0 +1,125 @@
+name: Auditar SST Android v3.29.66 RH Local
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/build-v32966-rh-local-parser.yml'
+      - 'tools/assemble_android_v32966.sh'
+      - 'tools/patch_rh_pdf_local_parser_v32966.py'
+      - 'tools/regression_rh_pdf_import_v32966.py'
+      - 'tools/fix_read_pdf_text_r8_v32965.py'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar v3.29.66
+        run: bash tools/assemble_android_v32966.sh "$APP_DIR"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar Android
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          python ../../tools/fix_read_pdf_text_r8_v32965.py .
+
+      - name: Criar teste real do parser RH
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          cat > test/worker_import_local_parser_test.dart <<'DART'
+          import 'package:flutter_test/flutter_test.dart';
+          import 'package:auditar_sst/services/worker_import_service.dart';
+
+          void main() {
+            test('le lista Fortes com nome cargo e lotacao', () {
+              const text = '''
+          Listagem de Empregados Pag.: 1 de 1
+          Empresa: CERAMICA LIVRAMENTO LTDA - CNPJ: 05.584.693/0001-20 Fortes Pessoal
+          Mês/Ano: 09/2026
+          Nome Admissao Cargo Lotacao
+          ALEXANDRE FERREIRA DA SILVA 12/03/2026 CERAMISTA 010.05 - NOVA LIVRAMENTO/Descarga de Vagão
+          ALISON SOUSA VELOSO 22/12/2025 ASSISTENTE CERAMISTA 010.03 - NOVA LIVRAMENTO/Fabricação
+          WANDERSON RAFAEL SANTOS SOUSA 08/09/2023 OPERADOR DE AUTOMAÇÃO INDUSTRIAL010.03 - NOVA LIVRAMENTO/Fabricação
+          Total Geral: 3 empregado(s)
+          Fim
+          ''';
+              final rows = WorkerImportService.parseExtractedRhTextForTesting(text);
+              expect(rows, isNotNull);
+              expect(rows!.length, 4);
+              expect(rows[1], [
+                'ALEXANDRE FERREIRA DA SILVA',
+                'CERAMISTA',
+                '010.05 - NOVA LIVRAMENTO/Descarga de Vagão',
+              ]);
+              expect(rows[2][1], 'ASSISTENTE CERAMISTA');
+              expect(rows[3][1], 'OPERADOR DE AUTOMAÇÃO INDUSTRIAL');
+              expect(rows[3][2], '010.03 - NOVA LIVRAMENTO/Fabricação');
+            });
+
+            test('recusa leitura incompleta quando total RH nao confere', () {
+              const text = '''
+          Nome Admissao Cargo Lotacao
+          ALEXANDRE FERREIRA DA SILVA 12/03/2026 CERAMISTA 010.05 - NOVA LIVRAMENTO/Descarga de Vagão
+          Total Geral: 2 empregado(s)
+          ''';
+              expect(
+                WorkerImportService.parseExtractedRhTextForTesting(text),
+                isNull,
+              );
+            });
+          }
+          DART
+
+      - name: Formatar e validar
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          dart format lib/services/worker_import_service.dart test/worker_import_local_parser_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+
+      - name: Regressões
+        run: |
+          python tools/regression_rh_pdf_import_v32966.py "$APP_DIR"
+          python tools/regression_report_templates_v32962.py "$APP_DIR"
+
+      - name: Compilar APK release
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY"
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Preparar APK
+        run: |
+          mkdir -p dist/android
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" 'dist/android/Auditar-SST-v3.29.66-RH-Local.apk'
+          sha256sum 'dist/android/Auditar-SST-v3.29.66-RH-Local.apk' > 'dist/android/Auditar-SST-v3.29.66-RH-Local.sha256.txt'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.66-Android-RH-Local
+          path: dist/android/*
+          retention-days: 30
