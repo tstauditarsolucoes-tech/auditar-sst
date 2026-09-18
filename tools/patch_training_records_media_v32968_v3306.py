@@ -232,7 +232,14 @@ class _TrainingRecordsScreenState extends State<TrainingRecordsScreen> {
     ]);
     if (!mounted) return;
     setState(() {
-      company = companies.where((item) => item.id == widget.companyId).firstOrNull;
+      Company? selectedCompany;
+      for (final item in companies) {
+        if (item.id == widget.companyId) {
+          selectedCompany = item;
+          break;
+        }
+      }
+      company = selectedCompany;
       records = (result[0] as List).cast<SstRecord>();
       workers = (result[1] as List).cast<Worker>();
       sectors = (result[2] as List).cast<Sector>();
