@@ -13,6 +13,8 @@ on:
       - 'tools/patch_neutral_brand_widget_compat_v1.py'
       - 'tools/patch_neutral_env_v1.py'
       - 'tools/patch_neutral_final_identity_v1.py'
+      - 'tools/patch_neutral_epi_module_v1.py'
+      - 'neutral_modules/epi/**'
       - 'tools/patch_neutral_tests_v1.py'
       - 'tools/regression_neutral_sst_v1.py'
       - 'tools/scan_neutral_artifact_v1.py'
@@ -171,7 +173,6 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($env:SST_APPS_SCRIPT_URL)) { throw 'SST_APPS_SCRIPT_URL ausente' }
           if ([string]::IsNullOrWhiteSpace($env:SST_SYNC_KEY)) { throw 'SST_SYNC_KEY ausente' }
           if ($env:SST_APPS_SCRIPT_URL -notmatch '^https://script\.google\.com/macros/s/.+/exec
-          if ($LASTEXITCODE -ne 0) { throw 'build Windows falhou' }
 
       - name: Validar binarios Windows totalmente neutros e base congelada
         shell: pwsh
@@ -240,13 +241,9 @@ jobs:
           name: SST-Gestao-Neutro-v1.0.1-Windows
           path: dist/neutral/*
           retention-days: 30
-) { throw 'SST_APPS_SCRIPT_URL inválida' }
-          $oldEndpoint='AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ'
-          $oldMatches=Get-ChildItem lib -Recurse -File | Select-String -SimpleMatch $oldEndpoint
-          if ($oldMatches) { throw 'Endpoint da Central original encontrado na edição neutra' }
+) { throw 'SST_APPS_SCRIPT_URL invalida' }
           $pub=Get-Content pubspec.yaml -Raw
           $pub=[regex]::Replace($pub,'(?m)^version:.*
-          if ($LASTEXITCODE -ne 0) { throw 'build Windows falhou' }
 
       - name: Validar binarios Windows totalmente neutros e base congelada
         shell: pwsh
