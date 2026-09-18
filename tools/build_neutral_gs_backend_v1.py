@@ -75,7 +75,28 @@ code = re.sub(
 )
 code = re.sub(r'^\s*//.*EpiSync.*\n?', '', code, flags=re.M | re.I)
 
-epi_routes = """    if (request.action === 'ai_status') {
+epi_routes = """    if (request.action === 'sst_auth_bootstrap_admin') {
+      if (request.syncKey !== expectedKey) return jsonResponse_({ok:false,message:'Chave de sincronização inválida.'});
+      return jsonResponse_(sstAuthBootstrapAdmin_(request));
+    }
+
+    if (request.action === 'sst_auth_login') {
+      return jsonResponse_(sstAuthLogin_(request));
+    }
+
+    if (request.action === 'sst_auth_session') {
+      return jsonResponse_(sstAuthSession_(request));
+    }
+
+    if (request.action === 'sst_auth_users_list') {
+      return jsonResponse_(sstAuthUsersList_(request));
+    }
+
+    if (request.action === 'sst_auth_user_save') {
+      return jsonResponse_(sstAuthUserSave_(request));
+    }
+
+    if (request.action === 'ai_status') {
       if (request.syncKey !== expectedKey) return jsonResponse_({ok:false,message:'Chave de sincronização inválida.'});
       return jsonResponse_(sstGestaoAiStatus_());
     }
@@ -127,6 +148,11 @@ ai_admin = Path(__file__).resolve().parents[1] / 'neutral_modules' / 'admin' / '
 if not ai_admin.exists():
     raise SystemExit('AiAdmin.gs neutro não encontrado.')
 shutil.copy2(ai_admin, out / 'AiAdmin.gs')
+
+auth_username = Path(__file__).resolve().parents[1] / 'neutral_modules' / 'admin' / 'AuthUsername.gs'
+if not auth_username.exists():
+    raise SystemExit('AuthUsername.gs neutro não encontrado.')
+shutil.copy2(auth_username, out / 'AuthUsername.gs')
 
 readme = """SST GESTÃO - CENTRAL GOOGLE APPS SCRIPT INDEPENDENTE
 
@@ -234,6 +260,10 @@ required = [
     'ai_configure',
     'ai_test',
     'sstGestaoAiConfigure_',
+    'sst_auth_login',
+    'sst_auth_user_save',
+    'sstAuthLogin_',
+    'SST_USER_PROFILES_SHEET',
     'sstEpiSyncMerge_',
     'sstEpiInvoicePdf_',
 ]
