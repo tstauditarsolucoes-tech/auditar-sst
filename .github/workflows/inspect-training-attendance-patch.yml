@@ -1,0 +1,29 @@
+name: Inspect historical training attendance patch
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/inspect-training-attendance-patch.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Decode patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          p=Path('build_sources/v3.30.0-training-attendance/patch_training_attendance_v3300.py.xz.b64')
+          Path('training_patch.py').write_bytes(lzma.decompress(base64.b64decode(p.read_text().strip())))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: historical-training-attendance-patch
+          path: training_patch.py
+          retention-days: 3
