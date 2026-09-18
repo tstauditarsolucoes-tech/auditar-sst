@@ -18,6 +18,7 @@ env:
   SOURCE_DIR: app/Auditar_SST_v1_5_dashboard
   TEST_URL: https://script.google.com/macros/s/teste-sst-gestao/exec
   TEST_KEY: sst-gestao-ci-test-key
+  PYTHONIOENCODING: utf-8
 
 jobs:
   android_epi:
