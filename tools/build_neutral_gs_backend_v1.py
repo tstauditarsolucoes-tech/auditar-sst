@@ -59,7 +59,7 @@ if not code_path.exists():
     raise SystemExit('Code.gs não foi gerado')
 code = code_path.read_text(encoding='utf-8')
 
-# Remove a rota EPI da Central SST neutra.
+# Remove a rota EPI legada e instala as rotas neutras do módulo.
 code = re.sub(
     r"\n\s*//[^\n]*EPI[^\n]*\n\s*if \(request\.action === 'epi_sync_merge'\) \{.*?\n\s*\}\n",
     '\n',
@@ -74,9 +74,38 @@ code = re.sub(
 )
 code = re.sub(r'^\s*//.*EpiSync.*\n?', '', code, flags=re.M | re.I)
 
-# Identidade de armazenamento: Drive e planilha são da edição SST Gestão.
-code = code.replace("const DRIVE_ROOT_FOLDER = 'SST Gestão';", "const DRIVE_ROOT_FOLDER = 'SST Gestão';")
+epi_routes = """    if (request.action === 'epi_sync_merge') {
+      if (request.syncKey !== expectedKey) return jsonResponse_({ok:false,message:'Chave de sincronização inválida.'});
+      return jsonResponse_(sstEpiSyncMerge_(request));
+    }
+
+    if (request.action === 'epi_status') {
+      if (request.syncKey !== expectedKey) return jsonResponse_({ok:false,message:'Chave de sincronização inválida.'});
+      return jsonResponse_(sstEpiStatus_());
+    }
+
+    if (request.action === 'epi_ai_assistant') {
+      if (request.syncKey !== expectedKey) return jsonResponse_({ok:false,message:'Chave de sincronização inválida.'});
+      return jsonResponse_(sstEpiAiAssistant_(request.payload || {}));
+    }
+
+    if (request.action === 'epi_store_purchase_document') {
+      if (request.syncKey !== expectedKey) return jsonResponse_({ok:false,message:'Chave de sincronização inválida.'});
+      return jsonResponse_(sstEpiStorePurchaseDocument_(request));
+    }
+
+"""
+invalid_marker = "    return jsonResponse_({ok: false, message: 'Requisição inválida.'});"
+if invalid_marker not in code:
+    raise SystemExit('Marcador do doPost não encontrado para integrar módulo EPI.')
+code = code.replace(invalid_marker, epi_routes + invalid_marker, 1)
+
 code_path.write_text(code, encoding='utf-8', newline='\n')
+
+epi_module = Path(__file__).resolve().parents[1] / 'neutral_modules' / 'epi' / 'EpiModule.gs'
+if not epi_module.exists():
+    raise SystemExit('EpiModule.gs neutro não encontrado.')
+shutil.copy2(epi_module, out / 'EpiModule.gs')
 
 readme = """SST GESTÃO - CENTRAL GOOGLE APPS SCRIPT INDEPENDENTE
 
