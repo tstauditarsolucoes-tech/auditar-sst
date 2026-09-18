@@ -1,4 +1,4 @@
-name: SST Gestao Neutro Android v1.0.2
+name: SST Gestao Neutro Android v1.1.0
 
 on:
   workflow_dispatch:
@@ -138,8 +138,8 @@ jobs:
             echo 'Endpoint da Central original encontrado na edição neutra.'
             exit 1
           fi
-          sed -i -E 's/^version:.*/version: 1.0.2+3/' pubspec.yaml
-          grep -F 'version: 1.0.2+3' pubspec.yaml
+          sed -i -E 's/^version:.*/version: 1.1.0+4/' pubspec.yaml
+          grep -F 'version: 1.1.0+4' pubspec.yaml
           flutter build apk --release \
             --obfuscate \
             --split-debug-info=build/symbols-neutral/android \
@@ -157,12 +157,12 @@ jobs:
           test -z "$(git status --porcelain -- "$SOURCE_DIR")"
           git diff --exit-code -- "$SOURCE_DIR"
           mkdir -p dist/neutral
-          cp "$APK" 'dist/neutral/SST-Gestao-v1.0.2-Android.apk'
-          sha256sum 'dist/neutral/SST-Gestao-v1.0.2-Android.apk' > 'dist/neutral/SST-Gestao-v1.0.2-Android.sha256.txt'
+          cp "$APK" 'dist/neutral/SST-Gestao-v1.1.0-Android.apk'
+          sha256sum 'dist/neutral/SST-Gestao-v1.1.0-Android.apk' > 'dist/neutral/SST-Gestao-v1.1.0-Android.sha256.txt'
           echo 'BASE_AUDITAR_INTACTA_FINAL: nenhuma alteracao na fonte original.'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: SST-Gestao-Neutro-v1.0.2-Android
+          name: SST-Gestao-Neutro-v1.1.0-Android
           path: dist/neutral/*
           retention-days: 30
