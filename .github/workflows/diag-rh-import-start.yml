@@ -1,0 +1,21 @@
+name: Diagnostico Importacao RH Inicio
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths: ['.github/workflows/diag-rh-import-start.yml']
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: bash tools/assemble_android_v32962.sh "$APP_DIR" >/dev/null
+      - run: sed -n '1,150p' "$APP_DIR/lib/services/worker_import_service.dart"
