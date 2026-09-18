@@ -9,6 +9,7 @@ on:
       - 'tools/assemble_android_v32965.sh'
       - 'tools/patch_rh_pdf_local_text_v32965.py'
       - 'tools/regression_rh_pdf_import_v32965.py'
+      - 'tools/fix_read_pdf_text_r8_v32965.py'
 
 permissions:
   contents: read
@@ -43,6 +44,7 @@ jobs:
           flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
           if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
           flutter pub get
+          python ../../tools/fix_read_pdf_text_r8_v32965.py .
 
       - name: Formatar somente importador RH
         working-directory: ${{ env.APP_DIR }}
