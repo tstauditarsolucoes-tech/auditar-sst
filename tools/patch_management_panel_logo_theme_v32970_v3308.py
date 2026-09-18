@@ -599,8 +599,15 @@ screen = screen.replace(
 1,
 )
 
-pubp.write_text(pub, encoding='utf-8', newline='\n')
-screenp.write_text(screen, encoding='utf-8', newline='\n')
+# Cores derivadas da logo são calculadas em runtime; widgets que eram const
+# no layout antigo deixam de ser const apenas dentro desta tela.
+screen = screen.replace('child: const Icon(', 'child: Icon(')
+screen = screen.replace('const Expanded(', 'Expanded(')
+screen = screen.replace('child: const Row(', 'child: Row(')
+screen = screen.replace('style: const TextStyle(', 'style: TextStyle(')
+
+pubp.write_text(pub, encoding='utf-8', newline='\\n')
+screenp.write_text(screen, encoding='utf-8', newline='\\n')
 
 assert 'version: '+target in pubp.read_text(encoding='utf-8')
 assert 'Future<void> _loadCompanyIdentity() async' in screen
