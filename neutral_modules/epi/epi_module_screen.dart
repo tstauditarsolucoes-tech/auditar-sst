@@ -190,8 +190,24 @@ class _EpiModuleScreenState extends State<EpiModuleScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F8FA),
       appBar: AppBar(
-        title: const Text('Gestão de EPI'),
+        titleSpacing: 12,
+        title: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F8F5),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.health_and_safety_rounded, color: Color(0xFF0F766E), size: 21),
+            ),
+            const SizedBox(width: 10),
+            const Text('Gestão de EPI'),
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: 'Atualizar módulo',
@@ -202,8 +218,16 @@ class _EpiModuleScreenState extends State<EpiModuleScreen> {
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            padding: const EdgeInsets.fromLTRB(14, 2, 14, 8),
             child: SegmentedButton<bool>(
+              style: ButtonStyle(
+                foregroundColor: WidgetStateProperty.resolveWith((states) =>
+                    states.contains(WidgetState.selected) ? Colors.white : const Color(0xFF164E63)),
+                backgroundColor: WidgetStateProperty.resolveWith((states) =>
+                    states.contains(WidgetState.selected) ? const Color(0xFF0FA88E) : Colors.white),
+                side: WidgetStateProperty.all(const BorderSide(color: Color(0xFFB8D8D3))),
+                textStyle: WidgetStateProperty.all(const TextStyle(fontWeight: FontWeight.w800)),
+              ),
               segments: const [
                 ButtonSegment(
                   value: false,
