@@ -105,7 +105,7 @@ jobs:
           $cmake='windows/CMakeLists.txt'
           $cm=Get-Content $cmake -Raw
           if ($cm -notmatch '_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS') {
-            $cm=$cm.Replace('project(sst_gestao LANGUAGES CXX)','project(sst_gestao LANGUAGES CXX)`r`nadd_compile_definitions(_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)')
+            $cm=$cm.Replace('project(sst_gestao LANGUAGES CXX)', "project(sst_gestao LANGUAGES CXX)`r`nadd_compile_definitions(_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)")
             Set-Content $cmake $cm -Encoding UTF8
           }
           if (Test-Path 'test/widget_test.dart') { if ((Get-Content 'test/widget_test.dart' -Raw) -match 'MyApp') { Remove-Item 'test/widget_test.dart' -Force } }
