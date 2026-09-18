@@ -1,0 +1,116 @@
+name: Teste Modulo EPI SST Gestao
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [neutral-sst-separate-edition]
+    paths:
+      - '.github/workflows/test-neutral-epi-module.yml'
+      - 'tools/patch_neutral_epi_module_v1.py'
+      - 'neutral_modules/epi/**'
+      - 'tools/assemble_neutral_android_v1.sh'
+      - 'tools/assemble_neutral_windows_v1.py'
+
+permissions:
+  contents: read
+
+env:
+  SOURCE_DIR: app/Auditar_SST_v1_5_dashboard
+  TEST_URL: https://script.google.com/macros/s/teste-sst-gestao/exec
+  TEST_KEY: sst-gestao-ci-test-key
+
+jobs:
+  android_epi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar edicao neutra com EPI
+        run: |
+          set -euo pipefail
+          TMP="$RUNNER_TEMP/repo"
+          APP="$RUNNER_TEMP/SST_Gestao_Epi_Test"
+          git clone --no-hardlinks "$GITHUB_WORKSPACE" "$TMP"
+          cd "$TMP"
+          git checkout --detach "$GITHUB_SHA"
+          bash tools/assemble_neutral_android_v1.sh "$SOURCE_DIR"
+          cp -a "$SOURCE_DIR" "$APP"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Plataforma e dependencias Android
+        working-directory: ${{ runner.temp }}/SST_Gestao_Epi_Test
+        run: |
+          set -euo pipefail
+          rm -rf android
+          flutter create --no-pub --platforms=android --org br.com.sstgestao --project-name sst_gestao .
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('android/app/src/main/AndroidManifest.xml')
+          t=p.read_text(encoding='utf-8')
+          perms=[
+            '<uses-permission android:name="android.permission.INTERNET" />',
+            '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />',
+            '<uses-permission android:name="android.permission.CAMERA" />',
+          ]
+          marker='<application'
+          t=t.replace(marker,'\n'.join('    '+x for x in perms)+'\n\n    '+marker,1)
+          p.write_text(t,encoding='utf-8')
+          PY
+          flutter pub get
+      - name: Analisar testar e compilar Android
+        working-directory: ${{ runner.temp }}/SST_Gestao_Epi_Test
+        run: |
+          set -euo pipefail
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+          flutter build apk --debug --dart-define=SST_APPS_SCRIPT_URL="$TEST_URL" --dart-define=SST_SYNC_KEY="$TEST_KEY"
+          test -f build/app/outputs/flutter-apk/app-debug.apk
+          echo 'EPI_ANDROID_COMPILE_OK'
+
+  windows_epi:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar edicao neutra com EPI
+        shell: pwsh
+        run: |
+          $tmp=Join-Path $env:RUNNER_TEMP 'repo'
+          $app=Join-Path $env:RUNNER_TEMP 'SST_Gestao_Epi_Test'
+          git clone --no-hardlinks "$env:GITHUB_WORKSPACE" "$tmp"
+          if ($LASTEXITCODE -ne 0) { throw 'clone falhou' }
+          Push-Location $tmp
+          git checkout --detach "$env:GITHUB_SHA"
+          python tools/assemble_neutral_windows_v1.py "$env:SOURCE_DIR"
+          Pop-Location
+          Copy-Item (Join-Path $tmp $env:SOURCE_DIR) $app -Recurse -Force
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Plataforma e dependencias Windows
+        working-directory: ${{ runner.temp }}/SST_Gestao_Epi_Test
+        shell: pwsh
+        run: |
+          if (Test-Path windows) { Remove-Item windows -Recurse -Force }
+          flutter create --no-pub --platforms=windows --org br.com.sstgestao --project-name sst_gestao .
+          flutter pub get
+          if ($LASTEXITCODE -ne 0) { throw 'pub get falhou' }
+      - name: Analisar testar e compilar Windows
+        working-directory: ${{ runner.temp }}/SST_Gestao_Epi_Test
+        shell: pwsh
+        run: |
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'analyze falhou' }
+          flutter test
+          if ($LASTEXITCODE -ne 0) { throw 'testes falharam' }
+          flutter build windows --debug --dart-define=SST_APPS_SCRIPT_URL="$env:TEST_URL" --dart-define=SST_SYNC_KEY="$env:TEST_KEY"
+          if ($LASTEXITCODE -ne 0) { throw 'build Windows falhou' }
+          if (-not (Test-Path 'build/windows/x64/runner/Debug/sst_gestao.exe')) { throw 'exe ausente' }
+          Write-Host 'EPI_WINDOWS_COMPILE_OK'
