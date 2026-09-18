@@ -1,0 +1,162 @@
+name: Auditar SST Windows v3.30.6 Treinamentos Fotos Fichas
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/build-v3306-windows-training-records.yml'
+      - 'tools/patch_training_records_media_v32968_v3306.py'
+      - 'tools/regression_training_records_v32968_v3306.py'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 140
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar Windows v3.30.5
+        shell: pwsh
+        run: |
+          python tools/assemble_windows_v3305_report_templates.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'montagem v3.30.5 falhou' }
+
+      - name: Proteger núcleo Windows
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import hashlib,json
+          root=Path(r"app/Auditar_SST_v1_5_dashboard")
+          protected=[
+            root/'lib/services/device_sync_service.dart',
+            root/'lib/services/apps_script_http.dart',
+            root/'lib/services/sync_coordinator.dart',
+            root/'lib/services/auth_service.dart',
+            root/'lib/services/drive_service.dart',
+            root/'lib/database.dart',
+            root/'painel_web_google_apps_script/Code.gs',
+          ]
+          state={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in protected if p.exists()}
+          Path('windows_training_protected.json').write_text(json.dumps(state),encoding='utf-8')
+          '@ | python -
+
+      - name: Aplicar galeria e ficha de treinamentos
+        shell: pwsh
+        run: |
+          python tools/patch_training_records_media_v32968_v3306.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'patch de treinamentos falhou' }
+
+      - name: Confirmar núcleo Windows preservado
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import hashlib,json
+          root=Path(r"app/Auditar_SST_v1_5_dashboard")
+          before=json.loads(Path('windows_training_protected.json').read_text(encoding='utf-8'))
+          changed=[]
+          for rel,old in before.items():
+              new=hashlib.sha256((root/rel).read_bytes()).hexdigest()
+              if new!=old: changed.append(rel)
+              else: print('PROTEGIDO_OK',rel,new)
+          if changed: raise SystemExit('Núcleo Windows alterado: '+', '.join(changed))
+          print('NUCLEO_WINDOWS_PRESERVADO_OK')
+          '@ | python -
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar Windows
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          flutter pub get
+
+      - name: Formatar analisar e testar
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        run: |
+          dart format lib/screens/trainings_screen.dart lib/screens/training_records_screen.dart lib/services/training_record_pdf_service.dart lib/services/media_sync_service.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'flutter analyze falhou' }
+          flutter test
+          if ($LASTEXITCODE -ne 0) { throw 'flutter test falhou' }
+
+      - name: Regressões
+        shell: pwsh
+        run: |
+          python tools/regression_training_records_v32968_v3306.py "$env:APP_DIR" 3.30.6+193
+          if ($LASTEXITCODE -ne 0) { throw 'regressão treinamentos falhou' }
+          python tools/regression_report_templates_v32962.py "$env:APP_DIR" 3.30.6+193
+          if ($LASTEXITCODE -ne 0) { throw 'regressão relatórios falhou' }
+
+      - name: Compilar Windows release
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+          if ($LASTEXITCODE -ne 0) { throw 'build Windows falhou' }
+
+      - name: Gerar instalador e portátil
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.6-PORTATIL.zip' -Force
+          $iscc='C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          if (-not (Test-Path $iscc)) { throw 'Inno Setup não disponível' }
+          $output=(Resolve-Path 'dist/windows').Path
+          $iss=@"
+          [Setup]
+          AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}
+          AppName=Auditar SST
+          AppVersion=3.30.6
+          AppPublisher=Auditar Soluções
+          DefaultDirName={autopf}\Auditar SST
+          DefaultGroupName=Auditar SST
+          OutputDir=$output
+          OutputBaseFilename=Auditar-SST-Setup-v3.30.6
+          Compression=lzma2
+          SolidCompression=yes
+          WizardStyle=modern
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          [Files]
+          Source: "$release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          [Icons]
+          Name: "{autoprograms}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          Name: "{autodesktop}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          [Run]
+          Filename: "{app}\auditar_sst.exe"; Description: "Abrir Auditar SST"; Flags: nowait postinstall skipifsilent
+          "@
+          Set-Content "$env:RUNNER_TEMP\auditar-v3306.iss" $iss -Encoding UTF8
+          & $iscc "$env:RUNNER_TEMP\auditar-v3306.iss"
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.30.6-Windows-Treinamentos-Fotos-Fichas
+          path: dist/windows/*
+          retention-days: 30
