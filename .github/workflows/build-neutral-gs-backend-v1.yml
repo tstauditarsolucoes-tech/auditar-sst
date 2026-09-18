@@ -39,7 +39,7 @@ jobs:
           git checkout --detach "$GITHUB_SHA"
           bash tools/assemble_neutral_android_v1.sh "$SOURCE_DIR"
 
-          OUT="$GITHUB_WORKSPACE/dist/SST-Gestao-Central-GS-v1.0.0"
+          OUT="$GITHUB_WORKSPACE/dist/SST-Gestao-Central-GS-v1.1.0-EPI"
           python tools/build_neutral_gs_backend_v1.py "$SOURCE_DIR" "$OUT"
 
           cd "$GITHUB_WORKSPACE"
@@ -50,7 +50,7 @@ jobs:
       - name: Validar JavaScript da Central
         run: |
           set -euo pipefail
-          OUT="dist/SST-Gestao-Central-GS-v1.0.0"
+          OUT="dist/SST-Gestao-Central-GS-v1.1.0-EPI"
           for f in "$OUT"/*.gs; do
             cp "$f" "$RUNNER_TEMP/check.js"
             node --check "$RUNNER_TEMP/check.js"
@@ -69,13 +69,13 @@ jobs:
         run: |
           set -euo pipefail
           cd dist
-          zip -r SST-Gestao-Central-GS-v1.0.0.zip SST-Gestao-Central-GS-v1.0.0
-          sha256sum SST-Gestao-Central-GS-v1.0.0.zip > SST-Gestao-Central-GS-v1.0.0.sha256.txt
+          zip -r SST-Gestao-Central-GS-v1.1.0-EPI.zip SST-Gestao-Central-GS-v1.1.0-EPI
+          sha256sum SST-Gestao-Central-GS-v1.1.0-EPI.zip > SST-Gestao-Central-GS-v1.1.0-EPI.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: SST-Gestao-Central-GS-v1.0.0
+          name: SST-Gestao-Central-GS-v1.1.0-EPI
           path: |
-            dist/SST-Gestao-Central-GS-v1.0.0.zip
-            dist/SST-Gestao-Central-GS-v1.0.0.sha256.txt
+            dist/SST-Gestao-Central-GS-v1.1.0-EPI.zip
+            dist/SST-Gestao-Central-GS-v1.1.0-EPI.sha256.txt
           retention-days: 30
