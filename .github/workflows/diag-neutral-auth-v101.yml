@@ -1,4 +1,4 @@
-name: Diagnostico auth SST Gestao neutro
+name: Diagnostico integracao EPI SST Gestao
 
 on:
   workflow_dispatch:
@@ -34,9 +34,12 @@ jobs:
           cp "$SOURCE_DIR/lib/screens/login_screen.dart" "$GITHUB_WORKSPACE/dist/auth-source/"
           cp "$SOURCE_DIR/lib/services/web_service_config.dart" "$GITHUB_WORKSPACE/dist/auth-source/"
           cp "$SOURCE_DIR/lib/services/apps_script_http.dart" "$GITHUB_WORKSPACE/dist/auth-source/"
+          cp "$SOURCE_DIR/lib/database.dart" "$GITHUB_WORKSPACE/dist/auth-source/"
+          cp "$SOURCE_DIR/lib/screens/home_screen.dart" "$GITHUB_WORKSPACE/dist/auth-source/"
+          cp "$SOURCE_DIR/pubspec.yaml" "$GITHUB_WORKSPACE/dist/auth-source/"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: SST-Gestao-Neutro-v1.0.1-auth-source
+          name: SST-Gestao-Neutro-integracao-epi-source
           path: dist/auth-source/*
           retention-days: 7
