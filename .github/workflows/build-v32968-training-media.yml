@@ -44,6 +44,18 @@ jobs:
           text=lzma.decompress(base64.b64decode(source.read_text().strip())).decode('utf-8')
           text=text.replace("'version: 3.29.41+183'", "'version: 3.29.67+209'")
           text=text.replace("'version: 3.30.0+184'", "'version: 3.29.68+210'")
+          # O módulo histórico trazia integração com uma versão antiga do MediaSyncService
+          # e adicionava tabelas ao DeviceSyncService. Mantemos apenas UI/DB/PDF; a mídia
+          # é integrada abaixo ao serviço atual e o sync rápido fica byte-idêntico.
+          start=text.index('# --- Assinaturas como mídia do Drive ---')
+          end=text.index('# --- Nova tela no módulo Treinamentos ---')
+          text=text[:start] + '# Mídia integrada pelo patch v3.29.68.\\n\\n' + text[end:]
+          for assertion in [
+              'assert \'registerTrainingSignature\' in final_media\\n',
+              'assert \'restoreTrainingSessionSignatures\' in final_media\\n',
+              'assert "entityType==\'training_attendance_signature\'" in final_media\\n',
+          ]:
+              text=text.replace(assertion,'')
           Path('/tmp/training_attendance_v32968.py').write_text(text,encoding='utf-8')
           PY
           python /tmp/training_attendance_v32968.py "$APP_DIR" android
