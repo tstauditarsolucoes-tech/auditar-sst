@@ -1,0 +1,30 @@
+name: Inspect NC resolved flow
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/inspect-nc-resolved.yml'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Assemble v3.29.69 and inspect NC flow
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          echo '===== FILES ====='
+          find "$APP_DIR/lib" -type f -name '*.dart' -print | sort | grep -Ei 'non|conform|action|plan|inspection|company_detail' || true
+          echo '===== RESOLVIDA / RESOLVIDO ====='
+          grep -RniE "RESOLVID|Resolvid|resolvid|Conclu[ií]d|CONCLUID|Fechar NC|encerrar NC|status" "$APP_DIR/lib/screens" | grep -Ei 'conform|NC|action|plan|inspection|status|resol' | head -n 300 || true
