@@ -50,6 +50,7 @@ jobs:
           set -euo pipefail
           rm -rf android
           flutter create --no-pub --platforms=android --org br.com.sstgestao --project-name sst_gestao .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
           python3 - <<'PY'
           from pathlib import Path
           p=Path('android/app/src/main/AndroidManifest.xml')
@@ -101,6 +102,7 @@ jobs:
         run: |
           if (Test-Path windows) { Remove-Item windows -Recurse -Force }
           flutter create --no-pub --platforms=windows --org br.com.sstgestao --project-name sst_gestao .
+          if (Test-Path 'test/widget_test.dart') { if ((Get-Content 'test/widget_test.dart' -Raw) -match 'MyApp') { Remove-Item 'test/widget_test.dart' -Force } }
           flutter pub get
           if ($LASTEXITCODE -ne 0) { throw 'pub get falhou' }
       - name: Analisar testar e compilar Windows
