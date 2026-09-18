@@ -123,6 +123,7 @@ FUNÇÕES PRESERVADAS
 - CIPA
 - Notificações e relatórios mensais
 - Assistente IA / Gemini
+- Gestão de EPI: estoque, entregas, lotes, NF por IA e consulta CA
 - Auditoria de usuários e sessões
 
 ARQUIVOS
@@ -206,6 +207,11 @@ required = [
     'ai_assistant',
     'cipa_publish',
     'test_notifications',
+    'epi_sync_merge',
+    'epi_ai_assistant',
+    'epi_store_purchase_document',
+    'sstEpiSyncMerge_',
+    'sstEpiInvoicePdf_',
 ]
 for token in required:
     if token not in all_text:
