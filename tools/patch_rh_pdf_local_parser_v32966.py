@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 from pathlib import Path
-import re, sys
+import re
+import sys
 
-root=Path(sys.argv[1] if len(sys.argv)>1 else 'app/Auditar_SST_v1_5_dashboard')
-svc=root/'lib/services/worker_import_service.dart'
-text=svc.read_text(encoding='utf-8')
+root = Path(sys.argv[1] if len(sys.argv) > 1 else 'app/Auditar_SST_v1_5_dashboard')
+svc = root / 'lib/services/worker_import_service.dart'
+text = svc.read_text(encoding='utf-8')
 
-old="""        final normalized = _normalizeExtractedRhText(extracted);
+old = """        final normalized = _normalizeExtractedRhText(extracted);
         if (normalized.length >= 80) {
           uploadBytes = await _buildLightweightRhPdf(normalized);
         }
 """
-new="""        final normalized = _normalizeExtractedRhText(extracted);
+new = """        final normalized = _normalizeExtractedRhText(extracted);
         if (normalized.length >= 80) {
           final localTable = _parseExtractedRhText(normalized);
           if (localTable != null) {
@@ -23,11 +24,11 @@ new="""        final normalized = _normalizeExtractedRhText(extracted);
 if new not in text:
     if old not in text:
         raise SystemExit('Bloco de extracao local v3.29.65 nao encontrado.')
-    text=text.replace(old,new,1)
+    text = text.replace(old, new, 1)
 
-anchor="""  static Future<Uint8List> _buildLightweightRhPdf(String text) async {
+anchor = """  static Future<Uint8List> _buildLightweightRhPdf(String text) async {
 """
-helper=r'''  static List<List<String>>? parseExtractedRhTextForTesting(String text) =>
+helper = r'''  static List<List<String>>? parseExtractedRhTextForTesting(String text) =>
       _parseExtractedRhText(text);
 
   static List<List<String>>? _parseExtractedRhText(String text) {
@@ -35,23 +36,22 @@ helper=r'''  static List<List<String>>? parseExtractedRhTextForTesting(String te
     if (normalizedText.isEmpty) return null;
 
     final expectedMatch = RegExp(
-      r'Totals+Gerals*:s*(d+)s+empregado',
+      r'Total\s+Geral\s*:\s*(\d+)\s+empregado',
       caseSensitive: false,
     ).firstMatch(normalizedText);
     final expectedTotal =
         expectedMatch == null ? null : int.tryParse(expectedMatch.group(1)!);
 
-    final datePattern = RegExp(r'd{2}/d{2}/d{4}');
-    final allocationPattern = RegExp(r'd{3}.d{2}s*-s*');
+    final datePattern = RegExp(r'\b\d{2}/\d{2}/\d{4}\b');
+    final allocationPattern = RegExp(r'\d{3}\.\d{2}\s*-\s*');
 
     final rows = <List<String>>[
       const ['Nome', 'Cargo', 'Setor'],
     ];
     final identities = <String>{};
 
-    for (final rawLine in normalizedText.split('
-')) {
-      final line = rawLine.replaceAll(RegExp(r's+'), ' ').trim();
+    for (final rawLine in normalizedText.split('\n')) {
+      final line = rawLine.replaceAll(RegExp(r'\s+'), ' ').trim();
       if (line.isEmpty) continue;
 
       final lower = line.toLowerCase();
@@ -91,8 +91,8 @@ helper=r'''  static List<List<String>>? parseExtractedRhTextForTesting(String te
     final count = rows.length - 1;
     if (count < 2) return null;
 
-    // Quando o RH informa o total, so aceitamos leitura local completa.
-    // Isso impede que uma linha perdida faca o app retirar trabalhador ativo.
+    // Se o relatório trouxer total, a leitura local só é aceita se estiver completa.
+    // Assim uma linha perdida jamais pode desativar trabalhador por engano.
     if (expectedTotal != null && expectedTotal > 0 && count != expectedTotal) {
       return null;
     }
@@ -104,15 +104,21 @@ helper=r'''  static List<List<String>>? parseExtractedRhTextForTesting(String te
 if 'parseExtractedRhTextForTesting' not in text:
     if anchor not in text:
         raise SystemExit('Ancora helper PDF nao encontrada.')
-    text=text.replace(anchor,helper+anchor,1)
+    text = text.replace(anchor, helper + anchor, 1)
 
-svc.write_text(text,encoding='utf-8',newline='\n')
+svc.write_text(text, encoding='utf-8', newline='\n')
 
-pub=root/'pubspec.yaml'
-p=pub.read_text(encoding='utf-8')
-p,n=re.subn(r'^version:s*[^
-]+','version: 3.29.66+208',p,count=1,flags=re.M)
-if n!=1: raise SystemExit('Versao nao encontrada.')
-pub.write_text(p,encoding='utf-8',newline='\n')
+pub = root / 'pubspec.yaml'
+p = pub.read_text(encoding='utf-8')
+p, n = re.subn(
+    r'^version:\s*[^\n]+',
+    'version: 3.29.66+208',
+    p,
+    count=1,
+    flags=re.M,
+)
+if n != 1:
+    raise SystemExit('Versao nao encontrada.')
+pub.write_text(p, encoding='utf-8', newline='\n')
 
 print('Android v3.29.66+208: leitura local deterministica da listagem RH aplicada.')
