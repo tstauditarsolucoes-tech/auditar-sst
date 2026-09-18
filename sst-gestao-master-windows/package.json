@@ -1,0 +1,20 @@
+{
+  "name": "sst-gestao-chave-mestre",
+  "version": "1.0.0",
+  "description": "Aplicativo administrativo separado do SST Gestão",
+  "main": "main.js",
+  "private": true,
+  "scripts": {"dist": "electron-builder --win portable --x64"},
+  "devDependencies": {"electron": "37.2.0", "electron-builder": "26.0.12"},
+  "build": {
+    "appId": "br.com.sstgestao.master",
+    "productName": "SST Gestão Chave Mestre",
+    "files": ["main.js", "app/**/*"],
+    "directories": {"output": "dist"},
+    "win": {
+      "icon": "app-icon.png",
+      "target": [{"target": "portable", "arch": ["x64"]}],
+      "artifactName": "SST-Gestao-Chave-Mestre-${version}.exe"
+    }
+  }
+}
