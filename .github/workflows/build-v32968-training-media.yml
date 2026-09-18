@@ -50,12 +50,10 @@ jobs:
           start=text.index('# --- Assinaturas como mídia do Drive ---')
           end=text.index('# --- Nova tela no módulo Treinamentos ---')
           text=text[:start] + '# Mídia integrada pelo patch v3.29.68.\\n\\n' + text[end:]
-          for assertion in [
-              'assert \'registerTrainingSignature\' in final_media\\n',
-              'assert \'restoreTrainingSessionSignatures\' in final_media\\n',
-              'assert "entityType==\'training_attendance_signature\'" in final_media\\n',
-          ]:
-              text=text.replace(assertion,'')
+          text='\\n'.join(
+              line for line in text.splitlines()
+              if not (line.strip().startswith('assert ') and 'final_media' in line)
+          ) + '\\n'
           Path('/tmp/training_attendance_v32968.py').write_text(text,encoding='utf-8')
           PY
           python /tmp/training_attendance_v32968.py "$APP_DIR" android
