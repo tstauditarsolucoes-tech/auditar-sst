@@ -122,7 +122,18 @@ for rel in [
     'lib/screens/express_round_screen.dart',
     'lib/screens/report_screen.dart',
     'lib/screens/report_template_library_screen.dart',
+    'lib/screens/epi_module_screen.dart',
+    'assets/epi_module/field.html',
+    'assets/epi_module/management.html',
 ]:
     assert (root / rel).exists(), f'arquivo funcional ausente: {rel}'
+
+home = (root / 'lib/screens/home_screen.dart').read_text(encoding='utf-8')
+assert "tutorialId: 'epi'" in home
+assert 'Gestão de EPI' in home
+pubspec_text = (root / 'pubspec.yaml').read_text(encoding='utf-8')
+assert 'webview_flutter:' in pubspec_text
+assert 'webview_flutter_windows:' in pubspec_text
+assert 'permission_handler:' in pubspec_text
 
 print('NEUTRAL_REGRESSION_OK: SST Gestão v1.0 com identidade final neutra; persistência isolada; recursos principais preservados.')
