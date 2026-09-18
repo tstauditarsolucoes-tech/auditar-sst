@@ -118,8 +118,8 @@ jobs:
           grep -q "TRATAMENTO / PLANO DE AÇÃO" "$APP_DIR/lib/services/nc_pdf_service.dart"
           grep -q "_parseExtractedRhText" "$APP_DIR/lib/services/worker_import_service.dart"
           grep -q "registerExtinguisherPhoto" "$APP_DIR/lib/services/media_sync_service.dart"
-          grep -q "Fotos do treinamento / DDS" "$APP_DIR/lib/screens/training_attendance_screen.dart"
-          grep -q "Treinamentos realizados" "$APP_DIR/lib/screens/management_panel_screen.dart"
+          python tools/regression_training_records_v32968_v3306.py "$APP_DIR" 3.29.71+213
+          python tools/regression_internal_management_training_v32969_v3307.py "$APP_DIR" 3.29.71+213
           echo 'REGRESSOES_V32971_OK'
 
       - name: Compilar APK release
