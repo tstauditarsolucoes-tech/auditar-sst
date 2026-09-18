@@ -56,16 +56,16 @@ helper_anchor = """  Future<void> _load() async {
 helpers = r'''  Color get _companyHeaderColor {
     final hsl = HSLColor.fromColor(companyAccent);
     return hsl
-        .withSaturation(hsl.saturation.clamp(.18, .88))
-        .withLightness(hsl.lightness.clamp(.20, .37))
+        .withSaturation(hsl.saturation.clamp(.18, .88).toDouble())
+        .withLightness(hsl.lightness.clamp(.20, .37).toDouble())
         .toColor();
   }
 
   Color get _companyHeaderDark {
     final hsl = HSLColor.fromColor(companyAccentDark);
     return hsl
-        .withSaturation(hsl.saturation.clamp(.16, .90))
-        .withLightness(hsl.lightness.clamp(.10, .25))
+        .withSaturation(hsl.saturation.clamp(.16, .90).toDouble())
+        .withLightness(hsl.lightness.clamp(.10, .25).toDouble())
         .toColor();
   }
 
@@ -133,12 +133,12 @@ helpers = r'''  Color get _companyHeaderColor {
 
               if (hsl.saturation >= .10) {
                 accent = hsl
-                    .withSaturation(hsl.saturation.clamp(.32, .88))
-                    .withLightness(hsl.lightness.clamp(.30, .54))
+                    .withSaturation(hsl.saturation.clamp(.32, .88).toDouble())
+                    .withLightness(hsl.lightness.clamp(.30, .54).toDouble())
                     .toColor();
                 dark = hsl
-                    .withSaturation(hsl.saturation.clamp(.26, .90))
-                    .withLightness(hsl.lightness.clamp(.16, .30))
+                    .withSaturation(hsl.saturation.clamp(.26, .90).toDouble())
+                    .withLightness(hsl.lightness.clamp(.16, .30).toDouble())
                     .toColor();
               }
             }
