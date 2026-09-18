@@ -1,0 +1,28 @@
+name: Inspect generated management logo theme
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/inspect-generated-management-logo-theme.yml'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Generate source and print suspect lines
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python tools/patch_management_panel_logo_theme_v32970_v3308.py "$APP_DIR" android
+          nl -ba "$APP_DIR/lib/screens/management_panel_screen.dart" | sed -n '60,90p;525,565p;605,630p;730,755p'
