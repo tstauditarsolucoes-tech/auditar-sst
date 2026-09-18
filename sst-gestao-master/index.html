@@ -16,7 +16,7 @@
 <div class="layout">
   <aside class="sidebar">
     <div class="brand"><div class="brand-icon"></div><div><b>SST Gestão</b><small>CHAVE MESTRE</small></div></div>
-    <nav><button class="nav active" data-view="dashboard">▦ <span>Visão geral</span></button><button class="nav" data-view="users">👤 <span>Usuários</span></button><button class="nav" data-view="companies">🏢 <span>Empresas</span></button></nav>
+    <nav><button class="nav active" data-view="dashboard">▦ <span>Visão geral</span></button><button class="nav" data-view="users">👤 <span>Usuários</span></button><button class="nav" data-view="companies">🏢 <span>Empresas</span></button><button class="nav" data-view="ai">✨ <span>Assistente IA</span></button></nav>
     <div class="sidebar-note">Aplicativo administrativo independente. O SST Gestão de campo continua separado.</div>
     <div class="sidebar-foot"><div><b id="adminDisplay">Administrador</b><small>Acesso mestre</small></div><button id="btnLogout">Sair</button></div>
   </aside>
@@ -28,6 +28,25 @@
     </section>
     <section id="users" class="view"><div class="split-head"><div><h2>Usuários e perfis</h2><p>Crie, bloqueie, redefina senha e altere o perfil.</p></div><button id="btnNewUser" class="primary">＋ Novo usuário</button></div><article class="panel"><div class="filters"><input id="userSearch" placeholder="Buscar nome, e-mail ou perfil"><select id="userFilter"><option value="">Todos</option><option value="active">Ativos</option><option value="inactive">Bloqueados</option><option value="tecnico">Técnicos SST</option><option value="admin">Administradores</option></select></div><div id="usersTable" class="table-wrap"></div></article></section>
     <section id="companies" class="view"><div class="split-head"><div><h2>Empresas disponíveis</h2><p>Empresas sincronizadas pela Central Online.</p></div></div><article class="panel"><div class="filters"><input id="companySearch" placeholder="Buscar empresa"></div><div id="companiesTable" class="table-wrap"></div></article></section>
+    <section id="ai" class="view">
+      <div class="split-head"><div><h2>Assistente IA</h2><p>Configure a Gemini uma vez para liberar análise de fotos, conclusões, importações e NF por IA.</p></div></div>
+      <div class="grid-2">
+        <article class="panel">
+          <div class="panel-head"><div><h2>Status da IA</h2><p>A chave fica armazenada nas Propriedades do Script e não é exibida novamente.</p></div></div>
+          <div class="list-item"><div><b id="aiStatusTitle">Verificando…</b><small id="aiStatusText">Consultando a Central Online.</small></div><span id="aiStatusBadge" class="badge">IA</span></div>
+          <div class="list-item"><div><b>Modelo</b><small id="aiCurrentModel">—</small></div></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><div><h2>Configuração</h2><p>Cole sua chave da Gemini API. Deixe em branco depois para apenas trocar o modelo.</p></div></div>
+          <div class="form-grid">
+            <label class="full">Chave Gemini API<input id="aiKey" type="password" autocomplete="off" placeholder="Cole a chave aqui"></label>
+            <label class="full">Modelo<input id="aiModel" autocomplete="off" value="gemini-2.5-flash" placeholder="gemini-2.5-flash"></label>
+          </div>
+          <div id="aiMessage" class="error"></div>
+          <div class="dialog-actions"><button id="btnAiTest" type="button" class="secondary">Testar IA</button><button id="btnAiSave" type="button" class="primary">Salvar configuração</button></div>
+        </article>
+      </div>
+    </section>
   </main>
 </div>
 <dialog id="userDialog"><form method="dialog" id="userForm"><div class="dialog-head"><div><h2 id="userDialogTitle">Novo usuário</h2><p id="userDialogSub">Crie um acesso individual.</p></div><button value="cancel" class="x">×</button></div><input id="uId" type="hidden"><div class="form-grid"><label class="full">Nome<input id="uName" required placeholder="Nome do usuário"></label><label>Usuário<input id="uUsername" required autocomplete="off" autocapitalize="none" placeholder="Ex.: luan, tecnico01"></label><label>E-mail <span class="optional">(opcional)</span><input id="uEmail" type="email" autocomplete="off" placeholder="contato@empresa.com"></label><label>Perfil<select id="uRole"><option value="tecnico">Técnico SST</option><option value="admin">Administrador</option></select></label><label class="full">Senha <span id="passwordHint">inicial</span><div class="input-action"><input id="uPassword" type="text" autocomplete="off" placeholder="Mínimo 8 caracteres"><button id="btnGeneratePass" type="button" class="soft">Gerar senha</button></div></label><label class="switch full"><input id="uActive" type="checkbox" checked><span>Usuário ativo</span></label><div id="companyAccessWrap" class="full"><label class="switch"><input id="uAllCompanies" type="checkbox"><span>Acesso a todas as empresas</span></label><div id="companyPickerWrap"><div class="separator"><b>Empresas liberadas</b><small>Marque somente as empresas que este técnico poderá acessar.</small></div><input id="companyPickerSearch" placeholder="Buscar empresa"><div id="companyPicker" class="company-picker"></div></div></div></div><div id="userFormError" class="error"></div><div class="dialog-actions"><button value="cancel" class="secondary">Cancelar</button><button id="btnSaveUser" type="button" class="primary">Salvar usuário</button></div></form></dialog>
