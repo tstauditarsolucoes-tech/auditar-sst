@@ -119,6 +119,16 @@ def prepare_js(path: Path, field: bool = False) -> str:
     if field and path.name == 'ai-workers.js':
         js = js.replace("action:'ai_assistant'", "action:'epi_ai_assistant'")
 
+    if field and path.name == 'signature-assist.js':
+        js = js.replace(
+            "async function landscape(){",
+            "async function landscape(){\\n    try{if(window.SSTNative&&window.SSTNative.postMessage){window.SSTNative.postMessage('orientation:landscape');await new Promise(function(r){setTimeout(r,260);});return true;}}catch(_){ }"
+        )
+        js = js.replace(
+            "async function portrait(){",
+            "async function portrait(){\\n    try{if(window.SSTNative&&window.SSTNative.postMessage){window.SSTNative.postMessage('orientation:portrait');await new Promise(function(r){setTimeout(r,180);});return;}}catch(_){ }"
+        )
+
     if path.name == 'app.js' and path.parent.name == 'auditar-epi-gestao':
         js = js.replace(
             "app:{companies:[],workers:[],epis:[],deliveries:[]}",
