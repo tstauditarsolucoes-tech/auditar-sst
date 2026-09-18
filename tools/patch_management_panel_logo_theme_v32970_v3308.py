@@ -606,8 +606,8 @@ screen = screen.replace('const Expanded(', 'Expanded(')
 screen = screen.replace('child: const Row(', 'child: Row(')
 screen = screen.replace('style: const TextStyle(', 'style: TextStyle(')
 
-pubp.write_text(pub, encoding='utf-8', newline='\\n')
-screenp.write_text(screen, encoding='utf-8', newline='\\n')
+pubp.write_text(pub, encoding='utf-8')
+screenp.write_text(screen, encoding='utf-8')
 
 assert 'version: '+target in pubp.read_text(encoding='utf-8')
 assert 'Future<void> _loadCompanyIdentity() async' in screen
