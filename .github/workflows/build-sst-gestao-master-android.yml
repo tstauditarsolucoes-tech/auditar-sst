@@ -1,0 +1,79 @@
+name: SST Gestão Chave Mestre Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [neutral-sst-separate-edition]
+    paths:
+      - 'sst-gestao-master/**'
+      - 'sst-gestao-master-android/**'
+      - '.github/workflows/build-sst-gestao-master-android.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Preparar app web da Chave Mestre
+        run: |
+          set -euo pipefail
+          rm -rf sst-gestao-master-android/app/src/main/assets/master
+          mkdir -p sst-gestao-master-android/app/src/main/assets/master
+          cp -a sst-gestao-master/. sst-gestao-master-android/app/src/main/assets/master/
+
+      - name: Inserir Central neutra e plataforma Android
+        env:
+          SST_APPS_SCRIPT_URL: ${{ secrets.SST_APPS_SCRIPT_URL }}
+          SST_SYNC_KEY: ${{ secrets.SST_SYNC_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$SST_APPS_SCRIPT_URL"
+          test -n "$SST_SYNC_KEY"
+          case "$SST_APPS_SCRIPT_URL" in
+            https://script.google.com/macros/s/*/exec) ;;
+            *) echo 'SST_APPS_SCRIPT_URL inválida'; exit 1 ;;
+          esac
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          p=Path('sst-gestao-master-android/app/src/main/assets/master/app.js')
+          text=p.read_text(encoding='utf-8')
+          text=text.replace('__SST_APPS_SCRIPT_URL__', os.environ['SST_APPS_SCRIPT_URL'])
+          text=text.replace('__SST_SYNC_KEY__', os.environ['SST_SYNC_KEY'])
+          text=text.replace("platform:'windows'", "platform:'android'")
+          if '__SST_APPS_SCRIPT_URL__' in text or '__SST_SYNC_KEY__' in text:
+              raise SystemExit('Configuração não aplicada')
+          p.write_text(text, encoding='utf-8', newline='\n')
+          PY
+
+      - name: Compilar APK Android
+        working-directory: sst-gestao-master-android
+        run: gradle :app:assembleRelease --stacktrace
+
+      - name: Preparar artefato
+        run: |
+          set -euo pipefail
+          mkdir -p dist/master-android
+          cp sst-gestao-master-android/app/build/outputs/apk/release/app-release.apk             dist/master-android/SST-Gestao-Chave-Mestre-v1.0.0-Android.apk
+          sha256sum dist/master-android/SST-Gestao-Chave-Mestre-v1.0.0-Android.apk             > dist/master-android/SST-Gestao-Chave-Mestre-v1.0.0-Android.sha256.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SST-Gestao-Chave-Mestre-Android-v1.0.0
+          path: dist/master-android/*
+          if-no-files-found: error
+          retention-days: 30
