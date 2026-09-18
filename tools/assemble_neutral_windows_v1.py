@@ -36,6 +36,7 @@ run('tools/patch_neutral_env_v1.py',root)
 run('tools/patch_neutral_username_login_v1.py',root)
 run('tools/patch_neutral_final_identity_v1.py',root)
 run('tools/patch_neutral_epi_module_v1.py',root)
+run('tools/patch_neutral_home_layout_v2.py',root)
 run('tools/patch_neutral_tests_v1.py',root)
 run('tools/regression_neutral_sst_v1.py',root)
 
