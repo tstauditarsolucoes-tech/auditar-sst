@@ -1,0 +1,45 @@
+name: Inspect v3.29.66 media modules
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/inspect-v32966-media-modules.yml'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Assemble v3.29.66
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          mkdir -p inspect/lib/screens inspect/lib/services inspect/panel
+          cp "$APP_DIR/lib/database.dart" inspect/lib/
+          cp "$APP_DIR/lib/models.dart" inspect/lib/
+          cp "$APP_DIR/lib/screens/companies_screen.dart" inspect/lib/screens/ || true
+          cp "$APP_DIR/lib/screens/"*extinguisher* inspect/lib/screens/ 2>/dev/null || true
+          cp "$APP_DIR/lib/screens/"*extint* inspect/lib/screens/ 2>/dev/null || true
+          cp "$APP_DIR/lib/screens/sst_records_screen.dart" inspect/lib/screens/ || true
+          cp "$APP_DIR/lib/screens/sst_record_form_screen.dart" inspect/lib/screens/ || true
+          cp "$APP_DIR/lib/screens/trainings_screen.dart" inspect/lib/screens/ || true
+          cp "$APP_DIR/lib/screens/training_attendance_screen.dart" inspect/lib/screens/ || true
+          cp "$APP_DIR/lib/services/media_sync_service.dart" inspect/lib/services/
+          cp "$APP_DIR/lib/services/device_sync_service.dart" inspect/lib/services/
+          cp "$APP_DIR/lib/services/dds_pdf_service.dart" inspect/lib/services/ || true
+          cp "$APP_DIR/lib/services/training_attendance_pdf_service.dart" inspect/lib/services/ || true
+          cp "$APP_DIR/painel_web_google_apps_script/"* inspect/panel/ 2>/dev/null || true
+          find "$APP_DIR/lib/screens" -maxdepth 1 -type f | sort > inspect/screens.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v32966-media-modules-source
+          path: inspect
+          retention-days: 3
