@@ -1,0 +1,33 @@
+name: Inspect training attendance module
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/inspect-training-attendance-module.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Decode existing module
+        run: |
+          set -euo pipefail
+          mkdir -p inspect
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.30.0-training-attendance/patch_training_attendance_v3300.py.xz.b64')
+          Path('inspect/patch_training_attendance_v3300.py').write_bytes(
+              lzma.decompress(base64.b64decode(src.read_text().strip()))
+          )
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: training-attendance-module-source
+          path: inspect/patch_training_attendance_v3300.py
+          retention-days: 3
