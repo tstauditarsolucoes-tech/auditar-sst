@@ -1,0 +1,29 @@
+name: Diagnostico Importacao RH PDF
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths: ['.github/workflows/diag-rh-pdf-import.yml']
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar Auditar Android atual
+        run: bash tools/assemble_android_v32962.sh "$APP_DIR"
+      - name: Mostrar fluxo de importacao RH
+        run: |
+          echo "===== worker_import_service.dart ====="
+          sed -n '1,320p' "$APP_DIR/lib/services/worker_import_service.dart"
+          echo "===== workers_screen import refs ====="
+          grep -n -A80 -B30 "Importar PDF do RH\|import.*PDF\|WorkerImportService\|importEmployee" "$APP_DIR/lib/screens/workers_screen.dart" || true
+          echo "===== chamadas backend relacionadas ====="
+          grep -Rni -A50 -B20 "employee_import\|worker_import\|import.*employee\|import.*worker\|pdf.*rh\|rh.*pdf" "$APP_DIR/lib/services" "$APP_DIR/lib/screens" | head -n 700 || true
