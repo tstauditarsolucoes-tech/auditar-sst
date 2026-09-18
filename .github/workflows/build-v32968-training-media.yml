@@ -49,11 +49,11 @@ jobs:
           # é integrada abaixo ao serviço atual e o sync rápido fica byte-idêntico.
           start=text.index('# --- Assinaturas como mídia do Drive ---')
           end=text.index('# --- Nova tela no módulo Treinamentos ---')
-          text=text[:start] + '# Mídia integrada pelo patch v3.29.68.\\n\\n' + text[end:]
-          text='\\n'.join(
+          text=text[:start] + '# Mídia integrada pelo patch v3.29.68.\n\n' + text[end:]
+          text='\n'.join(
               line for line in text.splitlines()
               if not (line.strip().startswith('assert ') and 'final_media' in line)
-          ) + '\\n'
+          ) + '\n'
           Path('/tmp/training_attendance_v32968.py').write_text(text,encoding='utf-8')
           PY
           python /tmp/training_attendance_v32968.py "$APP_DIR" android
