@@ -1,0 +1,72 @@
+name: SST Gestão Chave Mestre Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [neutral-sst-separate-edition]
+    paths:
+      - 'sst-gestao-master/**'
+      - 'sst-gestao-master-windows/**'
+      - '.github/workflows/build-sst-gestao-master.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Preparar aplicativo separado
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force 'sst-gestao-master-windows/app' -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path 'sst-gestao-master-windows/app' | Out-Null
+          Copy-Item -Recurse -Force 'sst-gestao-master/*' 'sst-gestao-master-windows/app/'
+
+      - name: Inserir Central neutra
+        shell: pwsh
+        env:
+          SST_APPS_SCRIPT_URL: ${{ secrets.SST_APPS_SCRIPT_URL }}
+          SST_SYNC_KEY: ${{ secrets.SST_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:SST_APPS_SCRIPT_URL)) { throw 'SST_APPS_SCRIPT_URL nao configurado.' }
+          if ([string]::IsNullOrWhiteSpace($env:SST_SYNC_KEY)) { throw 'SST_SYNC_KEY nao configurado.' }
+          $path='sst-gestao-master-windows/app/app.js'
+          $content=Get-Content -Raw $path
+          $content=$content.Replace('__SST_APPS_SCRIPT_URL__',$env:SST_APPS_SCRIPT_URL)
+          $content=$content.Replace('__SST_SYNC_KEY__',$env:SST_SYNC_KEY)
+          Set-Content -Path $path -Value $content -Encoding UTF8
+          if ($content.Contains('__SST_APPS_SCRIPT_URL__') -or $content.Contains('__SST_SYNC_KEY__')) { throw 'Configuracao nao aplicada.' }
+
+      - name: Gerar ícone
+        shell: pwsh
+        run: |
+          if (-not (Get-Command magick -ErrorAction SilentlyContinue)) {
+            choco install imagemagick.app -y --no-progress
+            $env:Path += ';C:\Program Files\ImageMagick-7.1.1-Q16-HDRI'
+          }
+          magick -background none 'sst-gestao-master-windows/app/icon.svg' -resize 512x512 'sst-gestao-master-windows/app-icon.png'
+          if (-not (Test-Path 'sst-gestao-master-windows/app-icon.png')) { throw 'Nao foi possivel gerar o icone.' }
+
+      - name: Instalar dependências
+        working-directory: sst-gestao-master-windows
+        run: npm install
+
+      - name: Gerar Chave Mestre
+        working-directory: sst-gestao-master-windows
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SST-Gestao-Chave-Mestre-Windows-v1.0.0
+          path: sst-gestao-master-windows/dist/*.exe
+          if-no-files-found: error
+          retention-days: 30
