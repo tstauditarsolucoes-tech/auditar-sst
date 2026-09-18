@@ -1,0 +1,46 @@
+name: Diagnostico RH v3.29.5 vs v3.29.62
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/diag-rh-old-vs-current.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar v3.29.5 e guardar importador
+        run: |
+          python tools/assemble_v3295.py
+          cp app/Auditar_SST_v1_5_dashboard/lib/services/worker_import_service.dart /tmp/worker_old.dart
+          cp app/Auditar_SST_v1_5_dashboard/painel_web_google_apps_script/Code.gs /tmp/code_old.gs
+          sha256sum /tmp/worker_old.dart /tmp/code_old.gs
+
+      - name: Montar v3.29.62 e comparar
+        run: |
+          bash tools/assemble_android_v32962.sh app/Auditar_SST_v1_5_dashboard
+          cp app/Auditar_SST_v1_5_dashboard/lib/services/worker_import_service.dart /tmp/worker_new.dart
+          cp app/Auditar_SST_v1_5_dashboard/painel_web_google_apps_script/Code.gs /tmp/code_new.gs
+          echo '===== HASHES NOVOS ====='
+          sha256sum /tmp/worker_new.dart /tmp/code_new.gs
+          echo '===== DIFF WORKER IMPORT ====='
+          diff -u /tmp/worker_old.dart /tmp/worker_new.dart || true
+          echo '===== DIFF AI EMPLOYEE BACKEND ====='
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          for label,path in [('OLD','/tmp/code_old.gs'),('NEW','/tmp/code_new.gs')]:
+              text=Path(path).read_text(encoding='utf-8')
+              print('\n===== '+label+' runAiAssistant employee snippets =====')
+              for pat in ['function runAiAssistant_', "mode === 'employee_pdf_import'", "if (mode === 'employee_pdf_import')", "AUDITAR_AI_MODEL", 'GEMINI_API_BASE_URL']:
+                  i=text.find(pat)
+                  if i>=0:
+                      print(text[max(0,i-700):i+2600])
+          PY
