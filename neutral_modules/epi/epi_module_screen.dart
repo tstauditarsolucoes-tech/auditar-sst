@@ -138,6 +138,24 @@ class _EpiModuleScreenState extends State<EpiModuleScreen> {
       } else {
         final controller = _androidController ??= WebViewController()
           ..setJavaScriptMode(JavaScriptMode.unrestricted)
+          ..addJavaScriptChannel(
+            'SSTNative',
+            onMessageReceived: (message) async {
+              final value = message.message.trim().toLowerCase();
+              if (value == 'orientation:landscape') {
+                await SystemChrome.setPreferredOrientations(const [
+                  DeviceOrientation.landscapeLeft,
+                  DeviceOrientation.landscapeRight,
+                ]);
+              } else if (value == 'orientation:portrait') {
+                await SystemChrome.setPreferredOrientations(const [
+                  DeviceOrientation.portraitUp,
+                ]);
+              } else if (value == 'orientation:auto') {
+                await SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+              }
+            },
+          )
           ..setNavigationDelegate(
             NavigationDelegate(
               onWebResourceError: (error) {
@@ -184,6 +202,9 @@ class _EpiModuleScreenState extends State<EpiModuleScreen> {
   @override
   void dispose() {
     _windowsController?.dispose();
+    if (!Platform.isWindows) {
+      SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    }
     super.dispose();
   }
 
