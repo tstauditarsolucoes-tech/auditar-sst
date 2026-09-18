@@ -35,12 +35,35 @@ jobs:
           echo '===== DIFF AI EMPLOYEE BACKEND ====='
           python - <<'PY'
           from pathlib import Path
-          import re
-          for label,path in [('OLD','/tmp/code_old.gs'),('NEW','/tmp/code_new.gs')]:
-              text=Path(path).read_text(encoding='utf-8')
-              print('\n===== '+label+' runAiAssistant employee snippets =====')
-              for pat in ['function runAiAssistant_', "mode === 'employee_pdf_import'", "if (mode === 'employee_pdf_import')", "AUDITAR_AI_MODEL", 'GEMINI_API_BASE_URL']:
-                  i=text.find(pat)
-                  if i>=0:
-                      print(text[max(0,i-700):i+2600])
+          import difflib
+
+          def extract(text):
+              chunks=[]
+              markers=[
+                  "function runAiAssistant_",
+                  "if (mode === 'employee_pdf_import')",
+                  "if (mode === 'employee_pdf_import' || mode === 'medical_pdf_import')",
+                  "if (mode === 'employee_pdf_import') {",
+                  "AUDITAR_AI_MODEL",
+                  "maxOutputTokens: mode === 'employee_pdf_import'",
+              ]
+              seen=[]
+              for marker in markers:
+                  start=0
+                  while True:
+                      i=text.find(marker,start)
+                      if i<0: break
+                      a=max(0,text.rfind('\n',0,max(0,i-900)))
+                      b=min(len(text),i+3500)
+                      piece=text[a:b]
+                      key=(a,b)
+                      if key not in seen:
+                          seen.append(key); chunks.append(piece)
+                      start=i+len(marker)
+              return '\n\n--- CHUNK ---\n'.join(chunks)
+
+          old=extract(Path('/tmp/code_old.gs').read_text(encoding='utf-8')).splitlines()
+          new=extract(Path('/tmp/code_new.gs').read_text(encoding='utf-8')).splitlines()
+          for line in difflib.unified_diff(old,new,fromfile='v3.29.5',tofile='v3.29.62',lineterm=''):
+              print(line)
           PY
