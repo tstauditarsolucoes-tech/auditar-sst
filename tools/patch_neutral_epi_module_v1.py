@@ -192,7 +192,7 @@ if 'webview_flutter:' not in pubspec:
         '  webview_flutter: ^4.14.1\n'
         '  webview_flutter_android: ^4.14.1\n'
         '  webview_flutter_windows: ^1.2.0\n'
-        '  permission_handler: ^12.0.3\n',
+        '  permission_handler: ^13.0.2\n',
         1,
     )
 
