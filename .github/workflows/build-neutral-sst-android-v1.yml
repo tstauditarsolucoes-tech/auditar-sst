@@ -13,6 +13,8 @@ on:
       - 'tools/patch_neutral_brand_widget_compat_v1.py'
       - 'tools/patch_neutral_env_v1.py'
       - 'tools/patch_neutral_final_identity_v1.py'
+      - 'tools/patch_neutral_epi_module_v1.py'
+      - 'neutral_modules/epi/**'
       - 'tools/patch_neutral_tests_v1.py'
       - 'tools/regression_neutral_sst_v1.py'
       - 'tools/scan_neutral_artifact_v1.py'
@@ -78,6 +80,8 @@ jobs:
               permissions.append('    <uses-permission android:name="android.permission.INTERNET" />')
           if 'android.permission.ACCESS_NETWORK_STATE' not in text:
               permissions.append('    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />')
+          if 'android.permission.CAMERA' not in text:
+              permissions.append('    <uses-permission android:name="android.permission.CAMERA" />')
           if permissions:
               if marker not in text:
                   raise SystemExit('AndroidManifest sem <application>')
@@ -90,6 +94,7 @@ jobs:
           grep -F 'android:label="SST Gestão"' android/app/src/main/AndroidManifest.xml
           grep -F 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml
           grep -F 'android.permission.ACCESS_NETWORK_STATE' android/app/src/main/AndroidManifest.xml
+          grep -F 'android.permission.CAMERA' android/app/src/main/AndroidManifest.xml
 
       - name: Analyze e testes
         working-directory: ${{ runner.temp }}/SST_Gestao_Neutro
@@ -108,6 +113,7 @@ jobs:
             lib/screens/splash_screen.dart \
             lib/screens/home_screen.dart \
             lib/screens/settings_screen.dart \
+            lib/screens/epi_module_screen.dart \
             lib/main.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter test
