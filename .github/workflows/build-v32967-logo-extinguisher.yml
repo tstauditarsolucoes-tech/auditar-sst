@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/build-v32967-logo-extinguisher.yml'
       - 'tools/patch_logo_extinguisher_media_v32967.py'
+      - 'tools/regression_rh_pdf_import_v32967.py'
 
 permissions:
   contents: read
@@ -90,7 +91,7 @@ jobs:
 
       - name: Regressões críticas
         run: |
-          python tools/regression_rh_pdf_import_v32966.py "$APP_DIR"
+          python tools/regression_rh_pdf_import_v32967.py "$APP_DIR"
           python tools/regression_report_templates_v32962.py "$APP_DIR"
           grep -q "registerExtinguisherPhoto" "$APP_DIR/lib/services/media_sync_service.dart"
           grep -q "restoreExtinguisherPhotos" "$APP_DIR/lib/services/media_sync_service.dart"
