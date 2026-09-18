@@ -68,6 +68,17 @@ jobs:
           Path('/tmp/patch_training_photos_panel_v32968.py').write_bytes(lzma.decompress(base64.b64decode(src.read_text().strip())))
           PY
           python /tmp/patch_training_photos_panel_v32968.py "$APP_DIR"
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import sys
+          p=Path(sys.argv[1])/'lib/screens/training_attendance_screen.dart'
+          text=p.read_text(encoding='utf-8')
+          text=text.replace(
+              'MediaSyncService.restoreTrainingSessionSignatures(widget.sessionId)',
+              'MediaSyncService.restoreTrainingSessionSignatures(companyId: widget.company.id, sessionId: widget.sessionId)'
+          )
+          p.write_text(text,encoding='utf-8',newline='\n')
+          PY
 
       - name: Confirmar núcleo rápido preservado
         run: |
