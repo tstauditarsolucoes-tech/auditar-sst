@@ -1,0 +1,28 @@
+name: Inspect painel gerencial interno
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/inspect-internal-management-panel.yml'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar v3.29.67 e localizar painel interno
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          echo '=== ARQUIVOS COM PAINEL GERENCIAL ==='
+          grep -Ril "Painel Gerencial\|painel gerencial\|ManagementPanel\|management panel" "$APP_DIR/lib" | sort || true
+          echo '=== REFERENCIAS EMPRESAS/NAVEGACAO ==='
+          grep -Rin "Painel Gerencial\|ManagementPanel" "$APP_DIR/lib/screens" | head -120 || true
