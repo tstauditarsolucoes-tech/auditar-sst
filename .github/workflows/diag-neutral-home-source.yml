@@ -2,6 +2,9 @@ name: Diagnóstico Home SST Gestão
 
 on:
   workflow_dispatch:
+  push:
+    branches: [neutral-sst-separate-edition]
+    paths: ['.github/workflows/diag-neutral-home-source.yml']
 
 permissions:
   contents: read
