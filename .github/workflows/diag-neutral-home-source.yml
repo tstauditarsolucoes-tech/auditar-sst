@@ -18,14 +18,12 @@ jobs:
       - name: Montar fonte neutra
         run: |
           set -euo pipefail
-          rm -rf /tmp/sst-home
-          mkdir -p /tmp/sst-home
-          bash tools/assemble_neutral_android_v1.sh /tmp/sst-home
+          bash tools/assemble_neutral_android_v1.sh app/Auditar_SST_v1_5_dashboard
           mkdir -p diag
-          cp /tmp/sst-home/lib/screens/home_screen.dart diag/home_screen.dart
-          cp /tmp/sst-home/lib/screens/login_screen.dart diag/login_screen.dart
-          cp /tmp/sst-home/lib/widgets/sst_brand_logo.dart diag/sst_brand_logo.dart
-          cp /tmp/sst-home/lib/brand.dart diag/brand.dart
+          cp app/Auditar_SST_v1_5_dashboard/lib/screens/home_screen.dart diag/home_screen.dart
+          cp app/Auditar_SST_v1_5_dashboard/lib/screens/login_screen.dart diag/login_screen.dart
+          cp app/Auditar_SST_v1_5_dashboard/lib/widgets/sst_brand_logo.dart diag/sst_brand_logo.dart
+          cp app/Auditar_SST_v1_5_dashboard/lib/brand.dart diag/brand.dart
       - uses: actions/upload-artifact@v4
         with:
           name: sst-neutral-home-source
