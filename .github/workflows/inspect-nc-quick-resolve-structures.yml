@@ -1,0 +1,45 @@
+name: Inspect NC quick resolve structures
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/inspect-nc-quick-resolve-structures.yml'
+
+permissions:
+  contents: read
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Assemble v3.29.69 and inspect
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import sys,re
+          root=Path(sys.argv[1])
+          for rel in ['lib/models.dart','lib/database.dart','lib/services/media_sync_service.dart','lib/services/nc_pdf_service.dart','lib/screens/non_conformity_detail_screen.dart']:
+              p=root/rel
+              t=p.read_text(encoding='utf-8')
+              print('\n===== ',rel,' =====')
+              pats=['class NonConformity','class CompletionPhoto','CREATE TABLE non_conformities','CREATE TABLE completion_photos','verifyNonConformity','insertCompletionPhoto','getCompletionPhotos','registerCompletion','completion_photo','EvidencePhoto']
+              seen=[]
+              for pat in pats:
+                start=0
+                while True:
+                  i=t.find(pat,start)
+                  if i<0: break
+                  if all(abs(i-x)>800 for x in seen):
+                    seen.append(i)
+                    print('\n###',pat,'@',i)
+                    print(t[max(0,i-1200):min(len(t),i+4500)])
+                  start=i+1
+          PY
