@@ -1,0 +1,31 @@
+name: Export NC detail v3.29.69
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/export-nc-detail-v32969.yml'
+
+permissions:
+  contents: read
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          mkdir -p export
+          cp "$APP_DIR/lib/screens/non_conformity_detail_screen.dart" export/
+          cp "$APP_DIR/lib/services/nc_pdf_service.dart" export/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nc-detail-v32969-source
+          path: export
+          retention-days: 3
