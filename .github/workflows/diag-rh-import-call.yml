@@ -1,0 +1,29 @@
+name: Diagnostico Importacao RH Chamada
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths: ['.github/workflows/diag-rh-import-call.yml']
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: bash tools/assemble_android_v32962.sh "$APP_DIR"
+      - name: Trechos precisos
+        run: |
+          FILE="$APP_DIR/lib/services/worker_import_service.dart"
+          echo "===== HEAD ====="
+          sed -n '1,180p' "$FILE"
+          echo "===== FUNCOES REMOTAS ====="
+          grep -n -A120 -B30 "analy\|parse\|pdf\|AppsScript\|WebService\|timeout\|post" "$FILE" | head -n 500
+          echo "===== IMPORT WORKERS SCREEN ====="
+          sed -n '100,220p' "$APP_DIR/lib/screens/workers_screen.dart"
