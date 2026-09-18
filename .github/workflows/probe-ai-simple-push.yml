@@ -1,0 +1,50 @@
+name: Probe IA simples Central
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/probe-ai-simple-push.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: Testar IA sem PDF
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$AUDITAR_SYNC_KEY"
+          python -m pip install --quiet requests
+          python - <<'PY'
+          import os,time,requests,json
+          endpoint='https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec'
+          payload={
+            'action':'ai_assistant',
+            'syncKey':os.environ['AUDITAR_SYNC_KEY'],
+            'payload':{
+              'mode':'company_priorities',
+              'companyData':{
+                'empresa':'Teste',
+                'conformidade':80,
+                'naoConformidadesAbertas':2,
+                'acoesVencidas':0,
+                'treinamentosVencidos':1
+              }
+            }
+          }
+          t=time.monotonic()
+          r=requests.post(endpoint,json=payload,timeout=120)
+          print('HTTP',r.status_code,'ELAPSED_SECONDS',round(time.monotonic()-t,2),flush=True)
+          try:
+            data=r.json()
+            print('RESPONSE',json.dumps(data,ensure_ascii=False)[:4000],flush=True)
+          except Exception as e:
+            print('BODY',r.text[:4000],flush=True)
+          PY
