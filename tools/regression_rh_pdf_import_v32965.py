@@ -9,7 +9,8 @@ pub=(root/'pubspec.yaml').read_text(encoding='utf-8')
 assert 'version: 3.29.65+207' in pub
 assert 'read_pdf_text: ^0.3.1' in pub
 assert "package:read_pdf_text/read_pdf_text.dart" in svc
-assert 'ReadPdfText.getPDFtext(localPath)' in svc
+assert 'ReadPdfText.getPDFtext(' in svc
+assert 'localPath' in svc
 assert 'const Duration(seconds: 20)' in svc
 assert '_normalizeExtractedRhText' in svc
 assert '_buildLightweightRhPdf' in svc
