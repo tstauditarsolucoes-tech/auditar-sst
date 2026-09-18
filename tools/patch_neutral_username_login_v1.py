@@ -49,7 +49,9 @@ new_boot = """      'name': name.trim(),
 if old_boot in text:
     text = text.replace(old_boot, new_boot, 1)
 
-old_login = """      'action': 'auth_login',
+text = text.replace("'action': 'auth_bootstrap_admin'", "'action': 'sst_auth_bootstrap_admin'")
+
+old_login = """      'action': 'sst_auth_login',
       'email': email.trim(),
       'password': password,
 """
@@ -61,6 +63,9 @@ new_login = """      'action': 'auth_login',
 if old_login in text:
     text = text.replace(old_login, new_login, 1)
 
+text = text.replace("'action': 'auth_session'", "'action': 'sst_auth_session'")
+text = text.replace("'action': 'auth_users_list'", "'action': 'sst_auth_users_list'")
+text = text.replace("'action': 'auth_user_save'", "'action': 'sst_auth_user_save'")
 auth.write_text(text, encoding='utf-8', newline='\n')
 
 ui = login.read_text(encoding='utf-8')
