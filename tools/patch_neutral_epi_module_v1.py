@@ -182,7 +182,6 @@ def build_field() -> str:
     chunks.append(
         "<script>setTimeout(function(){document.dispatchEvent(new CustomEvent('gestao-epi-auth-ready'));},150);</script>"
     )
-    html = html.replace('</head>', integrated_field_css() + '\n</head>', 1)
     return html.replace('</body>', '\n'.join(chunks) + '\n</body>', 1)
 
 
@@ -217,7 +216,6 @@ def build_management() -> str:
     chunks.append(
         "<script>document.addEventListener('DOMContentLoaded',function(){var x=document.getElementById('connectOverlay');if(x)x.classList.add('hidden');});</script>"
     )
-    html = html.replace('</head>', integrated_management_css() + '\n</head>', 1)
     return html.replace('</body>', '\n'.join(chunks) + '\n</body>', 1)
 
 
