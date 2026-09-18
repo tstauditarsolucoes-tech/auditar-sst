@@ -30,6 +30,7 @@ protected=[
 before={p:digest(p) for p in protected}
 
 run('tools/patch_neutral_sst_edition_v1_fixed2.py',root)
+run('tools/patch_neutral_approved_branding_v1.py',root)
 run('tools/patch_neutral_brand_widget_compat_v1.py',root)
 run('tools/patch_neutral_env_v1.py',root)
 run('tools/patch_neutral_username_login_v1.py',root)
