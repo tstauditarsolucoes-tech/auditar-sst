@@ -1,0 +1,127 @@
+name: Auditar SST Android v3.29.70 Painel por Logo
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/build-v32970-management-logo-theme.yml'
+      - 'tools/patch_management_panel_logo_theme_v32970_v3308.py'
+      - 'tools/regression_management_panel_logo_theme_v32970_v3308.py'
+      - 'tools/regression_rh_pdf_import_v32970.py'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar base v3.29.69
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+
+      - name: Proteger recursos estabilizados
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          protected=[
+            root/'lib/services/device_sync_service.dart',
+            root/'lib/services/apps_script_http.dart',
+            root/'lib/services/sync_coordinator.dart',
+            root/'lib/services/auth_service.dart',
+            root/'lib/services/drive_service.dart',
+            root/'lib/database.dart',
+            root/'lib/services/worker_import_service.dart',
+            root/'lib/screens/companies_screen.dart',
+            root/'lib/screens/extinguishers_screen.dart',
+            root/'lib/screens/training_records_screen.dart',
+            root/'lib/services/training_record_pdf_service.dart',
+            root/'lib/services/media_sync_service.dart',
+            root/'painel_web_google_apps_script/Code.gs',
+          ]
+          state={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in protected if p.exists()}
+          Path('/tmp/v32970_protected.json').write_text(json.dumps(state),encoding='utf-8')
+          PY
+
+      - name: Aplicar identidade da empresa ao Painel Gerencial
+        run: python tools/patch_management_panel_logo_theme_v32970_v3308.py "$APP_DIR" android
+
+      - name: Confirmar recursos preservados
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          before=json.loads(Path('/tmp/v32970_protected.json').read_text(encoding='utf-8'))
+          changed=[]
+          for rel,old in before.items():
+            new=hashlib.sha256((root/rel).read_bytes()).hexdigest()
+            if new!=old: changed.append(rel)
+            else: print('PROTEGIDO_OK',rel,new)
+          if changed: raise SystemExit('Recurso estabilizado alterado: '+', '.join(changed))
+          print('BASE_V32969_PRESERVADA_OK')
+          PY
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar Android
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          python ../../tools/fix_read_pdf_text_r8_v32965.py .
+
+      - name: Formatar analisar testar
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          dart format lib/screens/management_panel_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+
+      - name: Regressões
+        run: |
+          python tools/regression_management_panel_logo_theme_v32970_v3308.py "$APP_DIR" 3.29.70+212
+          python tools/regression_internal_management_training_v32969_v3307.py "$APP_DIR" 3.29.70+212
+          python tools/regression_training_records_v32968_v3306.py "$APP_DIR" 3.29.70+212
+          python tools/regression_rh_pdf_import_v32970.py "$APP_DIR"
+
+      - name: Compilar APK
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY"
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Preparar APK
+        run: |
+          mkdir -p dist/android
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" 'dist/android/Auditar-SST-v3.29.70-PAINEL-LOGO-EMPRESA.apk'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.70-Android-Painel-Logo-Empresa
+          path: dist/android/*
+          retention-days: 30
