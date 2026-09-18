@@ -69,6 +69,46 @@ def inline_css(paths: list[Path]) -> str:
     return '<style>\n' + neutralize(css) + '\n</style>'
 
 
+
+def integrated_field_css() -> str:
+    return '''<style id="sst-epi-integrated">
+html,body{background:#f5f8fa!important}
+.topbar{display:none!important}
+.app-shell{max-width:960px!important;margin:0 auto!important;padding:14px 14px 34px!important}
+.bottom-nav{display:none!important}
+.hero-card{border-radius:20px!important;box-shadow:0 10px 28px rgba(15,118,110,.10)!important}
+.stats-grid{margin-top:12px!important}
+.menu-card{box-shadow:0 5px 18px rgba(16,24,40,.05)!important}
+.view-head{padding-top:2px!important}
+.signature-fullscreen{z-index:99999!important}
+@media(max-width:520px){
+  .app-shell{padding:12px 12px 28px!important}
+  .hero-card{padding:20px!important}
+  .hero-card h1{font-size:22px!important}
+  .menu-card{min-height:106px!important;padding:16px!important}
+  #home .stats-grid{grid-template-columns:repeat(2,1fr)!important}
+}
+</style>'''
+
+
+def integrated_management_css() -> str:
+    return '''<style id="sst-epi-management-integrated">
+.topbar{display:none!important}
+@media(max-width:720px){
+  .layout{display:block!important}
+  .sidebar{display:block!important;position:sticky!important;top:0!important;z-index:40!important;height:auto!important;padding:8px!important;background:#ffffff!important;color:#163c39!important;border-bottom:1px solid #dce7e5!important;box-shadow:0 4px 14px rgba(16,24,40,.05)!important}
+  .sidebar-brand,.sidebar-foot{display:none!important}
+  .sidebar nav{display:flex!important;gap:6px!important;overflow-x:auto!important;padding:0 2px!important;scrollbar-width:none!important}
+  .sidebar nav::-webkit-scrollbar{display:none!important}
+  .nav{flex:0 0 auto!important;color:#526864!important;background:#f5f8f7!important;padding:9px 11px!important;border-radius:10px!important;font-size:13px!important}
+  .nav.active{background:#0FA88E!important;color:#fff!important}
+  .nav span{display:inline!important;font-size:12px!important}
+  .main{padding:0 12px 28px!important}
+  .view{padding-top:14px!important}
+  .cards.four,.cards.three{grid-template-columns:1fr 1fr!important}
+}
+</style>'''
+
 def prepare_js(path: Path, field: bool = False) -> str:
     js = patch_endpoint(neutralize(read(path)))
 
@@ -109,7 +149,7 @@ def build_field() -> str:
             field_src / 'styles.css',
             field_src / 'import-workers.css',
             field_src / 'stock.css',
-        ]) + '\n</head>',
+        ]) + integrated_field_css() + '\n</head>',
         1,
     )
 
@@ -149,7 +189,7 @@ def build_management() -> str:
         inline_css([
             management_src / 'styles.css',
             management_src / 'indicators.css',
-        ]) + '\n</head>',
+        ]) + integrated_management_css() + '\n</head>',
         1,
     )
 
