@@ -73,7 +73,7 @@ helpers = r'''  Color get _companyHeaderColor {
 
   Color get _companySoftStrong => companyAccent.withValues(alpha: .14);
 
-  String get _companyLogoPath => widget.company.logoPath.trim();
+  String get _companyLogoPath => (widget.company.logoPath ?? '').trim();
 
   bool get _hasCompanyLogo =>
       _companyLogoPath.isNotEmpty && File(_companyLogoPath).existsSync();
