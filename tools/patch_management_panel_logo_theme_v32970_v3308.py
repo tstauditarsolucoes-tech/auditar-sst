@@ -231,7 +231,7 @@ helpers = r'''  Color get _companyHeaderColor {
   }
 
 '''
-if "_loadCompanyIdentity()" not in screen:
+if "Future<void> _loadCompanyIdentity() async" not in screen:
     if helper_anchor not in screen:
         raise RuntimeError('Âncora de helpers não localizada')
     screen = screen.replace(helper_anchor, helpers + helper_anchor, 1)
