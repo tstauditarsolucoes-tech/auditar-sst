@@ -39,6 +39,7 @@ for path in out.iterdir():
     text = text.replace('AUDITAR_SPREADSHEET_ID', 'SST_GESTAO_SPREADSHEET_ID')
     text = text.replace('AUDITAR_SYNC_KEY', 'SST_GESTAO_SYNC_KEY')
     text = text.replace('AUDITAR_AI_MODEL', 'SST_GESTAO_AI_MODEL')
+    text = text.replace('gemini-3.5-flash-lite', 'gemini-2.5-flash')
     # Qualquer constante/cache técnico restante da base antiga também recebe
     # prefixo próprio da Central neutra (ex.: WEEKLY_* e AUTH_*).
     text = text.replace('AUDITAR_', 'SST_GESTAO_')
@@ -74,7 +75,22 @@ code = re.sub(
 )
 code = re.sub(r'^\s*//.*EpiSync.*\n?', '', code, flags=re.M | re.I)
 
-epi_routes = """    if (request.action === 'epi_sync_merge') {
+epi_routes = """    if (request.action === 'ai_status') {
+      if (request.syncKey !== expectedKey) return jsonResponse_({ok:false,message:'Chave de sincronização inválida.'});
+      return jsonResponse_(sstGestaoAiStatus_());
+    }
+
+    if (request.action === 'ai_configure') {
+      if (request.syncKey !== expectedKey) return jsonResponse_({ok:false,message:'Chave de sincronização inválida.'});
+      return jsonResponse_(sstGestaoAiConfigure_(request));
+    }
+
+    if (request.action === 'ai_test') {
+      if (request.syncKey !== expectedKey) return jsonResponse_({ok:false,message:'Chave de sincronização inválida.'});
+      return jsonResponse_(sstGestaoAiTest_());
+    }
+
+    if (request.action === 'epi_sync_merge') {
       if (request.syncKey !== expectedKey) return jsonResponse_({ok:false,message:'Chave de sincronização inválida.'});
       return jsonResponse_(sstEpiSyncMerge_(request));
     }
@@ -106,6 +122,11 @@ epi_module = Path(__file__).resolve().parents[1] / 'neutral_modules' / 'epi' / '
 if not epi_module.exists():
     raise SystemExit('EpiModule.gs neutro não encontrado.')
 shutil.copy2(epi_module, out / 'EpiModule.gs')
+
+ai_admin = Path(__file__).resolve().parents[1] / 'neutral_modules' / 'admin' / 'AiAdmin.gs'
+if not ai_admin.exists():
+    raise SystemExit('AiAdmin.gs neutro não encontrado.')
+shutil.copy2(ai_admin, out / 'AiAdmin.gs')
 
 readme = """SST GESTÃO - CENTRAL GOOGLE APPS SCRIPT INDEPENDENTE
 
@@ -209,6 +230,10 @@ required = [
     'epi_sync_merge',
     'epi_ai_assistant',
     'epi_store_purchase_document',
+    'ai_status',
+    'ai_configure',
+    'ai_test',
+    'sstGestaoAiConfigure_',
     'sstEpiSyncMerge_',
     'sstEpiInvoicePdf_',
 ]
