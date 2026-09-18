@@ -223,49 +223,49 @@ class _EpiModuleScreenState extends State<EpiModuleScreen> {
                 color: const Color(0xFFE8F8F5),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.health_and_safety_rounded, color: Color(0xFF0F766E), size: 21),
+              child: const Icon(
+                Icons.health_and_safety_rounded,
+                color: Color(0xFF0F766E),
+                size: 21,
+              ),
             ),
             const SizedBox(width: 10),
-            const Text('Gestão de EPI'),
+            Text(_management ? 'EPI • Gestão' : 'EPI • Campo'),
           ],
         ),
         actions: [
+          PopupMenuButton<bool>(
+            tooltip: 'Alternar modo',
+            initialValue: _management,
+            onSelected: _setMode,
+            icon: const Icon(Icons.swap_horiz_rounded),
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: false,
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.phone_android_rounded),
+                  title: Text('Campo'),
+                ),
+              ),
+              PopupMenuItem(
+                value: true,
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.monitor_rounded),
+                  title: Text('Gestão'),
+                ),
+              ),
+            ],
+          ),
           IconButton(
             tooltip: 'Atualizar módulo',
             onPressed: _open,
             icon: const Icon(Icons.refresh_rounded),
           ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 2, 14, 8),
-            child: SegmentedButton<bool>(
-              style: ButtonStyle(
-                foregroundColor: WidgetStateProperty.resolveWith((states) =>
-                    states.contains(WidgetState.selected) ? Colors.white : const Color(0xFF164E63)),
-                backgroundColor: WidgetStateProperty.resolveWith((states) =>
-                    states.contains(WidgetState.selected) ? const Color(0xFF0FA88E) : Colors.white),
-                side: WidgetStateProperty.all(const BorderSide(color: Color(0xFFB8D8D3))),
-                textStyle: WidgetStateProperty.all(const TextStyle(fontWeight: FontWeight.w800)),
-              ),
-              segments: const [
-                ButtonSegment(
-                  value: false,
-                  icon: Icon(Icons.phone_android_rounded),
-                  label: Text('Campo'),
-                ),
-                ButtonSegment(
-                  value: true,
-                  icon: Icon(Icons.monitor_rounded),
-                  label: Text('Gestão'),
-                ),
-              ],
-              selected: {_management},
-              onSelectionChanged: (value) => _setMode(value.first),
-            ),
-          ),
-        ),
       ),
       body: _error.isNotEmpty
           ? Center(
