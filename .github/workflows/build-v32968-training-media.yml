@@ -1,0 +1,143 @@
+name: Auditar SST Android v3.29.68 Treinamentos Fotos Assinaturas
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/build-v32968-training-media.yml'
+      - 'build_sources/v3.29.68-training-media/patch_training_photos_panel_v32968.py.xz.b64'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar base estável v3.29.67
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          cp "$APP_DIR/lib/services/device_sync_service.dart" /tmp/device_sync_v32967.dart
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          protected=[root/'lib/services/apps_script_http.dart',root/'lib/services/sync_coordinator.dart',root/'lib/services/auth_service.dart',root/'lib/services/drive_service.dart',root/'lib/services/worker_import_service.dart']
+          Path('/tmp/v32968_protected.json').write_text(json.dumps({str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in protected}),encoding='utf-8')
+          PY
+
+      - name: Reaproveitar módulo histórico de lista assinada
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          source=Path('build_sources/v3.30.0-training-attendance/patch_training_attendance_v3300.py.xz.b64')
+          text=lzma.decompress(base64.b64decode(source.read_text().strip())).decode('utf-8')
+          text=text.replace("'version: 3.29.41+183'", "'version: 3.29.67+209'")
+          text=text.replace("'version: 3.30.0+184'", "'version: 3.29.68+210'")
+          Path('/tmp/training_attendance_v32968.py').write_text(text,encoding='utf-8')
+          PY
+          python /tmp/training_attendance_v32968.py "$APP_DIR" android
+          cp /tmp/device_sync_v32967.dart "$APP_DIR/lib/services/device_sync_service.dart"
+
+      - name: Adicionar fotos e painel gerencial
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.29.68-training-media/patch_training_photos_panel_v32968.py.xz.b64')
+          Path('/tmp/patch_training_photos_panel_v32968.py').write_bytes(lzma.decompress(base64.b64decode(src.read_text().strip())))
+          PY
+          python /tmp/patch_training_photos_panel_v32968.py "$APP_DIR"
+
+      - name: Confirmar núcleo rápido preservado
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1]); before=json.loads(Path('/tmp/v32968_protected.json').read_text(encoding='utf-8')); changed=[]
+          for rel,old in before.items():
+            new=hashlib.sha256((root/rel).read_bytes()).hexdigest()
+            if new!=old: changed.append(rel)
+            else: print('PROTEGIDO_OK',rel,new)
+          if changed: raise SystemExit('Núcleo protegido alterado: '+', '.join(changed))
+          if Path('/tmp/device_sync_v32967.dart').read_bytes()!=(root/'lib/services/device_sync_service.dart').read_bytes(): raise SystemExit('DeviceSyncService foi alterado.')
+          print('SYNC_RAPIDO_V32967_PRESERVADO_OK')
+          PY
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar Android
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          python ../../tools/fix_read_pdf_text_r8_v32965.py .
+
+      - name: Formatar analisar e testar
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          dart format lib/database.dart lib/screens/trainings_screen.dart lib/screens/training_attendance_screen.dart lib/services/training_attendance_pdf_service.dart lib/services/media_sync_service.dart lib/services/management_panel_service.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+
+      - name: Regressões críticas
+        run: |
+          set -euo pipefail
+          grep -q 'version: 3.29.68+210' "$APP_DIR/pubspec.yaml"
+          grep -q "title: 'Lista assinada'" "$APP_DIR/lib/screens/trainings_screen.dart"
+          grep -q "Fotos do treinamento / DDS" "$APP_DIR/lib/screens/training_attendance_screen.dart"
+          grep -q "Visualizar / imprimir PDF" "$APP_DIR/lib/screens/training_attendance_screen.dart"
+          grep -q "trainingSessions" "$APP_DIR/lib/services/management_panel_service.dart"
+          grep -q "panelMediaResponse_" "$APP_DIR/painel_web_google_apps_script/Code.gs"
+          grep -q 'id="trainingSessions"' "$APP_DIR/painel_web_google_apps_script/Index.html"
+          grep -q "openTrainingMedia" "$APP_DIR/painel_web_google_apps_script/Index.html"
+          grep -q "_parseExtractedRhText" "$APP_DIR/lib/services/worker_import_service.dart"
+          grep -q "registerExtinguisherPhoto" "$APP_DIR/lib/services/media_sync_service.dart"
+
+      - name: Compilar APK release
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY"
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Preparar artefatos
+        run: |
+          mkdir -p dist/android dist/painel
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" 'dist/android/Auditar-SST-v3.29.68-TREINAMENTOS-FOTOS-ASSINATURAS.apk'
+          sha256sum 'dist/android/Auditar-SST-v3.29.68-TREINAMENTOS-FOTOS-ASSINATURAS.apk' > 'dist/android/Auditar-SST-v3.29.68-TREINAMENTOS-FOTOS-ASSINATURAS.sha256.txt'
+          cp "$APP_DIR/painel_web_google_apps_script/Code.gs" dist/painel/Code.gs
+          cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/painel/Index.html
+          cp "$APP_DIR/painel_web_google_apps_script/MultiUser.gs" dist/painel/MultiUser.gs
+          cp "$APP_DIR/painel_web_google_apps_script/EpiSync.gs" dist/painel/EpiSync.gs
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.68-Android-Treinamentos
+          path: dist/android/*
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.68-Painel-Gerencial
+          path: dist/painel/*
+          retention-days: 30
