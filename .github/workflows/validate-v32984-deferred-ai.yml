@@ -115,7 +115,7 @@ jobs:
           set -euo pipefail
           grep -q 'version: 3.29.84+226' "$APP_DIR/pubspec.yaml"
           grep -q "status': 'PRONTA_REVISAO" "$APP_DIR/lib/screens/checklist_screen.dart"
-          grep -q 'Continue a vistoria normalmente' "$APP_DIR/lib/screens/checklist_screen.dart"
+          grep -q 'continue a vistoria normalmente' "$APP_DIR/lib/screens/checklist_screen.dart"
           grep -q 'não abrirá nenhuma janela automaticamente' "$APP_DIR/lib/screens/checklist_screen.dart"
           grep -q 'IA das fotos sem atrasar a vistoria' "$APP_DIR/lib/screens/report_screen.dart"
           grep -q 'Analisar fotos em segundo plano' "$APP_DIR/lib/screens/report_screen.dart"
