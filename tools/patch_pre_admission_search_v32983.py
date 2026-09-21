@@ -707,7 +707,7 @@ dds_block="""  List<String> _ddsParticipantNames() {
       if (name.isEmpty) continue;
       if (seen.add(name.toLowerCase())) result.add(name);
     }
-    for (final raw in participantsController.text.split(RegExp(r'[\r\n]+'))) {
+    for (final raw in participantsController.text.split(RegExp(r'[\\r\\n]+'))) {
       final name = raw.trim();
       if (name.isEmpty) continue;
       final key = name.toLowerCase();
@@ -1226,7 +1226,7 @@ training_role_replacement = """[
                 if ('${person['preAdmissionId'] ?? ''}'.trim().isNotEmpty)
                   'PRÉ-ADMISSÃO • vínculo ainda não formalizado',
               ].where((item) => item.trim().isNotEmpty).join('\\n')"""
-c,n=training_role_pattern.subn(training_role_replacement,c,count=1)
+c,n=training_role_pattern.subn(lambda _: training_role_replacement,c,count=1)
 if n!=1:
     raise RuntimeError('Marcador não localizado: training pdf preadmission')
 write(rel,c)
