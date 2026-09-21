@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/build-v32973-training-list-import.yml'
       - 'build_sources/v3.29.73-training-list-import/patch_training_list_import_v32973.py.xz.b64'
+      - 'tools/patch_training_list_import_date_fix_v32973.py'
 
 permissions:
   contents: read
@@ -83,6 +84,7 @@ jobs:
           )
           PY
           python /tmp/patch_training_list_import_v32973.py "$APP_DIR"
+          python tools/patch_training_list_import_date_fix_v32973.py "$APP_DIR"
 
       - name: Confirmar núcleo rápido preservado
         run: |
