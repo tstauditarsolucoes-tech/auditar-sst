@@ -148,7 +148,7 @@ legacy=r'''  static _ParsedDocument _parseLegacyXls(Uint8List bytes, List<Worker
   };
 
 '''
-if '_parseLegacyXls(' not in s:
+if 'static _ParsedDocument _parseLegacyXls' not in s:
     s=s.replace('  static _ParsedDocument _parseXlsx(\n',legacy+'  static _ParsedDocument _parseXlsx(\n',1)
 
 ai=r'''  static Future<_ParsedDocument?> _tryTrainingAi(
