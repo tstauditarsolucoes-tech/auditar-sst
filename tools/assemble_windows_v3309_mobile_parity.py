@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
-import base64, lzma, re, subprocess, sys, tempfile
+import base64, lzma, os, re, subprocess, sys, tempfile
 
 repo=Path(__file__).resolve().parents[1]
 root=Path(sys.argv[1]) if len(sys.argv)>1 else repo/'app/Auditar_SST_v1_5_dashboard'
@@ -8,9 +8,15 @@ if not root.is_absolute():
     root=(repo/root).resolve()
 py=sys.executable
 
+def _utf8_env():
+    env=os.environ.copy()
+    env['PYTHONUTF8']='1'
+    env['PYTHONIOENCODING']='utf-8'
+    return env
+
 def run(path,*args,allow_fail=False):
     cmd=[py,str(repo/path),*map(str,args)]
-    result=subprocess.run(cmd,cwd=repo)
+    result=subprocess.run(cmd,cwd=repo,env=_utf8_env())
     if result.returncode!=0 and not allow_fail:
         raise RuntimeError(f'Falhou: {path}')
     return result.returncode
@@ -28,7 +34,11 @@ def run_b64(path,*args):
         tmp.write(raw)
         temp=Path(tmp.name)
     try:
-        result=subprocess.run([py,str(temp),str(root),*map(str,args)],cwd=repo)
+        result=subprocess.run(
+            [py,str(temp),str(root),*map(str,args)],
+            cwd=repo,
+            env=_utf8_env(),
+        )
         if result.returncode!=0:
             raise RuntimeError(f'Falhou patch compactado: {path}')
     finally:
