@@ -107,6 +107,38 @@ run('tools/patch_performance_report_v32980.py',root)
 # Refinamento compartilhado de IA/fotos + adaptações desktop
 run('tools/patch_cross_platform_refinement_v32981.py',root,'windows')
 
+# Compatibilidade Windows: parâmetros de transporte exclusivos do Android
+# são removidos apenas dos módulos novos. PDF/foto de treinamento usam a IA
+# da Central diretamente no PC, sem o plugin read_pdf_text móvel.
+for rel in [
+    'lib/services/cipa_management_service.dart',
+    'lib/services/training_import_service.dart',
+]:
+    path=root/rel
+    text=path.read_text(encoding='utf-8')
+    text=text.replace('        allowLongAndroidRequest: true,\n','')
+    text=text.replace('      allowLongAndroidRequest: true,\n','')
+    path.write_text(text,encoding='utf-8',newline='\n')
+
+trainingp=root/'lib/services/training_import_service.dart'
+training=trainingp.read_text(encoding='utf-8')
+training=training.replace("import 'package:read_pdf_text/read_pdf_text.dart';\n",'')
+pdf_start=training.find('  static Future<String> _extractPdfText(')
+pdf_end=training.find('  static _ParsedDocument _parsePdfText(',pdf_start)
+if pdf_start<0 or pdf_end<0:
+    raise RuntimeError('Leitor PDF do treinamento não localizado')
+training=training[:pdf_start]+"""  static Future<String> _extractPdfText(
+    Uint8List bytes,
+    String? path,
+  ) async {
+    // No Windows o PDF é enviado diretamente para a IA da Central.
+    // Evita dependência do plugin móvel read_pdf_text.
+    return '';
+  }
+
+"""+training[pdf_end:]
+trainingp.write_text(training,encoding='utf-8',newline='\n')
+
 # Validações estruturais de paridade
 pub=(root/'pubspec.yaml').read_text(encoding='utf-8')
 assert 'version: 3.30.9+196' in pub
