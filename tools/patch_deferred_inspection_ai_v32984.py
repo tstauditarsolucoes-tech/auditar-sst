@@ -226,6 +226,14 @@ c=once(
       };
     });
     _scheduleDraftSave();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'IA concluiu a análise. A sugestão ficou salva para revisão; continue a vistoria normalmente.',
+        ),
+      ),
+    );
+    return;
 """,
     'immediate ai ready status',
 )
@@ -274,7 +282,7 @@ c=once(
 # UI wording: optional now, clear later path.
 c=c.replace(
     "'Analisar fotos com IA'",
-    "'Analisar agora com IA (opcional)'",
+    "'Analisar em segundo plano com IA (opcional)'",
     1,
 )
 old_note="""                            const Text(
@@ -286,7 +294,7 @@ old_note="""                            const Text(
                             ),
 """
 new_note="""                            const Text(
-                              'Não precisa esperar a IA durante a vistoria. Se você finalizar sem analisar, fotos de itens Não Conforme/Parcial ficam disponíveis para análise posterior na tela Relatórios. Evite rostos, crachás, documentos e outros dados pessoais.',
+                              'Você pode continuar respondendo o checklist enquanto a IA analisa. Quando terminar, a sugestão ficará salva para revisão e não abrirá nenhuma janela automaticamente. Se preferir, também pode analisar depois pela tela Relatórios. Evite rostos, crachás, documentos e outros dados pessoais.',
                               style: TextStyle(
                                 fontSize: 11.5,
                                 color: Colors.black54,
