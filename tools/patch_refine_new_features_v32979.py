@@ -498,11 +498,14 @@ training_status_meta = m.group(1) + """
 c = c[:m.start()] + training_status_meta + c[m.end():]
 
 # UI: variáveis proof/time
+participants_anchor = c.find("participants.map((participant)")
+if participants_anchor < 0:
+    raise RuntimeError('Marcador não localizado: training participant card anchor')
 training_ui_vars_pattern = re.compile(
     r"(\s*final confirmationMethod\s*=\s*['\"]\$\{participant\['confirmationMethod'\]\s*\?\?\s*'signature'\}['\"]\s*;)",
     re.S,
 )
-m=training_ui_vars_pattern.search(c)
+m=training_ui_vars_pattern.search(c, participants_anchor)
 if not m:
     raise RuntimeError('Marcador não localizado: training ui proof vars')
 training_ui_vars = m.group(1) + """
