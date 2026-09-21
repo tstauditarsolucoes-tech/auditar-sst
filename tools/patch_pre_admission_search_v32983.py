@@ -1214,20 +1214,21 @@ write(rel,c)
 # ------------------------------------------------------------------
 rel='lib/services/training_record_pdf_service.dart'
 c=read(rel)
-c=once(
-    c,
-    """              [
-                '${person['role'] ?? ''}',
-                '${person['sector'] ?? ''}',
-              ].where((item) => item.trim().isNotEmpty).join('\n'),""",
-    """              [
+training_role_pattern = re.compile(
+    r"\[\s*'\$\{person\['role'\]\s*\?\?\s*''\}',\s*"
+    r"'\$\{person\['sector'\]\s*\?\?\s*''\}',\s*"
+    r"\]\.where\(\(item\)\s*=>\s*item\.trim\(\)\.isNotEmpty\)\.join\('\\n'\)",
+    re.S,
+)
+training_role_replacement = """[
                 '${person['role'] ?? ''}',
                 '${person['sector'] ?? ''}',
                 if ('${person['preAdmissionId'] ?? ''}'.trim().isNotEmpty)
                   'PRÉ-ADMISSÃO • vínculo ainda não formalizado',
-              ].where((item) => item.trim().isNotEmpty).join('\n'),""",
-    'training pdf preadmission',
-)
+              ].where((item) => item.trim().isNotEmpty).join('\\n')"""
+c,n=training_role_pattern.subn(training_role_replacement,c,count=1)
+if n!=1:
+    raise RuntimeError('Marcador não localizado: training pdf preadmission')
 write(rel,c)
 
 rel='lib/services/dds_pdf_service.dart'
