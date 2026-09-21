@@ -116,8 +116,65 @@ for rel in [
 ]:
     path=root/rel
     text=path.read_text(encoding='utf-8')
-    text=text.replace('        allowLongAndroidRequest: true,\n','')
-    text=text.replace('      allowLongAndroidRequest: true,\n','')
+    text=re.sub(
+        r'^\s*allowLongAndroidRequest\s*:\s*[^,\n]+,\s*
+trainingp=root/'lib/services/training_import_service.dart'
+training=trainingp.read_text(encoding='utf-8')
+training=training.replace("import 'package:read_pdf_text/read_pdf_text.dart';\n",'')
+pdf_start=training.find('  static Future<String> _extractPdfText(')
+pdf_end=training.find('  static _ParsedDocument _parsePdfText(',pdf_start)
+if pdf_start<0 or pdf_end<0:
+    raise RuntimeError('Leitor PDF do treinamento não localizado')
+training=training[:pdf_start]+"""  static Future<String> _extractPdfText(
+    Uint8List bytes,
+    String? path,
+  ) async {
+    // No Windows o PDF é enviado diretamente para a IA da Central.
+    // Evita dependência do plugin móvel read_pdf_text.
+    return '';
+  }
+
+"""+training[pdf_end:]
+trainingp.write_text(training,encoding='utf-8',newline='\n')
+
+# Validações estruturais de paridade
+pub=(root/'pubspec.yaml').read_text(encoding='utf-8')
+assert 'version: 3.30.9+196' in pub
+assert (root/'lib/screens/training_import_screen.dart').exists()
+assert (root/'lib/services/training_import_service.dart').exists()
+assert (root/'lib/screens/cipa_management_screen.dart').exists()
+assert (root/'lib/services/cipa_management_service.dart').exists()
+assert (root/'lib/services/performance_report_pdf_service.dart').exists()
+
+training=(root/'lib/services/training_import_service.dart').read_text(encoding='utf-8')
+assert 'Fotos • IA da Central' in training
+assert '_buildPhotoPdf' in training
+assert "mode':'training_record_import'" in training or "'mode': 'training_record_import'" in training
+assert "mode':'employee_pdf_import'" in training or "'mode': 'employee_pdf_import'" in training
+
+ai=(root/'lib/services/ai_assistant_service.dart').read_text(encoding='utf-8')
+assert 'WebServiceConfig.endpoint' in ai
+assert "'mode': 'checklist_photo'" in ai
+assert "'rondaDeferred': true" in ai
+
+cipa=(root/'lib/screens/cipa_management_screen.dart').read_text(encoding='utf-8')
+assert 'Painel' in cipa and 'Mandato' in cipa and 'Eleição' in cipa
+check=(root/'lib/screens/checklist_screen.dart').read_text(encoding='utf-8')
+assert 'Valor de referência' in check and 'Mostrar no relatório' in check
+training_records=(root/'lib/screens/training_records_screen.dart').read_text(encoding='utf-8')
+assert 'Assinatura facial' in training_records
+sst=(root/'lib/screens/sst_record_form_screen.dart').read_text(encoding='utf-8')
+assert 'Assinatura facial' in sst
+report=(root/'lib/services/report_template_service.dart').read_text(encoding='utf-8')
+assert 'Performance - Foto + Descrição' in report
+nc=(root/'lib/screens/non_conformity_detail_screen.dart').read_text(encoding='utf-8')
+assert 'Resolver agora' in nc
+print('WINDOWS_V3309_PARITY_OK')
+,
+        '',
+        text,
+        flags=re.M,
+    )
     path.write_text(text,encoding='utf-8',newline='\n')
 
 trainingp=root/'lib/services/training_import_service.dart'
