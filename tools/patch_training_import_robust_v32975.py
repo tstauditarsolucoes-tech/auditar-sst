@@ -22,6 +22,40 @@ if "package:excel_community/excel_community.dart" not in s:
     s=s.replace("import 'package:file_picker/file_picker.dart';\n","import 'package:file_picker/file_picker.dart';\nimport 'package:excel_community/excel_community.dart' as legacy_excel;\n",1)
 s=s.replace("allowedExtensions: const ['pdf', 'xlsx', 'csv']","allowedExtensions: const ['pdf', 'xlsx', 'xls', 'csv']")
 
+xml_old="""  static String _xmlUnescape(String value) => value
+      .replaceAll('&lt;', '<')
+      .replaceAll('&gt;', '>')
+      .replaceAll('&quot;', '"')
+      .replaceAll('&apos;', "'")
+      .replaceAll('&amp;', '&');
+"""
+xml_new="""  static String _xmlUnescape(String value) {
+    var decoded = value
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&apos;', "'")
+        .replaceAll('&amp;', '&');
+    decoded = decoded.replaceAllMapped(
+      RegExp(r'&#x([0-9A-Fa-f]+);'),
+      (match) => String.fromCharCode(
+        int.tryParse(match.group(1) ?? '', radix: 16) ?? 0xFFFD,
+      ),
+    );
+    decoded = decoded.replaceAllMapped(
+      RegExp(r'&#([0-9]+);'),
+      (match) => String.fromCharCode(
+        int.tryParse(match.group(1) ?? '') ?? 0xFFFD,
+      ),
+    );
+    return decoded;
+  }
+"""
+if xml_new not in s:
+    if xml_old not in s: raise RuntimeError('Decoder XML do XLSX não localizado')
+    s=s.replace(xml_old,xml_new,1)
+
+
 old="""    if (extension == 'xlsx') {
       parsed = _parseXlsx(bytes, workers);
       if (parsed.rows.isEmpty) {
