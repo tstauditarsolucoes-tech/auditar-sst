@@ -1,0 +1,191 @@
+name: Auditar SST Android v3.29.74 Importar Treinamentos por Foto
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/build-v32974-training-photo.yml'
+      - 'build_sources/v3.29.74-training-photo/**'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar v3.29.72 e importador em lote estável
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.29.71-nc-quick-resolve/patch_nc_quick_resolve_v32971.py.xz.b64')
+          Path('/tmp/patch_nc.py').write_bytes(lzma.decompress(base64.b64decode(src.read_text().strip())))
+          PY
+          python /tmp/patch_nc.py "$APP_DIR"
+          python tools/patch_login_resilience_v32972.py "$APP_DIR"
+          python tools/patch_training_bulk_import_v32973.py "$APP_DIR"
+
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          protected=[
+            root/'lib/services/device_sync_service.dart',
+            root/'lib/services/media_sync_service.dart',
+            root/'lib/services/apps_script_http.dart',
+            root/'lib/services/sync_coordinator.dart',
+            root/'lib/services/auth_service.dart',
+            root/'lib/services/drive_service.dart',
+            root/'lib/services/worker_import_service.dart',
+            root/'lib/database.dart',
+            root/'lib/screens/companies_screen.dart',
+            root/'lib/screens/extinguishers_screen.dart',
+            root/'lib/screens/training_records_screen.dart',
+            root/'lib/screens/non_conformity_detail_screen.dart',
+            root/'lib/services/nc_pdf_service.dart',
+            root/'painel_web_google_apps_script/Code.gs',
+          ]
+          state={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in protected if p.exists()}
+          Path('/tmp/v32974_protected.json').write_text(json.dumps(state),encoding='utf-8')
+          PY
+
+      - name: Adicionar câmera e OCR local
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.29.74-training-photo/patch_training_import_photo_v32974.py.xz.b64')
+          Path('/tmp/patch_training_photo.py').write_bytes(
+              lzma.decompress(base64.b64decode(src.read_text().strip()))
+          )
+          PY
+          python /tmp/patch_training_photo.py "$APP_DIR"
+
+      - name: Confirmar núcleo estável intacto
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          before=json.loads(Path('/tmp/v32974_protected.json').read_text(encoding='utf-8'))
+          changed=[]
+          for rel,old in before.items():
+            new=hashlib.sha256((root/rel).read_bytes()).hexdigest()
+            if new!=old: changed.append(rel)
+            else: print('PROTEGIDO_OK',rel,new)
+          if changed:
+            raise SystemExit('Arquivos protegidos alterados: '+', '.join(changed))
+          print('NUCLEO_V32973_PRESERVADO_OK')
+          PY
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar Android e teste do OCR
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          python ../../tools/fix_read_pdf_text_r8_v32965.py .
+          cat > test/training_import_photo_test.dart <<'DART'
+          import 'package:auditar_sst/models.dart';
+          import 'package:auditar_sst/services/training_import_service.dart';
+          import 'package:flutter_test/flutter_test.dart';
+
+          void main() {
+            test('texto reconhecido de foto identifica trabalhador, NR e datas', () {
+              final worker = Worker(
+                id: 'w1',
+                companyId: 'c1',
+                name: 'JOAO DA SILVA',
+                cpf: '',
+                role: 'OPERADOR',
+                active: true,
+              );
+              final parsed = TrainingImportService.parsePhotoTextForTesting(
+                'TREINAMENTO NR 35\n'
+                'Data de realizacao: 10/09/2026\n'
+                'Validade: 10/09/2028\n'
+                'JOAO DA SILVA OPERADOR\n',
+                [worker],
+              );
+              expect(parsed['code'], 'NR 35');
+              expect((parsed['trainingDate'] as DateTime).year, 2026);
+              expect((parsed['expiryDate'] as DateTime).year, 2028);
+              final rows = parsed['rows'] as List<Map<String, Object?>>;
+              expect(rows.length, 1);
+              expect(rows.first['name'], 'JOAO DA SILVA');
+            });
+          }
+          DART
+
+      - name: Formatar analisar e testar
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          dart format             lib/services/training_import_service.dart             lib/screens/training_import_screen.dart             lib/screens/trainings_screen.dart             test/training_import_service_test.dart             test/training_import_photo_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+
+      - name: Regressões foto e importador anterior
+        run: |
+          set -euo pipefail
+          grep -q 'version: 3.29.74+216' "$APP_DIR/pubspec.yaml"
+          grep -q 'google_mlkit_text_recognition: ^0.15.0' "$APP_DIR/pubspec.yaml"
+          grep -q "Tirar foto da lista" "$APP_DIR/lib/screens/training_import_screen.dart"
+          grep -q "Adicionar outra página?" "$APP_DIR/lib/screens/training_import_screen.dart"
+          grep -q "Foto • leitura inteligente local" "$APP_DIR/lib/services/training_import_service.dart"
+          grep -q "TextRecognizer(script: TextRecognitionScript.latin)" "$APP_DIR/lib/services/training_import_service.dart"
+          grep -q "parsePhotoTextForTesting" "$APP_DIR/lib/services/training_import_service.dart"
+          grep -q "allowedExtensions: const \['pdf', 'xlsx', 'csv'\]" "$APP_DIR/lib/services/training_import_service.dart"
+          grep -q "'mode': 'employee_pdf_import'" "$APP_DIR/lib/services/training_import_service.dart"
+          grep -q "upsertTrainingControlsBatch" "$APP_DIR/lib/services/training_import_service.dart"
+          grep -q "Não localizado nesta empresa" "$APP_DIR/lib/screens/training_import_screen.dart"
+          grep -q "subtitle: 'PDF, planilha ou foto'" "$APP_DIR/lib/screens/trainings_screen.dart"
+          grep -q "_parseExtractedRhText" "$APP_DIR/lib/services/worker_import_service.dart"
+          grep -q "Future<void> _resolveNow() async" "$APP_DIR/lib/screens/non_conformity_detail_screen.dart"
+          grep -q "allowLongAndroidRequest: true" "$APP_DIR/lib/services/auth_service.dart"
+          grep -q "registerExtinguisherPhoto" "$APP_DIR/lib/services/media_sync_service.dart"
+          python tools/regression_training_records_v32968_v3306.py "$APP_DIR" 3.29.74+216
+          python tools/regression_internal_management_training_v32969_v3307.py "$APP_DIR" 3.29.74+216
+          echo 'REGRESSOES_V32974_OK'
+
+      - name: Compilar APK release
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY"
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Preparar APK
+        run: |
+          mkdir -p dist/android
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk"             'dist/android/Auditar-SST-v3.29.74-IMPORTAR-TREINAMENTOS-FOTO.apk'
+          sha256sum 'dist/android/Auditar-SST-v3.29.74-IMPORTAR-TREINAMENTOS-FOTO.apk'             > 'dist/android/Auditar-SST-v3.29.74-IMPORTAR-TREINAMENTOS-FOTO.sha256.txt'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.74-Android-Importar-Treinamentos-Foto
+          path: dist/android/*
+          retention-days: 30
