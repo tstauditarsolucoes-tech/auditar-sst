@@ -1,0 +1,120 @@
+name: Auditar SST Painel Mestre v1.1.0 Windows
+
+on:
+  push:
+    branches:
+      - feature-report-templates-v32962
+    paths:
+      - '.github/workflows/build-auditar-sst-master-v110.yml'
+      - 'auditar-sst-master/**'
+      - 'auditar-sst-master-windows/**'
+      - 'tools/patch_auditar_sst_master_v110.py'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Baixar arquivos
+        uses: actions/checkout@v5
+
+      - name: Aplicar refinamento do Mestre
+        shell: pwsh
+        run: |
+          python tools/patch_auditar_sst_master_v110.py auditar-sst-master
+          if ($LASTEXITCODE -ne 0) { throw 'Patch do Painel Mestre falhou' }
+
+      - name: Validar JavaScript e estrutura
+        shell: pwsh
+        run: |
+          node --check auditar-sst-master/app.js
+          if ($LASTEXITCODE -ne 0) { throw 'JavaScript do Painel Mestre inválido' }
+          $app = Get-Content -Raw 'auditar-sst-master/app.js'
+          $html = Get-Content -Raw 'auditar-sst-master/index.html'
+          if (-not $app.Contains("auth_users_list")) { throw 'Lista de usuários ausente' }
+          if (-not $app.Contains("auth_user_save")) { throw 'Criação/edição de usuário ausente' }
+          if (-not $app.Contains("auth_bootstrap_admin")) { throw 'Conta ADM inicial ausente' }
+          if (-not $app.Contains("loginEmail")) { throw 'Login por usuário/e-mail ausente' }
+          if (-not $html.Contains("Administradores")) { throw 'Filtro de administradores ausente' }
+          Write-Host 'MASTER_STATIC_VALIDATION_OK'
+
+      - name: Testar Central Online
+        shell: pwsh
+        run: |
+          $endpoint='https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec'
+          $body = @{ action='auth_status' } | ConvertTo-Json -Compress
+          $response = Invoke-RestMethod -Uri $endpoint -Method Post -ContentType 'text/plain;charset=utf-8' -Body $body -TimeoutSec 30
+          if ($response.ok -ne $true) { throw 'Central Online não respondeu ao auth_status' }
+          Write-Host ('MASTER_CENTRAL_OK configured=' + $response.configured + ' hasUsers=' + $response.hasUsers)
+
+      - name: Instalar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Preparar aplicativo Electron
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force 'auditar-sst-master-windows/app' -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path 'auditar-sst-master-windows/app' | Out-Null
+          Copy-Item -Recurse -Force 'auditar-sst-master/*' 'auditar-sst-master-windows/app/'
+
+      - name: Inserir chave da Central para primeiro acesso
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY não configurada' }
+          $path='auditar-sst-master-windows/app/app.js'
+          $content=Get-Content -Raw $path
+          $marker="const BOOTSTRAP_KEY='__AUDITAR_SYNC_KEY__';"
+          if (-not $content.Contains($marker)) { throw 'Marcador bootstrap não encontrado' }
+          $content=$content.Replace($marker,("const BOOTSTRAP_KEY='" + $env:AUDITAR_SYNC_KEY + "';"))
+          Set-Content -Path $path -Value $content -Encoding UTF8
+          if ($content.Contains('__AUDITAR_SYNC_KEY__')) { throw 'Chave não inserida' }
+
+      - name: Gerar icone
+        shell: pwsh
+        run: |
+          if (-not (Get-Command magick -ErrorAction SilentlyContinue)) {
+            choco install imagemagick.app -y --no-progress
+          }
+          $magick=(Get-Command magick -ErrorAction SilentlyContinue)
+          if (-not $magick) {
+            $candidate='C:\Program Files\ImageMagick-7.1.1-Q16-HDRI\magick.exe'
+            if (Test-Path $candidate) { $magick=$candidate } else { throw 'ImageMagick indisponível' }
+          } else {
+            $magick=$magick.Source
+          }
+          & $magick -background none 'auditar-sst-master-windows/app/icon.svg' -resize 512x512 'auditar-sst-master-windows/app-icon.png'
+          if (-not (Test-Path 'auditar-sst-master-windows/app-icon.png')) { throw 'Ícone não gerado' }
+
+      - name: Instalar dependencias
+        working-directory: auditar-sst-master-windows
+        run: npm install
+
+      - name: Gerar Painel Mestre Windows
+        working-directory: auditar-sst-master-windows
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run dist
+
+      - name: Hash do executavel
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/master | Out-Null
+          $exe=Get-ChildItem 'auditar-sst-master-windows/dist/*.exe' | Select-Object -First 1
+          if (-not $exe) { throw 'Executável Mestre não encontrado' }
+          Copy-Item $exe.FullName 'dist/master/Auditar-SST-Painel-Mestre-v1.1.0.exe'
+          Get-FileHash 'dist/master/Auditar-SST-Painel-Mestre-v1.1.0.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/master/Auditar-SST-Painel-Mestre-v1.1.0.sha256.txt'
+
+      - name: Disponibilizar Painel Mestre
+        uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-Painel-Mestre-v1.1.0-Windows
+          path: dist/master/*
+          if-no-files-found: error
+          retention-days: 30
