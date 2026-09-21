@@ -1,0 +1,59 @@
+name: Diagnosticar Seletores de Colaboradores
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/diag-worker-selectors-current.yml'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar Android atual
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python tools/patch_management_panel_logo_theme_v32970_v3308.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          for src,out in [
+            ('build_sources/v3.29.71-nc-quick-resolve/patch_nc_quick_resolve_v32971.py.xz.b64','/tmp/p71.py'),
+            ('build_sources/v3.29.74-training-photo/patch_training_import_photo_v32974.py.xz.b64','/tmp/p74.py'),
+            ('build_sources/v3.29.77-checklist-fine-face/patch_checklist_fine_face_v32977.py.xz.b64','/tmp/p77.py'),
+          ]:
+            Path(out).write_bytes(lzma.decompress(base64.b64decode(Path(src).read_text().strip())))
+          PY
+          python /tmp/p71.py "$APP_DIR"
+          python tools/patch_login_resilience_v32972.py "$APP_DIR"
+          python tools/patch_training_bulk_import_v32973.py "$APP_DIR"
+          python /tmp/p74.py "$APP_DIR"
+          python tools/patch_training_import_robust_v32975.py "$APP_DIR"
+          python tools/patch_cipa_management_v32976.py "$APP_DIR"
+          python /tmp/p77.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32978.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32979.py "$APP_DIR"
+          python tools/patch_performance_report_v32980.py "$APP_DIR"
+          python tools/patch_cross_platform_refinement_v32981.py "$APP_DIR" android
+      - name: Mapear seletores
+        run: |
+          mkdir -p export
+          grep -RniE "Selecionar colabor|selecionar colabor|CheckboxListTile|List<Worker>|Worker>|selected.*Worker|chosen.*worker|workers\.where|workers\.map" "$APP_DIR/lib/screens" > export/worker-selectors.txt || true
+          grep -RniE "showDialog<.*Set<String>|AlertDialog|Buscar colaborador|Buscar trabalhador|Pesquisar" "$APP_DIR/lib/screens" > export/dialogs-search.txt || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: worker-selectors-current
+          path: export/*
+          retention-days: 3
