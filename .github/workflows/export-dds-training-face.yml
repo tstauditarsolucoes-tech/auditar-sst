@@ -1,0 +1,61 @@
+name: Export DDS Training Attendance Current
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/export-dds-training-face.yml'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+      - name: Assemble current source
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.29.71-nc-quick-resolve/patch_nc_quick_resolve_v32971.py.xz.b64')
+          Path('/tmp/patch_nc.py').write_bytes(lzma.decompress(base64.b64decode(src.read_text().strip())))
+          PY
+          python /tmp/patch_nc.py "$APP_DIR"
+          python tools/patch_login_resilience_v32972.py "$APP_DIR"
+          python tools/patch_training_bulk_import_v32973.py "$APP_DIR"
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.29.74-training-photo/patch_training_import_photo_v32974.py.xz.b64')
+          Path('/tmp/patch_training_photo.py').write_bytes(lzma.decompress(base64.b64decode(src.read_text().strip())))
+          PY
+          python /tmp/patch_training_photo.py "$APP_DIR"
+          python tools/patch_training_import_robust_v32975.py "$APP_DIR"
+          python tools/patch_cipa_management_v32976.py "$APP_DIR"
+
+          mkdir -p export/lib/screens export/lib/services
+          cp "$APP_DIR/lib/screens/sst_records_screen.dart" export/lib/screens/
+          cp "$APP_DIR/lib/screens/training_records_screen.dart" export/lib/screens/
+          cp "$APP_DIR/lib/screens/trainings_screen.dart" export/lib/screens/
+          cp "$APP_DIR/lib/screens/signature_screen.dart" export/lib/screens/
+          cp "$APP_DIR/lib/services/media_sync_service.dart" export/lib/services/
+          cp "$APP_DIR/lib/database.dart" export/lib/
+          cp "$APP_DIR/lib/models.dart" export/lib/
+          grep -RniE "signature|assinatura|attendance|presen|DDS|TrainingRecord|training_record|media_assets"             "$APP_DIR/lib/screens/sst_records_screen.dart"             "$APP_DIR/lib/screens/training_records_screen.dart"             "$APP_DIR/lib/database.dart"             "$APP_DIR/lib/models.dart" > export/refs.txt || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dds-training-current-source
+          path: export
+          retention-days: 3
