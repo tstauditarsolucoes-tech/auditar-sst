@@ -1,0 +1,338 @@
+name: Auditar SST Final Android v3.29.81 Windows v3.30.9
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/build-final-mobile-windows-parity.yml'
+      - 'tools/assemble_windows_v3309_mobile_parity.py'
+      - 'tools/patch_cross_platform_refinement_v32981.py'
+      - 'tools/patch_performance_report_v32980.py'
+      - 'tools/patch_refine_new_features_v32979.py'
+      - 'tools/patch_refine_new_features_v32978.py'
+      - 'tools/patch_cipa_management_v32976.py'
+      - 'tools/patch_training_import_robust_v32975.py'
+      - 'tools/patch_training_bulk_import_v32973.py'
+      - 'tools/patch_login_resilience_v32972.py'
+      - 'build_sources/v3.29.77-checklist-fine-face/**'
+      - 'build_sources/v3.29.74-training-photo/**'
+      - 'build_sources/v3.29.71-nc-quick-resolve/**'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      PUB_CACHE: ${{ runner.temp }}/pub-cache-v32981
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar Android ate v3.29.80
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python tools/patch_management_panel_logo_theme_v32970_v3308.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.29.71-nc-quick-resolve/patch_nc_quick_resolve_v32971.py.xz.b64')
+          Path('/tmp/p71.py').write_bytes(lzma.decompress(base64.b64decode(src.read_text().strip())))
+          PY
+          python /tmp/p71.py "$APP_DIR"
+          python tools/patch_login_resilience_v32972.py "$APP_DIR"
+          python tools/patch_training_bulk_import_v32973.py "$APP_DIR"
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.29.74-training-photo/patch_training_import_photo_v32974.py.xz.b64')
+          Path('/tmp/p74.py').write_bytes(lzma.decompress(base64.b64decode(src.read_text().strip())))
+          PY
+          python /tmp/p74.py "$APP_DIR"
+          python tools/patch_training_import_robust_v32975.py "$APP_DIR"
+          python tools/patch_cipa_management_v32976.py "$APP_DIR"
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.29.77-checklist-fine-face/patch_checklist_fine_face_v32977.py.xz.b64')
+          Path('/tmp/p77.py').write_bytes(lzma.decompress(base64.b64decode(src.read_text().strip())))
+          PY
+          python /tmp/p77.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32978.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32979.py "$APP_DIR"
+          python tools/patch_performance_report_v32980.py "$APP_DIR"
+
+      - name: Proteger sync Android
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          files=[
+            'lib/services/device_sync_service.dart',
+            'lib/services/media_sync_service.dart',
+            'lib/services/apps_script_http.dart',
+            'lib/services/sync_coordinator.dart',
+            'lib/database.dart',
+          ]
+          Path('/tmp/protected_android.json').write_text(json.dumps({
+            x:hashlib.sha256((root/x).read_bytes()).hexdigest() for x in files
+          }),encoding='utf-8')
+          PY
+
+      - name: Refinar Android v3.29.81
+        run: python tools/patch_cross_platform_refinement_v32981.py "$APP_DIR" android
+
+      - name: Confirmar sync Android intacto
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1]); old=json.loads(Path('/tmp/protected_android.json').read_text())
+          changed=[x for x,h in old.items() if hashlib.sha256((root/x).read_bytes()).hexdigest()!=h]
+          if changed: raise SystemExit('SYNC ANDROID ALTERADO: '+', '.join(changed))
+          print('SYNC_ANDROID_INTACTO_OK')
+          PY
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar Android
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          python ../../tools/fix_read_pdf_text_r8_v32965.py .
+          python ../../tools/fix_mlkit_text_r8_v32974.py .
+
+      - name: Analisar e testar Android
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          dart format lib
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+
+      - name: Regressões Android
+        run: |
+          set -euo pipefail
+          grep -q 'version: 3.29.81+223' "$APP_DIR/pubspec.yaml"
+          grep -q 'Fotos • IA da Central' "$APP_DIR/lib/services/training_import_service.dart"
+          grep -q 'CipaManagementScreen' "$APP_DIR/lib/screens/company_detail_screen.dart"
+          grep -q 'Valor de referência' "$APP_DIR/lib/screens/checklist_screen.dart"
+          grep -q 'Assinatura facial' "$APP_DIR/lib/screens/training_records_screen.dart"
+          grep -q 'Performance - Foto + Descrição' "$APP_DIR/lib/services/report_template_service.dart"
+          grep -q 'WebServiceConfig.endpoint' "$APP_DIR/lib/services/ai_assistant_service.dart"
+          python tools/regression_report_templates_v32962.py "$APP_DIR" 3.29.81+223
+          python tools/regression_training_records_v32968_v3306.py "$APP_DIR" 3.29.81+223
+          python tools/regression_internal_management_training_v32969_v3307.py "$APP_DIR" 3.29.81+223
+          echo REGRESSOES_ANDROID_OK
+
+      - name: Compilar APK
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$AUDITAR_SYNC_KEY"
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Empacotar Android
+        run: |
+          mkdir -p dist/android
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/android/Auditar-SST-v3.29.81-Android.apk
+          sha256sum dist/android/Auditar-SST-v3.29.81-Android.apk > dist/android/Auditar-SST-v3.29.81-Android.sha256.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.81-Android-Refinado
+          path: dist/android/*
+          retention-days: 30
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 180
+    env:
+      PUB_CACHE: ${{ runner.temp }}\pub-cache-v3309
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar base Windows v3.30.8
+        shell: pwsh
+        run: |
+          python tools/assemble_windows_v3305_report_templates.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'base v3.30.5 falhou' }
+          python tools/patch_training_records_media_v32968_v3306.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'base v3.30.6 falhou' }
+          python tools/patch_internal_management_training_v32969_v3307.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'base v3.30.7 falhou' }
+          python tools/patch_management_panel_logo_theme_v32970_v3308.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'base v3.30.8 falhou' }
+
+      - name: Proteger sync Windows
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import hashlib,json
+          root=Path(r"app/Auditar_SST_v1_5_dashboard")
+          files=[
+            'lib/services/device_sync_service.dart',
+            'lib/services/media_sync_service.dart',
+            'lib/services/apps_script_http.dart',
+            'lib/services/sync_coordinator.dart',
+            'lib/database.dart',
+          ]
+          Path('protected_windows.json').write_text(json.dumps({
+            x:hashlib.sha256((root/x).read_bytes()).hexdigest() for x in files
+          }),encoding='utf-8')
+          '@ | python -
+
+      - name: Aplicar paridade completa Windows v3.30.9
+        shell: pwsh
+        run: |
+          python tools/assemble_windows_v3309_mobile_parity.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'paridade Windows falhou' }
+
+      - name: Confirmar sync Windows intacto
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import hashlib,json
+          root=Path(r"app/Auditar_SST_v1_5_dashboard")
+          old=json.loads(Path('protected_windows.json').read_text())
+          changed=[x for x,h in old.items() if hashlib.sha256((root/x).read_bytes()).hexdigest()!=h]
+          if changed: raise SystemExit('SYNC WINDOWS ALTERADO: '+', '.join(changed))
+          print('SYNC_WINDOWS_INTACTO_OK')
+          '@ | python -
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar Windows
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          flutter pub get
+
+      - name: Analisar e testar Windows
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        run: |
+          dart format lib
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'analyze Windows falhou' }
+          flutter test
+          if ($LASTEXITCODE -ne 0) { throw 'testes Windows falharam' }
+
+      - name: Regressões Windows e paridade
+        shell: pwsh
+        run: |
+          python tools/regression_report_templates_v32962.py "$env:APP_DIR" 3.30.9+196
+          if ($LASTEXITCODE -ne 0) { throw 'regressão relatórios falhou' }
+          python tools/regression_training_records_v32968_v3306.py "$env:APP_DIR" 3.30.9+196
+          if ($LASTEXITCODE -ne 0) { throw 'regressão treinamentos falhou' }
+          python tools/regression_internal_management_training_v32969_v3307.py "$env:APP_DIR" 3.30.9+196
+          if ($LASTEXITCODE -ne 0) { throw 'regressão gerencial falhou' }
+          Select-String "$env:APP_DIR/lib/services/training_import_service.dart" -Pattern 'Fotos • IA da Central' -Quiet | Out-Null
+          if (-not $?) { throw 'IA de fotos de treinamento ausente' }
+          Select-String "$env:APP_DIR/lib/screens/cipa_management_screen.dart" -Pattern 'Mandato' -Quiet | Out-Null
+          if (-not $?) { throw 'CIPA nova ausente' }
+          Select-String "$env:APP_DIR/lib/screens/checklist_screen.dart" -Pattern 'Valor de referência' -Quiet | Out-Null
+          if (-not $?) { throw 'multa ausente' }
+          Select-String "$env:APP_DIR/lib/services/report_template_service.dart" -Pattern 'Performance - Foto + Descrição' -Quiet | Out-Null
+          if (-not $?) { throw 'modelo Performance ausente' }
+          Write-Host 'PARIDADE_WINDOWS_REGRESSAO_OK'
+
+      - name: Teste real da IA de foto
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          New-Item -ItemType Directory -Force tool | Out-Null
+          Copy-Item '..\..\tools\live_ronda_ai_probe_v3304_windows.dart' 'tool\live_ronda_ai_probe.dart' -Force
+          dart run --define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY" tool/live_ronda_ai_probe.dart
+          if ($LASTEXITCODE -ne 0) { throw 'teste real da IA de foto falhou' }
+
+      - name: Compilar Windows
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+          if ($LASTEXITCODE -ne 0) { throw 'build Windows falhou' }
+
+      - name: Gerar instalador e portátil
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.9-PORTATIL.zip' -Force
+          $iscc='C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          if (-not (Test-Path $iscc)) { throw 'Inno Setup não disponível' }
+          $output=(Resolve-Path 'dist/windows').Path
+          $iss=@"
+          [Setup]
+          AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}
+          AppName=Auditar SST
+          AppVersion=3.30.9
+          AppPublisher=Auditar Soluções
+          DefaultDirName={autopf}\Auditar SST
+          DefaultGroupName=Auditar SST
+          OutputDir=$output
+          OutputBaseFilename=Auditar-SST-Setup-v3.30.9
+          Compression=lzma2
+          SolidCompression=yes
+          WizardStyle=modern
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          [Files]
+          Source: "$release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          [Icons]
+          Name: "{autoprograms}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          Name: "{autodesktop}\Auditar SST"; Filename: "{app}\auditar_sst.exe"
+          [Run]
+          Filename: "{app}\auditar_sst.exe"; Description: "Abrir Auditar SST"; Flags: nowait postinstall skipifsilent
+          "@
+          Set-Content "$env:RUNNER_TEMP\auditar-v3309.iss" $iss -Encoding UTF8
+          & $iscc "$env:RUNNER_TEMP\auditar-v3309.iss"
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.9.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.9.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.9-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.9-PORTATIL.sha256.txt'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.30.9-Windows-Paridade-Refinada
+          path: dist/windows/*
+          retention-days: 30
