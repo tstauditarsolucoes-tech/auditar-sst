@@ -116,11 +116,10 @@ for rel in [
 ]:
     path=root/rel
     text=path.read_text(encoding='utf-8')
-    text='\n'.join(
-        line
-        for line in text.splitlines()
-        if 'allowLongAndroidRequest:' not in line
-    ) + '\n'
+    text=text.replace(',allowLongAndroidRequest:true','')
+    text=text.replace(', allowLongAndroidRequest: true','')
+    text=text.replace('        allowLongAndroidRequest: true,\n','')
+    text=text.replace('      allowLongAndroidRequest: true,\n','')
     path.write_text(text,encoding='utf-8',newline='\n')
 
 trainingp=root/'lib/services/training_import_service.dart'
