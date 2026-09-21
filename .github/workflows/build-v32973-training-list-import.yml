@@ -1,0 +1,248 @@
+name: Auditar SST Android v3.29.73 Importar Treinamentos em Lote
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/build-v32973-training-list-import.yml'
+      - 'build_sources/v3.29.73-training-list-import/patch_training_list_import_v32973.py.xz.b64'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar base estável v3.29.72
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.29.71-nc-quick-resolve/patch_nc_quick_resolve_v32971.py.xz.b64')
+          Path('/tmp/patch_nc.py').write_bytes(lzma.decompress(base64.b64decode(src.read_text().strip())))
+          PY
+          python /tmp/patch_nc.py "$APP_DIR"
+          python tools/patch_login_resilience_v32972.py "$APP_DIR"
+
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          protected=[
+            root/'lib/services/device_sync_service.dart',
+            root/'lib/services/media_sync_service.dart',
+            root/'lib/services/apps_script_http.dart',
+            root/'lib/services/sync_coordinator.dart',
+            root/'lib/services/auth_service.dart',
+            root/'lib/services/drive_service.dart',
+            root/'lib/services/worker_import_service.dart',
+            root/'lib/database.dart',
+            root/'lib/screens/companies_screen.dart',
+            root/'lib/screens/extinguishers_screen.dart',
+            root/'lib/screens/training_records_screen.dart',
+            root/'lib/screens/non_conformity_detail_screen.dart',
+            root/'lib/services/nc_pdf_service.dart',
+          ]
+          state={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in protected if p.exists()}
+          Path('/tmp/v32973_protected.json').write_text(json.dumps(state),encoding='utf-8')
+
+          code=(root/'painel_web_google_apps_script/Code.gs').read_text(encoding='utf-8')
+          slices={}
+          pairs=[
+            ('doPost','function doPost(e) {','function pushDeviceChanges_'),
+            ('push','function pushDeviceChanges_','function pullDeviceChanges_'),
+            ('pull','function pullDeviceChanges_','function ensureDeviceSyncStorage_'),
+          ]
+          for name,start,end in pairs:
+            a=code.find(start); b=code.find(end,a+1)
+            if a<0 or b<0: raise SystemExit('Trecho crítico da Central não localizado: '+name)
+            slices[name]=hashlib.sha256(code[a:b].encode()).hexdigest()
+          Path('/tmp/v32973_code_sync.json').write_text(json.dumps(slices),encoding='utf-8')
+          PY
+
+      - name: Aplicar importador de treinamentos em lote
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.29.73-training-list-import/patch_training_list_import_v32973.py.xz.b64')
+          Path('/tmp/patch_training_list_import_v32973.py').write_bytes(
+              lzma.decompress(base64.b64decode(src.read_text().strip()))
+          )
+          PY
+          python /tmp/patch_training_list_import_v32973.py "$APP_DIR"
+
+      - name: Confirmar núcleo rápido preservado
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          before=json.loads(Path('/tmp/v32973_protected.json').read_text(encoding='utf-8'))
+          changed=[]
+          for rel,old in before.items():
+            new=hashlib.sha256((root/rel).read_bytes()).hexdigest()
+            if new!=old: changed.append(rel)
+            else: print('PROTEGIDO_OK',rel,new)
+          if changed:
+            raise SystemExit('Arquivos protegidos alterados: '+', '.join(changed))
+
+          expected=json.loads(Path('/tmp/v32973_code_sync.json').read_text(encoding='utf-8'))
+          code=(root/'painel_web_google_apps_script/Code.gs').read_text(encoding='utf-8')
+          pairs=[
+            ('doPost','function doPost(e) {','function pushDeviceChanges_'),
+            ('push','function pushDeviceChanges_','function pullDeviceChanges_'),
+            ('pull','function pullDeviceChanges_','function ensureDeviceSyncStorage_'),
+          ]
+          for name,start,end in pairs:
+            a=code.find(start); b=code.find(end,a+1)
+            current=hashlib.sha256(code[a:b].encode()).hexdigest()
+            if current!=expected[name]:
+              raise SystemExit('Trecho crítico da Central alterado: '+name)
+            print('CENTRAL_SYNC_OK',name,current)
+          print('NUCLEO_V32972_PRESERVADO_OK')
+          PY
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar Android e testes do importador
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          python ../../tools/fix_read_pdf_text_r8_v32965.py .
+          cat > test/training_list_import_test.dart <<'DART'
+          import 'package:auditar_sst/models.dart';
+          import 'package:auditar_sst/services/training_list_import_service.dart';
+          import 'package:flutter_test/flutter_test.dart';
+
+          void main() {
+            test('CSV com ponto e vírgula e aspas é separado corretamente', () {
+              final matrix = TrainingListImportService.parseDelimitedForTesting(
+                'Nome;Cargo;Treinamento;Data;Validade\n'
+                '"JOAO DA SILVA";Operador;"NR 35";10/09/2026;10/09/2028\n',
+              );
+              expect(matrix.length, 2);
+              expect(matrix[1][0], 'JOAO DA SILVA');
+              expect(matrix[1][2], 'NR 35');
+            });
+
+            test('planilha reconhece nome treinamento realização e validade', () {
+              final rows = TrainingListImportService.parseMatrixRecordsForTesting([
+                ['Nome', 'Cargo', 'NR', 'Treinamento', 'Data de realização', 'Validade'],
+                ['MARIA SOUZA', 'Operadora', 'NR 35', 'Trabalho em Altura', '10/09/2026', '10/09/2028'],
+              ]);
+              expect(rows.length, 1);
+              expect(rows.first['name'], 'MARIA SOUZA');
+              expect(rows.first['code'], 'NR 35');
+              expect((rows.first['trainingDate'] as DateTime).year, 2026);
+              expect((rows.first['expiryDate'] as DateTime).year, 2028);
+            });
+
+            test('PDF textual encontra trabalhador cadastrado e datas globais', () {
+              final worker = Worker(
+                id: 'w1',
+                companyId: 'c1',
+                name: 'JOAO DA SILVA',
+                cpf: '',
+                role: 'OPERADOR',
+                active: true,
+              );
+              final rows = TrainingListImportService.parsePdfTextForTesting(
+                'TREINAMENTO NR 35\n'
+                'Data de realização: 10/09/2026\n'
+                'Validade: 10/09/2028\n'
+                'JOAO DA SILVA OPERADOR\n',
+                [worker],
+              );
+              expect(rows.length, 1);
+              expect(rows.first['name'], 'JOAO DA SILVA');
+              expect(rows.first['code'], 'NR 35');
+              expect((rows.first['trainingDate'] as DateTime).year, 2026);
+              expect((rows.first['expiryDate'] as DateTime).year, 2028);
+            });
+          }
+          DART
+
+      - name: Formatar analisar e testar
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          dart format             lib/services/training_list_import_service.dart             lib/screens/training_list_import_screen.dart             lib/screens/trainings_screen.dart             test/training_list_import_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+
+      - name: Validar Central e regressões
+        run: |
+          set -euo pipefail
+          cp "$APP_DIR/painel_web_google_apps_script/Code.gs" /tmp/Code-v32973.js
+          node --check /tmp/Code-v32973.js
+
+          grep -q 'version: 3.29.73+215' "$APP_DIR/pubspec.yaml"
+          grep -q "title: 'Importar registros'" "$APP_DIR/lib/screens/trainings_screen.dart"
+          grep -q "PDF ou planilha em lote" "$APP_DIR/lib/screens/trainings_screen.dart"
+          grep -q "allowedExtensions: const \['pdf', 'xlsx', 'csv'\]" "$APP_DIR/lib/services/training_list_import_service.dart"
+          grep -q "Prévia antes de cadastrar" "$APP_DIR/lib/screens/training_list_import_screen.dart"
+          grep -q "upsertTrainingControlsBatch" "$APP_DIR/lib/services/training_list_import_service.dart"
+          grep -q "training_record_import" "$APP_DIR/painel_web_google_apps_script/Code.gs"
+          grep -q "_parseExtractedRhText" "$APP_DIR/lib/services/worker_import_service.dart"
+          grep -q "Future<void> _resolveNow() async" "$APP_DIR/lib/screens/non_conformity_detail_screen.dart"
+          grep -q "allowLongAndroidRequest: true" "$APP_DIR/lib/services/auth_service.dart"
+          python tools/regression_training_records_v32968_v3306.py "$APP_DIR" 3.29.73+215
+          python tools/regression_internal_management_training_v32969_v3307.py "$APP_DIR" 3.29.73+215
+          echo 'REGRESSOES_V32973_OK'
+
+      - name: Compilar APK release
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY"
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Preparar artefatos
+        run: |
+          mkdir -p dist/android dist/central
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" 'dist/android/Auditar-SST-v3.29.73-IMPORTAR-TREINAMENTOS.apk'
+          sha256sum 'dist/android/Auditar-SST-v3.29.73-IMPORTAR-TREINAMENTOS.apk' > 'dist/android/Auditar-SST-v3.29.73-IMPORTAR-TREINAMENTOS.sha256.txt'
+          cp "$APP_DIR/painel_web_google_apps_script/Code.gs" dist/central/Code.gs
+          cat > dist/central/LEIA-ME.txt <<'TXT'
+          Atualização da Central Online necessária apenas para a leitura por IA
+          do novo importador de registros de treinamento, especialmente PDFs
+          escaneados ou planilhas sem cabeçalhos reconhecíveis.
+
+          A sincronização device_sync_push/device_sync_pull não foi alterada.
+          TXT
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.73-Android-Importar-Treinamentos
+          path: dist/android/*
+          retention-days: 30
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.73-Central-IA-Treinamentos
+          path: dist/central/*
+          retention-days: 30
