@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/build-v32974-training-photo.yml'
       - 'build_sources/v3.29.74-training-photo/**'
+      - 'tools/fix_mlkit_text_r8_v32974.py'
 
 permissions:
   contents: read
@@ -108,6 +109,7 @@ jobs:
           if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
           flutter pub get
           python ../../tools/fix_read_pdf_text_r8_v32965.py .
+          python ../../tools/fix_mlkit_text_r8_v32974.py .
           cat > test/training_import_photo_test.dart <<'DART'
           import 'package:auditar_sst/models.dart';
           import 'package:auditar_sst/services/training_import_service.dart';
@@ -152,6 +154,8 @@ jobs:
           set -euo pipefail
           grep -q 'version: 3.29.74+216' "$APP_DIR/pubspec.yaml"
           grep -q 'google_mlkit_text_recognition: ^0.15.0' "$APP_DIR/pubspec.yaml"
+          grep -q -- '-dontwarn com.google.mlkit.vision.text.chinese.\*\*' "$APP_DIR/android/app/proguard-rules.pro"
+          grep -q -- '-dontwarn com.google.mlkit.vision.text.japanese.\*\*' "$APP_DIR/android/app/proguard-rules.pro"
           grep -q "Tirar foto da lista" "$APP_DIR/lib/screens/training_import_screen.dart"
           grep -q "Adicionar outra página?" "$APP_DIR/lib/screens/training_import_screen.dart"
           grep -q "Foto • leitura inteligente local" "$APP_DIR/lib/services/training_import_service.dart"
