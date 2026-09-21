@@ -1,0 +1,126 @@
+name: Validar Android v3.29.84 IA Segundo Plano
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/validate-v32984-deferred-ai.yml'
+      - 'tools/patch_deferred_inspection_ai_v32984.py'
+      - 'build_sources/v3.29.84-deferred-inspection-ai/**'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar Android v3.29.83
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python tools/patch_management_panel_logo_theme_v32970_v3308.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          for src,out in [
+            ('build_sources/v3.29.71-nc-quick-resolve/patch_nc_quick_resolve_v32971.py.xz.b64','/tmp/p71.py'),
+            ('build_sources/v3.29.74-training-photo/patch_training_import_photo_v32974.py.xz.b64','/tmp/p74.py'),
+            ('build_sources/v3.29.77-checklist-fine-face/patch_checklist_fine_face_v32977.py.xz.b64','/tmp/p77.py'),
+          ]:
+            Path(out).write_bytes(lzma.decompress(base64.b64decode(Path(src).read_text().strip())))
+          PY
+          python /tmp/p71.py "$APP_DIR"
+          python tools/patch_login_resilience_v32972.py "$APP_DIR"
+          python tools/patch_training_bulk_import_v32973.py "$APP_DIR"
+          python /tmp/p74.py "$APP_DIR"
+          python tools/patch_training_import_robust_v32975.py "$APP_DIR"
+          python tools/patch_cipa_management_v32976.py "$APP_DIR"
+          python /tmp/p77.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32978.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32979.py "$APP_DIR"
+          python tools/patch_performance_report_v32980.py "$APP_DIR"
+          python tools/patch_cross_platform_refinement_v32981.py "$APP_DIR" android
+          python tools/patch_signature_handoff_v32982.py "$APP_DIR" android
+          python tools/patch_pre_admission_search_v32983.py "$APP_DIR" android
+
+      - name: Proteger sincronizacao
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          files=[
+            'lib/services/device_sync_service.dart',
+            'lib/services/media_sync_service.dart',
+            'lib/services/apps_script_http.dart',
+            'lib/services/sync_coordinator.dart',
+            'lib/database.dart',
+          ]
+          Path('/tmp/protected84.json').write_text(json.dumps({
+            f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in files
+          }))
+          PY
+
+      - name: Aplicar IA segundo plano v3.29.84
+        run: python tools/patch_deferred_inspection_ai_v32984.py "$APP_DIR" android
+
+      - name: Confirmar sync intacto
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1]); old=json.loads(Path('/tmp/protected84.json').read_text())
+          changed=[f for f,h in old.items() if hashlib.sha256((root/f).read_bytes()).hexdigest()!=h]
+          if changed: raise SystemExit('SYNC ALTERADO: '+', '.join(changed))
+          print('SYNC_V32984_INTACTO_OK')
+          PY
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar projeto
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          python ../../tools/fix_read_pdf_text_r8_v32965.py .
+          python ../../tools/fix_mlkit_text_r8_v32974.py .
+
+      - name: Formatar analisar testar
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          dart format lib
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+
+      - name: Validar IA segundo plano
+        run: |
+          set -euo pipefail
+          grep -q 'version: 3.29.84+226' "$APP_DIR/pubspec.yaml"
+          grep -q "status': 'PRONTA_REVISAO" "$APP_DIR/lib/screens/checklist_screen.dart"
+          grep -q 'Continue a vistoria normalmente' "$APP_DIR/lib/screens/checklist_screen.dart"
+          grep -q 'não abrirá nenhuma janela automaticamente' "$APP_DIR/lib/screens/checklist_screen.dart"
+          grep -q 'IA das fotos sem atrasar a vistoria' "$APP_DIR/lib/screens/report_screen.dart"
+          grep -q 'Analisar fotos em segundo plano' "$APP_DIR/lib/screens/report_screen.dart"
+          grep -q 'class InspectionPhotoAiQueueService' "$APP_DIR/lib/services/inspection_photo_ai_queue_service.dart"
+          python tools/regression_report_templates_v32962.py "$APP_DIR" 3.29.84+226
+          python tools/regression_training_records_v32968_v3306.py "$APP_DIR" 3.29.84+226
+          python tools/regression_internal_management_training_v32969_v3307.py "$APP_DIR" 3.29.84+226
+          echo DEFERRED_AI_V32984_VALIDADO_OK
