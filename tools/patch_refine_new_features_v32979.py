@@ -425,14 +425,18 @@ insert="""    if (result == null || !mounted) return;
 """
 c=replace_once(c,marker,insert,'training sign cleanup face')
 
-marker="""            'confirmationMethod': 'signature',
-"""
-insert="""            'confirmationMethod': 'signature',
+training_signature_meta_pattern = re.compile(
+    r"(['\"]confirmationMethod['\"]\s*:\s*['\"]signature['\"]\s*,)",
+    re.S,
+)
+m=training_signature_meta_pattern.search(c)
+if not m:
+    raise RuntimeError('Marcador não localizado: training sign clear face metadata')
+training_signature_meta = m.group(1) + """
             'faceProofCode': '',
             'facePhotoSha256': '',
-            'faceConsentVersion': '',
-"""
-c=replace_once(c,marker,insert,'training sign clear face metadata')
+            'faceConsentVersion': '',"""
+c = c[:m.start()] + training_signature_meta + c[m.end():]
 
 # _face confirmação
 marker="""  Future<void> _face(Map<String, dynamic> participant) async {
