@@ -1,0 +1,157 @@
+name: Auditar SST Android v3.29.73 Importar Treinamentos
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/build-v32973-training-import.yml'
+      - 'tools/patch_training_import_v32973.py'
+      - 'build_sources/v3.29.73-training-import/**'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar base estável v3.29.72
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.29.71-nc-quick-resolve/patch_nc_quick_resolve_v32971.py.xz.b64')
+          Path('/tmp/patch_nc_quick_resolve_v32971.py').write_bytes(
+              lzma.decompress(base64.b64decode(src.read_text().strip()))
+          )
+          PY
+          python /tmp/patch_nc_quick_resolve_v32971.py "$APP_DIR"
+          python tools/patch_login_resilience_v32972.py "$APP_DIR"
+
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          protected=[
+            root/'lib/services/device_sync_service.dart',
+            root/'lib/services/media_sync_service.dart',
+            root/'lib/services/apps_script_http.dart',
+            root/'lib/services/sync_coordinator.dart',
+            root/'lib/services/auth_service.dart',
+            root/'lib/services/drive_service.dart',
+            root/'lib/services/worker_import_service.dart',
+            root/'lib/database.dart',
+            root/'lib/screens/companies_screen.dart',
+            root/'lib/screens/extinguishers_screen.dart',
+            root/'lib/screens/training_records_screen.dart',
+            root/'lib/screens/non_conformity_detail_screen.dart',
+            root/'lib/services/nc_pdf_service.dart',
+          ]
+          state={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in protected if p.exists()}
+          Path('/tmp/v32973_protected.json').write_text(json.dumps(state),encoding='utf-8')
+          PY
+
+      - name: Aplicar importador de treinamentos
+        run: |
+          python tools/patch_training_import_v32973.py "$APP_DIR"
+
+      - name: Confirmar núcleo estável preservado
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          before=json.loads(Path('/tmp/v32973_protected.json').read_text(encoding='utf-8'))
+          changed=[]
+          for rel,old in before.items():
+            new=hashlib.sha256((root/rel).read_bytes()).hexdigest()
+            if new!=old:
+              changed.append(rel)
+            else:
+              print('PROTEGIDO_OK',rel,new)
+          if changed:
+            raise SystemExit('Arquivos protegidos alterados: '+', '.join(changed))
+          print('NUCLEO_V32972_PRESERVADO_OK')
+          PY
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar Android
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          python ../../tools/fix_read_pdf_text_r8_v32965.py .
+
+      - name: Formatar analisar e testar
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          dart format lib/services/training_import_service.dart lib/screens/training_import_screen.dart lib/screens/trainings_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+
+      - name: Regressões do importador e recursos anteriores
+        run: |
+          set -euo pipefail
+          grep -q 'version: 3.29.73+215' "$APP_DIR/pubspec.yaml"
+          grep -q 'google_mlkit_text_recognition: ^0.15.0' "$APP_DIR/pubspec.yaml"
+          grep -q 'excel: ^4.0.6' "$APP_DIR/pubspec.yaml"
+          grep -q "title: 'Importar lista'" "$APP_DIR/lib/screens/trainings_screen.dart"
+          grep -q "subtitle: 'PDF, planilha ou foto'" "$APP_DIR/lib/screens/trainings_screen.dart"
+          grep -q "Tirar foto da lista" "$APP_DIR/lib/screens/training_import_screen.dart"
+          grep -q "Adicionar outra página?" "$APP_DIR/lib/screens/training_import_screen.dart"
+          grep -q "Selecionar PDF" "$APP_DIR/lib/screens/training_import_screen.dart"
+          grep -q "Selecionar planilha" "$APP_DIR/lib/screens/training_import_screen.dart"
+          grep -q "Nada é cadastrado sem sua confirmação" "$APP_DIR/lib/screens/training_import_screen.dart"
+          grep -q "TextRecognizer" "$APP_DIR/lib/services/training_import_service.dart"
+          grep -q "getWorkers(" "$APP_DIR/lib/services/training_import_service.dart"
+          grep -q "onlyActive: true" "$APP_DIR/lib/services/training_import_service.dart"
+          grep -q "upsertTrainingControlsBatch" "$APP_DIR/lib/screens/training_import_screen.dart"
+          grep -q "Já cadastrado para esta data" "$APP_DIR/lib/screens/training_import_screen.dart"
+          grep -q "Future<void> _resolveNow() async" "$APP_DIR/lib/screens/non_conformity_detail_screen.dart"
+          grep -q "_parseExtractedRhText" "$APP_DIR/lib/services/worker_import_service.dart"
+          grep -q "registerExtinguisherPhoto" "$APP_DIR/lib/services/media_sync_service.dart"
+          python tools/regression_training_records_v32968_v3306.py "$APP_DIR" 3.29.73+215
+          python tools/regression_internal_management_training_v32969_v3307.py "$APP_DIR" 3.29.73+215
+          echo 'REGRESSOES_V32973_OK'
+
+      - name: Compilar APK release
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY"
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Preparar APK
+        run: |
+          mkdir -p dist/android
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" 'dist/android/Auditar-SST-v3.29.73-IMPORTAR-TREINAMENTOS.apk'
+          sha256sum 'dist/android/Auditar-SST-v3.29.73-IMPORTAR-TREINAMENTOS.apk' > 'dist/android/Auditar-SST-v3.29.73-IMPORTAR-TREINAMENTOS.sha256.txt'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.73-Android-Importar-Treinamentos
+          path: dist/android/*
+          retention-days: 30
