@@ -43,7 +43,40 @@ run('tools/patch_management_panel_logo_theme_v32970_v3308.py',root,'windows')
 # Port das melhorias Android pós-v3.29.70 sem tocar no motor de sync Windows.
 set_version('3.29.70+212')
 run_b64('build_sources/v3.29.71-nc-quick-resolve/patch_nc_quick_resolve_v32971.py.xz.b64')
-run('tools/patch_login_resilience_v32972.py',root)
+
+# O AuthService Windows já usa a Central embutida e possui fluxo próprio.
+# Portamos apenas o refinamento visual/comportamental do Login Android,
+# sem alterar transporte, sync ou AuthService do PC.
+loginp=root/'lib/screens/login_screen.dart'
+login=loginp.read_text(encoding='utf-8')
+login=login.replace(
+    "      await AuthService.login(username: username, password: pass)\n          .timeout(const Duration(seconds: 25));",
+    "      await AuthService.login(username: username, password: pass);",
+    1,
+)
+login=login.replace(
+    "      await AuthService.bootstrapAdmin(name: name, email: email, password: pass)\n          .timeout(const Duration(seconds: 25));",
+    "      await AuthService.bootstrapAdmin(\n        name: name,\n        email: email,\n        password: pass,\n      );",
+    1,
+)
+login=login.replace(
+    "      return 'A Central Online demorou para responder. Verifique a internet e tente novamente.';",
+    "      return 'A Central Online demorou para responder. Tente novamente em alguns instantes.';",
+    1,
+)
+if "text.contains('não respondeu a tempo')" not in login:
+    marker="""    if (text.contains('TimeoutException')) {
+      return 'A Central Online demorou para responder. Tente novamente em alguns instantes.';
+    }
+"""
+    if marker in login:
+        login=login.replace(
+            marker,
+            marker+"    if (text.contains('não respondeu a tempo')) {\n      return 'A Central Online está oscilando e não respondeu a tempo. Tente novamente.';\n    }\n",
+            1,
+        )
+loginp.write_text(login,encoding='utf-8',newline='\n')
+set_version('3.29.72+214')
 
 # Importação inteligente de treinamentos
 run('tools/patch_training_bulk_import_v32973.py',root)
