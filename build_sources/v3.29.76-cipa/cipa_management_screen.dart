@@ -832,7 +832,7 @@ class _CipaManagementScreenState extends State<CipaManagementScreen> {
         .where((a) => '${a.payload['meetingId'] ?? ''}' == meeting.id)
         .toList();
     await CipaManagementService.saveMinutes(
-      id: existing.isEmpty ? null : existing.first.id,
+      id: null,
       companyId: widget.companyId,
       mandateId: mandate.id,
       meetingId: meeting.id,
