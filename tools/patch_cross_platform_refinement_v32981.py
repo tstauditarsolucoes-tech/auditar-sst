@@ -384,6 +384,11 @@ if (root/rel).exists():
                           ? 'No computador, selecione uma foto atual do participante. O Auditar vincula a imagem ao participante, data/hora e gera um código de comprovação da evidência.'
                           : 'A câmera frontal registra a foto no momento da ficha. O Auditar vincula a imagem ao participante, data/hora e gera um código de comprovação da evidência.',"""
 )
+    f=f.replace(
+        "const Text(\n                      Platform.isWindows",
+        "Text(\n                      Platform.isWindows",
+        1,
+    )
     write(rel,f)
 
 rel='lib/screens/express_round_screen.dart'
