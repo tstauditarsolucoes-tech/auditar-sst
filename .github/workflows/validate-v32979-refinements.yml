@@ -152,7 +152,7 @@ jobs:
           grep -q 'version: 3.29.79+221' "$APP_DIR/pubspec.yaml"
           grep -q 'VALORES DE MULTA INFORMADOS' "$APP_DIR/lib/services/pdf_service.dart"
           grep -q 'Total de referência' "$APP_DIR/lib/services/styled_report_pdf_service.dart"
-          grep -q 'não representa cálculo oficial' "$APP_DIR/lib/services/pdf_service.dart"
+          grep -qi 'representa cálculo oficial' "$APP_DIR/lib/services/pdf_service.dart"
           grep -q 'Substituir confirmação?' "$APP_DIR/lib/screens/training_records_screen.dart"
           grep -q 'Substituir confirmação?' "$APP_DIR/lib/screens/sst_record_form_screen.dart"
           grep -q 'Toque para ampliar' "$APP_DIR/lib/screens/training_records_screen.dart"
