@@ -1,0 +1,108 @@
+name: Validar Windows v3.30.11 Pre-Admissao Pesquisa
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/validate-v3311-windows-pre-admission.yml'
+      - 'tools/assemble_windows_v3311_pre_admission.py'
+      - 'tools/patch_signature_handoff_v32982.py'
+      - 'tools/patch_pre_admission_search_v32983.py'
+      - 'build_sources/v3.29.82-pre-admission/**'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar Windows v3.30.9
+        shell: pwsh
+        run: |
+          python tools/assemble_windows_v3309_mobile_parity.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Base Windows falhou' }
+
+      - name: Proteger sincronizacao
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import hashlib,json
+          root=Path(r"app/Auditar_SST_v1_5_dashboard")
+          files=[
+            'lib/services/device_sync_service.dart',
+            'lib/services/media_sync_service.dart',
+            'lib/services/apps_script_http.dart',
+            'lib/services/sync_coordinator.dart',
+            'lib/database.dart',
+          ]
+          Path('protected3311.json').write_text(json.dumps({
+            f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in files
+          }))
+          '@ | python -
+
+      - name: Aplicar v3.30.10 e v3.30.11
+        shell: pwsh
+        run: |
+          python tools/patch_signature_handoff_v32982.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Assinatura Windows falhou' }
+          python tools/patch_pre_admission_search_v32983.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Pré-admissão Windows falhou' }
+
+      - name: Confirmar sincronizacao intacta
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import hashlib,json
+          root=Path(r"app/Auditar_SST_v1_5_dashboard")
+          old=json.loads(Path('protected3311.json').read_text())
+          changed=[f for f,h in old.items() if hashlib.sha256((root/f).read_bytes()).hexdigest()!=h]
+          if changed: raise SystemExit('SYNC ALTERADO: '+', '.join(changed))
+          print('SYNC_WINDOWS_V3311_INTACTO_OK')
+          '@ | python -
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar analisar testar
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          flutter pub get
+          dart format lib
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Analyze Windows falhou' }
+          flutter test
+          if ($LASTEXITCODE -ne 0) { throw 'Testes Windows falharam' }
+
+      - name: Regressoes
+        shell: pwsh
+        run: |
+          python tools/regression_report_templates_v32962.py "$env:APP_DIR" 3.30.11+198
+          if ($LASTEXITCODE -ne 0) { throw 'Regressão relatórios falhou' }
+          python tools/regression_training_records_v32968_v3306.py "$env:APP_DIR" 3.30.11+198
+          if ($LASTEXITCODE -ne 0) { throw 'Regressão treinamento falhou' }
+          python tools/regression_internal_management_training_v32969_v3307.py "$env:APP_DIR" 3.30.11+198
+          if ($LASTEXITCODE -ne 0) { throw 'Regressão gerencial falhou' }
+          if (-not (Select-String "$env:APP_DIR/lib/screens/training_records_screen.dart" -Pattern 'ASSINANDO AGORA' -Quiet)) { throw 'Cabeçalho de assinatura ausente' }
+          if (-not (Select-String "$env:APP_DIR/lib/services/pre_admission_participant_service.dart" -Pattern 'PRE_ADMISSION_PARTICIPANT' -Quiet)) { throw 'Pré-admissão ausente' }
+          if (-not (Select-String "$env:APP_DIR/lib/screens/cipa_management_screen.dart" -Pattern 'SearchableWorkerField' -Quiet)) { throw 'Busca CIPA ausente' }
+          Write-Host 'WINDOWS_V3311_VALIDADO_OK'
