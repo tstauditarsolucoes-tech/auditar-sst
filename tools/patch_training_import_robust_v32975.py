@@ -14,12 +14,12 @@ ui=ip.read_text(encoding='utf-8')
 train=tp.read_text(encoding='utf-8')
 code=cp.read_text(encoding='utf-8')
 
-pub,n=re.subn(r'^version:\\s*[^\\n]+','version: 3.29.75+217',pub,count=1,flags=re.M)
+pub,n=re.subn(r'^version:\s*[^\n]+','version: 3.29.75+217',pub,count=1,flags=re.M)
 if n!=1: raise RuntimeError('Versão não localizada')
 if 'excel_community:' not in pub:
-    pub=pub.replace('  archive: ^4.0.9\\n','  archive: ^4.0.9\\n  excel_community: ^2.4.0\\n',1)
+    pub=pub.replace('  archive: ^4.0.9\n','  archive: ^4.0.9\n  excel_community: ^2.4.0\n',1)
 if "package:excel_community/excel_community.dart" not in s:
-    s=s.replace("import 'package:file_picker/file_picker.dart';\\n","import 'package:file_picker/file_picker.dart';\\nimport 'package:excel_community/excel_community.dart' as legacy_excel;\\n",1)
+    s=s.replace("import 'package:file_picker/file_picker.dart';\n","import 'package:file_picker/file_picker.dart';\nimport 'package:excel_community/excel_community.dart' as legacy_excel;\n",1)
 s=s.replace("allowedExtensions: const ['pdf', 'xlsx', 'csv']","allowedExtensions: const ['pdf', 'xlsx', 'xls', 'csv']")
 
 old="""    if (extension == 'xlsx') {
