@@ -95,7 +95,7 @@ new_occ="""  String _occurrencesPayload(String itemId) {
     final currentAi = Map<String, dynamic>.from(
       aiPhotoMeta[itemId] ?? const <String, dynamic>{},
     );
-    final aiStatus = '\${currentAi['status'] ?? ''}'.toUpperCase();
+    final aiStatus = '${currentAi['status'] ?? ''}'.toUpperCase();
     final eligibleForLaterAi =
         (statuses[itemId] == 'Não Conforme' || statuses[itemId] == 'Parcial') &&
         (photos[itemId] ?? const <String>[]).isNotEmpty;
