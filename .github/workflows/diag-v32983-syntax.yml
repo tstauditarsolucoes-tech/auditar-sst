@@ -57,3 +57,16 @@ jobs:
           nl -ba "$APP_DIR/lib/services/training_record_pdf_service.dart" | sed -n '90,125p'
           echo '=== SST tail ==='
           tail -n 30 "$APP_DIR/lib/screens/sst_record_form_screen.dart" | nl -ba
+
+      - name: Exportar arquivos
+        run: |
+          mkdir -p export
+          cp "$APP_DIR/lib/screens/sst_record_form_screen.dart" export/
+          cp "$APP_DIR/lib/services/dds_pdf_service.dart" export/
+          cp "$APP_DIR/lib/services/training_record_pdf_service.dart" export/
+          cp "$APP_DIR/lib/screens/training_records_screen.dart" export/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v32983-syntax-source
+          path: export/*
+          retention-days: 3
