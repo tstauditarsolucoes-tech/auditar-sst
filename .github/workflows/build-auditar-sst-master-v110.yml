@@ -74,7 +74,7 @@ jobs:
           if (-not $content.Contains($marker)) { throw 'Marcador bootstrap não encontrado' }
           $content=$content.Replace($marker,("const BOOTSTRAP_KEY='" + $env:AUDITAR_SYNC_KEY + "';"))
           Set-Content -Path $path -Value $content -Encoding UTF8
-          if ($content.Contains('__AUDITAR_SYNC_KEY__')) { throw 'Chave não inserida' }
+          if ($content.Contains("const BOOTSTRAP_KEY='__AUDITAR_SYNC_KEY__';")) { throw 'Chave não inserida' }
 
       - name: Gerar icone
         shell: pwsh
