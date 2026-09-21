@@ -23,6 +23,7 @@ class CipaManagementService {
   static const minutesType = 'CIPA_ATA';
   static const actionType = 'CIPA_ACAO';
   static const documentType = 'CIPA_DOCUMENTO';
+  static const committeeType = 'CIPA_COMISSAO_ELEITORAL';
 
   static const _uuid = Uuid();
 
@@ -275,6 +276,32 @@ class CipaManagementService {
           'description': description.trim(),
           'responsible': responsible.trim(),
           'ncId': ncId.trim(),
+          'notes': notes.trim(),
+        },
+      );
+
+  static Future<void> saveCommitteeMember({
+    String? id,
+    required String companyId,
+    required String workerId,
+    required String name,
+    required String function,
+    String electionId = '',
+    String status = 'Ativo',
+    String notes = '',
+  }) =>
+      saveRecord(
+        id: id,
+        companyId: companyId,
+        type: committeeType,
+        title: name,
+        date: DateTime.now(),
+        status: status,
+        priority: 'Média',
+        payload: {
+          'workerId': workerId,
+          'function': function,
+          'electionId': electionId,
           'notes': notes.trim(),
         },
       );
