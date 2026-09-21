@@ -36,27 +36,27 @@ if new not in a:
 
 # Login é não-idempotente: uma tentativa lenta não deve ser reenviada
 # automaticamente por outra rota, pois isso pode criar sessões duplicadas.
-old_login="""    final result = await _post({
-      'action': 'auth_login',
-      'username': identifier,
-      'email': identifier,
-      'password': password,
-      'deviceId': await deviceId(),
-      'platform': Platform.isWindows ? 'windows' : 'android',
-    });
-"""
-new_login="""    final result = await _post(
-      {
+old_login="""      final result = await _post({
         'action': 'auth_login',
         'username': identifier,
         'email': identifier,
         'password': password,
         'deviceId': await deviceId(),
         'platform': Platform.isWindows ? 'windows' : 'android',
-      },
-      timeout: const Duration(seconds: 30),
-      allowLongAndroidRequest: true,
-    );
+      });
+"""
+new_login="""      final result = await _post(
+        {
+          'action': 'auth_login',
+          'username': identifier,
+          'email': identifier,
+          'password': password,
+          'deviceId': await deviceId(),
+          'platform': Platform.isWindows ? 'windows' : 'android',
+        },
+        timeout: const Duration(seconds: 30),
+        allowLongAndroidRequest: true,
+      );
 """
 if new_login not in a:
     if old_login not in a: raise RuntimeError('AuthService.login não encontrado')
