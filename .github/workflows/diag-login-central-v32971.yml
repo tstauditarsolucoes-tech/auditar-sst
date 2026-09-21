@@ -1,0 +1,72 @@
+name: Diagnose Login Central v3.29.71
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/diag-login-central-v32971.yml'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar v3.29.71
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.29.71-nc-quick-resolve/patch_nc_quick_resolve_v32971.py.xz.b64')
+          Path('/tmp/patch.py').write_bytes(lzma.decompress(base64.b64decode(src.read_text().strip())))
+          PY
+          python /tmp/patch.py "$APP_DIR"
+
+      - name: Mostrar login e transporte atuais
+        run: |
+          echo '===== LOGIN TIMEOUTS ====='
+          grep -nE "AuthService.login|timeout\(|TimeoutException|Central Online" "$APP_DIR/lib/screens/login_screen.dart" || true
+          echo '===== AUTH POST ====='
+          grep -nE "_post\(|AppsScriptHttp|auth_login|auth_status" "$APP_DIR/lib/services/auth_service.dart" | head -n 100 || true
+          echo '===== APPS SCRIPT HTTP ====='
+          cat "$APP_DIR/lib/services/apps_script_http.dart"
+
+      - name: Medir Central auth_status
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL='https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec'
+          BODY='{"action":"auth_status"}'
+          for i in $(seq 1 10); do
+            echo "--- auth_status tentativa $i ---"
+            curl --silent --show-error --location --max-time 45               --header 'Content-Type: application/json'               --header 'Accept: application/json'               --data "$BODY"               --output "/tmp/status-$i.json"               --write-out 'code=%{http_code} total=%{time_total} connect=%{time_connect} start=%{time_starttransfer} redirects=%{num_redirects}\n'               "$URL" || true
+            head -c 500 "/tmp/status-$i.json" 2>/dev/null || true
+            echo
+            sleep 1
+          done
+
+      - name: Medir auth_login inválido sem credenciais reais
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL='https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec'
+          BODY='{"action":"auth_login","username":"__diag_inexistente__","email":"__diag_inexistente__","password":"__senha_diagnostico__","deviceId":"github-login-diag","platform":"android"}'
+          for i in $(seq 1 5); do
+            echo "--- auth_login inválido tentativa $i ---"
+            curl --silent --show-error --location --max-time 45               --header 'Content-Type: application/json'               --header 'Accept: application/json'               --data "$BODY"               --output "/tmp/login-$i.json"               --write-out 'code=%{http_code} total=%{time_total} connect=%{time_connect} start=%{time_starttransfer} redirects=%{num_redirects}\n'               "$URL" || true
+            head -c 500 "/tmp/login-$i.json" 2>/dev/null || true
+            echo
+            sleep 1
+          done
