@@ -1028,6 +1028,100 @@ class _CipaManagementScreenState extends State<CipaManagementScreen> {
     await _load(showLoading: false);
   }
 
+  Future<void> _editCommitteeMember([SstRecord? current]) async {
+    var workerId = '${current?.payload['workerId'] ?? ''}';
+    if (workerId.isEmpty && workers.isNotEmpty) workerId = workers.first.id;
+    var function = '${current?.payload['function'] ?? 'Membro'}';
+    final notes = TextEditingController(
+      text: '${current?.payload['notes'] ?? ''}',
+    );
+    final electionId = '${current?.payload['electionId'] ?? ''}'.isNotEmpty
+        ? '${current?.payload['electionId'] ?? ''}'
+        : (elections.isEmpty ? '' : elections.first.id);
+
+    final save = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setLocal) => AlertDialog(
+          title: Text(
+            current == null ? 'Adicionar à comissão eleitoral' : 'Editar comissão eleitoral',
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  value: workers.any((w) => w.id == workerId) ? workerId : null,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Colaborador'),
+                  items: workers
+                      .where((w) => w.active)
+                      .map(
+                        (w) => DropdownMenuItem(
+                          value: w.id,
+                          child: Text(w.name),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) setLocal(() => workerId = value);
+                  },
+                ),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  value: function,
+                  decoration: const InputDecoration(
+                    labelText: 'Função na comissão',
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'Presidente', child: Text('Presidente')),
+                    DropdownMenuItem(value: 'Secretário', child: Text('Secretário')),
+                    DropdownMenuItem(value: 'Membro', child: Text('Membro')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) setLocal(() => function = value);
+                  },
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: notes,
+                  maxLines: 3,
+                  decoration: const InputDecoration(labelText: 'Observações'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Salvar'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (save != true) return;
+    final worker = _workerById(workerId);
+    if (worker == null) {
+      _message('Selecione um colaborador.');
+      return;
+    }
+    await CipaManagementService.saveCommitteeMember(
+      id: current?.id,
+      companyId: widget.companyId,
+      workerId: worker.id,
+      name: worker.name,
+      function: function,
+      electionId: electionId,
+      notes: notes.text,
+    );
+    if (mounted) setState(() {});
+  }
+
   Future<void> _addDocument() async {
     final mandate = activeMandate;
     if (mandate == null) {
@@ -1884,6 +1978,51 @@ class _CipaManagementScreenState extends State<CipaManagementScreen> {
                 ],
               ),
             ),
+          ),
+          const SizedBox(height: 10),
+          FutureBuilder<List<SstRecord>>(
+            future: CipaManagementService.records(
+              CipaManagementService.committeeType,
+              widget.companyId,
+            ),
+            builder: (context, snapshot) {
+              final rows = snapshot.data ?? const <SstRecord>[];
+              return Card(
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.groups_2_outlined),
+                      title: const Text(
+                        'Comissão eleitoral',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      subtitle: Text(
+                        rows.isEmpty
+                            ? 'Nenhum integrante cadastrado'
+                            : '${rows.length} integrante(s) cadastrado(s)',
+                      ),
+                      trailing: IconButton(
+                        tooltip: 'Adicionar integrante',
+                        onPressed: () => _editCommitteeMember(),
+                        icon: const Icon(Icons.person_add_alt_1_outlined),
+                      ),
+                    ),
+                    if (rows.isNotEmpty)
+                      ...rows.map(
+                        (row) => ListTile(
+                          dense: true,
+                          leading: const Icon(Icons.person_outline),
+                          title: Text(row.title),
+                          subtitle: Text(
+                            '${row.payload['function'] ?? 'Membro'}',
+                          ),
+                          onTap: () => _editCommitteeMember(row),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
           ),
           const SizedBox(height: 10),
           ...elections.map(
