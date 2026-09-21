@@ -415,23 +415,45 @@ c=replace_once(
     "      row['method'] = '${signature['method'] ?? 'signature'}';\n      row['proofCode'] = '${signature['proofCode'] ?? ''}';\n      row['photoSha256'] = '${signature['photoSha256'] ?? ''}';",
     'dds pdf proof copy',
 )
-c=replace_once(
-    c,
-    "                              pw.Text(\n                                'FACIAL',\n                                style: pw.TextStyle(\n                                  fontSize: 5.5,\n                                  fontWeight: pw.FontWeight.bold,\n                                ),\n                              ),",
-    "                              pw.Text(\n                                'FACIAL',\n                                style: pw.TextStyle(\n                                  fontSize: 5.5,\n                                  fontWeight: pw.FontWeight.bold,\n                                ),\n                              ),\n                              if ('${row['proofCode'] ?? ''}'.trim().isNotEmpty)\n                                pw.Text(\n                                  '${row['proofCode']}',\n                                  style: const pw.TextStyle(\n                                    fontSize: 4.8,\n                                    color: PdfColors.grey700,\n                                  ),\n                                ),",
-    'dds pdf proof label',
+dds_facial_pattern = re.compile(
+    r"pw\.Text\(\s*'FACIAL',\s*style:\s*(?:const\s+)?pw\.TextStyle\(.*?fontWeight:\s*pw\.FontWeight\.bold,?\s*\),\s*\),",
+    re.S,
 )
+dds_match = dds_facial_pattern.search(c)
+if not dds_match:
+    raise RuntimeError('Marcador não localizado: dds pdf proof label')
+dds_extra = """
+                              if ('${row['proofCode'] ?? ''}'.trim().isNotEmpty)
+                                pw.Text(
+                                  '${row['proofCode']}',
+                                  style: const pw.TextStyle(
+                                    fontSize: 4.8,
+                                    color: PdfColors.grey700,
+                                  ),
+                                ),"""
+c = c[:dds_match.end()] + dds_extra + c[dds_match.end():]
 write(rel,c)
 
 # PDF Treinamento: exibir código de prova sob a foto
 rel='lib/services/training_record_pdf_service.dart'
 c=read(rel)
-c=replace_once(
-    c,
-    "                          pw.Text(\n                            'FACIAL',\n                            style: pw.TextStyle(\n                              fontSize: 5.7,\n                              fontWeight: pw.FontWeight.bold,\n                            ),\n                          ),",
-    "                          pw.Text(\n                            'FACIAL',\n                            style: pw.TextStyle(\n                              fontSize: 5.7,\n                              fontWeight: pw.FontWeight.bold,\n                            ),\n                          ),\n                          if ('${person['faceProofCode'] ?? ''}'.trim().isNotEmpty)\n                            pw.Text(\n                              '${person['faceProofCode']}',\n                              style: const pw.TextStyle(\n                                fontSize: 4.8,\n                                color: PdfColors.grey700,\n                              ),\n                            ),",
-    'training pdf proof label',
+training_facial_pattern = re.compile(
+    r"pw\.Text\(\s*'FACIAL',\s*style:\s*(?:const\s+)?pw\.TextStyle\(.*?fontWeight:\s*pw\.FontWeight\.bold,?\s*\),\s*\),",
+    re.S,
 )
+training_match = training_facial_pattern.search(c)
+if not training_match:
+    raise RuntimeError('Marcador não localizado: training pdf proof label')
+training_extra = """
+                          if ('${person['faceProofCode'] ?? ''}'.trim().isNotEmpty)
+                            pw.Text(
+                              '${person['faceProofCode']}',
+                              style: const pw.TextStyle(
+                                fontSize: 4.8,
+                                color: PdfColors.grey700,
+                              ),
+                            ),"""
+c = c[:training_match.end()] + training_extra + c[training_match.end():]
 write(rel,c)
 
 # Garantias
