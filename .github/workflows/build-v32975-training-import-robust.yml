@@ -227,7 +227,7 @@ jobs:
           grep -q 'excel_community: ^2.4.0' "$APP_DIR/pubspec.yaml"
           grep -q "allowedExtensions: const \['pdf', 'xlsx', 'xls', 'csv'\]" "$APP_DIR/lib/services/training_import_service.dart"
           grep -q "_parseLegacyXls" "$APP_DIR/lib/services/training_import_service.dart"
-          grep -q "'mode':'training_record_import'" "$APP_DIR/lib/services/training_import_service.dart"
+          grep -q "'mode': 'training_record_import'" "$APP_DIR/lib/services/training_import_service.dart"
           grep -q "Tirar foto da lista" "$APP_DIR/lib/screens/training_import_screen.dart"
           grep -q "PDF, XLSX, XLS ou CSV" "$APP_DIR/lib/screens/training_import_screen.dart"
           grep -q "subtitle: 'PDF, Excel ou foto'" "$APP_DIR/lib/screens/trainings_screen.dart"
