@@ -1,0 +1,37 @@
+name: Validar Fonte Windows v3.30.9 Paridade
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/validate-windows-v3309-parity-source.yml'
+      - 'tools/assemble_windows_v3309_mobile_parity.py'
+      - 'tools/patch_cross_platform_refinement_v32981.py'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar Windows v3.30.9
+        run: python tools/assemble_windows_v3309_mobile_parity.py "$APP_DIR"
+      - name: Verificar paridade
+        run: |
+          grep -q 'version: 3.30.9+196' "$APP_DIR/pubspec.yaml"
+          grep -q 'Fotos • IA da Central' "$APP_DIR/lib/services/training_import_service.dart"
+          grep -q 'Selecionar fotos da lista' "$APP_DIR/lib/screens/training_import_screen.dart"
+          grep -q 'CipaManagementScreen' "$APP_DIR/lib/screens/company_detail_screen.dart"
+          grep -q 'Valor de referência' "$APP_DIR/lib/screens/checklist_screen.dart"
+          grep -q 'Assinatura facial' "$APP_DIR/lib/screens/training_records_screen.dart"
+          grep -q 'Performance - Foto + Descrição' "$APP_DIR/lib/services/report_template_service.dart"
+          grep -q 'Resolver agora' "$APP_DIR/lib/screens/non_conformity_detail_screen.dart"
+          grep -q 'WebServiceConfig.endpoint' "$APP_DIR/lib/services/ai_assistant_service.dart"
+          echo PARIDADE_WINDOWS_FONTE_OK
