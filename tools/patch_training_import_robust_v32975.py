@@ -22,6 +22,16 @@ if "package:excel_community/excel_community.dart" not in s:
     s=s.replace("import 'package:file_picker/file_picker.dart';\n","import 'package:file_picker/file_picker.dart';\nimport 'package:excel_community/excel_community.dart' as legacy_excel;\n",1)
 s=s.replace("allowedExtensions: const ['pdf', 'xlsx', 'csv']","allowedExtensions: const ['pdf', 'xlsx', 'xls', 'csv']")
 
+s=s.replace(
+    "'data', 'data treinamento', 'data realizacao', 'realizacao',\n          'data curso', 'data do curso', 'data realizado'",
+    "'data', 'data treinamento', 'data realizacao', 'data de realizacao',\n          'data da realizacao', 'realizacao', 'data curso', 'data do curso',\n          'data realizado', 'data realizada'",
+)
+s=s.replace(
+    "'validade', 'data validade', 'vencimento', 'data vencimento',\n          'valido ate', 'validade ate'",
+    "'validade', 'data validade', 'data de validade', 'vencimento',\n          'data vencimento', 'data de vencimento', 'valido ate', 'validade ate',\n          'validade do treinamento'",
+)
+
+
 xml_old="""  static String _xmlUnescape(String value) => value
       .replaceAll('&lt;', '<')
       .replaceAll('&gt;', '>')
