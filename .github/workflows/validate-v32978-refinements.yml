@@ -1,0 +1,195 @@
+name: Auditar SST v3.29.78 Refinos Multa e Facial
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/validate-v32978-refinements.yml'
+      - 'tools/patch_refine_new_features_v32978.py'
+      - 'build_sources/v3.29.78-refine-new-features/**'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar base ate v3.29.77
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.29.71-nc-quick-resolve/patch_nc_quick_resolve_v32971.py.xz.b64')
+          Path('/tmp/patch_nc.py').write_bytes(lzma.decompress(base64.b64decode(src.read_text().strip())))
+          PY
+          python /tmp/patch_nc.py "$APP_DIR"
+          python tools/patch_login_resilience_v32972.py "$APP_DIR"
+          python tools/patch_training_bulk_import_v32973.py "$APP_DIR"
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.29.74-training-photo/patch_training_import_photo_v32974.py.xz.b64')
+          Path('/tmp/patch_training_photo.py').write_bytes(lzma.decompress(base64.b64decode(src.read_text().strip())))
+          PY
+          python /tmp/patch_training_photo.py "$APP_DIR"
+          python tools/patch_training_import_robust_v32975.py "$APP_DIR"
+          python tools/patch_cipa_management_v32976.py "$APP_DIR"
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.29.77-checklist-fine-face/patch_checklist_fine_face_v32977.py.xz.b64')
+          Path('/tmp/patch_v32977.py').write_bytes(lzma.decompress(base64.b64decode(src.read_text().strip())))
+          PY
+          python /tmp/patch_v32977.py "$APP_DIR"
+
+      - name: Proteger sincronizacao e banco
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          protected=[
+            'lib/services/device_sync_service.dart',
+            'lib/services/media_sync_service.dart',
+            'lib/services/apps_script_http.dart',
+            'lib/services/sync_coordinator.dart',
+            'lib/services/auth_service.dart',
+            'lib/services/drive_service.dart',
+            'lib/services/worker_import_service.dart',
+            'lib/database.dart',
+          ]
+          Path('/tmp/protected.json').write_text(json.dumps({
+            rel: hashlib.sha256((root/rel).read_bytes()).hexdigest()
+            for rel in protected
+          }),encoding='utf-8')
+          code=(root/'painel_web_google_apps_script/Code.gs').read_text(encoding='utf-8')
+          pairs=[
+            ('doPost','function doPost(e) {','function pushDeviceChanges_'),
+            ('push','function pushDeviceChanges_','function pullDeviceChanges_'),
+            ('pull','function pullDeviceChanges_','function ensureDeviceSyncStorage_'),
+          ]
+          data={}
+          for name,start,end in pairs:
+            a=code.find(start); b=code.find(end,a+1)
+            if a<0 or b<0: raise SystemExit('Trecho sync nao localizado: '+name)
+            data[name]=hashlib.sha256(code[a:b].encode()).hexdigest()
+          Path('/tmp/sync.json').write_text(json.dumps(data),encoding='utf-8')
+          PY
+
+      - name: Aplicar refinamentos v3.29.78
+        run: python tools/patch_refine_new_features_v32978.py "$APP_DIR"
+
+      - name: Confirmar sincronizacao intacta
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          before=json.loads(Path('/tmp/protected.json').read_text())
+          changed=[]
+          for rel,old in before.items():
+            cur=hashlib.sha256((root/rel).read_bytes()).hexdigest()
+            if cur!=old: changed.append(rel)
+            else: print('PROTEGIDO_OK',rel)
+          if changed: raise SystemExit('ARQUIVO PROTEGIDO ALTERADO: '+', '.join(changed))
+          expected=json.loads(Path('/tmp/sync.json').read_text())
+          code=(root/'painel_web_google_apps_script/Code.gs').read_text(encoding='utf-8')
+          pairs=[
+            ('doPost','function doPost(e) {','function pushDeviceChanges_'),
+            ('push','function pushDeviceChanges_','function pullDeviceChanges_'),
+            ('pull','function pullDeviceChanges_','function ensureDeviceSyncStorage_'),
+          ]
+          for name,start,end in pairs:
+            a=code.find(start); b=code.find(end,a+1)
+            cur=hashlib.sha256(code[a:b].encode()).hexdigest()
+            if cur!=expected[name]: raise SystemExit('SYNC ALTERADO: '+name)
+            print('CENTRAL_SYNC_OK',name)
+          print('SINCRONIZACAO_V32978_INTACTA_OK')
+          PY
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar projeto
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          python ../../tools/fix_read_pdf_text_r8_v32965.py .
+          python ../../tools/fix_mlkit_text_r8_v32974.py .
+
+      - name: Formatar analisar e testar
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          dart format \
+            lib/screens/checklist_screen.dart \
+            lib/services/pdf_service.dart \
+            lib/services/styled_report_pdf_service.dart \
+            lib/screens/facial_confirmation_screen.dart \
+            lib/screens/sst_record_form_screen.dart \
+            lib/screens/training_records_screen.dart \
+            lib/services/dds_pdf_service.dart \
+            lib/services/training_record_pdf_service.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+
+      - name: Validar refinamentos
+        run: |
+          set -euo pipefail
+          grep -q 'version: 3.29.78+220' "$APP_DIR/pubspec.yaml"
+          grep -q 'Valor de referência' "$APP_DIR/lib/screens/checklist_screen.dart"
+          grep -q 'Base / observação do valor' "$APP_DIR/lib/screens/checklist_screen.dart"
+          grep -q "'amountCents': fineCents" "$APP_DIR/lib/screens/checklist_screen.dart"
+          grep -q "'referenceOnly': true" "$APP_DIR/lib/screens/checklist_screen.dart"
+          grep -q 'Multa (valor de referência)' "$APP_DIR/lib/services/pdf_service.dart"
+          grep -q 'sem cálculo automático pelo Auditar' "$APP_DIR/lib/services/pdf_service.dart"
+          grep -q 'photoSha256' "$APP_DIR/lib/screens/facial_confirmation_screen.dart"
+          grep -q 'proofCode' "$APP_DIR/lib/screens/facial_confirmation_screen.dart"
+          grep -q "consentVersion': 'facial-photo-v2'" "$APP_DIR/lib/screens/sst_record_form_screen.dart"
+          grep -q "faceProofCode" "$APP_DIR/lib/screens/training_records_screen.dart"
+          grep -q "proofCode" "$APP_DIR/lib/services/dds_pdf_service.dart"
+          grep -q "faceProofCode" "$APP_DIR/lib/services/training_record_pdf_service.dart"
+          python tools/regression_training_records_v32968_v3306.py "$APP_DIR" 3.29.78+220
+          python tools/regression_internal_management_training_v32969_v3307.py "$APP_DIR" 3.29.78+220
+          echo REFINOS_V32978_OK
+
+      - name: Snapshot fonte validada
+        run: |
+          mkdir -p dist
+          tar -czf dist/Auditar-SST-v3.29.78-refinos-validada.tar.gz -C "$APP_DIR" \
+            lib/screens/checklist_screen.dart \
+            lib/services/pdf_service.dart \
+            lib/services/styled_report_pdf_service.dart \
+            lib/screens/facial_confirmation_screen.dart \
+            lib/screens/sst_record_form_screen.dart \
+            lib/screens/training_records_screen.dart \
+            lib/services/dds_pdf_service.dart \
+            lib/services/training_record_pdf_service.dart \
+            pubspec.yaml
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.78-Refinos-Fonte-Validada
+          path: dist/*
+          retention-days: 30
