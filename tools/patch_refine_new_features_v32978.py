@@ -393,12 +393,17 @@ write(rel,c)
 # Treinamento: metadados de prova facial
 rel='lib/screens/training_records_screen.dart'
 c=read(rel)
-c=replace_once(
-    c,
-    "            'confirmationMethod': 'face',",
-    "            'confirmationMethod': 'face',\n            'faceProofCode': result.proofCode,\n            'facePhotoSha256': result.photoSha256,\n            'faceConsentVersion': 'facial-photo-v2',",
-    'training proof payload',
+training_pattern = re.compile(
+    r"(['\"]confirmationMethod['\"]\s*:\s*['\"]face['\"]\s*,)",
+    re.S,
 )
+training_replacement = r"""\1
+            'faceProofCode': result.proofCode,
+            'facePhotoSha256': result.photoSha256,
+            'faceConsentVersion': 'facial-photo-v2',"""
+c,n=training_pattern.subn(training_replacement,c,count=1)
+if n!=1:
+    raise RuntimeError('Marcador não localizado: training proof payload')
 write(rel,c)
 
 # PDF DDS: copiar proofCode para a linha e exibir abaixo da foto
