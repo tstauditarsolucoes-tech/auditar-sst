@@ -154,11 +154,14 @@ write(rel,c)
 rel='lib/services/styled_report_pdf_service.dart'
 c=read(rel)
 
-marker="""    final conformity =
-        considered == 0 ? 0 : (conformes / considered * 100).round();
-"""
-insert="""    final conformity =
-        considered == 0 ? 0 : (conformes / considered * 100).round();
+styled_conformity_pattern = re.compile(
+    r"(\s*final conformity\s*=\s*considered\s*==\s*0\s*\?\s*0\s*:\s*\(conformes\s*/\s*considered\s*\*\s*100\)\.round\(\);)",
+    re.S,
+)
+m=styled_conformity_pattern.search(c)
+if not m:
+    raise RuntimeError('Marcador não localizado: fine summary styled vars')
+styled_fine_vars = m.group(1) + """
     final reportFineValues = answers
         .map(_fineAmountCentsForReport)
         .whereType<int>()
@@ -166,9 +169,8 @@ insert="""    final conformity =
     final reportFineTotalCents = reportFineValues.fold<int>(
       0,
       (sum, value) => sum + value,
-    );
-"""
-c=replace_once(c,marker,insert,'fine summary styled vars')
+    );"""
+c = c[:m.start()] + styled_fine_vars + c[m.end():]
 
 marker="""        _summaryGrid(
           conformity: conformity,
