@@ -1,0 +1,48 @@
+name: Export current training import sources
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/export-current-training-import-sources.yml'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Assemble current v3.29.72
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.29.71-nc-quick-resolve/patch_nc_quick_resolve_v32971.py.xz.b64')
+          Path('/tmp/patch_nc.py').write_bytes(lzma.decompress(base64.b64decode(src.read_text().strip())))
+          PY
+          python /tmp/patch_nc.py "$APP_DIR"
+          python tools/patch_login_resilience_v32972.py "$APP_DIR"
+          mkdir -p export/lib/screens export/lib/services
+          cp "$APP_DIR/pubspec.yaml" export/
+          cp "$APP_DIR/lib/database.dart" export/lib/
+          cp "$APP_DIR/lib/models.dart" export/lib/
+          cp "$APP_DIR/lib/screens/training_records_screen.dart" export/lib/screens/
+          cp "$APP_DIR/lib/screens/trainings_screen.dart" export/lib/screens/
+          cp "$APP_DIR/lib/services/worker_import_service.dart" export/lib/services/
+          find "$APP_DIR/lib/services" -maxdepth 1 -type f -printf '%f\n' | sort > export/services.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: current-training-import-sources
+          path: export
+          retention-days: 3
