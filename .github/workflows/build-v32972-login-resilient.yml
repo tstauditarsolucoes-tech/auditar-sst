@@ -1,0 +1,144 @@
+name: Auditar SST Android v3.29.72 Login Resiliente
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/build-v32972-login-resilient.yml'
+      - 'tools/patch_login_resilience_v32972.py'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar base estável v3.29.71
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.29.71-nc-quick-resolve/patch_nc_quick_resolve_v32971.py.xz.b64')
+          Path('/tmp/patch_nc_quick_resolve_v32971.py').write_bytes(
+              lzma.decompress(base64.b64decode(src.read_text().strip()))
+          )
+          PY
+          python /tmp/patch_nc_quick_resolve_v32971.py "$APP_DIR"
+
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          protected=[
+            root/'lib/services/device_sync_service.dart',
+            root/'lib/services/media_sync_service.dart',
+            root/'lib/services/apps_script_http.dart',
+            root/'lib/services/sync_coordinator.dart',
+            root/'lib/services/drive_service.dart',
+            root/'lib/services/worker_import_service.dart',
+            root/'lib/database.dart',
+            root/'lib/screens/companies_screen.dart',
+            root/'lib/screens/extinguishers_screen.dart',
+            root/'lib/screens/training_records_screen.dart',
+            root/'lib/screens/non_conformity_detail_screen.dart',
+            root/'lib/services/nc_pdf_service.dart',
+          ]
+          state={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in protected if p.exists()}
+          Path('/tmp/v32972_protected.json').write_text(json.dumps(state),encoding='utf-8')
+          PY
+
+      - name: Aplicar correção de login
+        run: |
+          python tools/patch_login_resilience_v32972.py "$APP_DIR"
+
+      - name: Confirmar núcleo e recursos anteriores preservados
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          before=json.loads(Path('/tmp/v32972_protected.json').read_text(encoding='utf-8'))
+          changed=[]
+          for rel,old in before.items():
+            new=hashlib.sha256((root/rel).read_bytes()).hexdigest()
+            if new!=old:
+              changed.append(rel)
+            else:
+              print('PROTEGIDO_OK',rel,new)
+          if changed:
+            raise SystemExit('Arquivos protegidos alterados: '+', '.join(changed))
+          print('NUCLEO_V32971_PRESERVADO_OK')
+          PY
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar Android
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          python ../../tools/fix_read_pdf_text_r8_v32965.py .
+
+      - name: Formatar analisar e testar
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          dart format lib/services/auth_service.dart lib/screens/login_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+
+      - name: Regressões login e recursos anteriores
+        run: |
+          set -euo pipefail
+          grep -q 'version: 3.29.72+214' "$APP_DIR/pubspec.yaml"
+          grep -q "allowLongAndroidRequest: true" "$APP_DIR/lib/services/auth_service.dart"
+          grep -q "timeout: const Duration(seconds: 30)" "$APP_DIR/lib/services/auth_service.dart"
+          grep -q "AuthService.login(username: username, password: pass);" "$APP_DIR/lib/screens/login_screen.dart"
+          ! grep -A2 "AuthService.login(username: username, password: pass)" "$APP_DIR/lib/screens/login_screen.dart" | grep -q "timeout"
+          grep -q "Future<void> _resolveNow() async" "$APP_DIR/lib/screens/non_conformity_detail_screen.dart"
+          grep -q "_parseExtractedRhText" "$APP_DIR/lib/services/worker_import_service.dart"
+          grep -q "registerExtinguisherPhoto" "$APP_DIR/lib/services/media_sync_service.dart"
+          python tools/regression_training_records_v32968_v3306.py "$APP_DIR" 3.29.72+214
+          python tools/regression_internal_management_training_v32969_v3307.py "$APP_DIR" 3.29.72+214
+          echo 'REGRESSOES_V32972_OK'
+
+      - name: Compilar APK release
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY"
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Preparar APK
+        run: |
+          mkdir -p dist/android
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" 'dist/android/Auditar-SST-v3.29.72-LOGIN-RESILIENTE.apk'
+          sha256sum 'dist/android/Auditar-SST-v3.29.72-LOGIN-RESILIENTE.apk' > 'dist/android/Auditar-SST-v3.29.72-LOGIN-RESILIENTE.sha256.txt'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.72-Android-Login-Resiliente
+          path: dist/android/*
+          retention-days: 30
