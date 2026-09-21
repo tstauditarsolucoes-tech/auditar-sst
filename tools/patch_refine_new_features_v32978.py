@@ -415,45 +415,37 @@ c=replace_once(
     "      row['method'] = '${signature['method'] ?? 'signature'}';\n      row['proofCode'] = '${signature['proofCode'] ?? ''}';\n      row['photoSha256'] = '${signature['photoSha256'] ?? ''}';",
     'dds pdf proof copy',
 )
-dds_facial_pattern = re.compile(
-    r"pw\.Text\(\s*'FACIAL',\s*style:\s*(?:const\s+)?pw\.TextStyle\(.*?fontWeight:\s*pw\.FontWeight\.bold,?\s*\)\s*\),",
-    re.S,
-)
-dds_match = dds_facial_pattern.search(c)
-if not dds_match:
+dds_marker = "pw.Text('FACIAL', style: pw.TextStyle(fontSize: 5.5, fontWeight: pw.FontWeight.bold)),"
+dds_replacement = dds_marker + """
+                            if ('${row['proofCode'] ?? ''}'.trim().isNotEmpty)
+                              pw.Text(
+                                '${row['proofCode']}',
+                                style: const pw.TextStyle(
+                                  fontSize: 4.8,
+                                  color: PdfColors.grey700,
+                                ),
+                              ),"""
+if dds_marker not in c:
     raise RuntimeError('Marcador não localizado: dds pdf proof label')
-dds_extra = """
-                              if ('${row['proofCode'] ?? ''}'.trim().isNotEmpty)
-                                pw.Text(
-                                  '${row['proofCode']}',
-                                  style: const pw.TextStyle(
-                                    fontSize: 4.8,
-                                    color: PdfColors.grey700,
-                                  ),
-                                ),"""
-c = c[:dds_match.end()] + dds_extra + c[dds_match.end():]
+c = c.replace(dds_marker, dds_replacement, 1)
 write(rel,c)
 
 # PDF Treinamento: exibir código de prova sob a foto
 rel='lib/services/training_record_pdf_service.dart'
 c=read(rel)
-training_facial_pattern = re.compile(
-    r"pw\.Text\(\s*'FACIAL',\s*style:\s*(?:const\s+)?pw\.TextStyle\(.*?fontWeight:\s*pw\.FontWeight\.bold,?\s*\),\s*\),",
-    re.S,
-)
-training_match = training_facial_pattern.search(c)
-if not training_match:
+training_marker = "pw.Text('FACIAL', style: pw.TextStyle(fontSize: 5.7, fontWeight: pw.FontWeight.bold)),"
+training_replacement = training_marker + """
+                            if ('${person['faceProofCode'] ?? ''}'.trim().isNotEmpty)
+                              pw.Text(
+                                '${person['faceProofCode']}',
+                                style: const pw.TextStyle(
+                                  fontSize: 4.8,
+                                  color: PdfColors.grey700,
+                                ),
+                              ),"""
+if training_marker not in c:
     raise RuntimeError('Marcador não localizado: training pdf proof label')
-training_extra = """
-                          if ('${person['faceProofCode'] ?? ''}'.trim().isNotEmpty)
-                            pw.Text(
-                              '${person['faceProofCode']}',
-                              style: const pw.TextStyle(
-                                fontSize: 4.8,
-                                color: PdfColors.grey700,
-                              ),
-                            ),"""
-c = c[:training_match.end()] + training_extra + c[training_match.end():]
+c = c.replace(training_marker, training_replacement, 1)
 write(rel,c)
 
 # Garantias
