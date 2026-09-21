@@ -416,7 +416,7 @@ c=replace_once(
     'dds pdf proof copy',
 )
 dds_facial_pattern = re.compile(
-    r"pw\.Text\(\s*'FACIAL',\s*style:\s*(?:const\s+)?pw\.TextStyle\(.*?fontWeight:\s*pw\.FontWeight\.bold,?\s*\),\s*\),",
+    r"pw\.Text\(\s*'FACIAL',\s*style:\s*(?:const\s+)?pw\.TextStyle\(.*?fontWeight:\s*pw\.FontWeight\.bold,?\s*\)\s*\),",
     re.S,
 )
 dds_match = dds_facial_pattern.search(c)
