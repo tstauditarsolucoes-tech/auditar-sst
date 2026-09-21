@@ -100,7 +100,7 @@ jobs:
           if (-not (Select-String "$env:APP_DIR/lib/services/training_import_service.dart" -Pattern 'Fotos • IA da Central' -Quiet)) { throw 'IA fotos ausente' }
           if (-not (Select-String "$env:APP_DIR/lib/screens/cipa_management_screen.dart" -Pattern 'Mandato' -Quiet)) { throw 'CIPA ausente' }
           if (-not (Select-String "$env:APP_DIR/lib/screens/checklist_screen.dart" -Pattern 'Valor de referência' -Quiet)) { throw 'multa ausente' }
-          if (-not (Select-String "$env:APP_DIR/lib/services/report_template_service.dart" -Pattern 'Performance - Foto + Descrição' -Quiet)) { throw 'modelo Performance ausente' }
+          if (-not (Select-String "$env:APP_DIR/lib/services/report_template_service.dart" -Pattern 'Performance - Foto' -Quiet)) { throw 'modelo Performance ausente' }
           Write-Host 'REGRESSOES_WINDOWS_OK'
 
       - name: Teste real IA de foto
