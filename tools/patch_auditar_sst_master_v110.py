@@ -9,14 +9,17 @@ pkg=Path('auditar-sst-master-windows/package.json')
 
 c=app.read_text(encoding='utf-8')
 
-old="""  const cleanUsername=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9._-]+/g,'').replace(/^[._-]+|[._-]+$/g,'').slice(0,40);
-"""
-new="""  const cleanUsername=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9._-]+/g,'').replace(/^[._-]+|[._-]+$/g,'').slice(0,40);
-  const cleanLogin=v=>String(v||'').trim().toLowerCase();
-  const loginEmail=v=>{const raw=cleanLogin(v);if(raw.includes('@'))return raw;const u=cleanUsername(raw);return u?u+'@auditar.local':''};
-"""
-if old not in c: raise RuntimeError('cleanUsername marker ausente')
-c=c.replace(old,new,1)
+if "const loginEmail=" not in c:
+    marker="  const cleanUsername="
+    start=c.find(marker)
+    if start<0:
+        raise RuntimeError('cleanUsername marker ausente')
+    end=c.find("\n",start)
+    if end<0:
+        raise RuntimeError('fim cleanUsername ausente')
+    line=c[start:end]
+    insert=line+"\n  const cleanLogin=v=>String(v||'').trim().toLowerCase();\n  const loginEmail=v=>{const raw=cleanLogin(v);if(raw.includes('@'))return raw;const u=cleanUsername(raw);return u?u+'@auditar.local':''};"
+    c=c[:start]+insert+c[end:]
 
 old="""    const username=cleanUsername($('#loginUser').value),password=$('#loginPass').value,name=$('#setupName').value.trim(),btn=$('#btnLogin'),err=$('#loginError');
     if(!username||!password){err.textContent='Informe usuário e senha.';return}
