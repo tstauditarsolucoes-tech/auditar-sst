@@ -1,0 +1,25 @@
+name: Diagnostico Auth Windows v3.30.8
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/diag-auth-windows-v3308.yml'
+permissions:
+  contents: read
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: |
+          python tools/assemble_windows_v3305_report_templates.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" windows
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" windows
+          python tools/patch_management_panel_logo_theme_v32970_v3308.py "$APP_DIR" windows
+          echo '=== AUTH POST ==='
+          grep -n -A80 -B15 "static Future<Map<String, dynamic>> _post" "$APP_DIR/lib/services/auth_service.dart" || true
+          echo '=== LOGIN ==='
+          grep -n -A90 -B15 "static Future<void> login" "$APP_DIR/lib/services/auth_service.dart" || true
