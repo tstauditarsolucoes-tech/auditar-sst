@@ -1,0 +1,262 @@
+name: Auditar SST Android v3.29.76 Gestão Completa CIPA
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/build-v32976-cipa-management.yml'
+      - 'build_sources/v3.29.76-cipa/**'
+      - 'tools/patch_cipa_management_v32976.py'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar base estável até v3.29.75
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.29.71-nc-quick-resolve/patch_nc_quick_resolve_v32971.py.xz.b64')
+          Path('/tmp/patch_nc.py').write_bytes(lzma.decompress(base64.b64decode(src.read_text().strip())))
+          PY
+          python /tmp/patch_nc.py "$APP_DIR"
+          python tools/patch_login_resilience_v32972.py "$APP_DIR"
+          python tools/patch_training_bulk_import_v32973.py "$APP_DIR"
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.29.74-training-photo/patch_training_import_photo_v32974.py.xz.b64')
+          Path('/tmp/patch_training_photo.py').write_bytes(lzma.decompress(base64.b64decode(src.read_text().strip())))
+          PY
+          python /tmp/patch_training_photo.py "$APP_DIR"
+          python tools/patch_training_import_robust_v32975.py "$APP_DIR"
+
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          protected=[
+            root/'lib/services/device_sync_service.dart',
+            root/'lib/services/media_sync_service.dart',
+            root/'lib/services/apps_script_http.dart',
+            root/'lib/services/sync_coordinator.dart',
+            root/'lib/services/auth_service.dart',
+            root/'lib/services/drive_service.dart',
+            root/'lib/services/worker_import_service.dart',
+            root/'lib/database.dart',
+            root/'lib/screens/cipa_screen.dart',
+            root/'lib/screens/cipa_election_detail_screen.dart',
+            root/'lib/screens/training_records_screen.dart',
+            root/'lib/screens/non_conformity_detail_screen.dart',
+          ]
+          state={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in protected if p.exists()}
+          Path('/tmp/v32976_protected.json').write_text(json.dumps(state),encoding='utf-8')
+
+          code=(root/'painel_web_google_apps_script/Code.gs').read_text(encoding='utf-8')
+          pairs=[
+            ('doPost','function doPost(e) {','function pushDeviceChanges_'),
+            ('push','function pushDeviceChanges_','function pullDeviceChanges_'),
+            ('pull','function pullDeviceChanges_','function ensureDeviceSyncStorage_'),
+          ]
+          slices={}
+          for name,start,end in pairs:
+            a=code.find(start); b=code.find(end,a+1)
+            if a<0 or b<0: raise SystemExit('Trecho crítico da Central não localizado: '+name)
+            slices[name]=hashlib.sha256(code[a:b].encode()).hexdigest()
+          Path('/tmp/v32976_sync_slices.json').write_text(json.dumps(slices),encoding='utf-8')
+          PY
+
+      - name: Aplicar módulo CIPA completo
+        run: python tools/patch_cipa_management_v32976.py "$APP_DIR"
+
+      - name: Confirmar sincronização intacta
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          before=json.loads(Path('/tmp/v32976_protected.json').read_text(encoding='utf-8'))
+          changed=[]
+          for rel,old in before.items():
+            new=hashlib.sha256((root/rel).read_bytes()).hexdigest()
+            if new!=old: changed.append(rel)
+            else: print('PROTEGIDO_OK',rel,new)
+          if changed:
+            raise SystemExit('ARQUIVO PROTEGIDO ALTERADO: '+', '.join(changed))
+
+          expected=json.loads(Path('/tmp/v32976_sync_slices.json').read_text(encoding='utf-8'))
+          code=(root/'painel_web_google_apps_script/Code.gs').read_text(encoding='utf-8')
+          pairs=[
+            ('doPost','function doPost(e) {','function pushDeviceChanges_'),
+            ('push','function pushDeviceChanges_','function pullDeviceChanges_'),
+            ('pull','function pullDeviceChanges_','function ensureDeviceSyncStorage_'),
+          ]
+          for name,start,end in pairs:
+            a=code.find(start); b=code.find(end,a+1)
+            current=hashlib.sha256(code[a:b].encode()).hexdigest()
+            if current!=expected[name]:
+              raise SystemExit('SYNC CENTRAL ALTERADO: '+name)
+            print('CENTRAL_SYNC_OK',name,current)
+          print('SINCRONIZACAO_V32976_INTACTA_OK')
+          PY
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar Android e testes CIPA
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          python ../../tools/fix_read_pdf_text_r8_v32965.py .
+          python ../../tools/fix_mlkit_text_r8_v32974.py .
+          cat > test/cipa_management_service_test.dart <<'DART'
+          import 'package:auditar_sst/models.dart';
+          import 'package:auditar_sst/services/cipa_management_service.dart';
+          import 'package:flutter_test/flutter_test.dart';
+
+          void main() {
+            test('identifica treinamento CIPA e NR-05 na base existente', () {
+              final a = TrainingControl(
+                id: 't1',
+                workerId: 'w1',
+                code: 'NR 05',
+                title: 'Treinamento da CIPA',
+              );
+              final b = TrainingControl(
+                id: 't2',
+                workerId: 'w1',
+                code: 'NR 35',
+                title: 'Trabalho em Altura',
+              );
+              expect(CipaManagementService.isCipaTraining(a), isTrue);
+              expect(CipaManagementService.isCipaTraining(b), isFalse);
+            });
+
+            test('ação da CIPA vencida é identificada sem alterar status resolvido', () {
+              final overdue = SstRecord(
+                id: 'a1',
+                companyId: 'c1',
+                type: CipaManagementService.actionType,
+                title: 'Adequar proteção',
+                date: DateTime(2026, 9, 1),
+                dueDate: DateTime(2026, 9, 10),
+                status: 'Aberta',
+              );
+              final resolved = SstRecord(
+                id: 'a2',
+                companyId: 'c1',
+                type: CipaManagementService.actionType,
+                title: 'Concluída',
+                date: DateTime(2026, 9, 1),
+                dueDate: DateTime(2026, 9, 10),
+                status: 'Resolvida',
+              );
+              final now = DateTime(2026, 9, 21);
+              expect(CipaManagementService.isOverdue(overdue, now: now), isTrue);
+              expect(CipaManagementService.isOverdue(resolved, now: now), isFalse);
+            });
+
+            test('tipos CIPA usam sst_records já sincronizado', () {
+              expect(CipaManagementService.mandateType, 'CIPA_MANDATO');
+              expect(CipaManagementService.memberType, 'CIPA_MEMBRO');
+              expect(CipaManagementService.meetingType, 'CIPA_REUNIAO');
+              expect(CipaManagementService.minutesType, 'CIPA_ATA');
+              expect(CipaManagementService.actionType, 'CIPA_ACAO');
+              expect(CipaManagementService.documentType, 'CIPA_DOCUMENTO');
+            });
+          }
+          DART
+
+      - name: Formatar analisar e testar
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          dart format             lib/services/cipa_management_service.dart             lib/screens/cipa_management_screen.dart             lib/screens/company_detail_screen.dart             test/cipa_management_service_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+
+      - name: Regressões CIPA e módulos preservados
+        run: |
+          set -euo pipefail
+          cp "$APP_DIR/painel_web_google_apps_script/Code.gs" /tmp/Code-v32976.js
+          node --check /tmp/Code-v32976.js
+          grep -q 'version: 3.29.76+218' "$APP_DIR/pubspec.yaml"
+          grep -q "CipaManagementScreen(companyId: widget.company.id)" "$APP_DIR/lib/screens/company_detail_screen.dart"
+          grep -q "Tab(text: 'Painel')" "$APP_DIR/lib/screens/cipa_management_screen.dart"
+          grep -q "Tab(text: 'Mandato')" "$APP_DIR/lib/screens/cipa_management_screen.dart"
+          grep -q "Tab(text: 'Membros')" "$APP_DIR/lib/screens/cipa_management_screen.dart"
+          grep -q "Tab(text: 'Reuniões')" "$APP_DIR/lib/screens/cipa_management_screen.dart"
+          grep -q "Tab(text: 'Atas')" "$APP_DIR/lib/screens/cipa_management_screen.dart"
+          grep -q "Tab(text: 'Ações')" "$APP_DIR/lib/screens/cipa_management_screen.dart"
+          grep -q "Tab(text: 'Eleição')" "$APP_DIR/lib/screens/cipa_management_screen.dart"
+          grep -q "Tab(text: 'Treinamentos')" "$APP_DIR/lib/screens/cipa_management_screen.dart"
+          grep -q "Tab(text: 'Documentos')" "$APP_DIR/lib/screens/cipa_management_screen.dart"
+          grep -q "Tab(text: 'Histórico')" "$APP_DIR/lib/screens/cipa_management_screen.dart"
+          grep -q "type: 'AGENDA'" "$APP_DIR/lib/services/cipa_management_service.dart"
+          grep -q "CREATE TABLE" "$APP_DIR/lib/database.dart"
+          grep -q "cipa_minutes_import" "$APP_DIR/painel_web_google_apps_script/Code.gs"
+          grep -q "createNcFromAction" "$APP_DIR/lib/services/cipa_management_service.dart"
+          grep -q "media_assets" "$APP_DIR/lib/services/cipa_management_service.dart"
+          grep -q "upsertSstRecord" "$APP_DIR/lib/services/cipa_management_service.dart"
+          grep -q "CipaScreen(" "$APP_DIR/lib/screens/cipa_management_screen.dart"
+          python tools/regression_training_records_v32968_v3306.py "$APP_DIR" 3.29.76+218
+          python tools/regression_internal_management_training_v32969_v3307.py "$APP_DIR" 3.29.76+218
+          echo 'REGRESSOES_V32976_CIPA_OK'
+
+      - name: Compilar APK release
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY"
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Preparar artefatos
+        run: |
+          mkdir -p dist/android dist/central
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" 'dist/android/Auditar-SST-v3.29.76-GESTAO-CIPA.apk'
+          sha256sum 'dist/android/Auditar-SST-v3.29.76-GESTAO-CIPA.apk' > 'dist/android/Auditar-SST-v3.29.76-GESTAO-CIPA.sha256.txt'
+          cp "$APP_DIR/painel_web_google_apps_script/Code.gs" dist/central/Code.gs
+          cat > dist/central/LEIA-ME.txt <<'TXT'
+          Central v3.29.76:
+          adiciona apenas o modo de IA cipa_minutes_import para leitura de atas.
+          Os trechos device_sync_push/device_sync_pull NÃO foram alterados.
+          A gestão CIPA funciona localmente e sincroniza pelos sst_records/media_assets já existentes.
+          A atualização desta Central é necessária somente para ativar a leitura de atas por IA.
+          TXT
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.76-Android-Gestao-CIPA
+          path: dist/android/*
+          retention-days: 30
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.76-Central-IA-CIPA
+          path: dist/central/*
+          retention-days: 30
