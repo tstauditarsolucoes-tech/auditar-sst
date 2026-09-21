@@ -296,7 +296,17 @@ new_ui="""                                    if (isNc) ...[
                                       ),
                                       const SizedBox(height: 12),
 """
-c=replace_once(c,old_ui,new_ui,'ui multa refinada')
+ui_pattern = re.compile(
+    r"\s*const SizedBox\(height:\s*10\),\s*"
+    r"TextField\(\s*controller:\s*fineAmounts\[item\.id\],.*?"
+    r"SwitchListTile\(.*?fineShowInReport\[item\.id\].*?"
+    r"_scheduleDraftSave\(\);\s*\},\s*\),\s*"
+    r"if\s*\(isNc\)\s*\.\.\.\[",
+    re.S,
+)
+c,n=ui_pattern.subn("\n"+new_ui.rstrip(),c,count=1)
+if n!=1:
+    raise RuntimeError('Marcador não localizado: ui multa refinada')
 write(rel,c)
 
 # Relatórios: moeda padronizada e base
