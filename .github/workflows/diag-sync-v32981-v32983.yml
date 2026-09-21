@@ -1,0 +1,85 @@
+name: Diagnostico Sync Android v3.29.81 vs v3.29.83
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/diag-sync-v32981-v32983.yml'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar v3.29.81
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python tools/patch_management_panel_logo_theme_v32970_v3308.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          for src,out in [
+            ('build_sources/v3.29.71-nc-quick-resolve/patch_nc_quick_resolve_v32971.py.xz.b64','/tmp/p71.py'),
+            ('build_sources/v3.29.74-training-photo/patch_training_import_photo_v32974.py.xz.b64','/tmp/p74.py'),
+            ('build_sources/v3.29.77-checklist-fine-face/patch_checklist_fine_face_v32977.py.xz.b64','/tmp/p77.py'),
+          ]:
+            Path(out).write_bytes(lzma.decompress(base64.b64decode(Path(src).read_text().strip())))
+          PY
+          python /tmp/p71.py "$APP_DIR"
+          python tools/patch_login_resilience_v32972.py "$APP_DIR"
+          python tools/patch_training_bulk_import_v32973.py "$APP_DIR"
+          python /tmp/p74.py "$APP_DIR"
+          python tools/patch_training_import_robust_v32975.py "$APP_DIR"
+          python tools/patch_cipa_management_v32976.py "$APP_DIR"
+          python /tmp/p77.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32978.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32979.py "$APP_DIR"
+          python tools/patch_performance_report_v32980.py "$APP_DIR"
+          python tools/patch_cross_platform_refinement_v32981.py "$APP_DIR" android
+
+          mkdir -p export/v32981
+          for f in             lib/services/device_sync_service.dart             lib/services/media_sync_service.dart             lib/services/apps_script_http.dart             lib/services/sync_coordinator.dart             lib/services/web_service_config.dart             lib/services/sst_record_service.dart             lib/database.dart             lib/main.dart             lib/screens/settings_screen.dart             lib/screens/company_detail_screen.dart; do
+              if [ -f "$APP_DIR/$f" ]; then
+                mkdir -p "export/v32981/$(dirname "$f")"
+                cp "$APP_DIR/$f" "export/v32981/$f"
+              fi
+          done
+          sha256sum             "$APP_DIR/lib/services/device_sync_service.dart"             "$APP_DIR/lib/services/media_sync_service.dart"             "$APP_DIR/lib/services/apps_script_http.dart"             "$APP_DIR/lib/services/sync_coordinator.dart"             "$APP_DIR/lib/database.dart" > export/v32981/hashes.txt
+          grep -RniE "sync|uploadPending|DeviceSync|SyncCoordinator|WebServiceConfig|AUDITAR_SYNC_KEY|sst_records|upsertSstRecord|mark.*dirty|revision|snapshot"             "$APP_DIR/lib" > export/v32981/sync-markers.txt || true
+
+      - name: Aplicar v3.29.83
+        run: |
+          python tools/patch_signature_handoff_v32982.py "$APP_DIR" android
+          python tools/patch_pre_admission_search_v32983.py "$APP_DIR" android
+
+          mkdir -p export/v32983
+          for f in             lib/services/device_sync_service.dart             lib/services/media_sync_service.dart             lib/services/apps_script_http.dart             lib/services/sync_coordinator.dart             lib/services/web_service_config.dart             lib/services/sst_record_service.dart             lib/services/pre_admission_participant_service.dart             lib/database.dart             lib/main.dart             lib/screens/settings_screen.dart             lib/screens/company_detail_screen.dart             lib/screens/training_records_screen.dart             lib/screens/sst_record_form_screen.dart; do
+              if [ -f "$APP_DIR/$f" ]; then
+                mkdir -p "export/v32983/$(dirname "$f")"
+                cp "$APP_DIR/$f" "export/v32983/$f"
+              fi
+          done
+          sha256sum             "$APP_DIR/lib/services/device_sync_service.dart"             "$APP_DIR/lib/services/media_sync_service.dart"             "$APP_DIR/lib/services/apps_script_http.dart"             "$APP_DIR/lib/services/sync_coordinator.dart"             "$APP_DIR/lib/database.dart" > export/v32983/hashes.txt
+          grep -RniE "sync|uploadPending|DeviceSync|SyncCoordinator|WebServiceConfig|AUDITAR_SYNC_KEY|sst_records|upsertSstRecord|mark.*dirty|revision|snapshot|PRE_ADMISSION_PARTICIPANT"             "$APP_DIR/lib" > export/v32983/sync-markers.txt || true
+          diff -u export/v32981/hashes.txt export/v32983/hashes.txt > export/hash-diff.txt || true
+          diff -u export/v32981/lib/services/sst_record_service.dart export/v32983/lib/services/sst_record_service.dart > export/sst-record-service.diff || true
+          diff -u export/v32981/lib/main.dart export/v32983/lib/main.dart > export/main.diff || true
+          diff -u export/v32981/lib/screens/settings_screen.dart export/v32983/lib/screens/settings_screen.dart > export/settings.diff || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: diag-sync-v32981-v32983
+          path: export
+          retention-days: 3
