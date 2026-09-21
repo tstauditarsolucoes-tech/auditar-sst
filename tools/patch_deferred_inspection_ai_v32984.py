@@ -746,8 +746,8 @@ write(rel,r)
 checks={
  'lib/screens/checklist_screen.dart':[
    "'aiPhoto': currentAi",
-   "Analisar agora com IA (opcional)",
-   "disponíveis para análise posterior na tela Relatórios",
+   "Analisar em segundo plano com IA (opcional)",
+   "não abrirá nenhuma janela automaticamente",
    "'status': 'PRONTA_REVISAO'",
  ],
  'lib/screens/report_screen.dart':[
