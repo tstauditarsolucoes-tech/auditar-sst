@@ -119,7 +119,7 @@ pubp.write_text(pub, encoding='utf-8', newline='\n')
 screenp.write_text(screen, encoding='utf-8', newline='\n')
 
 assert 'version: 3.29.73+215' in pub
-assert 'excel: ^4.0.6' in pub
+assert 'spreadsheet_decoder: ^2.3.0' in pub
 assert 'google_mlkit_text_recognition: ^0.15.0' in pub
 assert "import 'training_import_screen.dart';" in screen
 assert "title: 'Importar lista'" in screen
