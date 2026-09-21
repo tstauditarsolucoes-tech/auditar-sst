@@ -46,10 +46,14 @@ jobs:
 
           mkdir -p export/lib/screens export/lib/services
           cp "$APP_DIR/lib/screens/sst_records_screen.dart" export/lib/screens/
+          cp "$APP_DIR/lib/screens/sst_record_form_screen.dart" export/lib/screens/
           cp "$APP_DIR/lib/screens/training_records_screen.dart" export/lib/screens/
           cp "$APP_DIR/lib/screens/trainings_screen.dart" export/lib/screens/
           cp "$APP_DIR/lib/screens/signature_screen.dart" export/lib/screens/
           cp "$APP_DIR/lib/services/media_sync_service.dart" export/lib/services/
+          cp "$APP_DIR/lib/services/dds_pdf_service.dart" export/lib/services/
+          cp "$APP_DIR/lib/services/training_record_pdf_service.dart" export/lib/services/
+          cp "$APP_DIR/lib/services/storage_service.dart" export/lib/services/
           cp "$APP_DIR/lib/database.dart" export/lib/
           cp "$APP_DIR/lib/models.dart" export/lib/
           grep -RniE "signature|assinatura|attendance|presen|DDS|TrainingRecord|training_record|media_assets"             "$APP_DIR/lib/screens/sst_records_screen.dart"             "$APP_DIR/lib/screens/training_records_screen.dart"             "$APP_DIR/lib/database.dart"             "$APP_DIR/lib/models.dart" > export/refs.txt || true
