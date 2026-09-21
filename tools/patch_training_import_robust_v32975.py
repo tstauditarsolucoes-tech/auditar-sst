@@ -185,6 +185,27 @@ legacy=r'''  static _ParsedDocument _parseLegacyXls(Uint8List bytes, List<Worker
 if 'static _ParsedDocument _parseLegacyXls' not in s:
     s=s.replace('  static _ParsedDocument _parseXlsx(\n',legacy+'  static _ParsedDocument _parseXlsx(\n',1)
 
+xlsx_marker="""  static _ParsedDocument _parseXlsx(
+    Uint8List bytes,
+    List<Worker> workers,
+  ) {
+"""
+xlsx_preface="""  static _ParsedDocument _parseXlsx(
+    Uint8List bytes,
+    List<Worker> workers,
+  ) {
+    try {
+      final communityParsed = _parseLegacyXls(bytes, workers);
+      if (communityParsed.rows.isNotEmpty) return communityParsed;
+    } catch (_) {
+      // Mantém o leitor XLSX anterior como fallback.
+    }
+"""
+if 'final communityParsed = _parseLegacyXls(bytes, workers);' not in s:
+    if xlsx_marker not in s: raise RuntimeError('Entrada do parser XLSX não localizada')
+    s=s.replace(xlsx_marker,xlsx_preface,1)
+
+
 ai=r'''  static Future<_ParsedDocument?> _tryTrainingAi(
     Uint8List pdfBytes,List<Worker> workers,_ParsedDocument local,List<String> warnings,{
     bool throwWhenNoLocalRows=false,
