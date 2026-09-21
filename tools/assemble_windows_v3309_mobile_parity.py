@@ -116,8 +116,13 @@ for rel in [
 ]:
     path=root/rel
     text=path.read_text(encoding='utf-8')
-    text=re.sub(
-        r'^\s*allowLongAndroidRequest\s*:\s*[^,\n]+,\s*
+    text='\n'.join(
+        line
+        for line in text.splitlines()
+        if 'allowLongAndroidRequest:' not in line
+    ) + '\n'
+    path.write_text(text,encoding='utf-8',newline='\n')
+
 trainingp=root/'lib/services/training_import_service.dart'
 training=trainingp.read_text(encoding='utf-8')
 training=training.replace("import 'package:read_pdf_text/read_pdf_text.dart';\n",'')
