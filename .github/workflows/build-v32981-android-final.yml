@@ -1,4 +1,5 @@
 name: Auditar SST Android v3.29.81 Refinado Final
+# rebuild: correção confirmação por foto
 
 on:
   push:
