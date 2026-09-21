@@ -1,0 +1,88 @@
+name: Diagnostico Paridade Android Windows Atual
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/diag-parity-android-windows-current.yml'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar Android atual v3.29.80
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python tools/patch_management_panel_logo_theme_v32970_v3308.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.29.71-nc-quick-resolve/patch_nc_quick_resolve_v32971.py.xz.b64')
+          Path('/tmp/p71.py').write_bytes(lzma.decompress(base64.b64decode(src.read_text().strip())))
+          PY
+          python /tmp/p71.py "$APP_DIR"
+          python tools/patch_login_resilience_v32972.py "$APP_DIR"
+          python tools/patch_training_bulk_import_v32973.py "$APP_DIR"
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.29.74-training-photo/patch_training_import_photo_v32974.py.xz.b64')
+          Path('/tmp/p74.py').write_bytes(lzma.decompress(base64.b64decode(src.read_text().strip())))
+          PY
+          python /tmp/p74.py "$APP_DIR"
+          python tools/patch_training_import_robust_v32975.py "$APP_DIR"
+          python tools/patch_cipa_management_v32976.py "$APP_DIR"
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.29.77-checklist-fine-face/patch_checklist_fine_face_v32977.py.xz.b64')
+          Path('/tmp/p77.py').write_bytes(lzma.decompress(base64.b64decode(src.read_text().strip())))
+          PY
+          python /tmp/p77.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32978.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32979.py "$APP_DIR"
+          python tools/patch_performance_report_v32980.py "$APP_DIR"
+          mkdir -p export/android
+          for f in             lib/services/ai_assistant_service.dart             lib/screens/express_round_screen.dart             lib/screens/training_import_screen.dart             lib/services/training_import_service.dart             lib/screens/training_records_screen.dart             lib/screens/sst_record_form_screen.dart             lib/screens/checklist_screen.dart             lib/screens/cipa_management_screen.dart             lib/services/cipa_management_service.dart             lib/services/performance_report_pdf_service.dart             lib/services/styled_report_pdf_service.dart             lib/services/report_template_service.dart             lib/screens/non_conformity_detail_screen.dart             lib/screens/login_screen.dart             lib/services/media_sync_service.dart             lib/services/apps_script_http.dart             lib/database.dart             pubspec.yaml; do
+              if [ -f "$APP_DIR/$f" ]; then mkdir -p "export/android/$(dirname "$f")"; cp "$APP_DIR/$f" "export/android/$f"; fi
+          done
+
+      - name: Reset app source
+        run: |
+          git checkout -- "$APP_DIR" || true
+          git clean -fd "$APP_DIR" || true
+
+      - name: Montar Windows atual v3.30.8
+        run: |
+          set -euo pipefail
+          python tools/assemble_windows_v3305_report_templates.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" windows
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" windows
+          python tools/patch_management_panel_logo_theme_v32970_v3308.py "$APP_DIR" windows
+          mkdir -p export/windows
+          for f in             lib/services/ai_assistant_service.dart             lib/screens/express_round_screen.dart             lib/screens/training_import_screen.dart             lib/services/training_import_service.dart             lib/screens/training_records_screen.dart             lib/screens/sst_record_form_screen.dart             lib/screens/checklist_screen.dart             lib/screens/cipa_management_screen.dart             lib/services/cipa_management_service.dart             lib/services/performance_report_pdf_service.dart             lib/services/styled_report_pdf_service.dart             lib/services/report_template_service.dart             lib/screens/non_conformity_detail_screen.dart             lib/screens/login_screen.dart             lib/services/media_sync_service.dart             lib/services/apps_script_http.dart             lib/database.dart             pubspec.yaml; do
+              if [ -f "$APP_DIR/$f" ]; then mkdir -p "export/windows/$(dirname "$f")"; cp "$APP_DIR/$f" "export/windows/$f"; fi
+          done
+          diff -rq export/android export/windows > export/diff-summary.txt || true
+          grep -RniE "checklist_photo|safety_observation_photo|training_record_import|employee_pdf_import|images|rondaDeferred|photoSha256|Performance - Foto|CIPA_MANDATO|Valor da multa|Resolver agora" export/android > export/android-markers.txt || true
+          grep -RniE "checklist_photo|safety_observation_photo|training_record_import|employee_pdf_import|images|rondaDeferred|photoSha256|Performance - Foto|CIPA_MANDATO|Valor da multa|Resolver agora" export/windows > export/windows-markers.txt || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: parity-android-windows-current
+          path: export
+          retention-days: 3
