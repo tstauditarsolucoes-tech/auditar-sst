@@ -54,12 +54,26 @@ c=replace_once(
     "      fineAmounts[item.id]!.addListener(_scheduleDraftSave);\n      fineBases[item.id]!.addListener(_scheduleDraftSave);",
     'listener multa base',
 )
-c=replace_once(
-    c,
-    "              fineAmounts[answer.questionId]!.text = '${fine['amount'] ?? ''}';\n              fineShowInReport[answer.questionId] =\n                  fine['showInReport'] == true;",
-    "              final cents = fine['amountCents'];\n              if (cents is num && cents > 0) {\n                fineAmounts[answer.questionId]!.text =\n                    _formatFineCents(cents.round());\n              } else {\n                fineAmounts[answer.questionId]!.text =\n                    '${fine['amount'] ?? ''}';\n              }\n              fineBases[answer.questionId]!.text =\n                  '${fine['basis'] ?? ''}';\n              fineShowInReport[answer.questionId] =\n                  fine['showInReport'] == true;",
-    'load multa',
+load_pattern = re.compile(
+    r"fineAmounts\[answer\.questionId\]!\.text\s*=\s*'\$\{fine\['amount'\]\s*\?\?\s*''\}';\s*"
+    r"fineShowInReport\[answer\.questionId\]\s*=\s*fine\['showInReport'\]\s*==\s*true;",
+    re.S,
 )
+load_replacement = """final cents = fine['amountCents'];
+              if (cents is num && cents > 0) {
+                fineAmounts[answer.questionId]!.text =
+                    _formatFineCents(cents.round());
+              } else {
+                fineAmounts[answer.questionId]!.text =
+                    '${fine['amount'] ?? ''}';
+              }
+              fineBases[answer.questionId]!.text =
+                  '${fine['basis'] ?? ''}';
+              fineShowInReport[answer.questionId] =
+                  fine['showInReport'] == true;"""
+c,n=load_pattern.subn(load_replacement,c,count=1)
+if n!=1:
+    raise RuntimeError('Marcador não localizado: load multa')
 old_payload="""  String _occurrencesPayload(String itemId) {
     return jsonEncode({
       'version': 2,
