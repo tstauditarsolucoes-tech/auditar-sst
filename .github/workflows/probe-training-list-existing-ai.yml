@@ -1,0 +1,92 @@
+name: Probe Training List via Existing AI
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/probe-training-list-existing-ai.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Criar PDF sintético de treinamento
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          lines = [
+            'REGISTRO DE TREINAMENTO NR-12',
+            'Treinamento: Segurança em Máquinas e Equipamentos',
+            'Data do treinamento: 15/09/2026',
+            'Validade: 15/09/2027',
+            '',
+            'NOME | CARGO | DATA REALIZADA | VALIDADE',
+            'JOAO DA SILVA | OPERADOR | 15/09/2026 | 15/09/2027',
+            'MARIA DE SOUSA | AUXILIAR DE PRODUCAO | 15/09/2026 | 15/09/2027',
+            'CARLOS PEREIRA SANTOS | MECANICO | 15/09/2026 | 15/09/2027',
+          ]
+
+          # PDF mínimo com fonte Helvetica.
+          content = ['BT', '/F1 11 Tf', '50 790 Td']
+          first = True
+          for line in lines:
+              escaped = line.replace('\\','\\\\').replace('(','\\(').replace(')','\\)')
+              if not first:
+                  content.append('0 -18 Td')
+              content.append(f'({escaped}) Tj')
+              first = False
+          content.append('ET')
+          stream='\n'.join(content).encode('latin-1')
+          objs=[]
+          objs.append(b'1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n')
+          objs.append(b'2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n')
+          objs.append(b'3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >> endobj\n')
+          objs.append(b'4 0 obj << /Length '+str(len(stream)).encode()+b' >> stream\n'+stream+b'\nendstream endobj\n')
+          objs.append(b'5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n')
+          out=bytearray(b'%PDF-1.4\n')
+          offsets=[0]
+          for obj in objs:
+              offsets.append(len(out)); out.extend(obj)
+          xref=len(out)
+          out.extend(f'xref\n0 {len(objs)+1}\n'.encode())
+          out.extend(b'0000000000 65535 f \n')
+          for off in offsets[1:]:
+              out.extend(f'{off:010d} 00000 n \n'.encode())
+          out.extend(f'trailer << /Size {len(objs)+1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n'.encode())
+          Path('/tmp/training.pdf').write_bytes(out)
+          print('PDF bytes', len(out))
+          PY
+
+      - name: Chamar IA existente usando medical_pdf_import
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$AUDITAR_SYNC_KEY"
+          python - <<'PY'
+          import os,base64,json,urllib.request,time
+          url='https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec'
+          pdf=open('/tmp/training.pdf','rb').read()
+          body={
+            'action':'ai_assistant',
+            'syncKey':os.environ['AUDITAR_SYNC_KEY'],
+            'payload':{
+              'mode':'medical_pdf_import',
+              'document':'data:application/pdf;base64,'+base64.b64encode(pdf).decode()
+            }
+          }
+          data=json.dumps(body).encode()
+          req=urllib.request.Request(url,data=data,headers={'Content-Type':'application/json'})
+          t=time.time()
+          with urllib.request.urlopen(req,timeout=120) as r:
+              raw=r.read().decode('utf-8','replace')
+              print('elapsed',round(time.time()-t,2),'status',r.status)
+              print(raw[:12000])
+          PY
