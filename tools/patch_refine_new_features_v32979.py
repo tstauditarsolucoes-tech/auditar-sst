@@ -484,47 +484,49 @@ insert="""  Future<void> _setParticipantStatus(
 """
 c=replace_once(c,marker,insert,'training status cleanup')
 
-marker="""            if (status != 'ASSINADO') 'confirmationMethod': '',
-"""
-insert="""            if (status != 'ASSINADO') 'confirmationMethod': '',
+training_status_meta_pattern = re.compile(
+    r"(if\s*\(status\s*!=\s*['\"]ASSINADO['\"]\)\s*['\"]confirmationMethod['\"]\s*:\s*['\"]['\"]\s*,)",
+    re.S,
+)
+m=training_status_meta_pattern.search(c)
+if not m:
+    raise RuntimeError('Marcador não localizado: training status metadata cleanup')
+training_status_meta = m.group(1) + """
             if (status != 'ASSINADO') 'faceProofCode': '',
             if (status != 'ASSINADO') 'facePhotoSha256': '',
-            if (status != 'ASSINADO') 'faceConsentVersion': '',
-"""
-c=replace_once(c,marker,insert,'training status metadata cleanup')
+            if (status != 'ASSINADO') 'faceConsentVersion': '',"""
+c = c[:m.start()] + training_status_meta + c[m.end():]
 
 # UI: variáveis proof/time
-marker="""              final confirmationMethod =
-                  '${participant['confirmationMethod'] ?? 'signature'}';
-              final signaturePath =
-"""
-insert="""              final confirmationMethod =
-                  '${participant['confirmationMethod'] ?? 'signature'}';
+training_ui_vars_pattern = re.compile(
+    r"(\s*final confirmationMethod\s*=\s*['\"]\$\{participant\['confirmationMethod'\]\s*\?\?\s*'signature'\}['\"]\s*;)",
+    re.S,
+)
+m=training_ui_vars_pattern.search(c)
+if not m:
+    raise RuntimeError('Marcador não localizado: training ui proof vars')
+training_ui_vars = m.group(1) + """
               final proofCode =
                   '${participant['faceProofCode'] ?? ''}'.trim();
               final signedAt =
                   DateTime.tryParse('${participant['signedAt'] ?? ''}')
-                      ?.toLocal();
-              final signaturePath =
-"""
-c=replace_once(c,marker,insert,'training ui proof vars')
+                      ?.toLocal();"""
+c = c[:m.start()] + training_ui_vars + c[m.end():]
 
-marker="""                          if (status == 'ASSINADO')
-                            confirmationMethod == 'face'
-                                ? 'FACIAL'
-                                : 'ASSINATURA',
-"""
-insert="""                          if (status == 'ASSINADO')
-                            confirmationMethod == 'face'
-                                ? 'FACIAL'
-                                : 'ASSINATURA',
+training_ui_status_pattern = re.compile(
+    r"(if\s*\(status\s*==\s*['\"]ASSINADO['\"]\)\s*confirmationMethod\s*==\s*['\"]face['\"]\s*\?\s*['\"]FACIAL['\"]\s*:\s*['\"]ASSINATURA['\"]\s*,)",
+    re.S,
+)
+m=training_ui_status_pattern.search(c)
+if not m:
+    raise RuntimeError('Marcador não localizado: training ui proof subtitle')
+training_ui_status = m.group(1) + """
                           if (confirmationMethod == 'face' &&
                               proofCode.isNotEmpty)
                             proofCode,
                           if (status == 'ASSINADO' && signedAt != null)
-                            DateFormat('dd/MM/yyyy HH:mm').format(signedAt),
-"""
-c=replace_once(c,marker,insert,'training ui proof subtitle')
+                            DateFormat('dd/MM/yyyy HH:mm').format(signedAt),"""
+c = c[:m.start()] + training_ui_status + c[m.end():]
 
 # preview tappable
 pattern=re.compile(
@@ -847,17 +849,17 @@ write(rel,c)
 rel='lib/services/training_record_pdf_service.dart'
 c=read(rel)
 
-marker="""      final confirmationMethod =
-          '${person['confirmationMethod'] ?? 'signature'}';
-      final signature =
-"""
-insert="""      final confirmationMethod =
-          '${person['confirmationMethod'] ?? 'signature'}';
+training_pdf_method_pattern = re.compile(
+    r"(\s*final confirmationMethod\s*=\s*['\"]\$\{person\['confirmationMethod'\]\s*\?\?\s*'signature'\}['\"]\s*;)",
+    re.S,
+)
+m=training_pdf_method_pattern.search(c)
+if not m:
+    raise RuntimeError('Marcador não localizado: training pdf signedAt var')
+training_pdf_method = m.group(1) + """
       final signedAt =
-          DateTime.tryParse('${person['signedAt'] ?? ''}')?.toLocal();
-      final signature =
-"""
-c=replace_once(c,marker,insert,'training pdf signedAt var')
+          DateTime.tryParse('${person['signedAt'] ?? ''}')?.toLocal();"""
+c = c[:m.start()] + training_pdf_method + c[m.end():]
 
 marker="""            _cell(status, align: pw.TextAlign.center),
 """
