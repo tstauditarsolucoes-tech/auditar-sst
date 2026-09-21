@@ -1,0 +1,34 @@
+name: Exportar Fonte Windows v3.30.9 Diagnostico
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/export-windows-v3309-source.yml'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar Windows
+        run: python tools/assemble_windows_v3309_mobile_parity.py "$APP_DIR"
+      - name: Exportar fontes
+        run: |
+          mkdir -p export
+          cp "$APP_DIR/lib/services/training_import_service.dart" export/
+          cp "$APP_DIR/lib/screens/training_import_screen.dart" export/
+          cp "$APP_DIR/lib/services/cipa_management_service.dart" export/
+          cp "$APP_DIR/pubspec.yaml" export/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-v3309-source-diagnostic
+          path: export/*
+          retention-days: 3
