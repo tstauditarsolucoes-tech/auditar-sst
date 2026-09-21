@@ -710,17 +710,14 @@ insert="""    if (!await _confirmReplaceDdsConfirmation(
 c=replace_once(c,marker,insert,'dds sign confirm')
 
 # se assinatura desenhada substituir facial, limpar facial após captura
-marker="""    final signatureId =
-        '${existing?['id'] ?? ''}'.trim().isNotEmpty
-            ? '${existing!['id']}'
-            : const Uuid().v4();
-
-    await MediaSyncService.registerDdsSignature(
-"""
-insert="""    final signatureId =
-        '${existing?['id'] ?? ''}'.trim().isNotEmpty
-            ? '${existing!['id']}'
-            : const Uuid().v4();
+dds_signature_id_pattern = re.compile(
+    r"(\s*final signatureId\s*=\s*['\"]\$\{existing\?\['id'\]\s*\?\?\s*''\}['\"]\.trim\(\)\.isNotEmpty\s*\?\s*['\"]\$\{existing!\['id'\]\}['\"]\s*:\s*const Uuid\(\)\.v4\(\);)",
+    re.S,
+)
+m=dds_signature_id_pattern.search(c)
+if not m:
+    raise RuntimeError('Marcador não localizado: dds draw cleanup face')
+dds_signature_id_block = m.group(1) + """
 
     if (existing != null &&
         '${existing['method'] ?? 'signature'}' == 'face' &&
@@ -730,10 +727,8 @@ insert="""    final signatureId =
         confirmationId: signatureId,
       );
       ddsSignaturePaths.remove(signatureId);
-    }
-    await MediaSyncService.registerDdsSignature(
-"""
-c=replace_once(c,marker,insert,'dds draw cleanup face')
+    }"""
+c = c[:m.start()] + dds_signature_id_block + c[m.end():]
 
 # facial confirmação antes da câmera
 marker="""    String participantName = '${current?['name'] ?? ''}'.trim();
@@ -751,16 +746,16 @@ insert="""    if (!await _confirmReplaceDdsConfirmation(
 c=replace_once(c,marker,insert,'dds face confirm')
 
 # facial substitui assinatura desenhada: remover mídia anterior
-marker="""    final oldId = '${current?['id'] ?? ''}'.trim();
-    if (oldId.isNotEmpty && '${current?['method'] ?? ''}' == 'face') {
-      await FacialConfirmationService.remove(
-        entityType: 'dds_face_signature',
-        confirmationId: oldId,
-      );
-    }
-    await FacialConfirmationService.register(
-"""
-insert="""    final oldId = '${current?['id'] ?? ''}'.trim();
+dds_old_id_pattern = re.compile(
+    r"(\s*final oldId\s*=\s*['\"]\$\{current\?\['id'\]\s*\?\?\s*''\}['\"]\.trim\(\);)\s*"
+    r"if\s*\(oldId\.isNotEmpty\s*&&\s*['\"]\$\{current\?\['method'\]\s*\?\?\s*''\}['\"]\s*==\s*['\"]face['\"]\)\s*\{\s*"
+    r"await FacialConfirmationService\.remove\(\s*entityType:\s*['\"]dds_face_signature['\"]\s*,\s*confirmationId:\s*oldId\s*,?\s*\);\s*\}",
+    re.S,
+)
+m=dds_old_id_pattern.search(c)
+if not m:
+    raise RuntimeError('Marcador não localizado: dds face cleanup old')
+dds_old_id_block = m.group(1) + """
     if (oldId.isNotEmpty) {
       if ('${current?['method'] ?? 'signature'}' == 'face') {
         await FacialConfirmationService.remove(
@@ -771,10 +766,8 @@ insert="""    final oldId = '${current?['id'] ?? ''}'.trim();
         await MediaSyncService.removeDdsSignature(signatureId: oldId);
       }
       ddsSignaturePaths.remove(oldId);
-    }
-    await FacialConfirmationService.register(
-"""
-c=replace_once(c,marker,insert,'dds face cleanup old')
+    }"""
+c = c[:m.start()] + dds_old_id_block + c[m.end():]
 
 # preview DDS tappable
 pattern=re.compile(
