@@ -1,0 +1,278 @@
+name: Auditar SST Android v3.29.75 Importador Robusto de Treinamentos
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/build-v32975-training-import-robust.yml'
+      - 'tools/patch_training_import_robust_v32975.py'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar base estável v3.29.74
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.29.71-nc-quick-resolve/patch_nc_quick_resolve_v32971.py.xz.b64')
+          Path('/tmp/patch_nc.py').write_bytes(lzma.decompress(base64.b64decode(src.read_text().strip())))
+          PY
+          python /tmp/patch_nc.py "$APP_DIR"
+          python tools/patch_login_resilience_v32972.py "$APP_DIR"
+          python tools/patch_training_bulk_import_v32973.py "$APP_DIR"
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.29.74-training-photo/patch_training_import_photo_v32974.py.xz.b64')
+          Path('/tmp/patch_training_photo.py').write_bytes(lzma.decompress(base64.b64decode(src.read_text().strip())))
+          PY
+          python /tmp/patch_training_photo.py "$APP_DIR"
+
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          protected=[
+            root/'lib/services/device_sync_service.dart',
+            root/'lib/services/media_sync_service.dart',
+            root/'lib/services/apps_script_http.dart',
+            root/'lib/services/sync_coordinator.dart',
+            root/'lib/services/auth_service.dart',
+            root/'lib/services/drive_service.dart',
+            root/'lib/services/worker_import_service.dart',
+            root/'lib/database.dart',
+            root/'lib/screens/companies_screen.dart',
+            root/'lib/screens/extinguishers_screen.dart',
+            root/'lib/screens/training_records_screen.dart',
+            root/'lib/screens/non_conformity_detail_screen.dart',
+            root/'lib/services/nc_pdf_service.dart',
+          ]
+          state={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in protected if p.exists()}
+          Path('/tmp/v32975_protected.json').write_text(json.dumps(state),encoding='utf-8')
+          code=(root/'painel_web_google_apps_script/Code.gs').read_text(encoding='utf-8')
+          slices={}
+          pairs=[
+            ('doPost','function doPost(e) {','function pushDeviceChanges_'),
+            ('push','function pushDeviceChanges_','function pullDeviceChanges_'),
+            ('pull','function pullDeviceChanges_','function ensureDeviceSyncStorage_'),
+          ]
+          for name,start,end in pairs:
+            a=code.find(start); b=code.find(end,a+1)
+            if a<0 or b<0: raise SystemExit('Trecho crítico da Central não localizado: '+name)
+            slices[name]=hashlib.sha256(code[a:b].encode()).hexdigest()
+          Path('/tmp/v32975_sync_slices.json').write_text(json.dumps(slices),encoding='utf-8')
+          PY
+
+      - name: Aplicar v3.29.75
+        run: python tools/patch_training_import_robust_v32975.py "$APP_DIR"
+
+      - name: Confirmar núcleo rápido intacto
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          before=json.loads(Path('/tmp/v32975_protected.json').read_text(encoding='utf-8'))
+          changed=[]
+          for rel,old in before.items():
+            new=hashlib.sha256((root/rel).read_bytes()).hexdigest()
+            if new!=old: changed.append(rel)
+            else: print('PROTEGIDO_OK',rel,new)
+          if changed:
+            raise SystemExit('Arquivos protegidos alterados: '+', '.join(changed))
+
+          expected=json.loads(Path('/tmp/v32975_sync_slices.json').read_text(encoding='utf-8'))
+          code=(root/'painel_web_google_apps_script/Code.gs').read_text(encoding='utf-8')
+          pairs=[
+            ('doPost','function doPost(e) {','function pushDeviceChanges_'),
+            ('push','function pushDeviceChanges_','function pullDeviceChanges_'),
+            ('pull','function pullDeviceChanges_','function ensureDeviceSyncStorage_'),
+          ]
+          for name,start,end in pairs:
+            a=code.find(start); b=code.find(end,a+1)
+            current=hashlib.sha256(code[a:b].encode()).hexdigest()
+            if current!=expected[name]:
+              raise SystemExit('Trecho crítico da Central alterado: '+name)
+            print('CENTRAL_SYNC_OK',name,current)
+          print('NUCLEO_V32974_PRESERVADO_OK')
+          PY
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar Android e fixtures XLS/XLSX
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          python ../../tools/fix_read_pdf_text_r8_v32965.py .
+          python ../../tools/fix_mlkit_text_r8_v32974.py .
+          python -m pip install --disable-pip-version-check -q openpyxl xlwt
+          mkdir -p test/fixtures
+          python - <<'PY'
+          from openpyxl import Workbook
+          import xlwt
+          headers=['Nome','Cargo','NR','Treinamento','Data de realização','Validade']
+          rows=[[f'FUNCIONARIO {i:03d}','OPERADOR','NR 35','Trabalho em Altura','10/09/2026','10/09/2028'] for i in range(1,61)]
+
+          wb=Workbook(); ws=wb.active
+          ws.append(headers)
+          for row in rows: ws.append(row)
+          wb.save('test/fixtures/training_60.xlsx')
+
+          old=xlwt.Workbook(); sh=old.add_sheet('Treinamentos')
+          for c,v in enumerate(headers): sh.write(0,c,v)
+          for r,row in enumerate(rows,1):
+            for c,v in enumerate(row): sh.write(r,c,v)
+          old.save('test/fixtures/training_60.xls')
+          PY
+          cat > test/training_import_v32975_test.dart <<'DART'
+          import 'dart:io';
+          import 'dart:typed_data';
+          import 'package:auditar_sst/models.dart';
+          import 'package:auditar_sst/services/training_import_service.dart';
+          import 'package:flutter_test/flutter_test.dart';
+
+          List<Worker> workers() => List.generate(
+            60,
+            (index) => Worker(
+              id: 'w${index + 1}',
+              companyId: 'c1',
+              name: 'FUNCIONARIO ${(index + 1).toString().padLeft(3, '0')}',
+              cpf: '',
+              role: 'OPERADOR',
+              active: true,
+            ),
+          );
+
+          void main() {
+            test('XLSX real importa 60 trabalhadores com treinamento e datas', () {
+              final bytes=Uint8List.fromList(File('test/fixtures/training_60.xlsx').readAsBytesSync());
+              final parsed=TrainingImportService.parseXlsxForTesting(bytes,workers());
+              final rows=parsed['rows'] as List<Map<String,Object?>>;
+              expect(rows.length,60);
+              expect(parsed['code'],'NR 35');
+              expect((rows.first['trainingDate'] as DateTime).year,2026);
+              expect((rows.last['expiryDate'] as DateTime).year,2028);
+            });
+
+            test('XLS legado real importa 60 trabalhadores', () {
+              final bytes=Uint8List.fromList(File('test/fixtures/training_60.xls').readAsBytesSync());
+              final parsed=TrainingImportService.parseLegacyXlsForTesting(bytes,workers());
+              final rows=parsed['rows'] as List<Map<String,Object?>>;
+              expect(rows.length,60);
+              expect(parsed['code'],'NR 35');
+              expect(rows.first['name'],'FUNCIONARIO 001');
+              expect(rows.last['name'],'FUNCIONARIO 060');
+            });
+
+            test('datas impossíveis são rejeitadas e bissexto válido é aceito', () {
+              expect(TrainingImportService.parseDateForTesting('31/02/2026'),isNull);
+              final leap=TrainingImportService.parseDateForTesting('29/02/2028');
+              expect(leap,isNotNull);
+              expect(leap!.day,29);
+            });
+
+            test('id de importação impede repetição da mesma pessoa treinamento e data', () {
+              final date=DateTime(2026,9,10);
+              final a=TrainingImportService.deterministicId(
+                companyId:'c1',workerId:'w1',code:'NR 35',title:'Trabalho em Altura',trainingDate:date,
+              );
+              final b=TrainingImportService.deterministicId(
+                companyId:'c1',workerId:'w1',code:'nr-35',title:'Trabalho em Altura',trainingDate:date,
+              );
+              expect(a,b);
+            });
+          }
+          DART
+
+      - name: Formatar analisar e testar tudo
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          dart format lib/services/training_import_service.dart lib/screens/training_import_screen.dart lib/screens/trainings_screen.dart test/training_import_v32975_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+
+      - name: Validar Central e regressões
+        run: |
+          set -euo pipefail
+          cp "$APP_DIR/painel_web_google_apps_script/Code.gs" /tmp/Code-v32975.js
+          node --check /tmp/Code-v32975.js
+          grep -q 'version: 3.29.75+217' "$APP_DIR/pubspec.yaml"
+          grep -q 'excel_community: ^2.4.0' "$APP_DIR/pubspec.yaml"
+          grep -q "allowedExtensions: const \['pdf', 'xlsx', 'xls', 'csv'\]" "$APP_DIR/lib/services/training_import_service.dart"
+          grep -q "_parseLegacyXls" "$APP_DIR/lib/services/training_import_service.dart"
+          grep -q "'mode':'training_record_import'" "$APP_DIR/lib/services/training_import_service.dart"
+          grep -q "Tirar foto da lista" "$APP_DIR/lib/screens/training_import_screen.dart"
+          grep -q "PDF, XLSX, XLS ou CSV" "$APP_DIR/lib/screens/training_import_screen.dart"
+          grep -q "subtitle: 'PDF, Excel ou foto'" "$APP_DIR/lib/screens/trainings_screen.dart"
+          grep -q "function callGeminiWithFallback_" "$APP_DIR/painel_web_google_apps_script/Code.gs"
+          grep -q "'gemini-3.5-flash-lite'" "$APP_DIR/painel_web_google_apps_script/Code.gs"
+          grep -q "'gemini-3.6-flash'" "$APP_DIR/painel_web_google_apps_script/Code.gs"
+          grep -q "'training_record_import'" "$APP_DIR/painel_web_google_apps_script/Code.gs"
+          grep -q "upsertTrainingControlsBatch" "$APP_DIR/lib/services/training_import_service.dart"
+          grep -q "_parseExtractedRhText" "$APP_DIR/lib/services/worker_import_service.dart"
+          grep -q "Future<void> _resolveNow() async" "$APP_DIR/lib/screens/non_conformity_detail_screen.dart"
+          grep -q "registerExtinguisherPhoto" "$APP_DIR/lib/services/media_sync_service.dart"
+          python tools/regression_training_records_v32968_v3306.py "$APP_DIR" 3.29.75+217
+          python tools/regression_internal_management_training_v32969_v3307.py "$APP_DIR" 3.29.75+217
+          echo 'REGRESSOES_V32975_OK'
+
+      - name: Compilar APK release
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY"
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Preparar artefatos
+        run: |
+          mkdir -p dist/android dist/central
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" 'dist/android/Auditar-SST-v3.29.75-IMPORTAR-TREINAMENTOS-ROBUSTO.apk'
+          sha256sum 'dist/android/Auditar-SST-v3.29.75-IMPORTAR-TREINAMENTOS-ROBUSTO.apk' > 'dist/android/Auditar-SST-v3.29.75-IMPORTAR-TREINAMENTOS-ROBUSTO.sha256.txt'
+          cp "$APP_DIR/painel_web_google_apps_script/Code.gs" dist/central/Code.gs
+          cat > dist/central/LEIA-ME.txt <<'TXT'
+          Central Online v3.29.75:
+          - adiciona modo training_record_import para listas de treinamento;
+          - tenta modelos Gemini estáveis em fallback sem alterar device_sync;
+          - mantém employee_pdf_import como compatibilidade.
+          Para o novo modo de IA ficar ativo no endpoint existente, publique este Code.gs no mesmo projeto Apps Script/Central já usado pelo app.
+          TXT
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.75-Android-Importador-Robusto
+          path: dist/android/*
+          retention-days: 30
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.75-Central-IA-Treinamentos
+          path: dist/central/*
+          retention-days: 30
