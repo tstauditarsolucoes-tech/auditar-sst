@@ -1,4 +1,4 @@
-name: Export current AI backend source
+name: Export current AI and training import sources
 
 on:
   push:
@@ -32,9 +32,22 @@ jobs:
           PY
           python /tmp/patch_nc.py "$APP_DIR"
           python tools/patch_login_resilience_v32972.py "$APP_DIR"
-          cp "$APP_DIR/painel_web_google_apps_script/Code.gs" Code.gs
+          python tools/patch_training_bulk_import_v32973.py "$APP_DIR"
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          src=Path('build_sources/v3.29.74-training-photo/patch_training_import_photo_v32974.py.xz.b64')
+          Path('/tmp/patch_training_photo.py').write_bytes(lzma.decompress(base64.b64decode(src.read_text().strip())))
+          PY
+          python /tmp/patch_training_photo.py "$APP_DIR"
+          mkdir -p export/lib/services export/lib/screens export/backend
+          cp "$APP_DIR/lib/services/training_import_service.dart" export/lib/services/
+          cp "$APP_DIR/lib/screens/training_import_screen.dart" export/lib/screens/
+          cp "$APP_DIR/lib/screens/trainings_screen.dart" export/lib/screens/
+          cp "$APP_DIR/painel_web_google_apps_script/Code.gs" export/backend/
+          cp "$APP_DIR/pubspec.yaml" export/
       - uses: actions/upload-artifact@v4
         with:
-          name: current-ai-backend
-          path: Code.gs
+          name: current-ai-training-import-sources
+          path: export
           retention-days: 3
