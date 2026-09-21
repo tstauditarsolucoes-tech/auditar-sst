@@ -247,7 +247,7 @@ c=once(
     """    if (useSuggestion != true || !mounted) return;
     setState(() {
       aiPhotoMeta[item.id] = <String, dynamic>{
-        ...aiPhotoMeta[item.id] ?? const <String, dynamic>{},
+        ...(aiPhotoMeta[item.id] ?? const <String, dynamic>{}),
         'status': 'APLICADA',
         'appliedAt': DateTime.now().toUtc().toIso8601String(),
       };
