@@ -1251,7 +1251,7 @@ c=once(
 c=once(
     c,
     """            _cell('${row['role'] ?? ''}'.trim().isEmpty ? '-' : '${row['role']}', fontSize: 6.2),""",
-    """            _cell(
+    r"""            _cell(
               [
                 if ('${row['role'] ?? ''}'.trim().isNotEmpty)
                   '${row['role']}',
