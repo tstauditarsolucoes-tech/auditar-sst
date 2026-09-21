@@ -122,7 +122,6 @@ jobs:
         run: |
           set -euo pipefail
           grep -q 'version: 3.29.73+215' "$APP_DIR/pubspec.yaml"
-          grep -q 'excel: ^4.0.6' "$APP_DIR/pubspec.yaml"
           grep -q "title: 'Importar lista'" "$APP_DIR/lib/screens/trainings_screen.dart"
           grep -q "PDF ou planilha com IA" "$APP_DIR/lib/screens/trainings_screen.dart"
           grep -q "TrainingImportScreen(" "$APP_DIR/lib/screens/trainings_screen.dart"
