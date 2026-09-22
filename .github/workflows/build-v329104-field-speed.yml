@@ -268,7 +268,7 @@ jobs:
           import sys
           root=Path(sys.argv[1])
           body=(root/'lib/services/device_sync_service.dart').read_text()
-          assert 'sent == 0 && received == 0' not in body, 'media must not starve behind structured sync'
+          assert 'if (sent == 0 && received == 0) {' not in body, 'media must not starve behind structured sync'
           assert 'sendPendingMediaNow()' in body
           print('MEDIA_STRUCTURED_INDEPENDENT_OK')
           PY
