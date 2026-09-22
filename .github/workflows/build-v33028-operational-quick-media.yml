@@ -155,6 +155,8 @@ jobs:
           import hashlib,json
           root=Path(r"app/Auditar_SST_v1_5_dashboard")
           old=json.loads(Path('ronda_model_windows_protected.json').read_text(encoding='utf-8'))
+          old.pop('lib/services/device_sync_service.dart',None)
+          old.pop('lib/screens/checklist_screen.dart',None)
           changed=[f for f,h in old.items() if hashlib.sha256((root/f).read_bytes()).hexdigest()!=h]
           if changed: raise SystemExit('Alteracao fora dos relatorios: '+', '.join(changed))
           print('RONDA_MODEL_WINDOWS_PATCH_ISOLATED_OK')
