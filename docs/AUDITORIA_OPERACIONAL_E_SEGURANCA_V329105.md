@@ -9,6 +9,14 @@ Escopo: Android v3.29.105 e Windows v3.30.29, derivados das bases funcionais v3.
 - O pipeline examina os PDFs produzidos, conta as imagens e confirma que a estrutura é válida. Artefatos de amostra são preservados no GitHub Actions.
 - Os módulos de autenticação, banco local, backend e sincronização estruturada foram mantidos fora do escopo deste patch.
 
+## Evidências da validação automatizada
+
+- Android: 34 testes aprovados e APK release compilado — [execução](https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/runs/35793921135).
+- Windows: 25 testes aprovados, aplicativo e instalador compilados — [execução](https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/runs/35793921192).
+- Três PDFs de carga com fotos sintéticas gerados e inspecionados: fotográfico (30 fotos, 17 páginas), personalizado (50 fotos, 39 páginas) e técnico (50 fotos, 36 páginas). Contagem de imagens únicas: 31/51/51 (inclui marca do aplicativo).
+- Inspeção adicional por parser PDF não encontrou páginas totalmente vazias nem blocos de texto fora das dimensões A4 nas três amostras. Caracteres decorativos não suportados pela fonte foram normalizados.
+- A validação foi sintética. Não houve acesso a 50 fotografias reais, aparelho Android do cliente, PC do cliente, permissões reais multiempresa nem ao código efetivamente publicado da Central.
+
 ## Riscos e ações de implantação
 
 | Item | Constatação/limitação | Ação antes da expansão comercial |
