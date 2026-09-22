@@ -55,6 +55,20 @@ jobs:
           python tools/patch_checklist_ai_confirm_v32987_v33014.py "$APP_DIR" android
           python tools/patch_reports_management_v32988_v33015.py "$APP_DIR" android
           python tools/patch_report_template_ai_import_v32989_v33016.py "$APP_DIR" android
+      - name: Guardar painel web atual
+        run: |
+          mkdir -p inspect-web
+          find "$APP_DIR/painel_web_google_apps_script" -maxdepth 1 -type f -print
+          cp "$APP_DIR/painel_web_google_apps_script/Index.html" inspect-web/Index.html
+          cp "$APP_DIR/painel_web_google_apps_script/Code.gs" inspect-web/Code.gs
+          cp "$APP_DIR/lib/services/management_panel_service.dart" inspect-web/management_panel_service.dart
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: current-web-management-panel
+          path: inspect-web/*
+          retention-days: 3
+
       - name: Imprimir trechos do painel web e snapshot
         run: |
           python - "$APP_DIR" <<'PY'
