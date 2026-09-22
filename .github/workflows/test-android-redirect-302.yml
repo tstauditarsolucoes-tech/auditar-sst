@@ -22,6 +22,7 @@ jobs:
           cache: true
       - name: Montar projeto minimo
         run: |
+          bash tools/assemble_android_v32966.sh app/Auditar_SST_v1_5_dashboard
           flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst app/Auditar_SST_v1_5_dashboard
           cd app/Auditar_SST_v1_5_dashboard
           flutter pub get
