@@ -24,13 +24,21 @@ once('  String loadError = \'\';',
   bool _sendingEvidence = false;""",
      'status fields')
 
-once("""    _deviceSyncSubscription = DeviceSyncService.events.listen((result) {
+if """      if (!mounted || result.received <= 0) return;""" in s:
+    once("""    _deviceSyncSubscription = DeviceSyncService.events.listen((result) {
       if (!mounted || result.received <= 0) return;""",
-     """    _deviceSyncSubscription = DeviceSyncService.events.listen((result) {
+         """    _deviceSyncSubscription = DeviceSyncService.events.listen((result) {
       if (!mounted) return;
       if (result.mediaChanged) unawaited(_refreshSyncStatus());
       if (result.received <= 0) return;""",
-     'media event UI')
+         'Android media event UI')
+else:
+    once("""    _deviceSyncSubscription = DeviceSyncService.events.listen((result) {
+      if (mounted && result.received > 0) {""",
+         """    _deviceSyncSubscription = DeviceSyncService.events.listen((result) {
+      if (mounted && result.mediaChanged) unawaited(_refreshSyncStatus());
+      if (mounted && result.received > 0) {""",
+         'Windows media event UI')
 
 once("""        loadError = '';
       });
