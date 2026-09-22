@@ -31,7 +31,7 @@ for marker in [
     'maxPdfBytes',
     'ReportTemplateAiDraft',
     'ReportTemplateDefinition(',
-    'Tipo de análise de IA inválido',
+    'tipo de análise de ia inválido',
 ]:
     assert marker in service, f'serviço IA ausente: {marker}'
 
