@@ -9,6 +9,7 @@ on:
       - 'tools/regression_checklist_ai_stable_v32992.py'
       - 'tools/patch_workers_manual_registration_v32994_v33021.py'
       - 'tools/regression_workers_manual_registration_v32994.py'
+      - 'tools/patch_workers_windows_load_compat_v33021.py'
 
 permissions:
   contents: read
@@ -77,6 +78,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'IA estavel do checklist falhou' }
           python tools/patch_workers_manual_registration_v32994_v33021.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Cadastro de trabalhadores falhou' }
+          python tools/patch_workers_windows_load_compat_v33021.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Compatibilidade tela Windows falhou' }
 
       - name: Confirmar sincronizacao intacta
         shell: pwsh
