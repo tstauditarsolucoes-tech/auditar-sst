@@ -231,7 +231,7 @@ jobs:
           grep -q "_photographicBlocks" "$APP_DIR/lib/services/express_round_pdf_service.dart"
           grep -q "_conclusionBlocks" "$APP_DIR/lib/services/express_round_pdf_service.dart"
           python tools/regression_dual_ai_v329102.py "$APP_DIR" 3.29.103+245
-          grep -Fq '_chooseRoundReport(ExpressRoundReportStyle.photographic)' "$APP_DIR/lib/screens/express_round_screen.dart"
+          grep -Fq 'ReportTemplateService.getAllTemplates()' "$APP_DIR/lib/screens/express_round_screen.dart"
           grep -q '_photographicGridBlocks' "$APP_DIR/lib/services/express_round_pdf_service.dart"
           echo REGRESSOES_ANDROID_V329103_OK
 
