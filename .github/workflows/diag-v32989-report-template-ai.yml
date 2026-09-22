@@ -1,0 +1,80 @@
+name: DIAG v3.29.89 Report Template AI Backend
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/diag-v32989-report-template-ai.yml'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar fonte atual
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python tools/patch_management_panel_logo_theme_v32970_v3308.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          for src,out in [
+            ('build_sources/v3.29.71-nc-quick-resolve/patch_nc_quick_resolve_v32971.py.xz.b64','/tmp/p71.py'),
+            ('build_sources/v3.29.74-training-photo/patch_training_import_photo_v32974.py.xz.b64','/tmp/p74.py'),
+            ('build_sources/v3.29.77-checklist-fine-face/patch_checklist_fine_face_v32977.py.xz.b64','/tmp/p77.py'),
+          ]:
+            Path(out).write_bytes(lzma.decompress(base64.b64decode(Path(src).read_text().strip())))
+          PY
+          python /tmp/p71.py "$APP_DIR"
+          python tools/patch_login_resilience_v32972.py "$APP_DIR"
+          python tools/patch_training_bulk_import_v32973.py "$APP_DIR"
+          python /tmp/p74.py "$APP_DIR"
+          python tools/patch_training_import_robust_v32975.py "$APP_DIR"
+          python tools/patch_cipa_management_v32976.py "$APP_DIR"
+          python /tmp/p77.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32978.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32979.py "$APP_DIR"
+          python tools/patch_performance_report_v32980.py "$APP_DIR"
+          python tools/patch_cross_platform_refinement_v32981.py "$APP_DIR" android
+          python tools/patch_signature_handoff_v32982.py "$APP_DIR" android
+          python tools/patch_pre_admission_search_v32983.py "$APP_DIR" android
+          python tools/patch_deferred_inspection_ai_v32984.py "$APP_DIR" android
+          python tools/patch_checklist_reality_v32985.py "$APP_DIR" android
+          python tools/patch_checklist_ai_background_v32986_v33013.py "$APP_DIR" android
+          python tools/patch_checklist_ai_confirm_v32987_v33014.py "$APP_DIR" android
+          python tools/patch_reports_management_v32988_v33015.py "$APP_DIR" android
+      - name: Inspecionar backend e biblioteca
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import sys,re
+          root=Path(sys.argv[1])
+          code=(root/'painel_web_google_apps_script/Code.gs').read_text(encoding='utf-8',errors='ignore')
+          for term in ['function aiUserPrompt_','function aiOutputSchema_','AI_MODE_INVALID','checklist_builder','training_record_import','report_review_chat']:
+            print('\n===',term,'===')
+            start=0
+            for _ in range(3):
+              i=code.find(term,start)
+              if i<0: break
+              print(code[max(0,i-2600):min(len(code),i+10000)])
+              start=i+len(term)
+          screen=(root/'lib/screens/report_template_library_screen.dart').read_text(encoding='utf-8')
+          print('\n=== TEMPLATE SCREEN IMPORTS ===')
+          print('\n'.join(screen.splitlines()[:80]))
+          service=(root/'lib/services/ai_assistant_service.dart').read_text(encoding='utf-8')
+          for term in ['class AiAssistantService','postJson','reportReviewChat','pgrQuestion']:
+            i=service.find(term)
+            print('\n=== AI SERVICE',term,'===',i)
+            if i>=0: print(service[max(0,i-1800):min(len(service),i+8500)])
+          PY
