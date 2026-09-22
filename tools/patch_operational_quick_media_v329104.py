@@ -14,3 +14,42 @@ h=replace_once(h,"    _deviceSyncSubscription?.cancel();\n    _mobileScrollContr
 '''
     _source=_source[:_home_begin]+_windows_home+_source[_home_end:]
 exec(compile(_source,__file__,'exec'))
+
+# Preserve each previously uploaded evidence ID on repeated draft saves:
+# assigning a fresh UUID to every existing photo created redundant Drive uploads.
+from pathlib import Path as _Path
+_cpath=_Path(sys.argv[1])/'lib/screens/checklist_screen.dart'
+_c=_cpath.read_text(encoding='utf-8')
+_photo_before="""        final photoRows = <EvidencePhoto>[];
+        for (var i = 0; i < evidence.length; i++) {
+          photoRows.add(
+            EvidencePhoto(
+              id: uuid.v4(),
+              answerId: answerId,
+              path: evidence[i],
+              sortOrder: i,
+            ),
+          );
+        }
+"""
+_photo_after="""        final previousEvidence = await db.getPhotosForAnswer(answerId);
+        final existingPhotoIds = <String, String>{
+          for (final photo in previousEvidence) photo.path: photo.id,
+        };
+        final photoRows = <EvidencePhoto>[];
+        for (var i = 0; i < evidence.length; i++) {
+          photoRows.add(
+            EvidencePhoto(
+              id: existingPhotoIds[evidence[i]] ?? uuid.v4(),
+              answerId: answerId,
+              path: evidence[i],
+              sortOrder: i,
+            ),
+          );
+        }
+"""
+if _c.count(_photo_before)!=1:
+    raise RuntimeError('Stable evidence IDs: unexpected draft-save structure')
+_cpath.write_text(_c.replace(_photo_before,_photo_after,1),encoding='utf-8',newline='\n')
+print('CHECKLIST_EVIDENCE_IDS_STABLE_OK')
+
