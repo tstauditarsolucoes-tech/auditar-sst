@@ -1,0 +1,102 @@
+name: Compare Android v32991 v32992 Sync Startup
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/compare-v32991-v32992-sync-startup.yml'
+
+permissions:
+  contents: read
+
+env:
+  APP91: /tmp/app91
+  APP92: /tmp/app92
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Funcao montar
+        shell: bash
+        run: |
+          cat > /tmp/mount.sh <<'SH'
+          set -euo pipefail
+          APP_DIR="$1"
+          VERSION="$2"
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python tools/patch_management_panel_logo_theme_v32970_v3308.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          for src,out in [
+            ('build_sources/v3.29.71-nc-quick-resolve/patch_nc_quick_resolve_v32971.py.xz.b64','/tmp/p71.py'),
+            ('build_sources/v3.29.74-training-photo/patch_training_import_photo_v32974.py.xz.b64','/tmp/p74.py'),
+            ('build_sources/v3.29.77-checklist-fine-face/patch_checklist_fine_face_v32977.py.xz.b64','/tmp/p77.py'),
+          ]:
+            Path(out).write_bytes(lzma.decompress(base64.b64decode(Path(src).read_text().strip())))
+          PY
+          python /tmp/p71.py "$APP_DIR"
+          python tools/patch_login_resilience_v32972.py "$APP_DIR"
+          python tools/patch_training_bulk_import_v32973.py "$APP_DIR"
+          python /tmp/p74.py "$APP_DIR"
+          python tools/patch_training_import_robust_v32975.py "$APP_DIR"
+          python tools/patch_cipa_management_v32976.py "$APP_DIR"
+          python /tmp/p77.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32978.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32979.py "$APP_DIR"
+          python tools/patch_performance_report_v32980.py "$APP_DIR"
+          python tools/patch_cross_platform_refinement_v32981.py "$APP_DIR" android
+          python tools/patch_signature_handoff_v32982.py "$APP_DIR" android
+          python tools/patch_pre_admission_search_v32983.py "$APP_DIR" android
+          python tools/patch_deferred_inspection_ai_v32984.py "$APP_DIR" android
+          python tools/patch_checklist_reality_v32985.py "$APP_DIR" android
+          python tools/patch_checklist_ai_background_v32986_v33013.py "$APP_DIR" android
+          python tools/patch_checklist_ai_confirm_v32987_v33014.py "$APP_DIR" android
+          python tools/patch_reports_management_v32988_v33015.py "$APP_DIR" android
+          python tools/patch_report_template_ai_import_v32989_v33016.py "$APP_DIR" android
+          python tools/patch_management_panel_refine_v32990_v33017.py "$APP_DIR" android
+          if [ "$VERSION" = "92" ]; then
+            python tools/patch_checklist_ai_stable_v32992_v33019.py "$APP_DIR" android
+          else
+            python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import re,sys
+          p=Path(sys.argv[1])/'pubspec.yaml'
+          t=p.read_text(encoding='utf-8')
+          t=re.sub(r'(?m)^version:\s*[^\n]+$','version: 3.29.91+233',t,count=1)
+          p.write_text(t,encoding='utf-8')
+          PY
+          fi
+          SH
+          chmod +x /tmp/mount.sh
+
+      - name: Montar 91 e 92
+        run: |
+          /tmp/mount.sh "$APP91" 91
+          /tmp/mount.sh "$APP92" 92
+
+      - name: Comparar tudo exceto build metadata
+        run: |
+          set -euo pipefail
+          mkdir -p compare
+          diff -ru --exclude=pubspec.yaml "$APP91/lib" "$APP92/lib" > compare/lib.diff || true
+          grep -RniE "synchron|sync|SyncCoordinator|DeviceSync|synchronize|home|dashboard|initState|postFrame" "$APP91/lib/screens" "$APP91/lib/main.dart" "$APP91/lib/app.dart" 2>/dev/null > compare/startup91.txt || true
+          grep -RniE "synchron|sync|SyncCoordinator|DeviceSync|synchronize|home|dashboard|initState|postFrame" "$APP92/lib/screens" "$APP92/lib/main.dart" "$APP92/lib/app.dart" 2>/dev/null > compare/startup92.txt || true
+          find "$APP91/lib" -type f -print0 | sort -z | xargs -0 sha256sum > compare/sha91.txt
+          find "$APP92/lib" -type f -print0 | sort -z | xargs -0 sha256sum > compare/sha92.txt
+          echo "=== DIFF FILES ===" > compare/summary.txt
+          diff -rq "$APP91/lib" "$APP92/lib" >> compare/summary.txt || true
+          cat compare/summary.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: compare-v32991-v32992-sync-startup
+          path: compare/*
+          retention-days: 5
