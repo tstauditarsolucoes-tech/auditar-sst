@@ -204,7 +204,7 @@ jobs:
           if (-not ($service.Contains('final firstResponse = await _post(') -and $service.Contains('bootstrapHasMore'))) { throw 'Faltou primeiro pull Windows' }
           python tools/regression_dual_ai_v329102.py "$env:APP_DIR" 3.30.27+214
           if ($LASTEXITCODE -ne 0) { throw 'Regressao IA texto/foto falhou' }
-          if (-not (Select-String "$env:APP_DIR/lib/screens/express_round_screen.dart" -Pattern '_chooseRoundReport(ExpressRoundReportStyle.photographic)' -SimpleMatch -Quiet)) { throw 'Escolha de modelo na Ronda ausente' }
+          if (-not (Select-String "$env:APP_DIR/lib/screens/express_round_screen.dart" -Pattern 'ReportTemplateService.getAllTemplates()' -SimpleMatch -Quiet)) { throw 'Escolha de modelo na Ronda ausente' }
           Write-Host 'REGRESSOES_WINDOWS_V33027_OK'
 
       - name: Teste real da rota robusta de foto
