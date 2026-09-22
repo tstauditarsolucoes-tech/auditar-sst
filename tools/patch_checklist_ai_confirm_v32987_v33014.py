@@ -465,20 +465,14 @@ rel = "lib/screens/report_screen.dart"
 r = read(rel)
 
 literal_fixes = {
-    r"'\$photoAiPending'": "'$photoAiPending'",
-    r"'\$photoAiReady'": "'$photoAiReady'",
-    r"'\$photoAiErrors'": "'$photoAiErrors'",
-    r"'\$photoAiApplied'": "'$photoAiApplied'",
-    r"'Revisar \$photoAiReady sugestão(ões) pronta(s)'":
-        "'Revisar $photoAiReady sugestão(ões) pronta(s)'",
-    r"'\${summary.completed} concluída(s), '":
-        "'${summary.completed} concluída(s), '",
-    r"'\${summary.failed} com erro. Revise as sugestões antes de aplicar.'":
-        "'${summary.failed} com erro. Revise as sugestões antes de aplicar.'",
-    r"'\$applied sugestão(ões) aplicada(s) e '":
-        "'$applied sugestão(ões) aplicada(s) e '",
-    r"'\$dismissed descartada(s). Gere o PDF novamente para refletir alterações.'":
-        "'$dismissed descartada(s). Gere o PDF novamente para refletir alterações.'",
+    r"\\$photoAiPending": "$photoAiPending",
+    r"\\$photoAiReady": "$photoAiReady",
+    r"\\$photoAiErrors": "$photoAiErrors",
+    r"\\$photoAiApplied": "$photoAiApplied",
+    r"\\$applied": "$applied",
+    r"\\$dismissed": "$dismissed",
+    r"\\${summary.completed}": "${summary.completed}",
+    r"\\${summary.failed}": "${summary.failed}",
 }
 for old, new in literal_fixes.items():
     r = r.replace(old, new)
