@@ -1,0 +1,295 @@
+name: Auditar SST Android v3.29.104 Captura Rapida e Midia
+
+on:
+  push:
+    branches: [fix-field-speed-media-status-v329104]
+    paths:
+      - '.github/workflows/build-v329104-field-speed.yml'
+      - 'tools/patch_operational_media_v329104.py'
+      - 'tools/patch_operational_home_v329104.py'
+      - 'tools/patch_checklist_field_capture_v329104.py'
+      - 'build_sources/v3.29.104-field-speed/**'
+      - 'tools/patch_ronda_checklist_models_v329103.py'
+      - 'build_sources/v3.29.103-ronda-models/**'
+      - 'tools/patch_dual_ai_v329102.py'
+      - 'tools/regression_dual_ai_v329102.py'
+      - 'build_sources/v3.29.102-dual-ai/**'
+      - 'tools/patch_ronda_pdf_pagination_v329101.py'
+      - 'build_sources/v3.29.101-ronda-pdf/**'
+      - 'tools/patch_sync_singleflight_v329100.py'
+      - 'tools/restore_fast_home_sync_v32999.py'
+      - 'tools/patch_home_immediate_sync_v32993_v33020.py'
+      - 'tools/regression_home_immediate_sync_v32993.py'
+      - 'tools/patch_worker_flexible_pdf_v32998.py'
+      - 'tools/fix_worker_flexible_total_v32998.py'
+      - 'build_sources/v3.29.98-flexible-rh/**'
+      - 'tools/patch_checklist_ai_stable_v32992_v33019.py'
+      - 'tools/regression_checklist_ai_stable_v32992.py'
+      - 'tools/patch_workers_manual_registration_v32994_v33021.py'
+      - 'tools/regression_workers_manual_registration_v32994.py'
+      - 'tools/patch_worker_ai_central_endpoint_v32995_v33022.py'
+      - 'tools/patch_worker_pdf_local_android_v32996.py'
+      - 'tools/patch_worker_simple_pdf_local_v32997.py'
+      - 'build_sources/v3.29.97-simple-rh/**'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  PUB_CACHE: /tmp/auditar-pub-v32994
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar base Android atual
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python tools/patch_management_panel_logo_theme_v32970_v3308.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          for src,out in [
+            ('build_sources/v3.29.71-nc-quick-resolve/patch_nc_quick_resolve_v32971.py.xz.b64','/tmp/p71.py'),
+            ('build_sources/v3.29.74-training-photo/patch_training_import_photo_v32974.py.xz.b64','/tmp/p74.py'),
+            ('build_sources/v3.29.77-checklist-fine-face/patch_checklist_fine_face_v32977.py.xz.b64','/tmp/p77.py'),
+          ]:
+            Path(out).write_bytes(lzma.decompress(base64.b64decode(Path(src).read_text().strip())))
+          PY
+          python /tmp/p71.py "$APP_DIR"
+          python tools/patch_login_resilience_v32972.py "$APP_DIR"
+          python tools/patch_training_bulk_import_v32973.py "$APP_DIR"
+          python /tmp/p74.py "$APP_DIR"
+          python tools/patch_training_import_robust_v32975.py "$APP_DIR"
+          python tools/patch_cipa_management_v32976.py "$APP_DIR"
+          python /tmp/p77.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32978.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32979.py "$APP_DIR"
+          python tools/patch_performance_report_v32980.py "$APP_DIR"
+          python tools/patch_cross_platform_refinement_v32981.py "$APP_DIR" android
+          python tools/patch_signature_handoff_v32982.py "$APP_DIR" android
+          python tools/patch_pre_admission_search_v32983.py "$APP_DIR" android
+          python tools/patch_deferred_inspection_ai_v32984.py "$APP_DIR" android
+          python tools/patch_checklist_reality_v32985.py "$APP_DIR" android
+          python tools/patch_checklist_ai_background_v32986_v33013.py "$APP_DIR" android
+
+      - name: Proteger sincronizacao e banco
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          files=[
+            'lib/services/apps_script_http.dart',
+            'lib/services/sync_coordinator.dart',
+            'lib/services/auth_service.dart',
+            'lib/services/drive_service.dart',
+            'lib/database.dart',
+          ]
+          Path('/tmp/v32994_protected.json').write_text(
+            json.dumps({f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in files})
+          )
+          PY
+
+      - name: Aplicar recursos atuais e correcao da IA do checklist
+        run: |
+          set -euo pipefail
+          python tools/patch_checklist_ai_confirm_v32987_v33014.py "$APP_DIR" android
+          python tools/patch_reports_management_v32988_v33015.py "$APP_DIR" android
+          python tools/patch_report_template_ai_import_v32989_v33016.py "$APP_DIR" android
+          python tools/patch_management_panel_refine_v32990_v33017.py "$APP_DIR" android
+          python tools/patch_checklist_ai_stable_v32992_v33019.py "$APP_DIR" android
+          python tools/patch_home_immediate_sync_v32993_v33020.py "$APP_DIR" android
+          python tools/patch_workers_manual_registration_v32994_v33021.py "$APP_DIR" android
+          python tools/patch_worker_ai_central_endpoint_v32995_v33022.py "$APP_DIR" android
+          python tools/patch_worker_pdf_local_android_v32996.py "$APP_DIR" android
+          python tools/patch_worker_simple_pdf_local_v32997.py "$APP_DIR" android
+          python tools/patch_worker_flexible_pdf_v32998.py "$APP_DIR" android
+          python tools/fix_worker_flexible_total_v32998.py "$APP_DIR"
+          python tools/restore_fast_home_sync_v32999.py "$APP_DIR"
+          python tools/patch_sync_singleflight_v329100.py "$APP_DIR" android
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          protected=[
+            'lib/services/device_sync_service.dart',
+            'lib/services/sync_coordinator.dart',
+            'lib/services/media_sync_service.dart',
+            'lib/services/ai_assistant_service.dart',
+            'lib/screens/express_round_screen.dart',
+            'lib/database.dart',
+          ]
+          Path('/tmp/ronda_pdf_protected.json').write_text(json.dumps({
+            f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in protected}))
+          PY
+          python tools/patch_ronda_pdf_pagination_v329101.py "$APP_DIR"
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          protected=json.loads(Path('/tmp/ronda_pdf_protected.json').read_text())
+          changed=[f for f,h in protected.items() if hashlib.sha256((root/f).read_bytes()).hexdigest()!=h]
+          if changed: raise SystemExit('Alteracao fora do PDF: '+', '.join(changed))
+          print('RONDA_PDF_PATCH_ISOLADO_OK')
+          PY
+          python tools/patch_dual_ai_v329102.py "$APP_DIR" android
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          protected=['lib/services/device_sync_service.dart','lib/services/sync_coordinator.dart','lib/services/media_sync_service.dart','lib/services/ai_assistant_service.dart','lib/screens/checklist_screen.dart','lib/screens/safety_observations_screen.dart','lib/database.dart']
+          Path('/tmp/ronda_model_protected.json').write_text(json.dumps({f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in protected}))
+          PY
+          python tools/patch_ronda_checklist_models_v329103.py "$APP_DIR" android
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          protected=['lib/services/sync_coordinator.dart','lib/services/apps_script_http.dart',
+                     'lib/services/auth_service.dart','lib/services/drive_service.dart',
+                     'lib/services/ai_assistant_service.dart','lib/database.dart']
+          Path('/tmp/operational_core_protected.json').write_text(json.dumps({
+            f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in protected
+          }))
+          PY
+          python tools/patch_operational_media_v329104.py "$APP_DIR" android
+          python tools/patch_operational_home_v329104.py "$APP_DIR"
+          python tools/patch_checklist_field_capture_v329104.py "$APP_DIR"
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1]); old=json.loads(Path('/tmp/operational_core_protected.json').read_text())
+          changed=[f for f,h in old.items() if hashlib.sha256((root/f).read_bytes()).hexdigest()!=h]
+          if changed:raise SystemExit('CORE AUTH DB OR TRANSPORT MODIFIED: '+', '.join(changed))
+          print('CORE_AUTH_DB_TRANSPORT_INTACT_OK')
+          PY
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          old=json.loads(Path('/tmp/ronda_model_protected.json').read_text())
+          changed=[f for f,h in old.items() if hashlib.sha256((root/f).read_bytes()).hexdigest()!=h]
+          if changed: raise SystemExit('Alteracao fora dos relatorios: '+', '.join(changed))
+          print('RONDA_MODEL_PATCH_ISOLATED_OK')
+          PY
+
+      - name: Confirmar banco transporte e coordenador intactos
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1]); old=json.loads(Path('/tmp/v32994_protected.json').read_text())
+          changed=[f for f,h in old.items() if hashlib.sha256((root/f).read_bytes()).hexdigest()!=h]
+          if changed: raise SystemExit('SYNC/BANCO ALTERADO: '+', '.join(changed))
+          print('SYNC_OTHER_MODULES_INTACT_OK')
+          PY
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar projeto
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          cp ../../build_sources/v3.29.97-simple-rh/worker_import_simple_columns_test.dart test/worker_import_simple_columns_test.dart
+          cp ../../build_sources/v3.29.98-flexible-rh/worker_import_flexible_test.dart test/worker_import_flexible_test.dart
+          cp ../../build_sources/v3.29.101-ronda-pdf/express_round_pdf_pagination_test.dart test/express_round_pdf_pagination_test.dart
+          cp ../../build_sources/v3.29.102-dual-ai/inspection_text_ai_test.dart test/inspection_text_ai_test.dart
+          cp ../../build_sources/v3.29.103-ronda-models/ronda_report_models_test.dart test/ronda_report_models_test.dart
+          cp ../../build_sources/v3.29.104-field-speed/field_speed_policy_test.dart test/field_speed_policy_test.dart
+          python ../../tools/fix_read_pdf_text_r8_v32965.py .
+          python ../../tools/fix_mlkit_text_r8_v32974.py .
+
+      - name: Formatar analisar testar
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          dart format lib
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+
+      - name: Regressoes
+        run: |
+          set -euo pipefail
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import sys
+          root=Path(sys.argv[1]); sync=(root/"lib/services/device_sync_service.dart").read_text(); home=(root/"lib/screens/home_screen.dart").read_text(); coord=(root/"lib/services/sync_coordinator.dart").read_text()
+          assert "_queuedForceSync" not in sync
+          assert "if (active != null) return active;" in sync
+          assert "_syncImmediatelyOnHomeEntry" not in home
+          assert "DeviceSyncService.events.listen" in home
+          assert "AuthService.sessionReadyEvents.listen" in coord
+          assert "Duration(seconds: 2)" in coord and "Duration(seconds: 5)" in coord
+          print("SYNC_SINGLEFLIGHT_REGRESSION_OK")
+          PY
+          python tools/regression_training_records_v32968_v3306.py "$APP_DIR" 3.29.104+246
+          python tools/regression_internal_management_training_v32969_v3307.py "$APP_DIR" 3.29.104+246
+          python tools/regression_reports_management_v32988.py "$APP_DIR" 3.29.104+246
+          python tools/regression_report_template_ai_import_v32989.py "$APP_DIR" 3.29.104+246
+          python tools/regression_management_panel_refine_v32990.py "$APP_DIR" 3.29.104+246
+          python tools/regression_checklist_ai_stable_v32992.py "$APP_DIR" 3.29.104+246
+          python tools/regression_workers_manual_registration_v32994.py "$APP_DIR" 3.29.104+246
+          grep -q 'embeddedEndpoint.isNotEmpty ? embeddedEndpoint : savedEndpoint' "$APP_DIR/lib/services/ai_assistant_service.dart"
+          grep -q "Directory.systemTemp.createTemp('auditar_rh_')" "$APP_DIR/lib/services/worker_import_service.dart"
+          grep -q 'const Duration(seconds: 35)' "$APP_DIR/lib/services/worker_import_service.dart"
+          if grep -q 'const Duration(seconds: 90)' "$APP_DIR/lib/services/worker_import_service.dart"; then echo 'TIMEOUT_RH_ANTIGO_PRESENTE'; exit 1; fi
+          grep -q 'needsRoleReview' "$APP_DIR/lib/screens/workers_screen.dart"
+          grep -q 'parseSimpleSeparatedRhColumnsForTesting' "$APP_DIR/lib/services/worker_import_service.dart"
+          grep -q 'parseFlexibleEmployeeTextForTesting' "$APP_DIR/lib/services/worker_import_service.dart"
+          grep -q "_photographicBlocks" "$APP_DIR/lib/services/express_round_pdf_service.dart"
+          grep -q "_conclusionBlocks" "$APP_DIR/lib/services/express_round_pdf_service.dart"
+          python tools/regression_dual_ai_v329102.py "$APP_DIR" 3.29.104+246
+          grep -Fq 'ReportTemplateService.getAllTemplates()' "$APP_DIR/lib/screens/express_round_screen.dart"
+          grep -q '_photographicGridBlocks' "$APP_DIR/lib/services/express_round_pdf_service.dart"
+
+          grep -Fq 'MediaSyncPolicy.shouldKick' "$APP_DIR/lib/services/device_sync_service.dart"
+          grep -Fq '_fastCaptureCard' "$APP_DIR/lib/screens/checklist_screen.dart"
+          grep -Fq '_syncQueueCard' "$APP_DIR/lib/screens/home_screen.dart"
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import sys
+          root=Path(sys.argv[1])
+          body=(root/'lib/services/device_sync_service.dart').read_text()
+          assert 'sent == 0 && received == 0' not in body, 'media must not starve behind structured sync'
+          assert 'sendPendingMediaNow()' in body
+          print('MEDIA_STRUCTURED_INDEPENDENT_OK')
+          PY
+          echo REGRESSOES_ANDROID_V329104_OK
+
+      - name: Compilar APK
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          test -n "$AUDITAR_SYNC_KEY"
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+
+      - name: Empacotar
+        run: |
+          mkdir -p dist
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.104-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.104-Android.apk > dist/Auditar-SST-v3.29.104-Android.sha256.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.104-Android-Campo-Midia
+          path: dist/*
+          retention-days: 30
