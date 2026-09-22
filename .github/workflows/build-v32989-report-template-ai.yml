@@ -8,6 +8,9 @@ on:
       - 'tools/patch_reports_management_v32988_v33015.py'
       - 'tools/regression_reports_management_v32988.py'
       - 'tools/patch_checklist_ai_confirm_v32987_v33014.py'
+      - 'tools/patch_report_template_ai_import_v32989_v33016.py'
+      - 'tools/regression_report_template_ai_import_v32989.py'
+      - 'build_sources/v3.29.89-report-template-ai/**'
 
 permissions:
   contents: read
@@ -78,11 +81,12 @@ jobs:
           )
           PY
 
-      - name: Aplicar confirmacao IA e relatorios gerenciais
+      - name: Aplicar confirmacao IA, relatorios gerenciais e criador de modelos
         run: |
           set -euo pipefail
           python tools/patch_checklist_ai_confirm_v32987_v33014.py "$APP_DIR" android
           python tools/patch_reports_management_v32988_v33015.py "$APP_DIR" android
+          python tools/patch_report_template_ai_import_v32989_v33016.py "$APP_DIR" android
 
       - name: Confirmar sincronizacao intacta
         run: |
@@ -92,7 +96,7 @@ jobs:
           root=Path(sys.argv[1]); old=json.loads(Path('/tmp/v32989_protected.json').read_text())
           changed=[f for f,h in old.items() if hashlib.sha256((root/f).read_bytes()).hexdigest()!=h]
           if changed: raise SystemExit('SYNC/BANCO ALTERADO: '+', '.join(changed))
-          print('SYNC_ANDROID_V32988_INTACTO_OK')
+          print('SYNC_ANDROID_V32989_INTACTO_OK')
           PY
 
       - uses: subosito/flutter-action@v2
@@ -127,12 +131,15 @@ jobs:
           python tools/regression_training_records_v32968_v3306.py "$APP_DIR" 3.29.89+231
           python tools/regression_internal_management_training_v32969_v3307.py "$APP_DIR" 3.29.89+231
           python tools/regression_reports_management_v32988.py "$APP_DIR" 3.29.89+231
+          python tools/regression_report_template_ai_import_v32989.py "$APP_DIR" 3.29.89+231
+          cp "$APP_DIR/painel_web_google_apps_script/Code.gs" /tmp/Code-v32989.js
+          node --check /tmp/Code-v32989.js
           grep -q 'Sugestão da IA' "$APP_DIR/lib/screens/checklist_screen.dart"
           grep -q 'Usar e editar' "$APP_DIR/lib/screens/checklist_screen.dart"
           grep -q 'observations\[questionId\]!.text = description' "$APP_DIR/lib/screens/checklist_screen.dart"
           grep -q 'risks\[questionId\]!.text = risk' "$APP_DIR/lib/screens/checklist_screen.dart"
           grep -q 'recommendations\[questionId\]!.text = recommendation' "$APP_DIR/lib/screens/checklist_screen.dart"
-          echo REGRESSOES_ANDROID_V32988_OK
+          echo REGRESSOES_ANDROID_V32989_OK
 
       - name: Compilar APK
         working-directory: ${{ env.APP_DIR }}
