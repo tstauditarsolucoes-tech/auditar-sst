@@ -124,6 +124,8 @@ jobs:
           cp "$APP_DIR/lib/services/express_round_pdf_service.dart" diag-ronda/
           cp "$APP_DIR/lib/screens/express_round_screen.dart" diag-ronda/
           cp "$APP_DIR/pubspec.yaml" diag-ronda/
+          cp "$APP_DIR/lib/models.dart" diag-ronda/models.dart
+          cp "$APP_DIR/test/device_sync_roundtrip_test.dart" diag-ronda/device_sync_roundtrip_test.dart
           grep -nE 'MultiPage|Page\(|build:|Column\(|Row\(|Table\(|Image\(|Expande|Expanded\(|NewPage|PdfException' diag-ronda/express_round_pdf_service.dart > diag-ronda/layout-index.txt || true
       - uses: actions/upload-artifact@v4
         with:
