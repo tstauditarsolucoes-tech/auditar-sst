@@ -801,15 +801,54 @@ replacement = """: mode === 'report_template_import'
 if needle in code:
     code = code.replace(needle, replacement, 1)
 
-token_old = """: mode === 'training_record_import' || mode === 'employee_pdf_import' || mode === 'medical_pdf_import'
-? 12000"""
-token_new = """: mode === 'report_template_import' ? 4800
-: mode === 'training_record_import' || mode === 'employee_pdf_import' || mode === 'medical_pdf_import'
-? 12000"""
-if token_new not in code:
-    if token_old not in code:
-        raise RuntimeError("cadeia maxOutputTokens não localizada")
-    code = code.replace(token_old, token_new, 1)
+if "mode === 'report_template_import' ? 4800" not in code:
+    if "maxOutputTokens:" not in code:
+        raise RuntimeError("maxOutputTokens não localizado")
+    code = code.replace(
+        "maxOutputTokens:",
+        "maxOutputTokens: mode === 'report_template_import' ? 4800\n:",
+        1,
+    )
+
+# Garante validação e envio do PDF mesmo em bases Windows com cadeia antiga.
+document_validation = r'''if (mode === 'report_template_import') {
+if (!/^data:(application\/pdf);base64,/.test(document)) {
+return {ok: false, message: 'Selecione um PDF válido com o modelo de relatório.'};
+}
+if (document.length > 18000000) {
+return {ok: false, message: 'O PDF do modelo ultrapassou o limite da análise.'};
+}
+}
+
+'''
+validation_anchor = "if ((mode === 'pgr_extract' || mode === 'pgr_question')"
+run_start = code.find("function runAiAssistant_(payload)")
+if run_start < 0:
+    raise RuntimeError("runAiAssistant_ não localizada")
+anchor_pos = code.find(validation_anchor, run_start)
+if anchor_pos < 0:
+    raise RuntimeError("âncora de validação PGR não localizada")
+segment_before = code[run_start:anchor_pos]
+if "O PDF do modelo ultrapassou o limite da análise." not in segment_before:
+    code = code[:anchor_pos] + document_validation + code[anchor_pos:]
+
+inline_block = r'''if (mode === 'report_template_import') {
+const match = document.match(/^data:(application\/pdf);base64,(.+)$/);
+if (match) {
+parts.push({inlineData: {mimeType: match[1], data: match[2]}});
+}
+}
+
+'''
+pgr_inline = "if (mode === 'pgr_extract' || mode === 'pgr_question') {"
+parts_start = code.find("const parts = [{", run_start)
+if parts_start < 0:
+    raise RuntimeError("parts da IA não localizadas")
+pgr_pos = code.find(pgr_inline, parts_start)
+if pgr_pos < 0:
+    raise RuntimeError("âncora inline PGR não localizada")
+if "if (mode === 'report_template_import')" not in code[parts_start:pgr_pos]:
+    code = code[:pgr_pos] + inline_block + code[pgr_pos:]
 
 write(rel, code)
 
