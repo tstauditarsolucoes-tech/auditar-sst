@@ -54,6 +54,6 @@ jobs:
 
       - name: Mostrar deduplicacao atual
         run: |
-          nl -ba "$APP_DIR/lib/screens/new_inspection_screen.dart" | sed -n '717,805p'
+          nl -ba "$APP_DIR/lib/screens/new_inspection_screen.dart" | sed -n '717,895p'
           echo "=== PANIFICACAO ==="
           nl -ba "$APP_DIR/lib/ready_checklists.dart" | sed -n '272,495p'
