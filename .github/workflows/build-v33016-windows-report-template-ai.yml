@@ -5,7 +5,7 @@ on:
     branches: [feature-report-templates-v32962]
     paths:
       - '.github/workflows/build-v33016-windows-report-template-ai.yml'
-      - 'tools/patch_reports_management_v32988_v33016.py'
+      - 'tools/patch_reports_management_v32988_v33015.py'
       - 'tools/regression_reports_management_v32988.py'
       - 'tools/patch_checklist_ai_confirm_v32987_v33014.py'
 
@@ -55,19 +55,21 @@ jobs:
             'lib/services/drive_service.dart',
             'lib/database.dart',
           ]
-          Path('protected33015.json').write_text(
+          Path('protected33016.json').write_text(
             json.dumps({f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in files}),
             encoding='utf-8'
           )
           '@ | python -
 
-      - name: Aplicar confirmacao IA e relatorios gerenciais
+      - name: Aplicar confirmacao IA, relatorios gerenciais e criador de modelos
         shell: pwsh
         run: |
           python tools/patch_checklist_ai_confirm_v32987_v33014.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Confirmacao IA falhou' }
-          python tools/patch_reports_management_v32988_v33016.py "$env:APP_DIR" windows
+          python tools/patch_reports_management_v32988_v33015.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Relatorios gerenciais falharam' }
+          python tools/patch_report_template_ai_import_v32989_v33016.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Criador de modelos IA falhou' }
 
       - name: Confirmar sincronizacao intacta
         shell: pwsh
@@ -76,10 +78,10 @@ jobs:
           from pathlib import Path
           import hashlib,json
           root=Path(r"app/Auditar_SST_v1_5_dashboard")
-          old=json.loads(Path('protected33015.json').read_text(encoding='utf-8'))
+          old=json.loads(Path('protected33016.json').read_text(encoding='utf-8'))
           changed=[f for f,h in old.items() if hashlib.sha256((root/f).read_bytes()).hexdigest()!=h]
           if changed: raise SystemExit('SYNC/BANCO WINDOWS ALTERADO: '+', '.join(changed))
-          print('SYNC_WINDOWS_V33015_INTACTO_OK')
+          print('SYNC_WINDOWS_V33016_INTACTO_OK')
           '@ | python -
 
       - uses: subosito/flutter-action@v2
@@ -122,7 +124,7 @@ jobs:
           $check="$env:APP_DIR/lib/screens/checklist_screen.dart"
           if (-not (Select-String $check -Pattern 'Sugestão da IA' -Quiet)) { throw 'Dialog IA ausente' }
           if (-not (Select-String $check -Pattern 'Usar e editar' -Quiet)) { throw 'Confirmacao IA ausente' }
-          Write-Host 'REGRESSOES_WINDOWS_V33015_OK'
+          Write-Host 'REGRESSOES_WINDOWS_V33016_OK'
 
       - name: Teste real IA de foto
         working-directory: ${{ env.APP_DIR }}
@@ -167,7 +169,7 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.15',
+            'AppVersion=3.30.16',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
