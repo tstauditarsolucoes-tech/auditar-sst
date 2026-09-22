@@ -16,6 +16,14 @@ one(pdf,
     "      pw.MultiPage(\n        pageFormat: PdfPageFormat.a4,",
     "      pw.MultiPage(\n        // Field dossiers with 30-50 photos can span well past 20 pages.\n        // Content remains independently pageable; no evidence is truncated.\n        maxPages: 300,\n        pageFormat: PdfPageFormat.a4,",
     'bounded long Ronda pagination')
+# The built-in PDF font cannot render the bullet separator U+2022; replace
+# decorative separators without removing any substantive report content.
+pdf_text=pdf.read_text(encoding='utf-8')
+bullet_count=pdf_text.count('•')
+if bullet_count < 2: raise RuntimeError('Expected PDF-only bullet separators absent')
+pdf.write_text(pdf_text.replace('•',' - '),encoding='utf-8',newline='\n')
+print('PDF_FONT_SEPARATOR_NORMALIZED',bullet_count)
+
 one(net,
     "  static const int _maxRootAttempts = 2;",
     """  static const int _maxRootAttempts = 2;
