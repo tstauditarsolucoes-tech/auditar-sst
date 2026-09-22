@@ -14,10 +14,9 @@ jobs:
       - uses: actions/checkout@v5
       - run: |
           python - <<'PY'
-          import ast,base64,lzma
+          import base64,lzma
           src=open('tools/patch_operational_quick_media_v329104.py',encoding='utf8').read()
-          tree=ast.parse(src)
-          q=tree.body[1].value.args[0].args[0].args[0].args[0].value
+          q=src.split("b64decode('")[1].split("')")[0]
           decoded=lzma.decompress(base64.b64decode(q))
           print('PATCH_DECODE_OK',len(decoded),decoded[:80])
           compile(decoded,'patch','exec')
