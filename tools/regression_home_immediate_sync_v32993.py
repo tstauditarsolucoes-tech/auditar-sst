@@ -17,17 +17,19 @@ assert "_refresh(showLoading: false)" in home
 # O nucleo global continua existindo: a Home so acrescenta o gatilho imediato.
 coord=(root/"lib/services/sync_coordinator.dart").read_text(encoding="utf-8")
 sync=(root/"lib/services/device_sync_service.dart").read_text(encoding="utf-8")
-assert "static Future<DeviceSyncResult> synchronize({bool force = false})" in sync
-assert "_queuedForceSync" in sync
 
-# Android preserva exatamente o coordenador rapido aprovado (2 s / 5 s).
-# Windows tem coordenador proprio, portanto valida somente a existencia do fluxo.
+# Android preserva exatamente o coordenador rapido aprovado (2 s / 5 s)
+# e a fila force do sync estruturado. Windows tem implementacao multiusuario
+# propria, por isso valida o contrato publico sem exigir a assinatura Android.
 if not version.startswith("3.30."):
+    assert "static Future<DeviceSyncResult> synchronize({bool force = false})" in sync
+    assert "_queuedForceSync" in sync
     assert "AuthService.sessionReadyEvents.listen" in coord
     assert "Duration(seconds: 2)" in coord
     assert "Duration(seconds: 5)" in coord
     assert "pullWhenClean: true" in coord
 else:
+    assert "synchronize(" in sync
     assert "_trySync" in coord
     assert "DeviceSyncService.synchronize" in coord
 
