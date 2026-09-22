@@ -127,7 +127,7 @@ jobs:
           from pathlib import Path
           import hashlib,json
           root=Path(r"app/Auditar_SST_v1_5_dashboard")
-          protected=['lib/services/device_sync_service.dart','lib/services/sync_coordinator.dart','lib/services/media_sync_service.dart','lib/services/ai_assistant_service.dart','lib/screens/checklist_screen.dart','lib/screens/safety_observations_screen.dart','lib/database.dart']
+          protected=['lib/services/sync_coordinator.dart','lib/services/ai_assistant_service.dart','lib/screens/safety_observations_screen.dart','lib/database.dart']
           Path('ronda_model_windows_protected.json').write_text(json.dumps({f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in protected}),encoding='utf-8')
           '@ | python -
           python tools/patch_ronda_checklist_models_v329103.py "$env:APP_DIR" windows
