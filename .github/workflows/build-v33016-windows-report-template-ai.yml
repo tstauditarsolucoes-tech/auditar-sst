@@ -8,6 +8,9 @@ on:
       - 'tools/patch_reports_management_v32988_v33015.py'
       - 'tools/regression_reports_management_v32988.py'
       - 'tools/patch_checklist_ai_confirm_v32987_v33014.py'
+      - 'tools/patch_report_template_ai_import_v32989_v33016.py'
+      - 'tools/regression_report_template_ai_import_v32989.py'
+      - 'build_sources/v3.29.89-report-template-ai/**'
 
 permissions:
   contents: read
