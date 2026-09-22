@@ -1,0 +1,110 @@
+name: Inspecao Trabalhadores 302
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/inspect-workers-302.yml'
+      - 'tools/patch_checklist_ai_stable_v32992_v33019.py'
+      - 'tools/regression_checklist_ai_stable_v32992.py'
+      - 'tools/patch_workers_manual_registration_v32994_v33021.py'
+      - 'tools/regression_workers_manual_registration_v32994.py'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  PUB_CACHE: /tmp/auditar-pub-v32994
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar base Android atual
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python tools/patch_management_panel_logo_theme_v32970_v3308.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          for src,out in [
+            ('build_sources/v3.29.71-nc-quick-resolve/patch_nc_quick_resolve_v32971.py.xz.b64','/tmp/p71.py'),
+            ('build_sources/v3.29.74-training-photo/patch_training_import_photo_v32974.py.xz.b64','/tmp/p74.py'),
+            ('build_sources/v3.29.77-checklist-fine-face/patch_checklist_fine_face_v32977.py.xz.b64','/tmp/p77.py'),
+          ]:
+            Path(out).write_bytes(lzma.decompress(base64.b64decode(Path(src).read_text().strip())))
+          PY
+          python /tmp/p71.py "$APP_DIR"
+          python tools/patch_login_resilience_v32972.py "$APP_DIR"
+          python tools/patch_training_bulk_import_v32973.py "$APP_DIR"
+          python /tmp/p74.py "$APP_DIR"
+          python tools/patch_training_import_robust_v32975.py "$APP_DIR"
+          python tools/patch_cipa_management_v32976.py "$APP_DIR"
+          python /tmp/p77.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32978.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32979.py "$APP_DIR"
+          python tools/patch_performance_report_v32980.py "$APP_DIR"
+          python tools/patch_cross_platform_refinement_v32981.py "$APP_DIR" android
+          python tools/patch_signature_handoff_v32982.py "$APP_DIR" android
+          python tools/patch_pre_admission_search_v32983.py "$APP_DIR" android
+          python tools/patch_deferred_inspection_ai_v32984.py "$APP_DIR" android
+          python tools/patch_checklist_reality_v32985.py "$APP_DIR" android
+          python tools/patch_checklist_ai_background_v32986_v33013.py "$APP_DIR" android
+
+      - name: Proteger sincronizacao e banco
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          files=[
+            'lib/services/device_sync_service.dart',
+            'lib/services/media_sync_service.dart',
+            'lib/services/apps_script_http.dart',
+            'lib/services/sync_coordinator.dart',
+            'lib/services/auth_service.dart',
+            'lib/services/drive_service.dart',
+            'lib/database.dart',
+          ]
+          Path('/tmp/v32994_protected.json').write_text(
+            json.dumps({f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in files})
+          )
+          PY
+
+      - name: Aplicar recursos atuais e correcao da IA do checklist
+        run: |
+          set -euo pipefail
+          python tools/patch_checklist_ai_confirm_v32987_v33014.py "$APP_DIR" android
+          python tools/patch_reports_management_v32988_v33015.py "$APP_DIR" android
+          python tools/patch_report_template_ai_import_v32989_v33016.py "$APP_DIR" android
+          python tools/patch_management_panel_refine_v32990_v33017.py "$APP_DIR" android
+          python tools/patch_checklist_ai_stable_v32992_v33019.py "$APP_DIR" android
+          python tools/patch_workers_manual_registration_v32994_v33021.py "$APP_DIR" android
+
+      - name: Exportar fluxo integral 302
+        run: |
+          set -euo pipefail
+          mkdir -p diagnose
+          cp "$APP_DIR/lib/screens/workers_screen.dart" diagnose/
+          cp "$APP_DIR/lib/services/apps_script_http.dart" diagnose/
+          cp "$APP_DIR/lib/services/device_sync_service.dart" diagnose/
+          cp "$APP_DIR/lib/services/sync_coordinator.dart" diagnose/
+          cp "$APP_DIR/lib/services/auth_service.dart" diagnose/
+          cp "$APP_DIR/lib/database.dart" diagnose/
+          cp "$APP_DIR/lib/models.dart" diagnose/
+          cp "$APP_DIR/lib/services/ai_assistant_service.dart" diagnose/
+          cp "$APP_DIR/pubspec.yaml" diagnose/
+          grep -Rn '302\|respondeu com erro\|statusCode\|_editWorker\|_load(' diagnose > diagnose/markers.txt || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: inspect-workers-302-current
+          path: diagnose/*
+          retention-days: 3
