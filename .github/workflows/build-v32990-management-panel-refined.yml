@@ -77,7 +77,6 @@ jobs:
             'lib/services/auth_service.dart',
             'lib/services/drive_service.dart',
             'lib/database.dart',
-            'painel_web_google_apps_script/Code.gs',
           ]
           Path('/tmp/v32990_protected.json').write_text(
             json.dumps({f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in files})
