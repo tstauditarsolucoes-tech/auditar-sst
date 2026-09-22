@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/build-v32998-worker-flexible-pdf.yml'
       - 'tools/patch_worker_flexible_pdf_v32998.py'
+      - 'tools/fix_worker_flexible_total_v32998.py'
       - 'build_sources/v3.29.98-flexible-rh/**'
       - 'tools/patch_checklist_ai_stable_v32992_v33019.py'
       - 'tools/regression_checklist_ai_stable_v32992.py'
@@ -98,6 +99,7 @@ jobs:
           python tools/patch_worker_pdf_local_android_v32996.py "$APP_DIR" android
           python tools/patch_worker_simple_pdf_local_v32997.py "$APP_DIR" android
           python tools/patch_worker_flexible_pdf_v32998.py "$APP_DIR" android
+          python tools/fix_worker_flexible_total_v32998.py "$APP_DIR"
 
       - name: Confirmar sincronizacao intacta
         run: |
