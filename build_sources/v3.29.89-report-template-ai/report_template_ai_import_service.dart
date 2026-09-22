@@ -114,7 +114,6 @@ class ReportTemplateAiImportService {
             },
           },
           timeout: const Duration(seconds: 105),
-          allowLongAndroidRequest: true,
         );
 
         final body = utf8.decode(response.bodyBytes, allowMalformed: true);
