@@ -20,9 +20,9 @@ for rel in ['checklist_screen.dart','express_round_screen.dart','safety_observat
     assert '_analyzeWithAi' in s, rel
     assert 'IA texto' in s and 'IA foto' in s, rel
     assert 'InspectionTextAiReview.show' in s, rel
-assert "'aiText':" in (root/'lib/screens/checklist_screen.dart').read_text()
-assert "'aiTextOriginal':" in (root/'lib/screens/express_round_screen.dart').read_text()
-assert "'aiTextOriginal':" in (root/'lib/screens/safety_observations_screen.dart').read_text()
+assert "'aiText':" in (root/'lib/screens/checklist_screen.dart').read_text(encoding='utf-8')
+assert "'aiTextOriginal':" in (root/'lib/screens/express_round_screen.dart').read_text(encoding='utf-8')
+assert "'aiTextOriginal':" in (root/'lib/screens/safety_observations_screen.dart').read_text(encoding='utf-8')
 assert (root/'lib/widgets/inspection_text_ai_review.dart').is_file()
-assert f'version: {version}' in (root/'pubspec.yaml').read_text()
+assert f'version: {version}' in (root/'pubspec.yaml').read_text(encoding='utf-8')
 print('DUAL_AI_ALL_INSPECTIONS_REGRESSION_OK',version)
