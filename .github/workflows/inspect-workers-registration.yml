@@ -71,6 +71,7 @@ jobs:
           cp "$APP_DIR/lib/services/device_sync_service.dart" inspect-workers/device_sync_service.dart
           cp "$APP_DIR/lib/services/sync_coordinator.dart" inspect-workers/sync_coordinator.dart
           cp "$APP_DIR/lib/services/auth_service.dart" inspect-workers/auth_service.dart
+          cp "$APP_DIR/lib/services/worker_import_service.dart" inspect-workers/worker_import_service.dart
           find "$APP_DIR/lib/screens" -iname '*worker*' -o -iname '*employee*' | while read -r p; do cp "$p" "inspect-workers/$(basename "$p")"; done
       - uses: actions/upload-artifact@v4
         with:
