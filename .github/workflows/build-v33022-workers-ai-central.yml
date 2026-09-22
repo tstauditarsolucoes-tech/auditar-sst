@@ -1,0 +1,213 @@
+name: Auditar SST Windows v3.30.22 Cadastro e IA Central
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/build-v33022-workers-ai-central.yml'
+      - 'tools/patch_checklist_ai_stable_v32992_v33019.py'
+      - 'tools/regression_checklist_ai_stable_v32992.py'
+      - 'tools/patch_workers_manual_registration_v32994_v33021.py'
+      - 'tools/regression_workers_manual_registration_v32994.py'
+      - 'tools/patch_workers_windows_load_compat_v33021.py'
+      - 'tools/patch_worker_ai_central_endpoint_v32995_v33022.py'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 210
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar base Windows atual
+        shell: pwsh
+        run: |
+          python tools/assemble_windows_v3309_mobile_parity.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Base Windows falhou' }
+          python tools/patch_signature_handoff_v32982.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Assinatura Windows falhou' }
+          python tools/patch_pre_admission_search_v32983.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Pre-admissao Windows falhou' }
+          python tools/patch_deferred_inspection_ai_v32984.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'IA base Windows falhou' }
+          python tools/patch_checklist_reality_v32985.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Checklists revisados falharam' }
+          python tools/patch_checklist_ai_background_v32986_v33013.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'IA background base falhou' }
+
+      - name: Proteger sincronizacao e banco
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import hashlib,json
+          root=Path(r"app/Auditar_SST_v1_5_dashboard")
+          files=[
+            'lib/services/device_sync_service.dart',
+            'lib/services/media_sync_service.dart',
+            'lib/services/apps_script_http.dart',
+            'lib/services/sync_coordinator.dart',
+            'lib/services/auth_service.dart',
+            'lib/services/drive_service.dart',
+            'lib/database.dart',
+          ]
+          Path('protected33021.json').write_text(
+            json.dumps({f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in files}),
+            encoding='utf-8'
+          )
+          '@ | python -
+
+      - name: Aplicar recursos atuais e correcao da IA do checklist
+        shell: pwsh
+        run: |
+          python tools/patch_checklist_ai_confirm_v32987_v33014.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Confirmacao IA falhou' }
+          python tools/patch_reports_management_v32988_v33015.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Relatorios gerenciais falharam' }
+          python tools/patch_report_template_ai_import_v32989_v33016.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Criador de modelos IA falhou' }
+          python tools/patch_management_panel_refine_v32990_v33017.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Painel Gerencial refinado falhou' }
+          python tools/patch_checklist_ai_stable_v32992_v33019.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'IA estavel do checklist falhou' }
+          python tools/patch_workers_manual_registration_v32994_v33021.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Cadastro de trabalhadores falhou' }
+          python tools/patch_workers_windows_load_compat_v33021.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Compatibilidade tela Windows falhou' }
+          python tools/patch_worker_ai_central_endpoint_v32995_v33022.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Central da IA falhou' }
+
+      - name: Confirmar sincronizacao intacta
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import hashlib,json
+          root=Path(r"app/Auditar_SST_v1_5_dashboard")
+          old=json.loads(Path('protected33021.json').read_text(encoding='utf-8'))
+          changed=[f for f,h in old.items() if hashlib.sha256((root/f).read_bytes()).hexdigest()!=h]
+          if changed: raise SystemExit('SYNC/BANCO WINDOWS ALTERADO: '+', '.join(changed))
+          print('SYNC_WINDOWS_V33021_INTACTO_OK')
+          '@ | python -
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar analisar testar
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          flutter pub get
+          dart format lib
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Analyze Windows falhou' }
+          flutter test
+          if ($LASTEXITCODE -ne 0) { throw 'Testes Windows falharam' }
+
+      - name: Regressoes
+        shell: pwsh
+        run: |
+          python tools/regression_training_records_v32968_v3306.py "$env:APP_DIR" 3.30.22+209
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao treinamentos falhou' }
+          python tools/regression_internal_management_training_v32969_v3307.py "$env:APP_DIR" 3.30.22+209
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao gerencial falhou' }
+          python tools/regression_reports_management_v32988.py "$env:APP_DIR" 3.30.22+209
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao relatorios falhou' }
+          python tools/regression_report_template_ai_import_v32989.py "$env:APP_DIR" 3.30.22+209
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao criador modelos IA falhou' }
+          python tools/regression_management_panel_refine_v32990.py "$env:APP_DIR" 3.30.22+209
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao Painel Gerencial falhou' }
+          python tools/regression_checklist_ai_stable_v32992.py "$env:APP_DIR" 3.30.22+209
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao IA checklist falhou' }
+          python tools/regression_workers_manual_registration_v32994.py "$env:APP_DIR" 3.30.22+209
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao trabalhadores falhou' }
+          if (-not (Select-String "$env:APP_DIR/lib/services/ai_assistant_service.dart" -Pattern 'embeddedEndpoint.isNotEmpty ? embeddedEndpoint : savedEndpoint' -SimpleMatch -Quiet)) { throw 'Central da IA nao priorizada' }
+          Write-Host 'REGRESSOES_WINDOWS_V33022_OK'
+
+      - name: Teste real da rota robusta de foto
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          New-Item -ItemType Directory -Force tool | Out-Null
+          Copy-Item '..\..\tools\live_ronda_ai_probe_v3304_windows.dart' 'tool\live_checklist_ai_probe.dart' -Force
+          dart run --define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY" tool/live_checklist_ai_probe.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Teste real da rota robusta falhou' }
+
+      - name: Compilar Windows release
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+          if ($LASTEXITCODE -ne 0) { throw 'Build Windows falhou' }
+
+      - name: Empacotar portatil
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.22-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.22-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.22-PORTATIL.sha256.txt'
+
+      - name: Gerar instalador
+        shell: pwsh
+        run: |
+          $iscc='C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          if (-not (Test-Path $iscc)) { throw 'Inno Setup nao disponivel' }
+          $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
+          $output=(Resolve-Path 'dist/windows').Path
+          $issPath="$env:RUNNER_TEMP\auditar-v33021.iss"
+          $lines=@(
+            '[Setup]',
+            'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
+            'AppName=Auditar SST',
+            'AppVersion=3.30.22',
+            'AppPublisher=Auditar Solucoes',
+            'DefaultDirName={autopf}\Auditar SST',
+            'DefaultGroupName=Auditar SST',
+            "OutputDir=$output",
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.22',
+            'Compression=lzma2',
+            'SolidCompression=yes',
+            'WizardStyle=modern',
+            'ArchitecturesAllowed=x64compatible',
+            'ArchitecturesInstallIn64BitMode=x64compatible',
+            '[Files]',
+            ('Source: "' + $release + '\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs'),
+            '[Icons]',
+            'Name: "{autoprograms}\Auditar SST"; Filename: "{app}\auditar_sst.exe"',
+            'Name: "{autodesktop}\Auditar SST"; Filename: "{app}\auditar_sst.exe"',
+            '[Run]',
+            'Filename: "{app}\auditar_sst.exe"; Description: "Abrir Auditar SST"; Flags: nowait postinstall skipifsilent'
+          )
+          Set-Content $issPath $lines -Encoding UTF8
+          & $iscc $issPath
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.22.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.22.sha256.txt'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.30.22-Windows-Trabalhadores
+          path: dist/windows/*
+          retention-days: 30
