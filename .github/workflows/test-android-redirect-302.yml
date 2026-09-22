@@ -1,0 +1,30 @@
+name: Test Android Redirect 302
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/test-android-redirect-302.yml'
+      - 'tools/live_appscript_302_probe.dart'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Montar projeto minimo
+        run: |
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst app/Auditar_SST_v1_5_dashboard
+          cd app/Auditar_SST_v1_5_dashboard
+          flutter pub get
+          mkdir -p tool
+          cp ../../tools/live_appscript_302_probe.dart tool/live_appscript_302_probe.dart
+          dart run tool/live_appscript_302_probe.dart
