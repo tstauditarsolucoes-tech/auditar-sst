@@ -32,10 +32,9 @@ jobs:
           for src,out in [
             ('build_sources/v3.29.71-nc-quick-resolve/patch_nc_quick_resolve_v32971.py.xz.b64','/tmp/p71.py'),
             ('build_sources/v3.29.74-training-photo/patch_training_import_photo_v32974.py.xz.b64','/tmp/p74.py'),
-            ('build_sources/v3.29.77-checklist-fine-face/patch_checklist_fine_v32977.py.xz.b64','/tmp/p77.py'),
+            ('build_sources/v3.29.77-checklist-fine-face/patch_checklist_fine_face_v32977.py.xz.b64','/tmp/p77.py'),
           ]:
-            if Path(src).exists():
-              Path(out).write_bytes(lzma.decompress(base64.b64decode(Path(src).read_text().strip())))
+            Path(out).write_bytes(lzma.decompress(base64.b64decode(Path(src).read_text().strip())))
           PY
           python /tmp/p71.py "$APP_DIR"
           python tools/patch_login_resilience_v32972.py "$APP_DIR"
@@ -43,7 +42,7 @@ jobs:
           python /tmp/p74.py "$APP_DIR"
           python tools/patch_training_import_robust_v32975.py "$APP_DIR"
           python tools/patch_cipa_management_v32976.py "$APP_DIR"
-          if [ -f /tmp/p77.py ]; then python /tmp/p77.py "$APP_DIR"; fi
+          python /tmp/p77.py "$APP_DIR"
           python tools/patch_refine_new_features_v32978.py "$APP_DIR"
           python tools/patch_refine_new_features_v32979.py "$APP_DIR"
           python tools/patch_performance_report_v32980.py "$APP_DIR"
