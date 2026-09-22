@@ -38,11 +38,17 @@ assert "observations[questionId]!.text = description" in c
 assert "risks[questionId]!.text = risk" in c
 assert "recommendations[questionId]!.text = recommendation" in c
 
-# O transporte geral continua com opt-in: nada libera timeout longo para sync.
+# No Android o transporte geral continua com opt-in: nada libera timeout
+# longo para sync. O Windows usa uma implementacao propria e nao possui esse
+# marcador especifico do Android.
 http=(root/"lib/services/apps_script_http.dart").read_text(encoding="utf-8")
-assert "bool allowLongAndroidRequest = false" in http
-assert "androidDirect && !allowLongAndroidRequest" in http
-assert "const Duration(seconds: 10)" in http
+if not version.startswith("3.30."):
+    assert "bool allowLongAndroidRequest = false" in http
+    assert "androidDirect && !allowLongAndroidRequest" in http
+    assert "const Duration(seconds: 10)" in http
+else:
+    assert "postJson" in http
+    assert "timeout" in http
 
 if version:
     assert f"version: {version}" in pub
