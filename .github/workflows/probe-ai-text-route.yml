@@ -1,0 +1,36 @@
+name: Probe existing text-only AI route
+on:
+  push:
+    branches: [feat-ronda-checklist-models-v329102]
+    paths:
+      - '.github/workflows/probe-ai-text-route.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Query existing text modes using synthetic observations only
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          python - <<'PY'
+          import os,json,time,urllib.request,urllib.error
+          endpoint="https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec"
+          payloads={
+            'report_review_chat':{'mode':'report_review_chat','question':'Reescreva tecnicamente APENAS esta observação fictícia: extintor do forno sem lacre. Responda objetivamente. Não invente fatos.','history':[],'inspectionData':{'empresa':'Empresa de teste','setor':'Forno','itensChecklist':[]}},
+            'report_conclusion':{'mode':'report_conclusion','inspectionData':{'empresa':'Empresa de teste','registros':[{'observacao':'Extintor do forno sem lacre.','tipo':'Não conformidade'}]}},
+            'inspection_text':{'mode':'inspection_text','companyName':'Empresa de teste','observationKind':'Não conformidade','technicianContext':'Extintor do forno sem lacre.','area':'Forno'},
+          }
+          for name,payload in payloads.items():
+            request=urllib.request.Request(endpoint,method='POST',data=json.dumps({'action':'ai_assistant','syncKey':os.environ['AUDITAR_SYNC_KEY'],'payload':payload}).encode(),headers={'Content-Type':'application/json'})
+            start=time.monotonic()
+            try:
+              with urllib.request.urlopen(request,timeout=65) as response:
+                data=json.loads(response.read().decode())
+                result=data.get('result')
+                print(name,'HTTP',response.status,'ELAPSED',round(time.monotonic()-start,2),'OK',data.get('ok'),'CODE',data.get('code',''),'MESSAGE',str(data.get('message',''))[:250],'RESULT_KEYS',sorted(result.keys()) if isinstance(result,dict) else type(result).__name__,flush=True)
+                if isinstance(result,dict):print(name,'RESULT_TEXT',str({k:str(v)[:400] for k,v in result.items() if isinstance(v,str)})[:900],flush=True)
+            except Exception as exc:print(name,'ERROR',type(exc).__name__,str(exc)[:200],flush=True)
+          PY
