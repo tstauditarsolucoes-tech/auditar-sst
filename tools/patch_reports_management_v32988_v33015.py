@@ -25,9 +25,70 @@ def replace_dart_method(text, signature, replacement):
     start = text.find(signature)
     if start < 0:
         raise RuntimeError("método não localizado: " + signature)
-    brace = text.find("{", start)
+
+    paren = text.find("(", start)
+    if paren < 0:
+        raise RuntimeError("parâmetros não localizados: " + signature)
+
+    depth = 0
+    quote = None
+    escape = False
+    line_comment = False
+    block_comment = False
+    close_paren = None
+    i = paren
+    while i < len(text):
+        ch = text[i]
+        nxt = text[i + 1] if i + 1 < len(text) else ""
+        if line_comment:
+            if ch == "\n":
+                line_comment = False
+            i += 1
+            continue
+        if block_comment:
+            if ch == "*" and nxt == "/":
+                block_comment = False
+                i += 2
+                continue
+            i += 1
+            continue
+        if quote:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == quote:
+                quote = None
+            i += 1
+            continue
+        if ch == "/" and nxt == "/":
+            line_comment = True
+            i += 2
+            continue
+        if ch == "/" and nxt == "*":
+            block_comment = True
+            i += 2
+            continue
+        if ch in ("'", '"'):
+            quote = ch
+            i += 1
+            continue
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0:
+                close_paren = i
+                break
+        i += 1
+
+    if close_paren is None:
+        raise RuntimeError("fim dos parâmetros não localizado: " + signature)
+
+    brace = text.find("{", close_paren)
     if brace < 0:
-        raise RuntimeError("abertura não localizada: " + signature)
+        raise RuntimeError("abertura do corpo não localizada: " + signature)
+
     depth = 0
     quote = None
     escape = False
@@ -77,7 +138,8 @@ def replace_dart_method(text, signature, replacement):
             if depth == 0:
                 return text[:start] + replacement.rstrip() + text[i + 1:]
         i += 1
-    raise RuntimeError("fim não localizado: " + signature)
+
+    raise RuntimeError("fim do método não localizado: " + signature)
 
 # 1. Biblioteca de modelos.
 rel = "lib/services/report_template_service.dart"
