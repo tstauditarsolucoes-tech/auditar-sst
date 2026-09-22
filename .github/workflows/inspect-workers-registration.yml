@@ -86,7 +86,7 @@ jobs:
           python tools/patch_worker_ai_central_endpoint_v32995_v33022.py "$APP_DIR" android
           python tools/patch_worker_pdf_local_android_v32996.py "$APP_DIR" android
           cp "$APP_DIR/lib/services/worker_import_service.dart" inspect-workers/worker_import_service.dart
-          cp "$APP_DIR/lib/screens/trabalhadores_screen.dart" inspect-workers/trabalhadores_screen.dart
+          cp "$APP_DIR/lib/screens/workers_screen.dart" inspect-workers/workers_screen.dart
       - uses: actions/upload-artifact@v4
         with:
           name: inspect-workers-current
