@@ -24,13 +24,26 @@ replace_once(sync, "import 'media_sync_service.dart';",
              'media policy import')
 replace_once(sync, "  final bool skipped;\n", "  final bool skipped;\n  final bool mediaChanged;\n", 'event property')
 replace_once(sync, "    this.skipped = false,\n", "    this.skipped = false,\n    this.mediaChanged = false,\n", 'event ctor')
-replace_once(sync, "  static DateTime? _lastAutoMediaKick;\n",
-             "  static DateTime? _lastAutoMediaKick;\n  static int? _lastMediaPending;\n  static bool _lastMediaFailed = false;\n",
-             'media state')
+if platform == 'android':
+    replace_once(sync, "  static DateTime? _lastAutoMediaKick;\n",
+                 "  static DateTime? _lastAutoMediaKick;\n  static int? _lastMediaPending;\n  static bool _lastMediaFailed = false;\n",
+                 'media state')
+else:
+    replace_once(sync, "  static Future<DeviceSyncResult>? _activeSync;\n",
+                 "  static Future<DeviceSyncResult>? _activeSync;\n"
+                 "  static Future<void>? _activeMediaSync;\n"
+                 "  static DateTime? _lastAutoMediaKick;\n"
+                 "  static int? _lastMediaPending;\n"
+                 "  static bool _lastMediaFailed = false;\n",
+                 'Windows media state')
 
 start=sync.read_text(encoding='utf-8')
-begin=start.index('      // Mídia é baixa prioridade. Só inicia quando este ciclo não teve dados')
-end=start.index('      return result;',begin)
+if platform == 'android':
+    begin=start.index('      // Mídia é baixa prioridade. Só inicia quando este ciclo não teve dados')
+else:
+    begin=start.index('      _events.add(result);')
+    begin += len('      _events.add(result);')
+end=start.index('      return result;',begin) if platform == 'android' else begin
 new=r'''      // Fotos e assinaturas são enviadas numa fila independente. Mesmo que
       // cheguem cadastros continuamente, as evidências não ficam bloqueadas.
       // Nunca aguardamos a fila de mídia para liberar o pull/push principal.
@@ -46,10 +59,12 @@ new=r'''      // Fotos e assinaturas são enviadas numa fila independente. Mesmo
         unawaited(_syncMediaBestEffort());
       }
 '''
+if platform == 'windows':
+    new = '\n' + new
 sync.write_text(start[:begin]+new+start[end:],encoding='utf-8',newline='\n')
 
 start=sync.read_text(encoding='utf-8')
-begin=start.index('  static Future<void> _syncMediaBestEffort() {')
+begin=start.index('  static Future<void> _syncMediaBestEffort() {') if platform == 'android' else start.index('  static Future<bool> _attemptIsDue(')
 end=start.index('  static Future<bool> _attemptIsDue(',begin)
 new=r'''  /// Retries the evidence queue without running a second structured sync.
   static Future<void> sendPendingMediaNow() =>
