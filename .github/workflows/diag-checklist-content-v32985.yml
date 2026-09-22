@@ -52,20 +52,16 @@ jobs:
           python tools/patch_pre_admission_search_v32983.py "$APP_DIR" android
           python tools/patch_deferred_inspection_ai_v32984.py "$APP_DIR" android
 
-      - name: Mapear perguntas globais repetidas por modelo
+      - name: Mostrar modelos afetados pelo bloco generico
         run: |
           python - "$APP_DIR" <<'PY'
           from pathlib import Path
-          import re,sys,unicodedata,collections
+          import re,sys
           s=(Path(sys.argv[1])/'lib/ready_checklists.dart').read_text(encoding='utf-8')
-          def norm(x):
-            x=unicodedata.normalize('NFKD',x).encode('ascii','ignore').decode().lower()
-            x=re.sub(r'[^a-z0-9 ]+',' ',x)
-            return re.sub(r'\s+',' ',x).strip()
+          targets=set(["ready-manut-mecanica-geral","ready-manut-oficina-mecanica","ready-ceramica-producao-telhas","ready-ceramica-secadores-telhas","ready-ceramica-expedicao","ready-ceramica-patio-barreiro","ready-colchoes-geral","ready-colchoes-costura","ready-colchoes-bordado","ready-colchoes-tapecaria","ready-colchoes-embalagem","ready-colchoes-almoxarifado","ready-colchoes-expedicao","ready-logistica-almoxarifado","ready-logistica-recebimento","ready-logistica-expedicao","ready-apoio-administrativo","ready-telecom-geral","ready-telecom-sala-tecnica","ready-saude-clinica"])
           starts=[m.start() for m in re.finditer(r'\bReadyChecklistDefinition\s*\(',s)]
-          defs=[]
           for st in starts:
-            op=s.find('(',st); dep=0;q=None;esc=False;end=None
+            op=s.find('(',st);d=0;q=None;esc=False;end=None
             for i in range(op,len(s)):
               ch=s[i]
               if q:
@@ -74,29 +70,20 @@ jobs:
                 elif ch==q:q=None
                 continue
               if ch in "'\"":q=ch
-              elif ch=='(':dep+=1
+              elif ch=='(':d+=1
               elif ch==')':
-                dep-=1
-                if dep==0:end=i+1;break
+                d-=1
+                if d==0:end=i+1;break
             if not end:continue
             b=s[st:end]
-            def f(t,k):
-              m=re.search(r"\b"+k+r"\s*:\s*(['\"])(.*?)\1",t,re.S)
-              return m.group(2).strip() if m else ''
-            ident,name,cat=f(b,'id'),f(b,'name'),f(b,'category')
-            items=[]
-            for im in re.finditer(r"ReadyChecklistItem\s*\((.*?)\)(?=\s*,|\s*\])",b,re.S):
-              txt=f(im.group(1),'text')
-              if txt:items.append(txt)
-            if ident:defs.append((ident,name,cat,items))
-          groups=collections.defaultdict(list)
-          original={}
-          for ident,name,cat,items in defs:
-            for txt in items:
-              n=norm(txt); groups[n].append((ident,name,cat)); original[n]=txt
-          for n,where in sorted(groups.items(),key=lambda kv:(-len(kv[1]),kv[0])):
-            if len(where)>=2:
-              print(f'CROSS|{len(where)}|{original[n]}')
-              for ident,name,cat in where:
-                print(f'  AT|{ident}|{name}|{cat}')
+            m=re.search(r"\bid\s*:\s*(['\"])(.*?)\1",b,re.S)
+            if not m or m.group(2) not in targets:continue
+            ident=m.group(2)
+            def fld(t,k):
+              x=re.search(r"\b"+k+r"\s*:\s*(['\"])(.*?)\1",t,re.S)
+              return x.group(2).strip() if x else ''
+            print(f'AFFECTED|{ident}|{fld(b,"name")}|{fld(b,"category")}')
+            for n,im in enumerate(re.finditer(r"ReadyChecklistItem\s*\((.*?)\)(?=\s*,|\s*\])",b,re.S),1):
+              ib=im.group(1)
+              print(f'AITEM|{ident}|{n}|{fld(ib,"category")}|{fld(ib,"text")}|{fld(ib,"reference")}|{fld(ib,"priority")}')
           PY
