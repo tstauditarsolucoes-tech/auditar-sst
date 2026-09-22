@@ -17,9 +17,20 @@ one(pdf,
     "      pw.MultiPage(\n        // Field dossiers with 30-50 photos can span well past 20 pages.\n        // Content remains independently pageable; no evidence is truncated.\n        maxPages: 300,\n        pageFormat: PdfPageFormat.a4,",
     'bounded long Ronda pagination')
 one(net,
+    "  static const int _maxRootAttempts = 2;",
+    """  static const int _maxRootAttempts = 2;
+  // Only the isolated CI local-HTTP test can enable this at compile time.
+  // Release builds never pass this define; the default is strictly false.
+  static const bool _allowTestLoopback = bool.fromEnvironment(
+    'AUDITAR_TEST_LOOPBACK', defaultValue: false);""",
+    'strict CI-only loopback default')
+one(net,
     "  ) async {\n    final encodedBody = jsonEncode(payload);",
     """  ) async {
-    if (endpoint.scheme.toLowerCase() != 'https' ||
+    final loopbackForTest = _allowTestLoopback &&
+        endpoint.scheme == 'http' &&
+        const {'127.0.0.1', 'localhost', '::1'}.contains(endpoint.host);
+    if ((endpoint.scheme.toLowerCase() != 'https' && !loopbackForTest) ||
         endpoint.host.trim().isEmpty || endpoint.userInfo.isNotEmpty) {
       throw const CentralTransportException(
         'A Central exige conexão HTTPS válida.',
