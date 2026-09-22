@@ -24,6 +24,14 @@ if bullet_count < 2: raise RuntimeError('Expected PDF-only bullet separators abs
 pdf.write_text(pdf_text.replace('•',' - '),encoding='utf-8',newline='\n')
 print('PDF_FONT_SEPARATOR_NORMALIZED',bullet_count)
 
+one(pdf, "                  ? template!.footerText\n",
+        "                  ? template!.footerText.replaceAll('•', ' - ')\n",
+        'custom footer glyph')
+one(pdf, "    final words = input.trim().split(RegExp(r'\\s+'));",
+        "    final words = input.replaceAll('•', ' - ').trim().split(RegExp(r'\\s+'));",
+        'long AI narrative bullet glyph')
+
+
 one(net,
     "  static const int _maxRootAttempts = 2;",
     """  static const int _maxRootAttempts = 2;
