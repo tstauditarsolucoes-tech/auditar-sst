@@ -55,6 +55,13 @@ one(net,
     """  /// Redirects carrying account credentials must remain on the original
   /// HTTPS host or the official Apps Script content-delivery hosts.
   /// Relative redirects inherit the original host and are permitted.
+  static bool _isAuthorizedScriptRedirectHost(String host) {
+    final value = host.toLowerCase();
+    return value == 'script.google.com' ||
+        value == 'script.googleusercontent.com' ||
+        value.endsWith('.googleusercontent.com');
+  }
+
   static bool isAllowedCentralRedirect(Uri origin, Uri target) {
     if (origin.scheme.toLowerCase() != 'https' ||
         target.scheme.toLowerCase() != 'https' ||
@@ -65,7 +72,8 @@ one(net,
     final source = origin.host.toLowerCase();
     final destination = target.host.toLowerCase();
     if (destination == source) return true;
-    return _isGoogleScriptHost(source) && _isGoogleScriptHost(destination);
+    return _isAuthorizedScriptRedirectHost(source) &&
+        _isAuthorizedScriptRedirectHost(destination);
   }
 
   static bool _isTemporaryGoogleHost(Uri uri) {""",
