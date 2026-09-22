@@ -1,0 +1,38 @@
+name: Probe structured text rewriting through existing chat
+on:
+  push:
+    branches: [feat-ronda-checklist-models-v329102]
+    paths:
+      - '.github/workflows/probe-structured-text.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Probe synthetic findings
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          python - <<'PY'
+          import urllib.request,json,os,time
+          endpoint='https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec'
+          text='Extintor do forno foi usado e está sem lacre.'
+          prompt=('Atue APENAS como revisor técnico textual de uma observação de SST. SEM análise de fotografia. '
+            'Não acrescente constatações que não foram feitas e NÃO invente medições, datas, riscos certos, NR específica ou status de equipamento. '
+            'Responda somente UM objeto JSON válido, sem markdown, com chaves description, risk, possibleConsequence, recommendation, immediateAction, likelyReferences, checksRequired. '
+            'description é o relato original reescrito fielmente; demais campos são sugestões condicionais para revisão, sem afirmações de constatação. '
+            'Não preencha informações ausentes: use string vazia ou lista vazia. Texto de referência: '+text)
+          payload={'mode':'report_review_chat','question':prompt,'history':[],'inspectionData':{'empresa':'Empresa teste','setor':'Forno','itensChecklist':[]}}
+          req=urllib.request.Request(endpoint,method='POST',data=json.dumps({'action':'ai_assistant','syncKey':os.environ['AUDITAR_SYNC_KEY'],'payload':payload}).encode(),headers={'Content-Type':'application/json'})
+          with urllib.request.urlopen(req,timeout=70) as response:
+            body=json.loads(response.read().decode())
+            result=body.get('result') or {}
+            answer=str(result.get('answer',''))
+            print('OK',body.get('ok'),'KEYS',list(result.keys()),'ANSWER',answer[:2000],flush=True)
+            try:
+              obj=json.loads(answer.strip().replace('~~~',''))
+              print('PARSE_JSON_OK',sorted(obj.keys()),flush=True)
+            except Exception as e:print('PARSE_JSON_FAILED',type(e).__name__,str(e),flush=True)
+          PY
