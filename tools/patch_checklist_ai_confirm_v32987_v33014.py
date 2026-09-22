@@ -464,18 +464,20 @@ write(rel, c)
 rel = "lib/screens/report_screen.dart"
 r = read(rel)
 
-literal_fixes = {
-    r"\\$photoAiPending": "$photoAiPending",
-    r"\\$photoAiReady": "$photoAiReady",
-    r"\\$photoAiErrors": "$photoAiErrors",
-    r"\\$photoAiApplied": "$photoAiApplied",
-    r"\\$applied": "$applied",
-    r"\\$dismissed": "$dismissed",
-    r"\\${summary.completed}": "${summary.completed}",
-    r"\\${summary.failed}": "${summary.failed}",
-}
-for old, new in literal_fixes.items():
-    r = r.replace(old, new)
+for token in [
+    'photoAiPending',
+    'photoAiReady',
+    'photoAiErrors',
+    'photoAiApplied',
+    'applied',
+    'dismissed',
+]:
+    r = r.replace('\\\\$' + token, '$' + token)
+    r = r.replace('\\$' + token, '$' + token)
+
+for token in ['summary.completed', 'summary.failed']:
+    r = r.replace('\\\\${' + token + '}', '${' + token + '}')
+    r = r.replace('\\${' + token + '}', '${' + token + '}')
 
 r = r.replace(
     "'IA das fotos sem atrasar a vistoria'",
