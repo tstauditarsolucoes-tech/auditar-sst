@@ -5,8 +5,8 @@ on:
     branches: [feature-report-templates-v32962]
     paths:
       - '.github/workflows/build-v32989-report-template-ai.yml'
-      - 'tools/patch_reports_management_v32989_v33015.py'
-      - 'tools/regression_reports_management_v32989.py'
+      - 'tools/patch_reports_management_v32988_v33015.py'
+      - 'tools/regression_reports_management_v32988.py'
       - 'tools/patch_checklist_ai_confirm_v32987_v33014.py'
 
 permissions:
@@ -82,7 +82,7 @@ jobs:
         run: |
           set -euo pipefail
           python tools/patch_checklist_ai_confirm_v32987_v33014.py "$APP_DIR" android
-          python tools/patch_reports_management_v32989_v33015.py "$APP_DIR" android
+          python tools/patch_reports_management_v32988_v33015.py "$APP_DIR" android
 
       - name: Confirmar sincronizacao intacta
         run: |
@@ -126,7 +126,7 @@ jobs:
           set -euo pipefail
           python tools/regression_training_records_v32968_v3306.py "$APP_DIR" 3.29.89+231
           python tools/regression_internal_management_training_v32969_v3307.py "$APP_DIR" 3.29.89+231
-          python tools/regression_reports_management_v32989.py "$APP_DIR" 3.29.89+231
+          python tools/regression_reports_management_v32988.py "$APP_DIR" 3.29.89+231
           grep -q 'Sugestão da IA' "$APP_DIR/lib/screens/checklist_screen.dart"
           grep -q 'Usar e editar' "$APP_DIR/lib/screens/checklist_screen.dart"
           grep -q 'observations\[questionId\]!.text = description' "$APP_DIR/lib/screens/checklist_screen.dart"
