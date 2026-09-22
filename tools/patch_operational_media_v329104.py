@@ -108,15 +108,18 @@ replace_once(media,
 
   static Future<MediaSyncSummary> _uploadPendingImpl({int limit = 40}) async {""",
   'single-flight media upload')
-replace_once(media,
-  "      final file = File(localPath);\n      if (!await file.exists()) continue;",
-  """      final file = File(localPath);
-      if (!await file.exists()) {
+ms = media.read_text(encoding='utf-8')
+begin = ms.index('  static Future<MediaSyncSummary> _uploadPendingImpl(')
+end = ms.index('  static Future<String> uploadCompanyLogoNow(', begin)
+part = ms[begin:end]
+old_line = "      if (!await file.exists()) continue;"
+if part.count(old_line) != 1: raise RuntimeError('missing file upload marker '+str(part.count(old_line)))
+part = part.replace(old_line, """      if (!await file.exists()) {
         lastError = 'Uma evidência está sem arquivo neste aparelho. '
             'O registro foi preservado; confira a biblioteca de evidências.';
         continue;
-      }""",
-  'missing file visible')
+      }""", 1)
+media.write_text(ms[:begin]+part+ms[end:], encoding='utf-8', newline='\\n')
 
 old_version='3.29.103+245' if platform=='android' else '3.30.27+214'
 new_version='3.29.104+246' if platform=='android' else '3.30.28+215'
