@@ -52,43 +52,79 @@ jobs:
           python tools/patch_pre_admission_search_v32983.py "$APP_DIR" android
           python tools/patch_deferred_inspection_ai_v32984.py "$APP_DIR" android
 
-      - name: Inventario dos checklists
-        run: |
-          set -euo pipefail
-          echo "=== ARQUIVOS RELACIONADOS A CHECKLIST ==="
-          grep -RIlE 'Checklist|checklist|Panifica|Padaria|pergunta|question' "$APP_DIR/lib" | sort || true
-          echo "=== OCORRENCIAS PANIFICACAO/PADARIA ==="
-          grep -RniE 'Panifica|Padaria|panifica|padaria' "$APP_DIR/lib" || true
-          echo "=== LINHAS DE PERGUNTAS / ITENS / TEMPLATES ==="
-          grep -RniE 'question:|pergunta|ChecklistQuestion|ChecklistItem|template|modelo|title:|name:' "$APP_DIR/lib" | grep -Ei 'checklist|question|pergunta|Panifica|Padaria|template|modelo' | head -n 1800 || true
-
-      - name: Analise automatica de perguntas repetidas
+      - name: Estruturar biblioteca e localizar duplicidades reais
         run: |
           python - "$APP_DIR" <<'PY'
           from pathlib import Path
-          import re,sys,unicodedata,collections
-          root=Path(sys.argv[1])/'lib'
-          files=[p for p in root.rglob('*.dart') if 'checklist' in p.name.lower() or 'checklist' in p.read_text(encoding='utf-8',errors='ignore').lower()]
-          print('CHECKLIST_FILES', *[str(p.relative_to(root)) for p in files], sep='\n- ')
-          rx=re.compile(r"['\"]([^'\"\n]{18,220}\?)['\"]")
+          import re, sys, unicodedata, collections
+          p=Path(sys.argv[1])/'lib/ready_checklists.dart'
+          s=p.read_text(encoding='utf-8')
+
+          starts=[m.start() for m in re.finditer(r'\bReadyChecklistDefinition\s*\(',s)]
+          blocks=[]
+          for st in starts:
+            depth=0; quote=None; esc=False; end=None
+            for i in range(s.find('(',st),len(s)):
+              ch=s[i]
+              if quote:
+                if esc: esc=False
+                elif ch=='\\': esc=True
+                elif ch==quote: quote=None
+                continue
+              if ch in "'\"": quote=ch; continue
+              if ch=='(': depth+=1
+              elif ch==')':
+                depth-=1
+                if depth==0:
+                  end=i+1; break
+            if end: blocks.append(s[st:end])
+
+          def field(block,key):
+            m=re.search(r"\b"+re.escape(key)+r"\s*:\s*(['\"])(.*?)\1",block,re.S)
+            return m.group(2).strip() if m else ''
+          def norm(x):
+            x=unicodedata.normalize('NFKD',x).encode('ascii','ignore').decode().lower()
+            x=re.sub(r'[^a-z0-9 ]+',' ',x)
+            return re.sub(r'\s+',' ',x).strip()
+          itemrx=re.compile(r"ReadyChecklistItem\s*\((.*?)\)(?=\s*,|\s*\])",re.S)
           rows=[]
-          for p in files:
-            txt=p.read_text(encoding='utf-8',errors='ignore')
-            for m in rx.finditer(txt):
-              s=' '.join(m.group(1).split())
-              if len(s)<18: continue
-              norm=unicodedata.normalize('NFKD',s).encode('ascii','ignore').decode().lower()
-              norm=re.sub(r'[^a-z0-9 ]+',' ',norm)
-              norm=re.sub(r'\s+',' ',norm).strip()
-              rows.append((norm,s,str(p.relative_to(root))))
-          groups=collections.defaultdict(list)
-          for n,s,p in rows: groups[n].append((s,p))
-          dups=[(n,v) for n,v in groups.items() if len(v)>1]
-          print('=== DUPLICATAS EXATAS NORMALIZADAS ===')
-          for n,v in sorted(dups,key=lambda x:(-len(x[1]),x[0]))[:250]:
-            print('DUP',len(v),n)
-            for s,p in v: print('  ',p,'::',s)
-          print('=== TODAS AS PERGUNTAS EXTRAIDAS ===')
-          for i,(n,s,p) in enumerate(rows[:1400],1):
-            print(f'Q{i:04d}',p,'::',s)
+          for b in blocks:
+            ident,name,cat=field(b,'id'),field(b,'name'),field(b,'category')
+            items=[]
+            for im in itemrx.finditer(b):
+              ib=im.group(1)
+              text=field(ib,'text'); ref=field(ib,'reference'); pri=field(ib,'priority'); icat=field(ib,'category')
+              if text: items.append((text,ref,pri,icat))
+            rows.append((ident,name,cat,items))
+
+          print('=== TEMPLATE_SUMMARY ===')
+          print('TEMPLATE_COUNT',len(rows),'ITEM_COUNT',sum(len(x[3]) for x in rows))
+          for ident,name,cat,items in rows:
+            print(f'TEMPLATE|{ident}|{name}|{cat}|{len(items)}')
+
+          print('=== DUPLICATES_WITHIN_SAME_CHECKLIST ===')
+          found=0
+          for ident,name,cat,items in rows:
+            g=collections.defaultdict(list)
+            for idx,(text,ref,pri,icat) in enumerate(items,1): g[norm(text)].append((idx,text))
+            for n,v in g.items():
+              if len(v)>1:
+                found+=1
+                print(f'INDUP|{ident}|{name}|{len(v)}|{n}')
+                for idx,text in v: print(f'  {idx}|{text}')
+          print('INDUP_GROUPS',found)
+
+          print('=== PANIFICACAO_FULL ===')
+          for ident,name,cat,items in rows:
+            key=norm(' '.join([ident,name,cat]))
+            if 'panificacao' in key or 'padaria' in key:
+              print(f'PAN_TEMPLATE|{ident}|{name}|{cat}|{len(items)}')
+              for idx,(text,ref,pri,icat) in enumerate(items,1):
+                print(f'PAN_ITEM|{ident}|{idx}|{icat}|{text}|{ref}|{pri}')
+
+          print('=== RESPONSE_OPTIONS ===')
+          cs=(Path(sys.argv[1])/'lib/screens/checklist_screen.dart').read_text(encoding='utf-8',errors='ignore')
+          for i,line in enumerate(cs.splitlines(),1):
+            if re.search(r'n[aã]o se aplica|n/?a|conforme|n[aã]o conforme',line,re.I):
+              print(f'OPT|{i}|{line.strip()}')
           PY
