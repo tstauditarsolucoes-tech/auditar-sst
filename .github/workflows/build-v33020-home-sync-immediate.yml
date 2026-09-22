@@ -4,8 +4,8 @@ on:
   push:
     branches: [feature-report-templates-v32962]
     paths:
-      - '.github/workflows/build-v33020-checklist-ai-stable.yml'
-      - 'tools/patch_checklist_ai_stable_v32992_v33020.py'
+      - '.github/workflows/build-v33020-home-sync-immediate.yml'
+      - 'tools/patch_checklist_ai_stable_v32992_v33019.py'
       - 'tools/regression_checklist_ai_stable_v32992.py'
       - 'tools/patch_home_immediate_sync_v32993_v33020.py'
       - 'tools/regression_home_immediate_sync_v32993.py'
@@ -73,8 +73,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Criador de modelos IA falhou' }
           python tools/patch_management_panel_refine_v32990_v33017.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Painel Gerencial refinado falhou' }
-          python tools/patch_checklist_ai_stable_v32992_v33020.py "$env:APP_DIR" windows
+          python tools/patch_checklist_ai_stable_v32992_v33019.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'IA estavel do checklist falhou' }
+          python tools/patch_home_immediate_sync_v32993_v33020.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Sync imediato da Home falhou' }
 
       - name: Confirmar sincronizacao intacta
         shell: pwsh
