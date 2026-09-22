@@ -211,6 +211,25 @@ renames = {
 }
 for old, new in renames.items():
     s = s.replace("name: '" + old + "'", "name: '" + new + "'")
+
+# Panificação geral: evita pressupor que toda padaria possua as mesmas máquinas,
+# fritadeira ou instalação a gás.
+pan_wording = {
+    "Modeladora, cilindro, amassadeira/sovador, batedeira, fatiadora, laminadora e demais máquinas possuem proteções e dispositivos de segurança em condição adequada?":
+        "As máquinas e equipamentos realmente existentes no local possuem proteções e dispositivos de segurança em condição adequada?",
+    "Fornos, fritadeiras e superfícies quentes possuem condição segura de operação, afastamento, proteção e controle de queimaduras?":
+        "Os equipamentos térmicos existentes, como fornos ou fritadeiras, possuem condição segura de operação e medidas contra contato ou queimaduras?",
+    "Cilindros, mangueiras, reguladores, registros e instalações de gás estão protegidos, conservados e sem vazamentos ou improvisações aparentes?":
+        "Quando houver uso de gás combustível, cilindros, mangueiras, reguladores, registros e conexões estão conservados, protegidos e sem vazamentos ou improvisações aparentes?",
+    "Os trabalhadores utilizam os EPIs definidos para riscos como calor, corte, ruído, projeção de partículas e produtos de limpeza?":
+        "Os trabalhadores utilizam os EPIs definidos para os riscos efetivamente presentes nas atividades executadas?",
+}
+for old, new in pan_wording.items():
+    if old in s:
+        s = s.replace(old, new)
+    elif new not in s:
+        raise SystemExit("pergunta de Panificação não localizada: " + old)
+
 ready_path.write_text(s, encoding="utf-8")
 
 new_src = new_path.read_text(encoding="utf-8")
