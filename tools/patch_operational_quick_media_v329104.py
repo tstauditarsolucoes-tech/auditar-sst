@@ -6,4 +6,11 @@ if len(sys.argv)>2 and sys.argv[2]=='windows':
     _end=_source.index("sync.write_text(s, encoding='utf-8',newline='\\n')",_start)
     _section=_source[_start:_end]
     _source=_source[:_start]+"if platform == 'android':\n"+''.join('    '+line for line in _section.splitlines(keepends=True))+_source[_end:]
+    _home_begin=_source.index('h=replace_once(h,"  Timer? _deviceRefreshDebounce;')
+    _home_end=_source.index("marker='''  Widget _companyResourcesCard()",_home_begin)
+    _windows_home=r'''h=replace_once(h,"  final GlobalKey _modulesKey = GlobalKey();\n", "  final GlobalKey _modulesKey = GlobalKey();\n  Timer? _syncStatusTimer;\n  Future<Map<String, String>>? _syncStatusFuture;\n",'Windows home status state')
+h=replace_once(h,"    _refresh();\n    WidgetsBinding.instance.addPostFrameCallback((_) {", "    _refresh();\n    _updateSyncStatus();\n    _syncStatusTimer = Timer.periodic(const Duration(seconds: 30), (_) {\n      _updateSyncStatus();\n    });\n    WidgetsBinding.instance.addPostFrameCallback((_) {",'Windows home status refresh')
+h=replace_once(h,"    _deviceSyncSubscription?.cancel();\n    _mobileScrollController.dispose();", "    _deviceSyncSubscription?.cancel();\n    _syncStatusTimer?.cancel();\n    _mobileScrollController.dispose();",'Windows home status disposal')
+'''
+    _source=_source[:_home_begin]+_windows_home+_source[_home_end:]
 exec(compile(_source,__file__,'exec'))
