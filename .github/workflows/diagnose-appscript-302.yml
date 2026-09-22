@@ -1,0 +1,47 @@
+name: Diagnose Apps Script Redirect 302
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/diagnose-appscript-302.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verificar redirecionamento sem credenciais
+        run: |
+          python - <<'PY'
+          import json, urllib.request, urllib.error, urllib.parse
+          endpoint='https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec'
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,req,fp,code,msg,headers,newurl):
+                  return None
+          opener=urllib.request.build_opener(NoRedirect)
+          current=endpoint
+          method='POST'
+          for hop in range(6):
+              data=b'{"action":"health_check"}' if method=='POST' else None
+              req=urllib.request.Request(current,data=data,headers={'Content-Type':'application/json','Accept':'application/json'})
+              try:
+                  resp=opener.open(req,timeout=20)
+              except urllib.error.HTTPError as e:
+                  resp=e
+              status=resp.code
+              destination=resp.headers.get('Location','')
+              parsed=urllib.parse.urlparse(destination)
+              print('HOP',hop,'method',method,'status',status,'host',urllib.parse.urlparse(current).hostname,'location_host',parsed.hostname,'location_path_prefix',parsed.path[:65] if parsed.path else '', 'content_type',resp.headers.get('Content-Type',''))
+              if status not in (301,302,303,307,308): 
+                  body=resp.read(300).decode('utf-8','replace')
+                  print('FINAL_RESPONSE_IS_JSON',body.lstrip().startswith('{'),'BODY_PREFIX',body[:90].replace('\n',' '))
+                  break
+              if not destination: 
+                  print('LOCATION_MISSING'); break
+              current=urllib.parse.urljoin(current,destination)
+              if status in (301,302,303): method='GET'
+          PY
