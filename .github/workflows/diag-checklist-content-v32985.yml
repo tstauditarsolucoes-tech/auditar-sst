@@ -52,38 +52,8 @@ jobs:
           python tools/patch_pre_admission_search_v32983.py "$APP_DIR" android
           python tools/patch_deferred_inspection_ai_v32984.py "$APP_DIR" android
 
-      - name: Mostrar modelos afetados pelo bloco generico
+      - name: Mostrar deduplicacao atual
         run: |
-          python - "$APP_DIR" <<'PY'
-          from pathlib import Path
-          import re,sys
-          s=(Path(sys.argv[1])/'lib/ready_checklists.dart').read_text(encoding='utf-8')
-          targets=set(["ready-manut-mecanica-geral","ready-manut-oficina-mecanica","ready-ceramica-producao-telhas","ready-ceramica-secadores-telhas","ready-ceramica-expedicao","ready-ceramica-patio-barreiro","ready-colchoes-geral","ready-colchoes-costura","ready-colchoes-bordado","ready-colchoes-tapecaria","ready-colchoes-embalagem","ready-colchoes-almoxarifado","ready-colchoes-expedicao","ready-logistica-almoxarifado","ready-logistica-recebimento","ready-logistica-expedicao","ready-apoio-administrativo","ready-telecom-geral","ready-telecom-sala-tecnica","ready-saude-clinica"])
-          starts=[m.start() for m in re.finditer(r'\bReadyChecklistDefinition\s*\(',s)]
-          for st in starts:
-            op=s.find('(',st);d=0;q=None;esc=False;end=None
-            for i in range(op,len(s)):
-              ch=s[i]
-              if q:
-                if esc:esc=False
-                elif ch=='\\':esc=True
-                elif ch==q:q=None
-                continue
-              if ch in "'\"":q=ch
-              elif ch=='(':d+=1
-              elif ch==')':
-                d-=1
-                if d==0:end=i+1;break
-            if not end:continue
-            b=s[st:end]
-            m=re.search(r"\bid\s*:\s*(['\"])(.*?)\1",b,re.S)
-            if not m or m.group(2) not in targets:continue
-            ident=m.group(2)
-            def fld(t,k):
-              x=re.search(r"\b"+k+r"\s*:\s*(['\"])(.*?)\1",t,re.S)
-              return x.group(2).strip() if x else ''
-            print(f'AFFECTED|{ident}|{fld(b,"name")}|{fld(b,"category")}')
-            for n,im in enumerate(re.finditer(r"ReadyChecklistItem\s*\((.*?)\)(?=\s*,|\s*\])",b,re.S),1):
-              ib=im.group(1)
-              print(f'AITEM|{ident}|{n}|{fld(ib,"category")}|{fld(ib,"text")}|{fld(ib,"reference")}|{fld(ib,"priority")}')
-          PY
+          nl -ba "$APP_DIR/lib/screens/new_inspection_screen.dart" | sed -n '717,805p'
+          echo "=== PANIFICACAO ==="
+          nl -ba "$APP_DIR/lib/ready_checklists.dart" | sed -n '272,495p'
