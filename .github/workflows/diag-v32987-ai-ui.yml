@@ -1,0 +1,92 @@
+name: Diagnostico IA Checklist v3.29.87
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/diag-v32987-ai-ui.yml'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar fonte atual v3.29.86
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python tools/patch_management_panel_logo_theme_v32970_v3308.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          for src,out in [
+            ('build_sources/v3.29.71-nc-quick-resolve/patch_nc_quick_resolve_v32971.py.xz.b64','/tmp/p71.py'),
+            ('build_sources/v3.29.74-training-photo/patch_training_import_photo_v32974.py.xz.b64','/tmp/p74.py'),
+            ('build_sources/v3.29.77-checklist-fine-face/patch_checklist_fine_face_v32977.py.xz.b64','/tmp/p77.py'),
+          ]:
+            Path(out).write_bytes(lzma.decompress(base64.b64decode(Path(src).read_text().strip())))
+          PY
+          python /tmp/p71.py "$APP_DIR"
+          python tools/patch_login_resilience_v32972.py "$APP_DIR"
+          python tools/patch_training_bulk_import_v32973.py "$APP_DIR"
+          python /tmp/p74.py "$APP_DIR"
+          python tools/patch_training_import_robust_v32975.py "$APP_DIR"
+          python tools/patch_cipa_management_v32976.py "$APP_DIR"
+          python /tmp/p77.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32978.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32979.py "$APP_DIR"
+          python tools/patch_performance_report_v32980.py "$APP_DIR"
+          python tools/patch_cross_platform_refinement_v32981.py "$APP_DIR" android
+          python tools/patch_signature_handoff_v32982.py "$APP_DIR" android
+          python tools/patch_pre_admission_search_v32983.py "$APP_DIR" android
+          python tools/patch_deferred_inspection_ai_v32984.py "$APP_DIR" android
+          python tools/patch_checklist_reality_v32985.py "$APP_DIR" android
+          python tools/patch_checklist_ai_background_v32986_v33013.py "$APP_DIR" android
+
+      - name: Mostrar trechos relevantes
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import sys,re
+          root=Path(sys.argv[1])
+          p=root/'lib/screens/checklist_screen.dart'
+          s=p.read_text(encoding='utf-8')
+          terms=[
+            'final Map<String, TextEditingController>',
+            'observations',
+            'risks',
+            'recommendations',
+            'priorities',
+            'Future<void> _analyzeWithAi',
+            'Preencher com resposta pronta',
+            'Risco identificado',
+            'Recomendação técnica',
+            '_saveDraft',
+          ]
+          for term in terms:
+            print('\n=== TERM',term,'===')
+            start=0; count=0
+            while True:
+              i=s.find(term,start)
+              if i<0: break
+              print(s[max(0,i-2500):min(len(s),i+9000)])
+              print('\n--- OCC ---')
+              start=i+len(term); count+=1
+              if count>=3: break
+          rp=root/'lib/screens/report_screen.dart'
+          rs=rp.read_text(encoding='utf-8')
+          print('\n=== REPORT AI CARD ===')
+          i=rs.find('IA das fotos sem atrasar a vistoria')
+          print(rs[max(0,i-4000):min(len(rs),i+12000)] if i>=0 else 'NOT FOUND')
+          PY
