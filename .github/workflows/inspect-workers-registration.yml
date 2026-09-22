@@ -1,4 +1,4 @@
-name: Inspect Workers Registration
+name: Inspect Workers Registration Current
 
 on:
   push:
@@ -68,11 +68,25 @@ jobs:
           done
           cp "$APP_DIR/lib/database.dart" inspect-workers/database.dart
           cp "$APP_DIR/lib/models.dart" inspect-workers/models.dart
+          cp "$APP_DIR/lib/services/worker_import_service.dart" inspect-workers/worker_import_service.dart
+          cp "$APP_DIR/lib/services/ai_assistant_service.dart" inspect-workers/ai_assistant_service.dart
           cp "$APP_DIR/lib/services/device_sync_service.dart" inspect-workers/device_sync_service.dart
           cp "$APP_DIR/lib/services/sync_coordinator.dart" inspect-workers/sync_coordinator.dart
           cp "$APP_DIR/lib/services/auth_service.dart" inspect-workers/auth_service.dart
           cp "$APP_DIR/lib/services/worker_import_service.dart" inspect-workers/worker_import_service.dart
           find "$APP_DIR/lib/screens" -iname '*worker*' -o -iname '*employee*' | while read -r p; do cp "$p" "inspect-workers/$(basename "$p")"; done
+      - name: Aplicar caminho local PDF da versao atual
+        run: |
+          python tools/patch_checklist_ai_confirm_v32987_v33014.py "$APP_DIR" android
+          python tools/patch_reports_management_v32988_v33015.py "$APP_DIR" android
+          python tools/patch_report_template_ai_import_v32989_v33016.py "$APP_DIR" android
+          python tools/patch_management_panel_refine_v32990_v33017.py "$APP_DIR" android
+          python tools/patch_checklist_ai_stable_v32992_v33019.py "$APP_DIR" android
+          python tools/patch_workers_manual_registration_v32994_v33021.py "$APP_DIR" android
+          python tools/patch_worker_ai_central_endpoint_v32995_v33022.py "$APP_DIR" android
+          python tools/patch_worker_pdf_local_android_v32996.py "$APP_DIR" android
+          cp "$APP_DIR/lib/services/worker_import_service.dart" inspect-workers/worker_import_service.dart
+          cp "$APP_DIR/lib/screens/trabalhadores_screen.dart" inspect-workers/trabalhadores_screen.dart
       - uses: actions/upload-artifact@v4
         with:
           name: inspect-workers-current
