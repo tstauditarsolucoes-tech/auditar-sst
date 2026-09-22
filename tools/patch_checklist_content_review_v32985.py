@@ -4,6 +4,7 @@ import re, sys
 
 root = Path(sys.argv[1])
 platform = (sys.argv[2] if len(sys.argv) > 2 else 'android').lower()
+keep_version = '--keep-version' in sys.argv[3:]
 
 def read(rel):
     return (root / rel).read_text(encoding='utf-8')
