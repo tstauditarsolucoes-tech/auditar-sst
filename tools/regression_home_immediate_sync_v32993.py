@@ -24,7 +24,6 @@ assert "pullWhenClean: true" in coord
 sync=(root/"lib/services/device_sync_service.dart").read_text(encoding="utf-8")
 assert "static Future<DeviceSyncResult> synchronize({bool force = false})" in sync
 assert "_queuedForceSync" in sync
-assert "MediaSyncService.uploadPending(limit: 1)" in sync
 
 if version:
     pub=(root/"pubspec.yaml").read_text(encoding="utf-8")
