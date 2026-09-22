@@ -1,0 +1,24 @@
+name: Validate compressed quick-media patch
+on:
+  push:
+    branches: [fix-operational-quick-media-v329104]
+    paths:
+      - '.github/workflows/diag-operational-patch.yml'
+      - 'tools/patch_operational_quick_media_v329104.py'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: |
+          python - <<'PY'
+          import ast,base64,lzma
+          src=open('tools/patch_operational_quick_media_v329104.py',encoding='utf8').read()
+          tree=ast.parse(src)
+          q=tree.body[1].value.args[0].args[0].args[0].args[0].value
+          decoded=lzma.decompress(base64.b64decode(q))
+          print('PATCH_DECODE_OK',len(decoded),decoded[:80])
+          compile(decoded,'patch','exec')
+          PY
