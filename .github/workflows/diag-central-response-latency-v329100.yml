@@ -1,0 +1,36 @@
+name: Diagnose Central request latency read-only
+on:
+  push:
+    branches: [fix-sync-singleflight-v329100]
+    paths:
+      - '.github/workflows/diag-central-response-latency-v329100.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Measure redirect and script response without personal data
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,time,urllib.request,urllib.error
+          url="https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec"
+          checks=[
+              ("auth_status", {"action":"auth_status"}),
+              ("sync_auth_probe", {"action":"device_sync_pull","authToken":"invalid-diag-token","deviceId":"read-only-diagnostic","platform":"android","sinceVersion":0,"limit":1}),
+          ]
+          for name,payload in checks:
+              req=urllib.request.Request(url,data=json.dumps(payload).encode(),headers={"Content-Type":"application/json"},method="POST")
+              start=time.monotonic()
+              try:
+                  with urllib.request.urlopen(req,timeout=40) as rsp:
+                      body=rsp.read(1024)
+                      elapsed=round(time.monotonic()-start,2)
+                      print(name,"HTTP",rsp.status,"elapsed",elapsed,"content_type",rsp.headers.get("content-type"),"bytes",len(body),flush=True)
+              except urllib.error.HTTPError as err:
+                  print(name,"HTTP",err.code,"elapsed",round(time.monotonic()-start,2),flush=True)
+              except Exception as err:
+                  print(name,"TRANSPORT",type(err).__name__,"elapsed",round(time.monotonic()-start,2),flush=True)
+          PY
