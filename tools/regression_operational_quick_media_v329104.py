@@ -10,10 +10,15 @@ check=(root/'lib/screens/checklist_screen.dart').read_text(encoding='utf8')
 media=(root/'lib/services/media_sync_service.dart').read_text(encoding='utf8')
 ai=(root/'lib/services/ai_assistant_service.dart').read_text(encoding='utf8')
 pub=(root/'pubspec.yaml').read_text(encoding='utf8')
-assert "Duration(seconds: 15)" in sync and "_activeMediaSync == null" in sync
-assert "uploadPending(limit: 2)" in sync
-assert "uploadPending(limit: 1).timeout" not in sync
-assert "if (sent == 0 && received == 0)" not in sync
+if expected.startswith('3.29.'):
+    assert "Duration(seconds: 15)" in sync and "_activeMediaSync == null" in sync
+    assert "uploadPending(limit: 2)" in sync
+    assert "uploadPending(limit: 1).timeout" not in sync
+    assert "if (sent == 0 && received == 0)" not in sync
+else:
+    assert "final firstResponse = await _post(" in sync
+    assert "bootstrapHasMore" in sync
+    assert "syncMedia ?? !isWindows" in sync
 assert 'Future<int> pendingChangesCount()' in sync
 assert 'Future<int> pendingCount()' in media
 assert 'Future<void> _captureQuickNonConformities()' in check
