@@ -18,9 +18,12 @@ def replace_method(text, signature, replacement):
     start=text.find(signature)
     if start<0:
         raise RuntimeError("metodo nao localizado: "+signature)
-    brace=text.find("{",start)
-    if brace<0:
-        raise RuntimeError("abertura nao localizada: "+signature)
+    # Metodos Dart com parametros nomeados usam uma chave antes do corpo.
+    # Procura explicitamente a abertura do corpo apos ") async {".
+    async_marker=text.find(") async {", start)
+    if async_marker<0:
+        raise RuntimeError("corpo async nao localizado: "+signature)
+    brace=async_marker+len(") async ")
     depth=0; quote=None; esc=False; line=False; block=False; i=brace
     while i<len(text):
         ch=text[i]; nxt=text[i+1] if i+1<len(text) else ""
