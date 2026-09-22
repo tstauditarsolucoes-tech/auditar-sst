@@ -1,0 +1,167 @@
+name: Diagnose Checklist text AI route
+
+on:
+  push:
+    branches: [feat-ronda-checklist-models-v329102]
+    paths:
+      - '.github/workflows/diag-checklist-fast-capture.yml'
+      - 'tools/patch_ronda_pdf_pagination_v329101.py'
+      - 'build_sources/v3.29.101-ronda-pdf/**'
+      - 'tools/patch_sync_singleflight_v329100.py'
+      - 'tools/restore_fast_home_sync_v32999.py'
+      - 'tools/patch_home_immediate_sync_v32993_v33020.py'
+      - 'tools/regression_home_immediate_sync_v32993.py'
+      - 'tools/patch_worker_flexible_pdf_v32998.py'
+      - 'tools/fix_worker_flexible_total_v32998.py'
+      - 'build_sources/v3.29.98-flexible-rh/**'
+      - 'tools/patch_checklist_ai_stable_v32992_v33019.py'
+      - 'tools/regression_checklist_ai_stable_v32992.py'
+      - 'tools/patch_workers_manual_registration_v32994_v33021.py'
+      - 'tools/regression_workers_manual_registration_v32994.py'
+      - 'tools/patch_worker_ai_central_endpoint_v32995_v33022.py'
+      - 'tools/patch_worker_pdf_local_android_v32996.py'
+      - 'tools/patch_worker_simple_pdf_local_v32997.py'
+      - 'build_sources/v3.29.97-simple-rh/**'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  PUB_CACHE: /tmp/auditar-pub-v32994
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar base Android atual
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python tools/patch_management_panel_logo_theme_v32970_v3308.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          for src,out in [
+            ('build_sources/v3.29.71-nc-quick-resolve/patch_nc_quick_resolve_v32971.py.xz.b64','/tmp/p71.py'),
+            ('build_sources/v3.29.74-training-photo/patch_training_import_photo_v32974.py.xz.b64','/tmp/p74.py'),
+            ('build_sources/v3.29.77-checklist-fine-face/patch_checklist_fine_face_v32977.py.xz.b64','/tmp/p77.py'),
+          ]:
+            Path(out).write_bytes(lzma.decompress(base64.b64decode(Path(src).read_text().strip())))
+          PY
+          python /tmp/p71.py "$APP_DIR"
+          python tools/patch_login_resilience_v32972.py "$APP_DIR"
+          python tools/patch_training_bulk_import_v32973.py "$APP_DIR"
+          python /tmp/p74.py "$APP_DIR"
+          python tools/patch_training_import_robust_v32975.py "$APP_DIR"
+          python tools/patch_cipa_management_v32976.py "$APP_DIR"
+          python /tmp/p77.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32978.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32979.py "$APP_DIR"
+          python tools/patch_performance_report_v32980.py "$APP_DIR"
+          python tools/patch_cross_platform_refinement_v32981.py "$APP_DIR" android
+          python tools/patch_signature_handoff_v32982.py "$APP_DIR" android
+          python tools/patch_pre_admission_search_v32983.py "$APP_DIR" android
+          python tools/patch_deferred_inspection_ai_v32984.py "$APP_DIR" android
+          python tools/patch_checklist_reality_v32985.py "$APP_DIR" android
+          python tools/patch_checklist_ai_background_v32986_v33013.py "$APP_DIR" android
+
+      - name: Proteger sincronizacao e banco
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          files=[
+            'lib/services/media_sync_service.dart',
+            'lib/services/apps_script_http.dart',
+            'lib/services/sync_coordinator.dart',
+            'lib/services/auth_service.dart',
+            'lib/services/drive_service.dart',
+            'lib/database.dart',
+          ]
+          Path('/tmp/v32994_protected.json').write_text(
+            json.dumps({f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in files})
+          )
+          PY
+
+      - name: Aplicar recursos atuais e correcao da IA do checklist
+        run: |
+          set -euo pipefail
+          python tools/patch_checklist_ai_confirm_v32987_v33014.py "$APP_DIR" android
+          python tools/patch_reports_management_v32988_v33015.py "$APP_DIR" android
+          python tools/patch_report_template_ai_import_v32989_v33016.py "$APP_DIR" android
+          python tools/patch_management_panel_refine_v32990_v33017.py "$APP_DIR" android
+          python tools/patch_checklist_ai_stable_v32992_v33019.py "$APP_DIR" android
+          python tools/patch_home_immediate_sync_v32993_v33020.py "$APP_DIR" android
+          python tools/patch_workers_manual_registration_v32994_v33021.py "$APP_DIR" android
+          python tools/patch_worker_ai_central_endpoint_v32995_v33022.py "$APP_DIR" android
+          python tools/patch_worker_pdf_local_android_v32996.py "$APP_DIR" android
+          python tools/patch_worker_simple_pdf_local_v32997.py "$APP_DIR" android
+          python tools/patch_worker_flexible_pdf_v32998.py "$APP_DIR" android
+          python tools/fix_worker_flexible_total_v32998.py "$APP_DIR"
+          python tools/restore_fast_home_sync_v32999.py "$APP_DIR"
+          python tools/patch_sync_singleflight_v329100.py "$APP_DIR" android
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          protected=[
+            'lib/services/device_sync_service.dart',
+            'lib/services/sync_coordinator.dart',
+            'lib/services/media_sync_service.dart',
+            'lib/services/ai_assistant_service.dart',
+            'lib/screens/express_round_screen.dart',
+            'lib/database.dart',
+          ]
+          Path('/tmp/ronda_pdf_protected.json').write_text(json.dumps({
+            f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in protected}))
+          PY
+          python tools/patch_ronda_pdf_pagination_v329101.py "$APP_DIR"
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          protected=json.loads(Path('/tmp/ronda_pdf_protected.json').read_text())
+          changed=[f for f,h in protected.items() if hashlib.sha256((root/f).read_bytes()).hexdigest()!=h]
+          if changed: raise SystemExit('Alteracao fora do PDF: '+', '.join(changed))
+          print('RONDA_PDF_PATCH_ISOLADO_OK')
+          PY
+
+      - name: Confirmar banco transporte e coordenador intactos
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1]); old=json.loads(Path('/tmp/v32994_protected.json').read_text())
+          changed=[f for f,h in old.items() if hashlib.sha256((root/f).read_bytes()).hexdigest()!=h]
+          if changed: raise SystemExit('SYNC/BANCO ALTERADO: '+', '.join(changed))
+          print('SYNC_OTHER_MODULES_INTACT_OK')
+          PY
+
+      - name: Export exact report and model sources
+        run: |
+          mkdir -p diag-models
+          cp "$APP_DIR/lib/services/report_template_service.dart" diag-models/
+          cp "$APP_DIR/lib/services/express_round_pdf_service.dart" diag-models/
+          cp "$APP_DIR/lib/screens/express_round_screen.dart" diag-models/
+          cp "$APP_DIR/lib/screens/report_template_library_screen.dart" diag-models/ 2>/dev/null || true
+          cp "$APP_DIR/lib/screens/checklist_screen.dart" diag-models/
+          cp "$APP_DIR/pubspec.yaml" diag-models/
+          cp "$APP_DIR/lib/services/ai_assistant_service.dart" diag-models/
+          cp "$APP_DIR/lib/services/inspection_photo_ai_queue_service.dart" diag-models/
+          cp "$APP_DIR/lib/services/apps_script_http.dart" diag-models/
+          cp "$APP_DIR/lib/services/storage_service.dart" diag-models/
+          find "$APP_DIR/lib/screens" -maxdepth 1 -iname '*report*' -printf '%f\n' > diag-models/report_screens.txt
+          grep -Rn 'selectedForCompany\|getAllTemplates\|StyledReportPdfService\|ReportTemplateDefinition' "$APP_DIR/lib/screens" | head -100 > diag-models/report_calls.txt || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: checklist-fast-capture-sources
+          path: diag-models/*
+          retention-days: 3
