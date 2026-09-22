@@ -27,6 +27,8 @@ assert "Salvar e melhorar texto com IA (opcional)" in check
 assert 'InspectionPhotoAiQueueService.rememberMeta(' in check
 assert "MANUAL_ONLY" in check
 assert "await _saveDraft();" in check
+assert 'final previousEvidence = await db.getPhotosForAnswer(answerId);' in check
+assert 'id: existingPhotoIds[evidence[i]] ?? uuid.v4(),' in check
 assert "await _improveTextWithAi(item)" in check
 assert "Fotos/assinaturas pendentes" in home
 assert "Cadastros pendentes" in home
