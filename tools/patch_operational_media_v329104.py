@@ -109,8 +109,9 @@ replace_once(media,
   static Future<MediaSyncSummary> _uploadPendingImpl({int limit = 40}) async {""",
   'single-flight media upload')
 replace_once(media,
-  "      if (!await file.exists()) continue;",
-  """      if (!await file.exists()) {
+  "      final file = File(localPath);\n      if (!await file.exists()) continue;",
+  """      final file = File(localPath);
+      if (!await file.exists()) {
         lastError = 'Uma evidência está sem arquivo neste aparelho. '
             'O registro foi preservado; confira a biblioteca de evidências.';
         continue;
