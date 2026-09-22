@@ -17,6 +17,17 @@ one(pdf,
     "      pw.MultiPage(\n        // Field dossiers with 30-50 photos can span well past 20 pages.\n        // Content remains independently pageable; no evidence is truncated.\n        maxPages: 300,\n        pageFormat: PdfPageFormat.a4,",
     'bounded long Ronda pagination')
 one(net,
+    "  ) async {\n    final encodedBody = jsonEncode(payload);",
+    """  ) async {
+    if (endpoint.scheme.toLowerCase() != 'https' ||
+        endpoint.host.trim().isEmpty || endpoint.userInfo.isNotEmpty) {
+      throw const CentralTransportException(
+        'A Central exige conexão HTTPS válida.',
+      );
+    }
+    final encodedBody = jsonEncode(payload);""",
+    'initial HTTPS endpoint')
+one(net,
     "          uri = uri.resolve(location);\n          redirectedToTemporaryHost =",
     """          final target = uri.resolve(location);
           if (!isAllowedCentralRedirect(endpoint, target)) {
