@@ -32,7 +32,7 @@ one(net,
         const {'127.0.0.1', 'localhost', '::1'}.contains(endpoint.host);
     if ((endpoint.scheme.toLowerCase() != 'https' && !loopbackForTest) ||
         endpoint.host.trim().isEmpty || endpoint.userInfo.isNotEmpty) {
-      throw const CentralTransportException(
+      throw StateError(
         'A Central exige conexão HTTPS válida.',
       );
     }
@@ -42,7 +42,7 @@ one(net,
     "          uri = uri.resolve(location);\n          redirectedToTemporaryHost =",
     """          final target = uri.resolve(location);
           if (!isAllowedCentralRedirect(endpoint, target)) {
-            throw const CentralTransportException(
+            throw StateError(
               'Redirecionamento da Central bloqueado por segurança. '
               'Nenhum dado foi enviado ao endereço de destino.',
             );
