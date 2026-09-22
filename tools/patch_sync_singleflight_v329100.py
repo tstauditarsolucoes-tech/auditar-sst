@@ -59,7 +59,7 @@ end=h.index("  @override\n  void dispose() {",start)
 part=h[start:end]
 if "_syncImmediatelyOnHomeEntry" not in part or "DeviceSyncService.synchronize" not in part:
     raise RuntimeError("Bloco Home diferente do esperado")
-h=h[:start]+h[end:]
+h=h[:start]+"  }\n\n"+h[end:]
 
 # Keep the proven 2 s local / 5 s remote coordinator, push-before-reconcile,
 # media queue, Central URL, user database, auth, and all screens unchanged.
