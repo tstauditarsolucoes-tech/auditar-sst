@@ -119,7 +119,7 @@ part = part.replace(old_line, """      if (!await file.exists()) {
             'O registro foi preservado; confira a biblioteca de evidências.';
         continue;
       }""", 1)
-media.write_text(ms[:begin]+part+ms[end:], encoding='utf-8', newline='\\n')
+media.write_text(ms[:begin]+part+ms[end:], encoding='utf-8', newline='\n')
 
 old_version='3.29.103+245' if platform=='android' else '3.30.27+214'
 new_version='3.29.104+246' if platform=='android' else '3.30.28+215'
