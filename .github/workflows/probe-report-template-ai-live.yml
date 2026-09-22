@@ -1,0 +1,94 @@
+name: Probe Live Report Template AI
+
+on:
+  push:
+    branches: [feature-report-templates-v32962]
+    paths:
+      - '.github/workflows/probe-report-template-ai-live.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Criar PDF sintético de modelo gerencial
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          lines = [
+            'RELATORIO GERENCIAL DE SST',
+            'EMPRESA EXEMPLO',
+            'RESUMO EXECUTIVO',
+            'INDICADORES: CONFORMIDADE | NAO CONFORMIDADES | PRIORIDADES',
+            'EVIDENCIA FOTOGRAFICA | SITUACAO ENCONTRADA',
+            'RISCO | RECOMENDACAO | PRIORIDADE',
+            'PLANO DE ACAO',
+            'CONCLUSAO',
+            'RESPONSAVEL TECNICO | RESPONSAVEL DA EMPRESA',
+          ]
+          content=['BT','/F1 14 Tf','50 790 Td']
+          first=True
+          for line in lines:
+            esc=line.replace('\\','\\\\').replace('(','\\(').replace(')','\\)')
+            if not first: content.append('0 -35 Td')
+            content.append(f'({esc}) Tj')
+            first=False
+          content.append('ET')
+          stream='\n'.join(content).encode('latin-1')
+          objs=[
+            b'1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n',
+            b'2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n',
+            b'3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >> endobj\n',
+            b'4 0 obj << /Length '+str(len(stream)).encode()+b' >> stream\n'+stream+b'\nendstream endobj\n',
+            b'5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n',
+          ]
+          out=bytearray(b'%PDF-1.4\n'); offsets=[0]
+          for obj in objs:
+            offsets.append(len(out)); out.extend(obj)
+          xref=len(out)
+          out.extend(f'xref\n0 {len(objs)+1}\n'.encode())
+          out.extend(b'0000000000 65535 f \n')
+          for off in offsets[1:]: out.extend(f'{off:010d} 00000 n \n'.encode())
+          out.extend(f'trailer << /Size {len(objs)+1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n'.encode())
+          Path('/tmp/report-template.pdf').write_bytes(out)
+          PY
+
+      - name: Consultar Central publicada
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$AUDITAR_SYNC_KEY"
+          python - <<'PY'
+          import os,base64,json,urllib.request
+          url='https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec'
+          pdf=open('/tmp/report-template.pdf','rb').read()
+          body={
+            'action':'ai_assistant',
+            'syncKey':os.environ['AUDITAR_SYNC_KEY'],
+            'payload':{
+              'mode':'report_template_import',
+              'sourceFileName':'modelo-gerencial-teste.pdf',
+              'document':'data:application/pdf;base64,'+base64.b64encode(pdf).decode(),
+            }
+          }
+          req=urllib.request.Request(url,data=json.dumps(body).encode(),headers={'Content-Type':'application/json'})
+          with urllib.request.urlopen(req,timeout=130) as r:
+            raw=r.read().decode('utf-8','replace')
+            print(raw[:16000])
+            data=json.loads(raw)
+            if data.get('ok') is True:
+              result=data.get('result') or {}
+              required=['name','templateClass','primaryColor','headerStyle','photoColumns','layoutSummary','adaptations']
+              missing=[k for k in required if k not in result]
+              if missing: raise SystemExit('LIVE_RESULT_MISSING: '+','.join(missing))
+              print('LIVE_REPORT_TEMPLATE_AI_OK')
+            else:
+              print('LIVE_REPORT_TEMPLATE_AI_NOT_READY')
+              print(data.get('message',''))
+          PY
