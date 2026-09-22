@@ -768,3 +768,16 @@ for rel,markers in checks.items():
         assert marker in text, f'{rel}: ausente {marker}'
 assert f'version: {version}' in read('pubspec.yaml')
 print('DEFERRED_INSPECTION_AI_OK',platform,version)
+
+# ------------------------------------------------------------
+# CHECKLIST REVIEW v3.29.85 - validação acoplada à linha atual.
+# O --keep-version preserva 3.29.84/3.30.12 neste pipeline legado.
+# ------------------------------------------------------------
+import subprocess
+checklist_patch = repo / 'tools/patch_checklist_content_review_v32985.py'
+if checklist_patch.exists():
+    subprocess.run(
+        [sys.executable, str(checklist_patch), str(root), platform, '--keep-version'],
+        check=True,
+    )
+
