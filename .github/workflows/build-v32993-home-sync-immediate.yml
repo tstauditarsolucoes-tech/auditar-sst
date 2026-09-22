@@ -4,9 +4,11 @@ on:
   push:
     branches: [feature-report-templates-v32962]
     paths:
-      - '.github/workflows/build-v32993-checklist-ai-stable.yml'
-      - 'tools/patch_checklist_ai_stable_v32993_v33019.py'
-      - 'tools/regression_checklist_ai_stable_v32993.py'
+      - '.github/workflows/build-v32993-home-sync-immediate.yml'
+      - 'tools/patch_checklist_ai_stable_v32992_v33019.py'
+      - 'tools/regression_checklist_ai_stable_v32992.py'
+      - 'tools/patch_home_immediate_sync_v32993_v33020.py'
+      - 'tools/regression_home_immediate_sync_v32993.py'
 
 permissions:
   contents: read
@@ -84,7 +86,8 @@ jobs:
           python tools/patch_reports_management_v32988_v33015.py "$APP_DIR" android
           python tools/patch_report_template_ai_import_v32989_v33016.py "$APP_DIR" android
           python tools/patch_management_panel_refine_v32990_v33017.py "$APP_DIR" android
-          python tools/patch_checklist_ai_stable_v32993_v33019.py "$APP_DIR" android
+          python tools/patch_checklist_ai_stable_v32992_v33019.py "$APP_DIR" android
+          python tools/patch_home_immediate_sync_v32993_v33020.py "$APP_DIR" android
 
       - name: Confirmar sincronizacao intacta
         run: |
@@ -131,7 +134,8 @@ jobs:
           python tools/regression_reports_management_v32988.py "$APP_DIR" 3.29.93+235
           python tools/regression_report_template_ai_import_v32989.py "$APP_DIR" 3.29.93+235
           python tools/regression_management_panel_refine_v32990.py "$APP_DIR" 3.29.93+235
-          python tools/regression_checklist_ai_stable_v32993.py "$APP_DIR" 3.29.93+235
+          python tools/regression_checklist_ai_stable_v32992.py "$APP_DIR" 3.29.93+235
+          python tools/regression_home_immediate_sync_v32993.py "$APP_DIR" 3.29.93+235
           echo REGRESSOES_ANDROID_V32992_OK
 
       - name: Compilar APK
