@@ -164,6 +164,21 @@ jobs:
 
 
 
+      - name: Diagnostico fonte Windows quando aplicacao falha
+        if: failure()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force diagnostic | Out-Null
+          Copy-Item "$env:APP_DIR/lib/services/device_sync_service.dart" diagnostic/device_sync_service.dart -Force
+          Copy-Item "$env:APP_DIR/lib/screens/home_screen.dart" diagnostic/home_screen.dart -Force
+          Copy-Item "$env:APP_DIR/lib/screens/checklist_screen.dart" diagnostic/checklist_screen.dart -Force
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: diagnostic-operational-windows-source
+          path: diagnostic/*
+          retention-days: 2
+
       - name: Confirmar sincronizacao intacta
         shell: pwsh
         run: |
