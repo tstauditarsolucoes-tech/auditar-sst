@@ -57,9 +57,12 @@ def multi_patch(s):
      """    companyIds: user.role === 'admin' || user.allCompanies ? [] : user.companyIds,
     clientPermissions: clientPortalPermissions_(user.clientPermissions)
 """,'public user'),
-    ("  const user = users.find(item => item.email === email);",
-     """  const user = users.find(item => item.email === email);
-  if (user && user.role === 'cliente') {
+    ("function authLogin_(request) {",
+     """function authLogin_(request) {
+  const portalOnlyUser = readAuthUsers_().find(function(item) {
+    return item.email === normalizeAuthEmail_(request.email) && item.role === 'cliente';
+  });
+  if (portalOnlyUser) {
     return {ok:false,code:'CLIENT_PORTAL_ONLY',
       message:'Esta conta acessa somente o Painel Gerencial no navegador.'};
   }""",'login app'),
