@@ -21,6 +21,7 @@ on:
       - 'tools/report_logo_smoke_test_v329112.dart'
       - 'tools/regression_report_models_v329112.py'
       - 'tools/sst_green_official.png'
+      - 'tools/sst_green_logo.b64'
       - 'tools/patch_report_email_v329111.py'
       - 'tools/patch_report_branding_auditar2_v329112.py'
       - 'tools/sst_green_logo.b64'
