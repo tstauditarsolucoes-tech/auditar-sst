@@ -202,8 +202,10 @@ jobs:
           from pathlib import Path
           import hashlib,json
           root=Path(r"app/Auditar_SST_v1_5_dashboard")
+          # Ronda photo recovery intentionally extends only the media service.
+          # Protect structured sync, database, auth, transport and AI byte-for-byte.
           files=['lib/database.dart','lib/services/device_sync_service.dart',
-                 'lib/services/media_sync_service.dart','lib/services/apps_script_http.dart',
+                 'lib/services/apps_script_http.dart',
                  'lib/services/sync_coordinator.dart','lib/services/drive_service.dart',
                  'lib/services/ai_assistant_service.dart']
           Path('client_panel_protected_windows.json').write_text(json.dumps({
