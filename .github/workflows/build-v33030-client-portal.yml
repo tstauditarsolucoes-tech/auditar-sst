@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.35 Painel Cliente
+name: Auditar SST Windows v3.30.36 Painel Cliente
 
 on:
   push:
@@ -15,6 +15,10 @@ on:
       - 'tools/patch_field_ux_v329110.py'
       - 'tools/patch_training_client_entry_v329110.py'
       - 'tools/patch_report_policy_v329111.py'
+      - 'tools/patch_report_models_branding_v329112.py'
+      - 'tools/auditar_standard2_pdf_service_v329112.dart'
+      - 'tools/regression_report_models_v329112.py'
+      - 'tools/sst_green_official.png'
       - 'tools/patch_report_email_v329111.py'
       - 'tools/regression_report_delivery_v329111.py'
       - 'tools/patch_panel_list_ux_v329110.py'
@@ -358,6 +362,21 @@ jobs:
           dart run --define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY" tool/live_checklist_ai_probe.dart
           if ($LASTEXITCODE -ne 0) { throw 'Teste real da rota robusta falhou' }
 
+      - name: Integrar Padrao Auditar 2 e Performance
+        shell: pwsh
+        run: |
+          python tools/patch_report_models_branding_v329112.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na integracao dos modelos' }
+          python tools/regression_report_models_v329112.py "$env:APP_DIR" 3.30.36+223
+          if ($LASTEXITCODE -ne 0) { throw 'Falha nas regressoes dos modelos' }
+          Push-Location "$env:APP_DIR"
+          dart format lib
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na analise' }
+          flutter test --dart-define=AUDITAR_TEST_LOOPBACK=true
+          if ($LASTEXITCODE -ne 0) { throw 'Falha nos testes' }
+          Pop-Location
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
@@ -376,8 +395,8 @@ jobs:
             Copy-Item "$env:APP_DIR/painel_web_google_apps_script/$name" "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.35-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.35-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.35-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.36-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.36-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.36-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -397,7 +416,7 @@ jobs:
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.35',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.36',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -414,10 +433,10 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.35.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.35.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.36.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.36.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.35-Windows-Painel-Cliente
+          name: Auditar-SST-v3.30.36-Windows-Painel-Cliente
           path: dist/windows/*
           retention-days: 30
