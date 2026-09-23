@@ -22,6 +22,8 @@ on:
       - 'tools/regression_report_models_v329112.py'
       - 'tools/sst_green_official.png'
       - 'tools/patch_report_email_v329111.py'
+      - 'tools/patch_report_branding_auditar2_v329112.py'
+      - 'tools/sst_green_logo.b64'
       - 'tools/regression_report_delivery_v329111.py'
       - 'tools/patch_panel_list_ux_v329110.py'
       - 'tools/regression_client_portal_v329106.py'
@@ -241,6 +243,8 @@ jobs:
           python tools/patch_report_policy_v329111.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Revisao PDF da empresa falhou' }
           python tools/patch_report_email_v329111.py "$env:APP_DIR"
+          python tools/patch_report_branding_auditar2_v329112.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Padrão Auditar 2 e Performance refinado falhou' }
           if ($LASTEXITCODE -ne 0) { throw 'Envio de relatorio por e-mail falhou' }
           if ($LASTEXITCODE -ne 0) { throw 'Assinatura e cliente por empresa falhou' }
           if ($LASTEXITCODE -ne 0) { throw 'Classificacao de melhorias falhou' }
@@ -303,26 +307,26 @@ jobs:
       - name: Regressoes
         shell: pwsh
         run: |
-          python tools/regression_home_immediate_sync_v32993.py "$env:APP_DIR" 3.30.35+222
+          python tools/regression_home_immediate_sync_v32993.py "$env:APP_DIR" 3.30.36+223
           if ($LASTEXITCODE -ne 0) { throw 'Regressao sync imediato Home falhou' }
-          python tools/regression_training_records_v32968_v3306.py "$env:APP_DIR" 3.30.35+222
+          python tools/regression_training_records_v32968_v3306.py "$env:APP_DIR" 3.30.36+223
           if ($LASTEXITCODE -ne 0) { throw 'Regressao treinamentos falhou' }
-          python tools/regression_internal_management_training_v32969_v3307.py "$env:APP_DIR" 3.30.35+222
+          python tools/regression_internal_management_training_v32969_v3307.py "$env:APP_DIR" 3.30.36+223
           if ($LASTEXITCODE -ne 0) { throw 'Regressao gerencial falhou' }
-          python tools/regression_report_delivery_v329111.py "$env:APP_DIR" 3.30.35+222
+          python tools/regression_report_delivery_v329111.py "$env:APP_DIR" 3.30.36+223
           if ($LASTEXITCODE -ne 0) { throw 'Regressao relatorios falhou' }
-          python tools/regression_report_template_ai_import_v32989.py "$env:APP_DIR" 3.30.35+222
+          python tools/regression_report_template_ai_import_v32989.py "$env:APP_DIR" 3.30.36+223
           if ($LASTEXITCODE -ne 0) { throw 'Regressao criador modelos IA falhou' }
-          python tools/regression_management_panel_refine_v32990.py "$env:APP_DIR" 3.30.35+222
+          python tools/regression_management_panel_refine_v32990.py "$env:APP_DIR" 3.30.36+223
           if ($LASTEXITCODE -ne 0) { throw 'Regressao Painel Gerencial falhou' }
-          python tools/regression_checklist_ai_stable_v32992.py "$env:APP_DIR" 3.30.35+222
+          python tools/regression_checklist_ai_stable_v32992.py "$env:APP_DIR" 3.30.36+223
           if ($LASTEXITCODE -ne 0) { throw 'Regressao IA checklist falhou' }
-          python tools/regression_workers_manual_registration_v32994.py "$env:APP_DIR" 3.30.35+222
+          python tools/regression_workers_manual_registration_v32994.py "$env:APP_DIR" 3.30.36+223
           if ($LASTEXITCODE -ne 0) { throw 'Regressao trabalhadores falhou' }
           if (-not (Select-String "$env:APP_DIR/lib/services/ai_assistant_service.dart" -Pattern 'embeddedEndpoint.isNotEmpty ? embeddedEndpoint : savedEndpoint' -SimpleMatch -Quiet)) { throw 'Central da IA nao priorizada' }
           $service = Get-Content "$env:APP_DIR/lib/services/device_sync_service.dart" -Raw
           if (-not ($service.Contains('final firstResponse = await _post(') -and $service.Contains('bootstrapHasMore'))) { throw 'Faltou primeiro pull Windows' }
-          python tools/regression_dual_ai_v329102.py "$env:APP_DIR" 3.30.35+222
+          python tools/regression_dual_ai_v329102.py "$env:APP_DIR" 3.30.36+223
           if ($LASTEXITCODE -ne 0) { throw 'Regressao IA texto/foto falhou' }
           if (-not (Select-String "$env:APP_DIR/lib/screens/express_round_screen.dart" -Pattern 'ReportTemplateService.getAllTemplates()' -SimpleMatch -Quiet)) { throw 'Escolha de modelo na Ronda ausente' }
           if (-not (Select-String "$env:APP_DIR/lib/screens/checklist_screen.dart" -Pattern '_fastCaptureCard' -SimpleMatch -Quiet)) { throw 'Captura rapida ausente' }
@@ -414,7 +418,7 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.30',
+            'AppVersion=3.30.36',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
