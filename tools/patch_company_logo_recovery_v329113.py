@@ -130,9 +130,19 @@ s, old_deletions = re.subn(
     s,
     count=1,
 )
+if old_deletions == 0 and platform == 'windows':
+    # Windows uses "file" and an "onlineReady" flag, rather than Android's
+    # "f"/"synced". Never delete the previous cached logo on failed upload.
+    s, old_deletions = re.subn(
+        r"if\s*\(old\s*!=\s*null\s*&&\s*old\.isNotEmpty\s*&&\s*old\s*!=\s*stored\)\s*\{\s*try\s*\{\s*final\s+file\s*=\s*File\(old\);\s*if\s*\(await\s+file\.exists\(\)\)\s*await\s+file\.delete\(\);\s*\}\s*catch\s*\(_\)\s*\{\s*\}\s*\}",
+        "if (onlineReady && old != null && old.isNotEmpty && old != stored) {\n      try { final file = File(old); if (await file.exists()) await file.delete(); } catch (_) {}\n    }",
+        s,
+        count=1,
+    )
 if old_deletions == 0:
-    # The current source may already preserve the old logo. Never remove it in that case.
-    assert 'if (synced && old' in s or 'await f.delete()' not in s, 'Unexpected logo deletion flow'
+    # Unknown source layouts must be reviewed, not silently treated as safe.
+    assert ('if (synced && old' in s or 'if (onlineReady && old' in s
+            or ('await f.delete()' not in s and 'await file.delete()' not in s)), 'Unexpected logo deletion flow'
 s=s.replace(
     'child: Image.file(File(path), fit: BoxFit.contain),',
     'child: Image.file(File(path), fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Icon(Icons.business_rounded, color: AuditarBrand.navy)),',
