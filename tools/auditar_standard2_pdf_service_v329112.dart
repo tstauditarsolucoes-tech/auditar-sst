@@ -9,6 +9,7 @@ import 'package:pdf/widgets.dart' as pw;
 import '../database.dart';
 import '../models.dart';
 import 'report_template_service.dart';
+import 'report_logo_service.dart';
 
 /// Built-in institutional renderer inspired by the supplied Auditar inspection PDF.
 /// All statements come from the selected inspection; no fabricated test results.
@@ -39,9 +40,7 @@ class AuditarStandard2PdfService {
       actionsByAnswer.putIfAbsent(item.answerId, () => <ActionPlan>[]).add(item);
     }
     final logo = await _asset('assets/branding/sst_green_official.png');
-    final companyLogo = await _image(
-      (header['company_logo_path'] ?? '').toString(),
-    );
+    final companyLogo = await ReportLogoService.forCompany(header);
     final technicianSign = await _image(
       (header['technician_signature_path'] ?? '').toString(),
     );
