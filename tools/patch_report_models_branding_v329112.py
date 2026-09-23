@@ -167,6 +167,10 @@ def styled(s):
 edit('lib/services/styled_report_pdf_service.dart',styled)
 
 def performance(s):
+    s=once(s,
+      "title: template.headerTitle,",
+      "title: 'Relatório de vistoria',",
+      'PDF metadata should not expose the internal model name')
     s=once(s,"import 'report_template_service.dart';",
       "import 'report_template_service.dart';\nimport 'report_logo_service.dart';",'performance logo import')
     s=once(s,
@@ -204,9 +208,9 @@ def performance(s):
     required String companyCity,
     required String companyUf,
   }) {
-    final titleLine = template.headerTitle.trim().isEmpty
-        ? 'RELATÓRIO PERFORMANCE'
-        : template.headerTitle.trim().toUpperCase();
+    // The template name is an internal layout choice, not the client's document title.
+    // Keep "Performance" in the report-model library, never print it on the PDF.
+    const titleLine = 'RELATÓRIO DE VISTORIA';
     final secondLine =
         worksite.trim().isEmpty ? company.toUpperCase() : worksite.toUpperCase();
     final displayAddress = [
