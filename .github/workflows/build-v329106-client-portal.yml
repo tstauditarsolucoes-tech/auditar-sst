@@ -211,8 +211,10 @@ jobs:
           from pathlib import Path
           import hashlib,sys,json
           root=Path(sys.argv[1])
+          # Ronda photo recovery intentionally extends only the media service.
+          # Protect structured sync, database, auth, transport and AI byte-for-byte.
           files=['lib/database.dart','lib/services/device_sync_service.dart',
-                 'lib/services/media_sync_service.dart','lib/services/apps_script_http.dart',
+                 'lib/services/apps_script_http.dart',
                  'lib/services/sync_coordinator.dart','lib/services/drive_service.dart',
                  'lib/services/ai_assistant_service.dart']
           Path('/tmp/client_panel_protected.json').write_text(json.dumps({
