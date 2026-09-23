@@ -26,9 +26,9 @@ function sheetOf(data,withHeader){
   getLastRow:()=>data.length+(withHeader?0:1),
   getDataRange:()=>({getValues:()=>withHeader?data:[['token','company_id','company_name','active','updated_at','payload_json'],...data]}),
   getRange:(row,col,numRows,cols)=>({
-   getValues:()=>data.slice(row-2,row-2+numRows).map(v=>v.slice(col-1,col-1+cols)),
-   setValues:(items)=>{items.forEach((item,i)=>data[row-2+i].splice(col-1,item.length,...item))},
-   setValue:(value)=>{data[row-2][col-1]=value}
+   getValues:()=>data.slice(row-(withHeader?1:2),row-(withHeader?1:2)+numRows).map(v=>v.slice(col-1,col-1+cols)),
+   setValues:(items)=>{items.forEach((item,i)=>data[row-(withHeader?1:2)+i].splice(col-1,item.length,...item))},
+   setValue:(value)=>{data[row-(withHeader?1:2)][col-1]=value}
   }),
   appendRow:row=>data.push(row)
  };
