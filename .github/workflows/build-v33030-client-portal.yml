@@ -24,6 +24,7 @@ on:
       - 'tools/sst_green_logo.b64'
       - 'tools/patch_report_email_v329111.py'
       - 'tools/patch_report_branding_auditar2_v329112.py'
+      - 'tools/patch_report_branding_fix_v329112.py'
       - 'tools/sst_green_logo.b64'
       - 'tools/regression_report_delivery_v329111.py'
       - 'tools/patch_panel_list_ux_v329110.py'
@@ -245,6 +246,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Revisao PDF da empresa falhou' }
           python tools/patch_report_email_v329111.py "$env:APP_DIR"
           python tools/patch_report_branding_auditar2_v329112.py "$env:APP_DIR" windows
+          python tools/patch_report_branding_fix_v329112.py "$env:APP_DIR"
           if ($LASTEXITCODE -ne 0) { throw 'Padrão Auditar 2 e Performance refinado falhou' }
           if ($LASTEXITCODE -ne 0) { throw 'Envio de relatorio por e-mail falhou' }
           if ($LASTEXITCODE -ne 0) { throw 'Assinatura e cliente por empresa falhou' }
