@@ -14,6 +14,7 @@ on:
       - 'tools/patch_improvement_kind_v329109.py'
       - 'tools/patch_field_ux_v329110.py'
       - 'tools/patch_training_client_entry_v329110.py'
+      - 'tools/patch_panel_list_ux_v329110.py'
       - 'tools/regression_client_portal_v329106.py'
       - 'tools/test_client_portal_v329106.cjs'
       - 'build_sources/v3.29.110-client-portal/**'
@@ -229,6 +230,7 @@ jobs:
           python tools/patch_ronda_media_backup_report_v329108.py "$APP_DIR" android
           python tools/patch_improvement_kind_v329109.py "$APP_DIR" android
           python tools/patch_field_ux_v329110.py "$APP_DIR" android
+          python tools/patch_panel_list_ux_v329110.py "$APP_DIR" android
           python tools/patch_training_client_entry_v329110.py "$APP_DIR" android
           python tools/regression_client_portal_v329106.py "$APP_DIR"
           python - "$APP_DIR" <<'PY'
