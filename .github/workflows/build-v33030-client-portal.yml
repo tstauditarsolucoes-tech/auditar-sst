@@ -24,6 +24,7 @@ on:
       - 'tools/patch_expand_inspection_text_v329113.py'
       - 'tools/expand_text_button_v329113.dart'
       - 'tools/regression_logo_text_v329113.py'
+      - 'tools/patch_remove_fine_ui_v329113.py'
       - 'tools/sst_green_official.png'
       - 'tools/sst_green_logo.b64'
       - 'tools/patch_report_email_v329111.py'
@@ -394,8 +395,10 @@ jobs:
           python tools/patch_company_logo_recovery_v329113.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Falha na recuperacao de logos' }
           python tools/patch_expand_inspection_text_v329113.py "$env:APP_DIR" windows
+          python tools/patch_remove_fine_ui_v329113.py "$env:APP_DIR"
           if ($LASTEXITCODE -ne 0) { throw 'Falha nos campos expansíveis' }
           python tools/regression_logo_text_v329113.py "$env:APP_DIR" 3.30.37+224
+          if (Select-String -Path "$env:APP_DIR/lib/screens/checklist_screen.dart" -SimpleMatch 'Multa por descumprimento') { throw 'Multa ainda visivel no checklist' }
           if ($LASTEXITCODE -ne 0) { throw 'Regressao de logos e textos' }
           Push-Location "$env:APP_DIR"
           dart format lib/screens/companies_screen.dart lib/services/media_sync_service.dart lib/widgets/expand_text_button.dart lib/screens/checklist_screen.dart lib/screens/express_round_screen.dart lib/screens/sst_record_form_screen.dart lib/screens/safety_observations_screen.dart lib/screens/improvements_screen.dart
