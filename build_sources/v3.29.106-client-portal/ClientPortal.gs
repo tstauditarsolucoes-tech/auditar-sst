@@ -99,17 +99,18 @@ function clientPortalRow_(item) {
     return String(obj[key] == null ? '' : obj[key]).slice(0, max || 400);
   };
   return {
-    id:safeText('id',120),
-    title:safeText('title',240),
-    description:safeText('description',1800),
-    sector:safeText('sector',200),
+    id:safeText('id',120) || safeText('code',120) || safeText('ncCode',120),
+    title:safeText('title',240) || safeText('code',120) ||
+      safeText('reportNumber',120) || safeText('ncCode',120),
+    description:safeText('description',1800) || safeText('problem',1800),
+    sector:safeText('sector',200) || safeText('area',200),
     status:safeText('status',100),
-    priority:safeText('priority',80),
+    priority:safeText('priority',80) || safeText('classification',80),
     date:safeText('date',60),
-    dueDate:safeText('dueDate',60),
+    dueDate:safeText('dueDate',60) || safeText('nextDueDate',60),
     responsible:safeText('responsible',180),
     recommendation:safeText('recommendation',1200),
-    action:safeText('action',1200)
+    action:safeText('action',1200) || safeText('correctiveAction',1200)
   };
 }
 
@@ -128,8 +129,12 @@ function clientPortalSummary_(payload) {
   const safe = {};
   keys.forEach(function(key) {
     const n = Number(raw[key]);
-    if (Number.isFinite(n)) safe[key] = Math.max(0, Math.min(n, 1000000));
+    if (raw[key] != null && Number.isFinite(n)) safe[key] = Math.max(0, Math.min(n, 1000000));
   });
+  if (safe.openNcs == null) safe.openNcs = ['ncPending','ncInProgress','ncAwaiting','ncOverdue']
+    .reduce(function(total,key){ return total + Math.max(0,Number(raw[key])||0); },0);
+  if (safe.overdueNcs == null) safe.overdueNcs = Math.max(0,Number(raw.ncOverdue)||0);
+  if (safe.overdueActions == null) safe.overdueActions = Math.max(0,Number(raw.overdue)||0);
   return safe;
 }
 
@@ -165,11 +170,11 @@ function clientPortalData(token) {
     }
     if (permissions.naoConformidades) {
       result.nonConformities = clientPortalRows_(payload,
-        ['nonConformities','ncs','ncRecords','nonConformityRows']);
+        ['openNonConformities','nonConformities','ncs','ncRecords','nonConformityRows']);
     }
     if (permissions.acoesCorretivas) {
       result.actions = clientPortalRows_(payload,
-        ['actions','actionPlans','correctiveActions','actionRows']);
+        ['pendingActions','actions','actionPlans','correctiveActions','actionRows']);
     }
     if (permissions.relatorios) {
       result.reports = clientPortalRows_(payload,
