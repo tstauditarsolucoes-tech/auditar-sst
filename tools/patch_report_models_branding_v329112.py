@@ -326,6 +326,95 @@ def legacy(s):
     return s
 
 edit('lib/services/pdf_service.dart',legacy)
+
+def ronda(s):
+    s=once(s,"import 'report_template_service.dart';",
+      "import 'report_template_service.dart';\nimport 'report_logo_service.dart';",
+      'express round logo resolver import')
+    s=once(s,
+      "final auditarLogo = await _asset('assets/branding/auditar_icon.png');",
+      "final auditarLogo = await _asset('assets/branding/sst_green_official.png');",
+      'express round official logo')
+    s=once(s,
+      "final companyLogo = await _localImage(company.logoPath ?? '');",
+      """final companyLogo = await ReportLogoService.forCompany(<String, Object?>{
+      'company_id': company.id,
+      'company_logo_path': company.logoPath,
+    });""",
+      'express round company logo resolve')
+    start=s.index('                  if (companyLogo != null &&')
+    end=s.index('                  pw.SizedBox(height: 70),',start)
+    s=s[:start]+"""                  pw.Row(
+                    children: [
+                      _pdfLogo(auditarLogo, 64, 64),
+                      pw.Spacer(),
+                      _pdfLogo(companyLogo ?? auditarLogo, 64, 64),
+                    ],
+                  ),
+"""+s[end:]
+    start=s.index('  static pw.Widget _header(')
+    end=s.index('  static pw.Widget _companyTable(',start)
+    s=s[:start]+"""  static pw.Widget _pdfLogo(
+    pw.ImageProvider? image,
+    double width,
+    double height,
+  ) => pw.SizedBox(
+    width: width,
+    height: height,
+    child: image == null
+        ? pw.SizedBox()
+        : pw.Image(image, fit: pw.BoxFit.contain),
+  );
+
+  static pw.Widget _header(
+    Company company,
+    pw.ImageProvider? companyLogo,
+    pw.ImageProvider? auditarLogo,
+    PdfColor primary,
+    String logoMode,
+  ) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.only(bottom: 7),
+      decoration: const pw.BoxDecoration(
+        border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey300)),
+      ),
+      child: pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.center,
+        children: [
+          _pdfLogo(auditarLogo, 47, 47),
+          pw.SizedBox(width: 8),
+          pw.Expanded(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.center,
+              children: [
+                pw.Text(company.name,
+                  textAlign: pw.TextAlign.center,
+                  style: pw.TextStyle(
+                    fontSize: 10, fontWeight: pw.FontWeight.bold,
+                    color: primary,
+                  ),
+                ),
+                if ((company.cnpj ?? '').trim().isNotEmpty)
+                  pw.Text('CNPJ: ' + (company.cnpj ?? ''),
+                    textAlign: pw.TextAlign.center,
+                    style: const pw.TextStyle(
+                      fontSize: 7.5, color: PdfColors.grey700,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          pw.SizedBox(width: 8),
+          _pdfLogo(companyLogo ?? auditarLogo, 47, 47),
+        ],
+      ),
+    );
+  }
+
+"""+s[end:]
+    return s
+
+edit('lib/services/express_round_pdf_service.dart',ronda)
 pub=root/'pubspec.yaml'
 s=pub.read_text(encoding='utf-8')
 s=once(s,'    - assets/branding/auditar_logo.jpg',
