@@ -13,7 +13,7 @@ ronda=(root/'lib/services/express_round_pdf_service.dart').read_text(encoding='u
 resolver=(root/'lib/services/report_logo_service.dart').read_text(encoding='utf-8')
 logo=root/'assets/branding/sst_green_official.png'
 assert logo.is_file()
-assert hashlib.sha256(logo.read_bytes()).hexdigest()=='ee979ce4a820b04159974a51c439fda4e98760b4b719170b4dad4f5db958610c'
+assert hashlib.sha256(logo.read_bytes()).hexdigest()=='0d068782c48f34996fe4251bd60c869930f21805b62ab3d8178b0e8b247eb106'
 assert 'version: '+version in pub
 assert 'assets/branding/sst_green_official.png' in pub
 assert "standard2TemplateId = 'auditar_padrao_2'" in templates
