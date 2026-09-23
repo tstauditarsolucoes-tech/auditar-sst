@@ -99,15 +99,15 @@ s=replace_one(s,
       _restoringMissingLogos = false;
     }
   }""",'nonblocking refresh guarded')
-s=replace_one(s,
-"""      if (recovered > 0) await _load();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(
-        recovered > 0
-          ? '$recovered logo(s) recuperada(s) do backup.'
-          : 'Nenhuma logo disponível no backup da Central. Os cadastros foram preservados.',
-      )));""",
-"""      // Always refresh: cached images may have been relinked in this device.
+start=s.index('  Future<void> _recoverCompanyLogos() async {')
+end=s.index('  Future<void> _editCompany(',start)
+s=s[:start]+"""  Future<void> _recoverCompanyLogos() async {
+    if (recoveringLogos) return;
+    setState(() => recoveringLogos = true);
+    try {
+      final recovered = await MediaSyncService.restoreCompanyLogos(
+        companyIds: companies.map((company) => company.id),
+      ).timeout(const Duration(seconds: 55));
       final refreshed = await AppDatabase.instance.getCompanies(
         onlyActive: false,
       );
@@ -117,7 +117,17 @@ s=replace_one(s,
         recovered > 0
           ? '$recovered logo(s) recuperada(s) do aparelho ou do backup.'
           : 'Nenhuma logo recuperável foi localizada. Cadastros preservados; confira outro aparelho ou recadastre a imagem.',
-      )));""",'accurate user message')
+      )));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:
+        Text('Não foi possível consultar as logos agora. Tente novamente mais tarde.')));
+    } finally {
+      if (mounted) setState(() => recoveringLogos = false);
+    }
+  }
+
+"""+s[end:]
 s=replace_one(s,
 """    if(old!=null&&old.isNotEmpty&&old!=stored){try{final f=File(old);if(await f.exists())await f.delete();}catch(_){}}""",
 """    // Keep the preceding image until the replacement is protected remotely.
