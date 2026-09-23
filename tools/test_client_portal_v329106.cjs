@@ -42,6 +42,17 @@ assert.equal(context.clientPortalSubmitEvidence('valid','A','NC-OUTRA','teste',n
 assert.equal(context.clientPortalEvidenceQueue('valid','A').code,'ACCESS_DENIED');
 assert.equal(context.clientPortalReviewEvidence('valid','1','VALIDADA').code,'ACCESS_DENIED');
 assert.equal(context.clientPortalEvidencePhoto('valid','1').code,'ACCESS_DENIED');
+context.publicPanelPayload_=value=>JSON.parse(JSON.stringify(value));
+const shared=context.clientPortalSharePayload_({
+ accessToken:'SECRET',syncKey:'SECRET',notifications:{email:'secret'},
+ workforceDetails:[{name:'Pessoa'}],company:{id:'A',name:'Empresa A',email:'private@example.com'}
+});
+assert.equal(shared.accessToken,undefined);
+assert.equal(shared.syncKey,undefined);
+assert.equal(shared.notifications,undefined);
+assert.equal(shared.workforceDetails,undefined);
+assert.equal(shared.company.email,undefined);
+
 actor={...actor,companyIds:['A','B']};
 assert.equal(context.clientPortalAuthorizedUser_('valid'),null);
 actor={...actor,role:'admin',companyIds:[],allCompanies:true};
