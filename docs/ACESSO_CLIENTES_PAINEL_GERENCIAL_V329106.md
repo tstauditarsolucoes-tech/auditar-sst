@@ -59,3 +59,28 @@ Manter o Auditar SST exclusivo da Auditar, reutilizar o Painel Gerencial e a Cen
 ## Critério de aceite
 
 Acesso de cliente só será considerado pronto após integração com **o GS real publicado**, testes de isolamento por duas empresas, logs de permissão e validação prática Android/Windows. Esta documentação não altera execução, dados, credenciais nem implantação.
+
+## Implementação experimental nesta branch
+
+Arquivos adicionados:
+- `build_sources/v3.29.106-client-portal/ClientPortal.gs`: login por sessão curta, validação da empresa no servidor, dados gerenciais explicitamente selecionados, envio de evidência e fila de validação.
+- `build_sources/v3.29.106-client-portal/ClientPortal.html`: interface responsiva no **mesmo Apps Script**, acessada por `/exec?cliente=1`.
+- `tools/patch_client_portal_v329106.py`: evolução aditiva de `Code.gs` e `MultiUser.gs`, mantendo o painel por link ativo e oferecendo entrada para login.
+- `tools/patch_client_accounts_ui_v329106.py`: opção de perfil Cliente em Usuários e acessos, empresa única e permissões separadas.
+- `tools/regression_client_portal_v329106.py` e `tools/test_client_portal_v329106.cjs`: testes estáticos e sintéticos de isolamento.
+- Pipelines `build-v329106-client-portal.yml` e `build-v33030-client-portal.yml`: build Android/Windows e empacotamento de arquivos da Central.
+
+O link simples permanece uma credencial de leitura e deve ser compartilhado apenas com quem pode ver o resumo publicado. A entrada por usuário e senha oferece revogação individual. O fechamento da NC **não** é automático: evidências entram como `PENDENTE_VALIDACAO` e a revisão marca apenas a evidência como `VALIDADA` ou `REJEITADA`.
+
+### Limitações de entrega até homologação
+
+- O endpoint existente e o Apps Script efetivamente implantado **não foram substituídos**. É necessário comparar os arquivos gerados com a implantação atual, criar backup e publicar uma nova versão em ambiente de teste antes de liberar clientes reais.
+- A visualização de relatórios no novo login depende de dados publicados no snapshot; download de PDFs originais e vinculação direta com o registro de NC no app ainda exigem integração e teste de permissões. Não prometer download de arquivo privado sem rota autorizada.
+- A pasta Drive de evidências e a aba `EvidenciasClientes` são criadas sob demanda. A fila está disponível no próprio painel web para técnico/admin, mas ainda não aparece como caixa de entrada nativa no Android/Windows.
+- O Apps Script legado contém funções públicas além das rotas de `doPost`; a revisão de todas as funções invocáveis por `google.script.run` é requisito de segurança antes do uso externo amplo.
+- Segurança sintética não equivale a teste com duas contas reais em duas empresas nem homologa privacidade/LGPD.
+
+### Implantação
+
+Depois de CI e revisão, comparar com o GS real e subir **como conjunto** `Code.gs`, `MultiUser.gs`, `ClientPortal.gs`, `ClientPortal.html` e `Index.html`. Atualizar a implantação existente mantendo URL e chave; nunca sobrescrever extensões atuais sem diff. O endereço de login será a URL já existente terminada em `/exec?cliente=1`.
+
