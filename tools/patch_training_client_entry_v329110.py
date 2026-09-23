@@ -183,7 +183,7 @@ def panel(s):
     s=rep(s,"import 'training_records_screen.dart';",
        "import 'training_records_screen.dart';\nimport 'users_screen.dart';\nimport '../services/auth_service.dart';",
        'user navigation imports')
-    marker="            if (configured) ...[\n              Row("
+    marker="            if (configured) ...[\n              SizedBox("
     s=rep(s,marker,"""            if (AuthService.isAdmin) ...[
               SizedBox(
                 width: double.infinity,
