@@ -8,6 +8,7 @@ on:
       - 'tools/patch_client_portal_v329106.py'
       - 'tools/patch_client_accounts_ui_v329106.py'
       - 'tools/patch_hide_home_sync_card_v329107.py'
+      - 'tools/patch_ronda_evidence_protection_v329108.py'
       - 'tools/patch_ronda_media_backup_report_v329108.py'
       - 'tools/regression_client_portal_v329106.py'
       - 'tools/test_client_portal_v329106.cjs'
@@ -214,6 +215,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Cadastro clientes falhou' }
           python tools/patch_hide_home_sync_card_v329107.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Falha ao ocultar o status de sincronizacao na Home' }
+          python tools/patch_ronda_evidence_protection_v329108.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na protecao de fotos da Ronda' }
           python tools/patch_ronda_media_backup_report_v329108.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Falha na protecao das fotos da Ronda' }
           python tools/regression_client_portal_v329106.py "$env:APP_DIR"
