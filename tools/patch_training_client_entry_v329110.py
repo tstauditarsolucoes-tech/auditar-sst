@@ -203,4 +203,12 @@ def panel(s):
               Row(""",'company user button')
     return s
 edit('lib/screens/management_panel_screen.dart',panel)
-print('TRAINING_SIGNING_COMPANY_CLIENT_ENTRY_OK',platform)
+pub=root/'pubspec.yaml'
+version=pub.read_text(encoding='utf-8')
+old,new={'android':('3.29.109+251','3.29.110+252'),
+         'windows':('3.30.33+220','3.30.34+221')}[platform]
+if version.count('version: '+old)!=1:
+    raise RuntimeError('Unexpected version before field UX '+old)
+pub.write_text(version.replace('version: '+old,'version: '+new,1),
+               encoding='utf-8',newline='\\n')
+print('TRAINING_SIGNING_COMPANY_CLIENT_ENTRY_OK',platform,new)
