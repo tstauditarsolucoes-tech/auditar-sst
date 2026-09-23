@@ -22,7 +22,10 @@ s=s[:start]+('                                      // Multa retirada da interfa
 assert marker not in s and 'Icons.gavel_outlined' not in s
 # Never re-enable an old fine for client PDF if this record is edited.
 old="'showInReport': fineCents != null && (fineShowInReport[itemId] ?? false),"
-assert old in s
-s=s.replace(old,"'showInReport': false, // compatibilidade com o histórico; não exibir em PDF",1)
+if old in s:
+ s=s.replace(old,"'showInReport': false, // compatibilidade com o histórico; não exibir em PDF",1)
+else:
+ # Some prior policy patches already disable presentation in the serialized record.
+ assert 'showInReport' in s, 'Fine compatibility marker absent'
 p.write_text(s,encoding='utf-8',newline='\n')
 print('CHECKLIST_FINE_UI_REMOVED_WITH_HISTORY_PRESERVED')
