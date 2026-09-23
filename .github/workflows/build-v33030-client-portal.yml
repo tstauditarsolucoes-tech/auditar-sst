@@ -14,6 +14,7 @@ on:
       - 'tools/patch_improvement_kind_v329109.py'
       - 'tools/patch_field_ux_v329110.py'
       - 'tools/patch_training_client_entry_v329110.py'
+      - 'tools/patch_panel_list_ux_v329110.py'
       - 'tools/regression_client_portal_v329106.py'
       - 'tools/test_client_portal_v329106.cjs'
       - 'build_sources/v3.29.108-client-portal/**'
@@ -224,6 +225,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Protecao das fotos e relatorio da Ronda falhou' }
           python tools/patch_improvement_kind_v329109.py "$env:APP_DIR" windows
           python tools/patch_field_ux_v329110.py "$env:APP_DIR" windows
+          python tools/patch_panel_list_ux_v329110.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Layout painel falhou' }
           if ($LASTEXITCODE -ne 0) { throw 'DDS, rastreabilidade e logos falhou' }
           python tools/patch_training_client_entry_v329110.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Assinatura e cliente por empresa falhou' }
