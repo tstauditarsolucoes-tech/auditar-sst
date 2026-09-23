@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.111 Painel Cliente
+name: Auditar SST Android v3.29.112 Painel Cliente
 
 on:
   push:
@@ -15,12 +15,16 @@ on:
       - 'tools/patch_field_ux_v329110.py'
       - 'tools/patch_training_client_entry_v329110.py'
       - 'tools/patch_report_policy_v329111.py'
+      - 'tools/patch_report_models_branding_v329112.py'
+      - 'tools/auditar_standard2_pdf_service_v329112.dart'
+      - 'tools/regression_report_models_v329112.py'
+      - 'tools/sst_green_official.png'
       - 'tools/patch_report_email_v329111.py'
       - 'tools/regression_report_delivery_v329111.py'
       - 'tools/patch_panel_list_ux_v329110.py'
       - 'tools/regression_client_portal_v329106.py'
       - 'tools/test_client_portal_v329106.cjs'
-      - 'build_sources/v3.29.111-client-portal/**'
+      - 'build_sources/v3.29.112-client-portal/**'
       - '.github/workflows/build-v329105-security-stress.yml'
       - 'tools/patch_report_scale_security_v329105.py'
       - 'build_sources/v3.29.105-commercial-audit/**'
@@ -413,6 +417,16 @@ jobs:
           path: auditar-diagnostic-source.zip
           retention-days: 3
 
+      - name: Integrar Padrão Auditar 2 e refinamento Performance
+        run: |
+          set -euo pipefail
+          python tools/patch_report_models_branding_v329112.py "$APP_DIR" android
+          python tools/regression_report_models_v329112.py "$APP_DIR" 3.29.112+254
+          cd "$APP_DIR"
+          dart format lib
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test --dart-define=AUDITAR_TEST_LOOPBACK=true
+
       - name: Exportar fonte atual dos relatorios
         run: |
           mkdir -p report-current/lib/services report-current/lib/screens report-current/assets/branding
@@ -426,7 +440,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-v329111-Report-Current-Sources
+          name: Auditar-v329112-Report-Current-Sources
           path: report-current.zip
           retention-days: 7
 
@@ -448,11 +462,11 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.111-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.111-Android.apk > dist/Auditar-SST-v3.29.111-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.112-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.112-Android.apk > dist/Auditar-SST-v3.29.112-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.111-Android-Seguranca-Testes
+          name: Auditar-SST-v3.29.112-Android-Seguranca-Testes
           path: dist/*
           retention-days: 30
