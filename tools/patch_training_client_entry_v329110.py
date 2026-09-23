@@ -200,7 +200,7 @@ def panel(s):
               const SizedBox(height: 10),
             ],
             if (configured) ...[
-              Row(""",'company user button')
+              SizedBox(""",'company user button')
     return s
 edit('lib/screens/management_panel_screen.dart',panel)
 pub=root/'pubspec.yaml'
