@@ -21,9 +21,6 @@ on:
       - 'tools/report_logo_service_v329112.dart'
       - 'tools/report_logo_smoke_test_v329112.dart'
       - 'tools/regression_report_models_v329112.py'
-      - 'tools/expandable_text_field_v329113.dart'
-      - 'tools/patch_all_inspections_expand_text_v329113.py'
-      - 'tools/regression_all_inspections_expand_text_v329113.py'
       - 'tools/patch_company_logo_recovery_v329113.py'
       - 'tools/patch_expand_inspection_text_v329113.py'
       - 'tools/expand_text_button_v329113.dart'
@@ -455,15 +452,6 @@ jobs:
           ! grep -Fq 'Multa por descumprimento' "$APP_DIR/lib/screens/checklist_screen.dart"
           cd "$APP_DIR"
           dart format lib/screens/companies_screen.dart lib/services/media_sync_service.dart lib/widgets/expand_text_button.dart lib/screens/checklist_screen.dart lib/screens/express_round_screen.dart lib/screens/sst_record_form_screen.dart lib/screens/safety_observations_screen.dart lib/screens/improvements_screen.dart
-          flutter analyze --no-fatal-infos --no-fatal-warnings
-
-      - name: Expandir textos em todas as vistorias
-        run: |
-          set -euo pipefail
-          python tools/patch_all_inspections_expand_text_v329113.py "$APP_DIR" android
-          python tools/regression_all_inspections_expand_text_v329113.py "$APP_DIR" 3.29.113+255
-          cd "$APP_DIR"
-          dart format lib/widgets/expandable_text_field.dart lib/screens/checklist_screen.dart lib/screens/express_round_screen.dart lib/screens/safety_observations_screen.dart lib/screens/sst_record_form_screen.dart lib/screens/signature_screen.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Exportar fonte atual dos relatorios
