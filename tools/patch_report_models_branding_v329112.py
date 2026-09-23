@@ -57,8 +57,15 @@ edit('lib/services/report_template_service.dart',templates)
 
 service=root/'lib/services/auditar_standard2_pdf_service.dart'
 shutil.copyfile(Path(__file__).with_name('auditar_standard2_pdf_service_v329112.dart'),service)
+shutil.copyfile(Path(__file__).with_name('report_logo_service_v329112.dart'), root/'lib/services/report_logo_service.dart')
 
 def styled(s):
+    s=once(s,"import 'report_template_service.dart';",
+      "import 'report_template_service.dart';\nimport 'report_logo_service.dart';",'styled logo import')
+    s=once(s,
+      "    final companyLogo = await _fileImage(\n      '${header['company_logo_path'] ?? ''}',\n    );",
+      "    final companyLogo = await ReportLogoService.forCompany(header);",
+      'styled logo resolve')
     s=once(s,
       "import 'performance_report_pdf_service.dart';",
       "import 'performance_report_pdf_service.dart';\n"
@@ -156,6 +163,12 @@ def styled(s):
 edit('lib/services/styled_report_pdf_service.dart',styled)
 
 def performance(s):
+    s=once(s,"import 'report_template_service.dart';",
+      "import 'report_template_service.dart';\nimport 'report_logo_service.dart';",'performance logo import')
+    s=once(s,
+      "    final companyLogo = await _fileImage(\n      '${header['company_logo_path'] ?? ''}',\n    );",
+      "    final companyLogo = await ReportLogoService.forCompany(header);",
+      'performance logo resolve')
     s=once(s,
       "final auditarLogo = await _assetImage('assets/branding/auditar_icon.png');",
       "final auditarLogo = await _assetImage('assets/branding/auditar_icon.png');\n"
@@ -271,6 +284,12 @@ def performance(s):
 edit('lib/services/performance_report_pdf_service.dart',performance)
 
 def legacy(s):
+    s=once(s,"import 'styled_report_pdf_service.dart';",
+      "import 'styled_report_pdf_service.dart';\nimport 'report_logo_service.dart';",'legacy logo import')
+    s=once(s,
+      "    final companyLogo = await _loadImage(\n      header['company_logo_path'] as String?,\n    );",
+      "    final companyLogo = await ReportLogoService.forCompany(header);",
+      'legacy logo resolve')
     original_logo="'assets/branding/auditar_icon.png',"
     assert s.count(original_logo)==2, 'legacy logo count'
     s=s.replace(original_logo,"'assets/branding/sst_green_official.png',",2)
