@@ -330,13 +330,13 @@ jobs:
           assert "Duration(seconds: 2)" in coord and "Duration(seconds: 5)" in coord
           print("SYNC_SINGLEFLIGHT_REGRESSION_OK")
           PY
-          python tools/regression_training_records_v32968_v3306.py "$APP_DIR" 3.29.112+254
-          python tools/regression_internal_management_training_v32969_v3307.py "$APP_DIR" 3.29.112+254
-          python tools/regression_report_delivery_v329111.py "$APP_DIR" 3.29.112+254
-          python tools/regression_report_template_ai_import_v32989.py "$APP_DIR" 3.29.112+254
-          python tools/regression_management_panel_refine_v32990.py "$APP_DIR" 3.29.112+254
-          python tools/regression_checklist_ai_stable_v32992.py "$APP_DIR" 3.29.112+254
-          python tools/regression_workers_manual_registration_v32994.py "$APP_DIR" 3.29.112+254
+          python tools/regression_training_records_v32968_v3306.py "$APP_DIR" 3.29.111+253
+          python tools/regression_internal_management_training_v32969_v3307.py "$APP_DIR" 3.29.111+253
+          python tools/regression_report_delivery_v329111.py "$APP_DIR" 3.29.111+253
+          python tools/regression_report_template_ai_import_v32989.py "$APP_DIR" 3.29.111+253
+          python tools/regression_management_panel_refine_v32990.py "$APP_DIR" 3.29.111+253
+          python tools/regression_checklist_ai_stable_v32992.py "$APP_DIR" 3.29.111+253
+          python tools/regression_workers_manual_registration_v32994.py "$APP_DIR" 3.29.111+253
           grep -q 'embeddedEndpoint.isNotEmpty ? embeddedEndpoint : savedEndpoint' "$APP_DIR/lib/services/ai_assistant_service.dart"
           grep -q "Directory.systemTemp.createTemp('auditar_rh_')" "$APP_DIR/lib/services/worker_import_service.dart"
           grep -q 'const Duration(seconds: 35)' "$APP_DIR/lib/services/worker_import_service.dart"
@@ -346,7 +346,7 @@ jobs:
           grep -q 'parseFlexibleEmployeeTextForTesting' "$APP_DIR/lib/services/worker_import_service.dart"
           grep -q "_photographicBlocks" "$APP_DIR/lib/services/express_round_pdf_service.dart"
           grep -q "_conclusionBlocks" "$APP_DIR/lib/services/express_round_pdf_service.dart"
-          python tools/regression_dual_ai_v329102.py "$APP_DIR" 3.29.112+254
+          python tools/regression_dual_ai_v329102.py "$APP_DIR" 3.29.111+253
           grep -Fq 'ReportTemplateService.getAllTemplates()' "$APP_DIR/lib/screens/express_round_screen.dart"
           grep -q '_photographicGridBlocks' "$APP_DIR/lib/services/express_round_pdf_service.dart"
 
