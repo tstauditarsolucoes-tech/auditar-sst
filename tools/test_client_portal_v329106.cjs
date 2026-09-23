@@ -21,10 +21,10 @@ context.clientPortalFindSnapshot_=id=>id==='A'?{
   accessToken:'NEVER_EXPOSE_THIS',
   medicalExams:[{diagnosis:'secret'}],
   company:{id:'A',name:'Empresa A',cnpj:'secret'},
-  summary:{conformity:78,openNcs:1},
-  nonConformities:[{id:'NC-A',title:'Proteção ausente',description:'Descrição',
+  summary:{conformity:78,ncPending:1,ncInProgress:2,ncAwaiting:0,ncOverdue:1},
+  openNonConformities:[{code:'NC-A',description:'Proteção ausente',
     cpf:'DO_NOT_EXPOSE',companyId:'B',status:'ABERTA'}],
-  actions:[{id:'AC-A',title:'Instalar proteção',status:'PENDENTE',privateNotes:'secret'}],
+  pendingActions:[{ncCode:'NC-A',correctiveAction:'Instalar proteção',status:'PENDENTE',privateNotes:'secret'}],
   reports:[{id:'R-A',title:'Relatório',driveFileId:'SECRET_ID'}]
  }
 }:null;
@@ -33,6 +33,8 @@ assert.equal(data.ok,true);
 assert.equal(data.companies.length,1);
 assert.equal(data.companies[0].id,'A');
 assert.equal(data.companies[0].nonConformities[0].id,'NC-A');
+assert.equal(data.companies[0].summary.openNcs,4);
+assert.equal(data.companies[0].actions[0].action,'Instalar proteção');
 const encoded=JSON.stringify(data);
 for(const secret of ['NEVER_EXPOSE_THIS','DO_NOT_EXPOSE','SECRET_ID','diagnosis','privateNotes','cnpj']){
  assert.equal(encoded.includes(secret),false,'Vazamento de '+secret);
