@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Institutional model, source-reference Performance layout and dual SST branding."""
 from pathlib import Path
-import re, shutil, sys
+import re, shutil, sys, base64, hashlib
 
 root = Path(sys.argv[1])
 platform = sys.argv[2].strip().lower()
@@ -19,11 +19,12 @@ def once(s, old, new, label):
     if n!=1: raise RuntimeError(label + ': expected one anchor, got ' + str(n))
     return s.replace(old,new,1)
 
-asset = Path(__file__).with_name('sst_green_official.png')
-assert asset.is_file(), 'Missing exact SST source asset'
+asset = Path(__file__).with_name('sst_green_logo.b64')
+assert asset.is_file(), 'Missing exact user-supplied SST logo'
 brand = root/'assets/branding/sst_green_official.png'
 brand.parent.mkdir(parents=True, exist_ok=True)
-shutil.copyfile(asset, brand)
+brand.write_bytes(base64.b64decode(asset.read_text(encoding='ascii').strip()))
+assert hashlib.sha256(brand.read_bytes()).hexdigest() == '0d068782c48f34996fe4251bd60c869930f21805b62ab3d8178b0e8b247eb106', 'SST logo not identical to user image'
 test_dir=root/'test'
 test_dir.mkdir(parents=True,exist_ok=True)
 shutil.copyfile(Path(__file__).with_name('report_logo_smoke_test_v329112.dart'),test_dir/'report_logo_smoke_test.dart')
