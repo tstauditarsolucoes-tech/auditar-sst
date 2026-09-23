@@ -355,6 +355,27 @@ jobs:
           path: app/Auditar_SST_v1_5_dashboard/report_stress_samples/*
           retention-days: 14
 
+      - name: Exportar fontes de diagnostico de fotos e Ronda
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/auditar-diagnostic/lib/services /tmp/auditar-diagnostic/lib/screens
+          for file in media_sync_service.dart device_sync_service.dart express_round_pdf_service.dart report_template_service.dart; do
+            cp "$APP_DIR/lib/services/$file" "/tmp/auditar-diagnostic/lib/services/$file"
+          done
+          for file in express_round_screen.dart settings_screen.dart home_screen.dart; do
+            cp "$APP_DIR/lib/screens/$file" "/tmp/auditar-diagnostic/lib/screens/$file"
+          done
+          cp "$APP_DIR/lib/database.dart" /tmp/auditar-diagnostic/lib/database.dart
+          cp "$APP_DIR/lib/models.dart" /tmp/auditar-diagnostic/lib/models.dart
+          cp "$APP_DIR/pubspec.yaml" /tmp/auditar-diagnostic/pubspec.yaml
+          cd /tmp && zip -qr "$GITHUB_WORKSPACE/auditar-diagnostic-source.zip" auditar-diagnostic
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-v329107-Fontes-Diagnostico
+          path: auditar-diagnostic-source.zip
+          retention-days: 3
+
       - name: Compilar APK
         working-directory: ${{ env.APP_DIR }}
         env:
