@@ -128,17 +128,22 @@ s=s[:start]+"""  Future<void> _recoverCompanyLogos() async {
   }
 
 """+s[end:]
-s=replace_one(s,
-"""    if(old!=null&&old.isNotEmpty&&old!=stored){try{final f=File(old);if(await f.exists())await f.delete();}catch(_){}}""",
-"""    // Keep the preceding image until the replacement is protected remotely.
-    if(synced && old!=null&&old.isNotEmpty&&old!=stored){
-      try{final f=File(old);if(await f.exists())await f.delete();}catch(_){}
-    }""",'backup fallback on failed upload')
-s=replace_one(s,
-"""          child: Image.file(File(path), fit: BoxFit.contain),""",
-"""          child: Image.file(File(path), fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => const Icon(
-              Icons.business_rounded, color: AuditarBrand.navy)),""",'bad image guard')
+import re
+# Preserve the previous logo file whenever upload fails. Accept formatted and compact Dart.
+s, old_deletions = re.subn(
+    r"if\s*\(old\s*!=\s*null\s*&&\s*old\.isNotEmpty\s*&&\s*old\s*!=\s*stored\)\s*\{\s*try\s*\{\s*final\s+f\s*=\s*File\(old\);\s*if\s*\(await\s+f\.exists\(\)\)\s*await\s+f\.delete\(\);\s*\}\s*catch\s*\(_\)\s*\{\s*\}\s*\}",
+    "if (synced && old != null && old.isNotEmpty && old != stored) {\n      try { final f = File(old); if (await f.exists()) await f.delete(); } catch (_) {}\n    }",
+    s,
+    count=1,
+)
+if old_deletions == 0:
+    # The current source may already preserve the old logo. Never remove it in that case.
+    assert 'if (synced && old' in s or 'await f.delete()' not in s, 'Unexpected logo deletion flow'
+s=s.replace(
+    'child: Image.file(File(path), fit: BoxFit.contain),',
+    'child: Image.file(File(path), fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Icon(Icons.business_rounded, color: AuditarBrand.navy)),',
+    1,
+)
 p.write_text(s,encoding='utf-8',newline='\n')
 
 # Do not change device_sync_service or sync_coordinator.
