@@ -242,6 +242,20 @@ jobs:
           node --check /tmp/client-portal.js
           node tools/test_client_portal_v329106.cjs "$APP_DIR/painel_web_google_apps_script/ClientPortal.gs"
 
+      - name: Exportar fontes atuais de assinatura e auditoria
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/auditar-signature-current
+          cp -R "$APP_DIR/lib" /tmp/auditar-signature-current/lib
+          cp "$APP_DIR/pubspec.yaml" /tmp/auditar-signature-current/pubspec.yaml
+          cd /tmp && zip -qr "$GITHUB_WORKSPACE/auditar-signature-source.zip" auditar-signature-current
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-v329108-Assinaturas-Auditoria-Fontes
+          path: auditar-signature-source.zip
+          retention-days: 3
+
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
