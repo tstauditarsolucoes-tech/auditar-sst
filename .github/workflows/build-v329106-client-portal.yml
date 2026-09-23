@@ -8,6 +8,7 @@ on:
       - 'tools/patch_client_portal_v329106.py'
       - 'tools/patch_client_accounts_ui_v329106.py'
       - 'tools/patch_hide_home_sync_card_v329107.py'
+      - 'tools/patch_ronda_evidence_protection_v329108.py'
       - 'tools/patch_ronda_media_backup_report_v329108.py'
       - 'tools/regression_client_portal_v329106.py'
       - 'tools/test_client_portal_v329106.cjs'
@@ -219,6 +220,7 @@ jobs:
           python tools/patch_client_portal_v329106.py "$APP_DIR" android
           python tools/patch_client_accounts_ui_v329106.py "$APP_DIR"
           python tools/patch_hide_home_sync_card_v329107.py "$APP_DIR" android
+          python tools/patch_ronda_evidence_protection_v329108.py "$APP_DIR" android
           python tools/patch_ronda_media_backup_report_v329108.py "$APP_DIR" android
           python tools/regression_client_portal_v329106.py "$APP_DIR"
           python - "$APP_DIR" <<'PY'
@@ -309,7 +311,6 @@ jobs:
 
           grep -Fq 'MediaSyncPolicy.shouldKick' "$APP_DIR/lib/services/device_sync_service.dart"
           grep -Fq '_fastCaptureCard' "$APP_DIR/lib/screens/checklist_screen.dart"
-          grep -Fq '_syncQueueCard' "$APP_DIR/lib/screens/home_screen.dart"
           python - "$APP_DIR" <<'PY'
           from pathlib import Path
           import sys
