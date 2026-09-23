@@ -413,6 +413,23 @@ jobs:
           path: auditar-diagnostic-source.zip
           retention-days: 3
 
+      - name: Exportar fonte atual dos relatorios
+        run: |
+          mkdir -p report-current/lib/services report-current/lib/screens report-current/assets/branding
+          for f in performance_report_pdf_service.dart styled_report_pdf_service.dart pdf_service.dart report_template_service.dart report_file_service.dart express_round_pdf_service.dart; do cp "$APP_DIR/lib/services/$f" "report-current/lib/services/$f"; done
+          for f in report_screen.dart report_templates_screen.dart; do test ! -f "$APP_DIR/lib/screens/$f" || cp "$APP_DIR/lib/screens/$f" "report-current/lib/screens/$f"; done
+          cp "$APP_DIR/pubspec.yaml" report-current/pubspec.yaml
+          cp "$APP_DIR/lib/models.dart" report-current/models.dart
+          cp "$APP_DIR/lib/database.dart" report-current/database.dart
+          cp -R "$APP_DIR/assets/branding/." report-current/assets/branding/
+          zip -qr report-current.zip report-current
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-v329111-Report-Current-Sources
+          path: report-current.zip
+          retention-days: 7
+
       - name: Compilar APK
         working-directory: ${{ env.APP_DIR }}
         env:
