@@ -18,6 +18,7 @@ on:
       - 'tools/patch_report_models_branding_v329112.py'
       - 'tools/auditar_standard2_pdf_service_v329112.dart'
       - 'tools/report_logo_service_v329112.dart'
+      - 'tools/report_logo_smoke_test_v329112.dart'
       - 'tools/regression_report_models_v329112.py'
       - 'tools/sst_green_official.png'
       - 'tools/patch_report_email_v329111.py'
@@ -374,6 +375,8 @@ jobs:
           dart format lib
           flutter analyze --no-fatal-infos --no-fatal-warnings
           if ($LASTEXITCODE -ne 0) { throw 'Falha na analise' }
+          flutter test test/report_logo_smoke_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha no teste de renderizacao da logo' }
           # A primeira bateria completa de testes ja ocorreu neste job.
           Pop-Location
 
