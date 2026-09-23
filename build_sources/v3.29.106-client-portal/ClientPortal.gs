@@ -303,3 +303,39 @@ function clientPortalReviewEvidence(token, evidenceId, decision) {
   }
   return {ok:false,message:'Evidência não encontrada.'};
 }
+
+/** Fotografia privada, acessível somente ao técnico autorizado na mesma empresa. */
+function clientPortalEvidencePhoto(token, evidenceId) {
+  const user = clientPortalAuthorizedUser_(token);
+  if (!user || user.role === 'cliente') {
+    return {ok:false,code:'ACCESS_DENIED',message:'Acesso negado.'};
+  }
+  const sheet = clientPortalEvidenceSheet_();
+  if (sheet.getLastRow() < 2) return {ok:false,message:'Fotografia não encontrada.'};
+  const rows = sheet.getRange(2,1,sheet.getLastRow()-1,10).getValues();
+  for (let i=0;i<rows.length;i++) {
+    const row=rows[i];
+    if (String(row[0]) !== String(evidenceId || '')) continue;
+    const companyId = String(row[1] || '');
+    if (!companyId || !userCanAccessCompany_(user,companyId)) {
+      return {ok:false,code:'ACCESS_DENIED',message:'Acesso negado.'};
+    }
+    const fileId = String(row[6] || '');
+    if (!fileId) return {ok:false,message:'Esta evidência não possui fotografia.'};
+    try {
+      const blob = DriveApp.getFileById(fileId).getBlob();
+      const mime = String(blob.getContentType() || '').toLowerCase();
+      const bytes = blob.getBytes();
+      if (['image/jpeg','image/png','image/webp'].indexOf(mime) < 0 ||
+          bytes.length < 1 || bytes.length > 2000000) {
+        return {ok:false,message:'Arquivo inválido.'};
+      }
+      auditAuthEvent_(user,'client_portal_view_evidence','evidence',String(evidenceId),
+        companyId,'','client_portal',{});
+      return {ok:true,mimeType:mime,base64:Utilities.base64Encode(bytes)};
+    } catch (_) {
+      return {ok:false,message:'Fotografia indisponível.'};
+    }
+  }
+  return {ok:false,message:'Fotografia não encontrada.'};
+}
