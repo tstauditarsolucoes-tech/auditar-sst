@@ -29,8 +29,24 @@ def code_patch(s):
       .setTitle('Área do Cliente • Auditar SST');
   }
 """,'web login')
+    s=patch(s, "publicPanelPayload_(record.payload)",
+        "clientPortalSharePayload_(record.payload)", 'dados do link sem tokens')
+    s=patch(s, "  const template = HtmlService.createTemplateFromFile('Index');",
+        """  const template = HtmlService.createTemplateFromFile('Index');
+  template.clientPortalUrl = ScriptApp.getService().getUrl() + '?cliente=1';""",
+        'link para login no mesmo painel')
     return s
 edit('painel_web_google_apps_script/Code.gs',code_patch)
+def html_patch(s):
+    anchor='</body>'
+    insert="""<div style="text-align:center;padding:18px;font:600 13px Arial,sans-serif">
+  <a href="<?= clientPortalUrl ?>" target="_blank" rel="noopener noreferrer">
+    Entrar com minha conta • Área do Cliente
+  </a>
+</div>
+"""
+    return patch(s,anchor,insert+anchor,'entrada cliente no painel por link')
+edit('painel_web_google_apps_script/Index.html',html_patch)
 def multi_patch(s):
     ops=[
     ("'active', 'all_companies', 'company_ids_json', 'created_at', 'updated_at', 'last_login_at'",
