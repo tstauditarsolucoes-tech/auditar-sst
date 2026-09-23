@@ -21,6 +21,13 @@ assert "name: 'Padrão Auditar 2'" in templates
 assert 'AuditarStandard2PdfService.generateInspectionPdf' in styled
 assert 'companyLogo ?? auditarLogo' in styled
 assert 'companyLogo ?? sstLogo' in performance
+# The chosen layout name is internal: it must not appear in the client PDF.
+assert "name: 'Performance - Foto + Descrição'" in templates
+header = performance[performance.index('  static pw.Widget _header({'):performance.index('  static pw.Widget _sstBadge()')]
+assert "const titleLine = 'RELATÓRIO DE VISTORIA';" in header
+assert 'RELATÓRIO PERFORMANCE' not in header
+assert 'template.headerTitle' not in header
+assert "title: 'Relatório de vistoria'," in performance
 assert 'final body = <pw.Widget>[];' in performance
 assert "'Risco'" not in performance[performance.index('static pw.Widget _issueRow'):performance.index('static pw.Widget _technicalLine')]
 assert 'final body = <pw.Widget>[];' in performance
