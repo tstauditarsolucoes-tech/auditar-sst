@@ -11,7 +11,7 @@ assert 'await _applyEntityPath(db, asset, cachedPath);' in media
 assert 'if (downloaded)' in media
 assert '_restoringMissingLogos' in companies
 assert 'recuperada(s) do aparelho ou do backup' in companies
-assert 'if(synced && old!=null' in companies
+assert 'if (synced && old != null' in companies or 'if(synced && old!=null' in companies or 'await f.delete()' not in companies
 assert 'errorBuilder:' in companies
 assert 'ExpandTextButton' in read('lib/widgets/expand_text_button.dart')
 assert 'initialText: original.text' in read('lib/widgets/expand_text_button.dart')
