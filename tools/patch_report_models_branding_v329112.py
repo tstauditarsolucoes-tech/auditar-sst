@@ -191,10 +191,9 @@ def performance(s):
 edit('lib/services/performance_report_pdf_service.dart',performance)
 
 def legacy(s):
-    s=once(s,"'assets/branding/auditar_icon.png',",
-           "'assets/branding/sst_green_official.png',",'legacy first page logo')
-    s=once(s,"'assets/branding/auditar_icon.png',",
-           "'assets/branding/sst_green_official.png',",'legacy running logo')
+    original_logo="'assets/branding/auditar_icon.png',"
+    assert s.count(original_logo)==2, 'legacy logo count'
+    s=s.replace(original_logo,"'assets/branding/sst_green_official.png',",2)
     s=once(s,'if (companyLogo != null)\n                      pw.Container(',
            'if ((companyLogo ?? auditarLogo) != null)\n                      pw.Container(',
            'legacy cover company fallback')
