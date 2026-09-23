@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.34 Painel Cliente
+name: Auditar SST Windows v3.30.35 Painel Cliente
 
 on:
   push:
@@ -14,6 +14,7 @@ on:
       - 'tools/patch_improvement_kind_v329109.py'
       - 'tools/patch_field_ux_v329110.py'
       - 'tools/patch_training_client_entry_v329110.py'
+      - 'tools/patch_report_policy_v329111.py'
       - 'tools/patch_panel_list_ux_v329110.py'
       - 'tools/regression_client_portal_v329106.py'
       - 'tools/test_client_portal_v329106.cjs'
@@ -229,6 +230,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Layout painel falhou' }
           if ($LASTEXITCODE -ne 0) { throw 'DDS, rastreabilidade e logos falhou' }
           python tools/patch_training_client_entry_v329110.py "$env:APP_DIR" windows
+          python tools/patch_report_policy_v329111.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Revisao PDF da empresa falhou' }
           if ($LASTEXITCODE -ne 0) { throw 'Assinatura e cliente por empresa falhou' }
           if ($LASTEXITCODE -ne 0) { throw 'Classificacao de melhorias falhou' }
           python tools/regression_client_portal_v329106.py "$env:APP_DIR"
@@ -287,26 +290,26 @@ jobs:
       - name: Regressoes
         shell: pwsh
         run: |
-          python tools/regression_home_immediate_sync_v32993.py "$env:APP_DIR" 3.30.34+221
+          python tools/regression_home_immediate_sync_v32993.py "$env:APP_DIR" 3.30.35+222
           if ($LASTEXITCODE -ne 0) { throw 'Regressao sync imediato Home falhou' }
-          python tools/regression_training_records_v32968_v3306.py "$env:APP_DIR" 3.30.34+221
+          python tools/regression_training_records_v32968_v3306.py "$env:APP_DIR" 3.30.35+222
           if ($LASTEXITCODE -ne 0) { throw 'Regressao treinamentos falhou' }
-          python tools/regression_internal_management_training_v32969_v3307.py "$env:APP_DIR" 3.30.34+221
+          python tools/regression_internal_management_training_v32969_v3307.py "$env:APP_DIR" 3.30.35+222
           if ($LASTEXITCODE -ne 0) { throw 'Regressao gerencial falhou' }
-          python tools/regression_reports_management_v32988.py "$env:APP_DIR" 3.30.34+221
+          python tools/regression_reports_management_v32988.py "$env:APP_DIR" 3.30.35+222
           if ($LASTEXITCODE -ne 0) { throw 'Regressao relatorios falhou' }
-          python tools/regression_report_template_ai_import_v32989.py "$env:APP_DIR" 3.30.34+221
+          python tools/regression_report_template_ai_import_v32989.py "$env:APP_DIR" 3.30.35+222
           if ($LASTEXITCODE -ne 0) { throw 'Regressao criador modelos IA falhou' }
-          python tools/regression_management_panel_refine_v32990.py "$env:APP_DIR" 3.30.34+221
+          python tools/regression_management_panel_refine_v32990.py "$env:APP_DIR" 3.30.35+222
           if ($LASTEXITCODE -ne 0) { throw 'Regressao Painel Gerencial falhou' }
-          python tools/regression_checklist_ai_stable_v32992.py "$env:APP_DIR" 3.30.34+221
+          python tools/regression_checklist_ai_stable_v32992.py "$env:APP_DIR" 3.30.35+222
           if ($LASTEXITCODE -ne 0) { throw 'Regressao IA checklist falhou' }
-          python tools/regression_workers_manual_registration_v32994.py "$env:APP_DIR" 3.30.34+221
+          python tools/regression_workers_manual_registration_v32994.py "$env:APP_DIR" 3.30.35+222
           if ($LASTEXITCODE -ne 0) { throw 'Regressao trabalhadores falhou' }
           if (-not (Select-String "$env:APP_DIR/lib/services/ai_assistant_service.dart" -Pattern 'embeddedEndpoint.isNotEmpty ? embeddedEndpoint : savedEndpoint' -SimpleMatch -Quiet)) { throw 'Central da IA nao priorizada' }
           $service = Get-Content "$env:APP_DIR/lib/services/device_sync_service.dart" -Raw
           if (-not ($service.Contains('final firstResponse = await _post(') -and $service.Contains('bootstrapHasMore'))) { throw 'Faltou primeiro pull Windows' }
-          python tools/regression_dual_ai_v329102.py "$env:APP_DIR" 3.30.34+221
+          python tools/regression_dual_ai_v329102.py "$env:APP_DIR" 3.30.35+222
           if ($LASTEXITCODE -ne 0) { throw 'Regressao IA texto/foto falhou' }
           if (-not (Select-String "$env:APP_DIR/lib/screens/express_round_screen.dart" -Pattern 'ReportTemplateService.getAllTemplates()' -SimpleMatch -Quiet)) { throw 'Escolha de modelo na Ronda ausente' }
           if (-not (Select-String "$env:APP_DIR/lib/screens/checklist_screen.dart" -Pattern '_fastCaptureCard' -SimpleMatch -Quiet)) { throw 'Captura rapida ausente' }
@@ -366,8 +369,8 @@ jobs:
             Copy-Item "$env:APP_DIR/painel_web_google_apps_script/$name" "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.34-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.34-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.34-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.35-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.35-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.35-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -387,7 +390,7 @@ jobs:
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.34',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.35',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -404,10 +407,10 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.34.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.34.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.35.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.35.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.34-Windows-Painel-Cliente
+          name: Auditar-SST-v3.30.35-Windows-Painel-Cliente
           path: dist/windows/*
           retention-days: 30
