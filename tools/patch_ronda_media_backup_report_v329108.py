@@ -334,7 +334,13 @@ new="""    if (photo == null) {
         ),
         child: pw.Row(
 """
-s=one(s,old,new,'professional missing-photo card')
+# Insert the text-only fallback at the first return inside the photographic
+# renderer. Do not rely on Dart formatter-specific indentation of the Row.
+start=s.index('  static List<pw.Widget> _photographicBlocks(')
+idx=s.index('    return [',start)
+early=new[:new.rfind('    return [')]
+if 'if (photo == null)' not in early: raise RuntimeError('missing-photo fallback invalid')
+s=s[:idx]+early+s[idx:]
 write(rel,s)
 
 # Version bump only after all guarded edits succeeded.
