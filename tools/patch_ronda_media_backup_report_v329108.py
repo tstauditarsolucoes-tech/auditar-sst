@@ -105,15 +105,12 @@ insert="""  static Future<void> registerRoundPhoto({
 """
 s=one(s,anchor,insert+anchor,'Ronda media APIs')
 
-if "entityType == 'round_photo'" not in s:
-    marker="entityType == 'extinguisher_photo'"
-    if s.count(marker) != 1:
-        raise RuntimeError(f'extinguisher path marker: {s.count(marker)}')
-    s=s.replace(
-        marker,
-        "entityType == 'extinguisher_photo' ||\\n        entityType == 'round_photo'",
-        1,
-    )
+# The same SST-record photo payload path applies to extinguishers and Ronda.
+marker="} else if (entityType == 'extinguisher_photo') {"
+replacement="} else if (entityType == 'extinguisher_photo' ||\\n               entityType == 'round_photo') {"
+# Build the Dart newline, not a literal backslash+n.
+replacement=replacement.replace('\\\\n', '\\n')
+s=one(s,marker,replacement,'Ronda entity path restore')
 old="""      where: 'entity_type IN (?, ?)',
       whereArgs: const ['evidence_photo', 'completion_photo'],
 """
