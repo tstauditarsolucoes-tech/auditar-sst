@@ -105,11 +105,31 @@ insert="""  static Future<void> registerRoundPhoto({
 """
 s=one(s,anchor,insert+anchor,'Ronda media APIs')
 
-# The same SST-record photo payload path applies to extinguishers and Ronda.
-marker="} else if (entityType == 'extinguisher_photo') {"
-replacement="} else if (entityType == 'extinguisher_photo' ||\\n               entityType == 'round_photo') {"
-# Build the Dart newline, not a literal backslash+n.
-replacement=replacement.replace('\\\\n', '\\n')
+# Handle Ronda separately without changing extinguisher or checklist paths.
+marker="    if (entityType == 'evidence_photo') {"
+replacement="""    if (entityType == 'round_photo') {
+      final rows = await db.query(
+        'sst_records',
+        columns: ['payload'],
+        where: 'id = ?',
+        whereArgs: [entityId],
+        limit: 1,
+      );
+      if (rows.isNotEmpty) {
+        Map<String, dynamic> payload = <String, dynamic>{};
+        try {
+          final decoded = jsonDecode("${rows.first['payload'] ?? ''}");
+          if (decoded is Map) payload = Map<String, dynamic>.from(decoded);
+        } catch (_) {}
+        payload['photoPath'] = path;
+        await _localOnlyPathUpdate(
+          db,
+          table: 'sst_records',
+          recordId: entityId,
+          values: {'payload': jsonEncode(payload)},
+        );
+      }
+    } else if (entityType == 'evidence_photo') {"""
 s=one(s,marker,replacement,'Ronda entity path restore')
 old="""      where: 'entity_type IN (?, ?)',
       whereArgs: const ['evidence_photo', 'completion_photo'],
