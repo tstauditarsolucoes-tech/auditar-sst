@@ -15,6 +15,7 @@ on:
       - 'tools/patch_field_ux_v329110.py'
       - 'tools/patch_training_client_entry_v329110.py'
       - 'tools/patch_report_policy_v329111.py'
+      - 'tools/patch_report_email_v329111.py'
       - 'tools/patch_panel_list_ux_v329110.py'
       - 'tools/regression_client_portal_v329106.py'
       - 'tools/test_client_portal_v329106.cjs'
@@ -232,6 +233,8 @@ jobs:
           python tools/patch_training_client_entry_v329110.py "$env:APP_DIR" windows
           python tools/patch_report_policy_v329111.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Revisao PDF da empresa falhou' }
+          python tools/patch_report_email_v329111.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Envio de relatorio por e-mail falhou' }
           if ($LASTEXITCODE -ne 0) { throw 'Assinatura e cliente por empresa falhou' }
           if ($LASTEXITCODE -ne 0) { throw 'Classificacao de melhorias falhou' }
           python tools/regression_client_portal_v329106.py "$env:APP_DIR"
@@ -254,6 +257,9 @@ jobs:
           node --check "$env:RUNNER_TEMP/client-multiuser.js"
           if ($LASTEXITCODE -ne 0) { throw 'MultiUser.gs invalido' }
           node --check "$env:RUNNER_TEMP/client-portal.js"
+          Copy-Item "$env:APP_DIR/painel_web_google_apps_script/ReportEmail.gs" "$env:RUNNER_TEMP/report-email.js" -Force
+          node --check "$env:RUNNER_TEMP/report-email.js"
+          if ($LASTEXITCODE -ne 0) { throw 'ReportEmail.gs invalido' }
           if ($LASTEXITCODE -ne 0) { throw 'ClientPortal.gs invalido' }
           node tools/test_client_portal_v329106.cjs "$env:APP_DIR/painel_web_google_apps_script/ClientPortal.gs"
           if ($LASTEXITCODE -ne 0) { throw 'Teste tenant falhou' }
