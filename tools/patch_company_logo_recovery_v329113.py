@@ -64,24 +64,16 @@ s=replace_one(s,
 """  Future<void> _restoreMissingCompanyLogos(List<Company> snapshot) async {
     if (_restoringMissingLogos || recoveringLogos) return;
     final missing = <String>[];""",'guard reentry')
-s=replace_one(s,
-"""    if (missing.isEmpty) return;
-
-    try {
-      final restored = await MediaSyncService.restoreCompanyLogos(
-        companyIds: missing,
-      ).timeout(const Duration(seconds: 45));
-      if (restored <= 0 || !mounted) return;
-      final refreshed = await AppDatabase.instance.getCompanies(
-        onlyActive: false,
-      );
-      if (!mounted) return;
-      setState(() => companies = refreshed);
-    } catch (_) {
-      // A ausência de internet não interfere na lista de empresas.
+start=s.index('  Future<void> _restoreMissingCompanyLogos(List<Company> snapshot) async {')
+end=s.index('  Future<void> _recoverCompanyLogos() async {',start)
+s=s[:start]+"""  Future<void> _restoreMissingCompanyLogos(List<Company> snapshot) async {
+    if (_restoringMissingLogos || recoveringLogos) return;
+    final missing = <String>[];
+    for (final company in snapshot) {
+      final path = company.logoPath?.trim() ?? '';
+      if (path.isEmpty || !File(path).existsSync()) missing.add(company.id);
     }
-  }""",
-"""    if (missing.isEmpty) return;
+    if (missing.isEmpty) return;
     _restoringMissingLogos = true;
     try {
       final restored = await MediaSyncService.restoreCompanyLogos(
@@ -94,11 +86,13 @@ s=replace_one(s,
       if (!mounted) return;
       setState(() => companies = refreshed);
     } catch (_) {
-      // A ausência de internet não interfere na lista de empresas.
+      // Network failures do not prevent browsing companies.
     } finally {
       _restoringMissingLogos = false;
     }
-  }""",'nonblocking refresh guarded')
+  }
+
+"""+s[end:]
 start=s.index('  Future<void> _recoverCompanyLogos() async {')
 end=s.index('  Future<void> _editCompany(',start)
 s=s[:start]+"""  Future<void> _recoverCompanyLogos() async {
