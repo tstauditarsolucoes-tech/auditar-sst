@@ -16,6 +16,7 @@ on:
       - 'tools/patch_training_client_entry_v329110.py'
       - 'tools/patch_report_policy_v329111.py'
       - 'tools/patch_report_email_v329111.py'
+      - 'tools/regression_report_delivery_v329111.py'
       - 'tools/patch_panel_list_ux_v329110.py'
       - 'tools/regression_client_portal_v329106.py'
       - 'tools/test_client_portal_v329106.cjs'
@@ -302,7 +303,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Regressao treinamentos falhou' }
           python tools/regression_internal_management_training_v32969_v3307.py "$env:APP_DIR" 3.30.35+222
           if ($LASTEXITCODE -ne 0) { throw 'Regressao gerencial falhou' }
-          python tools/regression_reports_management_v32988.py "$env:APP_DIR" 3.30.35+222
+          python tools/regression_report_delivery_v329111.py "$env:APP_DIR" 3.30.35+222
           if ($LASTEXITCODE -ne 0) { throw 'Regressao relatorios falhou' }
           python tools/regression_report_template_ai_import_v32989.py "$env:APP_DIR" 3.30.35+222
           if ($LASTEXITCODE -ne 0) { throw 'Regressao criador modelos IA falhou' }
