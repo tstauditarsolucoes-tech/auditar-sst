@@ -84,6 +84,7 @@ s=rep(s,"""          children: [
             _section('Empresa e setor'),""",'form type')
 s=rep(s,"            _section('Sugestão / melhoria'),","            _section(recordKind == 'EXECUTADA' ? 'Melhoria executada' : 'Solicitação / sugestão'),",'section')
 s=rep(s,"                labelText: 'Sugestão / melhoria proposta *',","                labelText: recordKind == 'EXECUTADA' ? 'Melhoria realizada *' : 'Melhoria proposta *',",'label')
+s=rep(s,"              decoration: const InputDecoration(\n                labelText: recordKind ==","              decoration: InputDecoration(\n                labelText: recordKind ==",'dynamic label cannot be const')
 s=rep(s,"""                  items: const ['Sugerida', 'Planejada', 'Em execução', 'Realizada']
                       .map((value) => DropdownMenuItem(value: value, child: Text(value)))
                       .toList(),""","""                  items: (recordKind == 'EXECUTADA'
