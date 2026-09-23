@@ -9,6 +9,8 @@ styled=(root/'lib/services/styled_report_pdf_service.dart').read_text(encoding='
 performance=(root/'lib/services/performance_report_pdf_service.dart').read_text(encoding='utf-8')
 standard=(root/'lib/services/auditar_standard2_pdf_service.dart').read_text(encoding='utf-8')
 legacy=(root/'lib/services/pdf_service.dart').read_text(encoding='utf-8')
+ronda=(root/'lib/services/express_round_pdf_service.dart').read_text(encoding='utf-8')
+resolver=(root/'lib/services/report_logo_service.dart').read_text(encoding='utf-8')
 logo=root/'assets/branding/sst_green_official.png'
 assert logo.is_file()
 assert hashlib.sha256(logo.read_bytes()).hexdigest()=='ee979ce4a820b04159974a51c439fda4e98760b4b719170b4dad4f5db958610c'
@@ -24,6 +26,14 @@ assert "'Risco'" not in performance[performance.index('static pw.Widget _issueRo
 assert 'final body = <pw.Widget>[];' in performance
 assert 'companyLogo ?? auditarLogo' in legacy
 assert 'companyLogo ?? auditarIcon' in legacy
+assert 'ReportLogoService.forCompany' in styled
+assert 'ReportLogoService.forCompany' in performance
+assert 'ReportLogoService.forCompany' in standard
+assert 'ReportLogoService.forCompany' in legacy
+assert 'ReportLogoService.forCompany' in ronda
+assert "assets/branding/sst_green_official.png" in ronda
+assert '_pdfLogo(companyLogo ?? auditarLogo' in ronda
+assert 'restoreCompanyLogos(' in resolver and 'Duration(seconds: 6)' in resolver
 assert 'RELATÓRIO DE INSPEÇÃO DE SEGURANÇA DO TRABALHO' in standard
 assert 'CONFORMIDADES / NÃO CONFORMIDADES' in standard
 assert '31.576.433/0001-13' in standard
