@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+"""Static regressions for selectable institutional and Performance reports."""
+from pathlib import Path
+import hashlib,sys
+root=Path(sys.argv[1]);version=sys.argv[2]
+pub=(root/'pubspec.yaml').read_text(encoding='utf-8')
+templates=(root/'lib/services/report_template_service.dart').read_text(encoding='utf-8')
+styled=(root/'lib/services/styled_report_pdf_service.dart').read_text(encoding='utf-8')
+performance=(root/'lib/services/performance_report_pdf_service.dart').read_text(encoding='utf-8')
+standard=(root/'lib/services/auditar_standard2_pdf_service.dart').read_text(encoding='utf-8')
+legacy=(root/'lib/services/pdf_service.dart').read_text(encoding='utf-8')
+logo=root/'assets/branding/sst_green_official.png'
+assert logo.is_file()
+assert hashlib.sha256(logo.read_bytes()).hexdigest()=='ee979ce4a820b04159974a51c439fda4e98760b4b719170b4dad4f5db958610c'
+assert 'version: '+version in pub
+assert 'assets/branding/sst_green_official.png' in pub
+assert "standard2TemplateId = 'auditar_padrao_2'" in templates
+assert "name: 'Padrão Auditar 2'" in templates
+assert 'AuditarStandard2PdfService.generateInspectionPdf' in styled
+assert 'companyLogo ?? auditarLogo' in styled
+assert 'companyLogo ?? sstLogo' in performance
+assert 'final body = <pw.Widget>[];' in performance
+assert "'Risco'" not in performance[performance.index('static pw.Widget _issueRow'):performance.index('static pw.Widget _technicalLine')]
+assert 'final body = <pw.Widget>[];' in performance
+assert 'companyLogo ?? auditarLogo' in legacy
+assert 'companyLogo ?? auditarIcon' in legacy
+assert 'RELATÓRIO DE INSPEÇÃO DE SEGURANÇA DO TRABALHO' in standard
+assert 'CONFORMIDADES / NÃO CONFORMIDADES' in standard
+assert '31.576.433/0001-13' in standard
+assert 'RESPONSÁVEL PELA EMPRESA' in standard
+assert 'MEDIDAS DE CORREÇÃO NECESSÁRIAS' in standard
+assert 'pw.MultiPage' in standard
+assert '_gallery(' in standard
+for banned in ['_fineForReport(', 'reportFineValues', 'Multa (referência)']:
+    assert banned not in standard
+print('REPORT_MODELS_SST_GREEN_AND_AUDITAR2_OK',version)
