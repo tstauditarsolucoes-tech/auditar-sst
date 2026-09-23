@@ -210,5 +210,5 @@ old,new={'android':('3.29.109+251','3.29.110+252'),
 if version.count('version: '+old)!=1:
     raise RuntimeError('Unexpected version before field UX '+old)
 pub.write_text(version.replace('version: '+old,'version: '+new,1),
-               encoding='utf-8',newline='\\n')
+               encoding='utf-8',newline='\n')
 print('TRAINING_SIGNING_COMPANY_CLIENT_ENTRY_OK',platform,new)
