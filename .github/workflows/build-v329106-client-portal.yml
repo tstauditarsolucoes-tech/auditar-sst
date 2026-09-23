@@ -15,6 +15,7 @@ on:
       - 'tools/patch_field_ux_v329110.py'
       - 'tools/patch_training_client_entry_v329110.py'
       - 'tools/patch_report_policy_v329111.py'
+      - 'tools/patch_report_email_v329111.py'
       - 'tools/patch_panel_list_ux_v329110.py'
       - 'tools/regression_client_portal_v329106.py'
       - 'tools/test_client_portal_v329106.cjs'
@@ -234,6 +235,7 @@ jobs:
           python tools/patch_panel_list_ux_v329110.py "$APP_DIR" android
           python tools/patch_training_client_entry_v329110.py "$APP_DIR" android
           python tools/patch_report_policy_v329111.py "$APP_DIR" android
+          python tools/patch_report_email_v329111.py "$APP_DIR"
           python tools/regression_client_portal_v329106.py "$APP_DIR"
           python - "$APP_DIR" <<'PY'
           from pathlib import Path
@@ -250,6 +252,8 @@ jobs:
           node --check /tmp/client-code.js
           node --check /tmp/client-multiuser.js
           node --check /tmp/client-portal.js
+          cp "$APP_DIR/painel_web_google_apps_script/ReportEmail.gs" /tmp/report-email.js
+          node --check /tmp/report-email.js
           node tools/test_client_portal_v329106.cjs "$APP_DIR/painel_web_google_apps_script/ClientPortal.gs"
 
       - name: Exportar fontes atuais de assinatura e auditoria
