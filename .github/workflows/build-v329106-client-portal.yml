@@ -247,8 +247,6 @@ jobs:
           python tools/patch_training_client_entry_v329110.py "$APP_DIR" android
           python tools/patch_report_policy_v329111.py "$APP_DIR" android
           python tools/patch_report_email_v329111.py "$APP_DIR"
-          python tools/patch_report_branding_auditar2_v329112.py "$APP_DIR" android
-          python tools/patch_report_branding_fix_v329112.py "$APP_DIR"
           python tools/regression_client_portal_v329106.py "$APP_DIR"
           python - "$APP_DIR" <<'PY'
           from pathlib import Path
