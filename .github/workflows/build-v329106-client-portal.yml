@@ -24,6 +24,7 @@ on:
       - 'tools/sst_green_logo.b64'
       - 'tools/patch_report_email_v329111.py'
       - 'tools/patch_report_branding_auditar2_v329112.py'
+      - 'tools/patch_report_branding_fix_v329112.py'
       - 'tools/sst_green_logo.b64'
       - 'tools/regression_report_delivery_v329111.py'
       - 'tools/patch_panel_list_ux_v329110.py'
@@ -247,6 +248,7 @@ jobs:
           python tools/patch_report_policy_v329111.py "$APP_DIR" android
           python tools/patch_report_email_v329111.py "$APP_DIR"
           python tools/patch_report_branding_auditar2_v329112.py "$APP_DIR" android
+          python tools/patch_report_branding_fix_v329112.py "$APP_DIR"
           python tools/regression_client_portal_v329106.py "$APP_DIR"
           python - "$APP_DIR" <<'PY'
           from pathlib import Path
