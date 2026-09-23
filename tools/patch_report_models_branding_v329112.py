@@ -171,19 +171,99 @@ def performance(s):
            '    required pw.MemoryImage? companyLogo,\n    required pw.MemoryImage? sstLogo,\n    required String company,',
            'performance header new param')
     start=s.index('  static pw.Widget _header({')
-    l=s.index('              pw.SizedBox(',start)
-    m=s.index('              pw.Expanded(',l)
-    s=s[:l]+"""              pw.SizedBox(width: 76, height: 58,
-                child: sstLogo == null ? pw.SizedBox()
-                  : pw.Image(sstLogo, fit: pw.BoxFit.contain)),
-"""+s[m:]
-    start=s.index('  static pw.Widget _header({')
-    l=s.index('              pw.SizedBox(',s.index('              pw.Expanded(',start))
-    m=s.index('            ],\n          ),\n          pw.SizedBox(height: 6)',l)
-    s=s[:l]+"""              pw.SizedBox(width: 76, height: 58,
-                child: (companyLogo ?? sstLogo) == null ? pw.SizedBox()
-                  : pw.Image((companyLogo ?? sstLogo)!, fit: pw.BoxFit.contain)),
-"""+s[m:]
+    end=s.index('  static pw.Widget _sstBadge()',start)
+    # The Forum reference has a true three-zone header (logo/title/client).
+    # Replace the entire old header, preserving all company identity fields.
+    s=s[:start]+r'''  static pw.Widget _header({
+    required ReportTemplateDefinition template,
+    required pw.MemoryImage? companyLogo,
+    required pw.MemoryImage? sstLogo,
+    required String company,
+    required String worksite,
+    required String dateText,
+    required String location,
+    required String companyCnpj,
+    required String companyAddress,
+    required String companyCity,
+    required String companyUf,
+  }) {
+    final titleLine = template.headerTitle.trim().isEmpty
+        ? 'RELATÓRIO PERFORMANCE'
+        : template.headerTitle.trim().toUpperCase();
+    final secondLine =
+        worksite.trim().isEmpty ? company.toUpperCase() : worksite.toUpperCase();
+    final displayAddress = [
+      if (companyAddress.trim().isNotEmpty) companyAddress.trim(),
+      if (companyCity.trim().isNotEmpty) companyCity.trim(),
+      if (companyUf.trim().isNotEmpty) companyUf.trim(),
+    ].join(' - ');
+    return pw.Container(
+      margin: const pw.EdgeInsets.only(bottom: 8),
+      child: pw.Column(
+        children: [
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.center,
+            children: [
+              pw.SizedBox(
+                width: 76,
+                height: 58,
+                child: sstLogo == null
+                    ? pw.SizedBox()
+                    : pw.Image(sstLogo, fit: pw.BoxFit.contain),
+              ),
+              pw.Expanded(
+                child: pw.Column(
+                  children: [
+                    pw.Text(titleLine,
+                      textAlign: pw.TextAlign.center,
+                      style: pw.TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: pw.FontWeight.bold,
+                        color: _blue,
+                      ),
+                    ),
+                    pw.SizedBox(height: 1),
+                    pw.Text(secondLine,
+                      textAlign: pw.TextAlign.center,
+                      style: pw.TextStyle(
+                        fontSize: 11.2,
+                        fontWeight: pw.FontWeight.bold,
+                        color: _blue,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              pw.SizedBox(
+                width: 76,
+                height: 58,
+                child: (companyLogo ?? sstLogo) == null
+                    ? pw.SizedBox()
+                    : pw.Image((companyLogo ?? sstLogo)!, fit: pw.BoxFit.contain),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 6),
+          pw.Text('Vistoria realizada em $dateText  |  $location',
+            style: pw.TextStyle(fontSize: 7.8, fontWeight: pw.FontWeight.bold),
+            textAlign: pw.TextAlign.center,
+          ),
+          if (companyCnpj.trim().isNotEmpty)
+            pw.Text('CNPJ: ' + companyCnpj.trim(),
+              style: const pw.TextStyle(fontSize: 7.4),
+            ),
+          if (displayAddress.isNotEmpty)
+            pw.Text('Endereço: $displayAddress',
+              textAlign: pw.TextAlign.center,
+              style: const pw.TextStyle(fontSize: 7.3),
+            ),
+          pw.SizedBox(height: 7),
+        ],
+      ),
+    );
+  }
+
+'''+s[end:]
     # Two-column report remains photo/caption left, technical findings right,
     # as in the supplied Forum performance reference; no misleading scoring.
     return s
