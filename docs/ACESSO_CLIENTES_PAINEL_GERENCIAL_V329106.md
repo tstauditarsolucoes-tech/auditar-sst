@@ -13,7 +13,8 @@ Manter o Auditar SST exclusivo da Auditar, reutilizar o Painel Gerencial e a Cen
 2. O painel HTML existente é publicado pela própria Central: `Code.gs` guarda snapshots na aba `PainelDados` e expõe `doGet?empresa=<token>`. Uma pessoa com esse link pode consultar o snapshot ativo; esse link não é uma conta individual.
 3. `MultiUser.gs` possui usuários/sessões e vinculação por `companyIds`, mas o parser de perfil e o cadastro reconhecem apenas `admin` e `tecnico`. Não existe papel `cliente` verificável nesse arquivo.
 4. No código versionado de `MultiUser.gs`, `userCanAccessCompany_` aceita identificador de empresa vazio, e a seleção de sincronização inclui registros sem identificador. Essas compatibilidades legadas **não** constituem proteção suficiente para abrir as rotas de sincronização a usuários externos.
-5. A auditoria `docs/AUDITORIA_OPERACIONAL_E_SEGURANCA_V329105.md` documenta testes sintéticos, mas não homologa isolamento multiempresa nem a Central publicada.
+5. Em artefato anterior da Central (v3.29.89), `publicPanelPayload_` clona o payload completo e remove apenas alguns campos médicos. Isso **não** é uma lista de campos permitidos: antes de servir a clientes, trocar por DTO explícito sem `accessToken`, notificações internas, contatos pessoais ou dados não liberados, verificando compatibilidade do HTML.
+6. A auditoria `docs/AUDITORIA_OPERACIONAL_E_SEGURANCA_V329105.md` documenta testes sintéticos, mas não homologa isolamento multiempresa nem a Central publicada.
 
 ## Modelo de permissão proposto (negação por padrão)
 
