@@ -105,16 +105,15 @@ insert="""  static Future<void> registerRoundPhoto({
 """
 s=one(s,anchor,insert+anchor,'Ronda media APIs')
 
-old="""    } else if (entityType == 'extinguisher_photo') {
-      final rows = await db.query(
-        'sst_records',
-"""
-new="""    } else if (entityType == 'extinguisher_photo' ||
-        entityType == 'round_photo') {
-      final rows = await db.query(
-        'sst_records',
-"""
-s=one(s,old,new,'apply Ronda path')
+if "entityType == 'round_photo'" not in s:
+    marker="entityType == 'extinguisher_photo'"
+    if s.count(marker) != 1:
+        raise RuntimeError(f'extinguisher path marker: {s.count(marker)}')
+    s=s.replace(
+        marker,
+        "entityType == 'extinguisher_photo' ||\\n        entityType == 'round_photo'",
+        1,
+    )
 old="""      where: 'entity_type IN (?, ?)',
       whereArgs: const ['evidence_photo', 'completion_photo'],
 """
