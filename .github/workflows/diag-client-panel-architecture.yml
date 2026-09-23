@@ -1,0 +1,197 @@
+name: Diagnose Client Panel Existing Architecture
+
+on:
+  push:
+    branches: [feat-auditar-client-panel-internal-v329106]
+    paths:
+      - '.github/workflows/diag-client-panel-architecture.yml'
+      - 'tools/patch_web_management_panel_brand_v32991.py'
+      - 'tools/regression_web_management_panel_brand_v32991.py'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+
+jobs:
+  web-panel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar Central Online atual
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python tools/patch_management_panel_logo_theme_v32970_v3308.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          for src,out in [
+            ('build_sources/v3.29.71-nc-quick-resolve/patch_nc_quick_resolve_v32971.py.xz.b64','/tmp/p71.py'),
+            ('build_sources/v3.29.74-training-photo/patch_training_import_photo_v32974.py.xz.b64','/tmp/p74.py'),
+            ('build_sources/v3.29.77-checklist-fine-face/patch_checklist_fine_face_v32977.py.xz.b64','/tmp/p77.py'),
+          ]:
+            Path(out).write_bytes(lzma.decompress(base64.b64decode(Path(src).read_text().strip())))
+          PY
+          python /tmp/p71.py "$APP_DIR"
+          python tools/patch_login_resilience_v32972.py "$APP_DIR"
+          python tools/patch_training_bulk_import_v32973.py "$APP_DIR"
+          python /tmp/p74.py "$APP_DIR"
+          python tools/patch_training_import_robust_v32975.py "$APP_DIR"
+          python tools/patch_cipa_management_v32976.py "$APP_DIR"
+          python /tmp/p77.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32978.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32979.py "$APP_DIR"
+          python tools/patch_performance_report_v32980.py "$APP_DIR"
+          python tools/patch_cross_platform_refinement_v32981.py "$APP_DIR" android
+          python tools/patch_signature_handoff_v32982.py "$APP_DIR" android
+          python tools/patch_pre_admission_search_v32983.py "$APP_DIR" android
+          python tools/patch_deferred_inspection_ai_v32984.py "$APP_DIR" android
+          python tools/patch_checklist_reality_v32985.py "$APP_DIR" android
+          python tools/patch_checklist_ai_background_v32986_v33013.py "$APP_DIR" android
+          python tools/patch_checklist_ai_confirm_v32987_v33014.py "$APP_DIR" android
+          python tools/patch_reports_management_v32988_v33015.py "$APP_DIR" android
+          python tools/patch_report_template_ai_import_v32989_v33016.py "$APP_DIR" android
+
+      - name: Proteger sincronização e rotas existentes
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys,re
+          root=Path(sys.argv[1])
+          protected_files=[
+            'lib/services/device_sync_service.dart',
+            'lib/services/media_sync_service.dart',
+            'lib/services/apps_script_http.dart',
+            'lib/services/sync_coordinator.dart',
+            'lib/services/auth_service.dart',
+            'lib/services/drive_service.dart',
+            'lib/database.dart',
+          ]
+          code=(root/'painel_web_google_apps_script/Code.gs').read_text(encoding='utf-8')
+          def extract(name):
+            start=code.find('function '+name+'(')
+            if start<0: return ''
+            brace=code.find('{',start)
+            depth=0; quote=None; esc=False; line=False; block=False
+            i=brace
+            while i<len(code):
+              ch=code[i]; nxt=code[i+1] if i+1<len(code) else ''
+              if line:
+                if ch=='\n': line=False
+                i+=1; continue
+              if block:
+                if ch=='*' and nxt=='/': block=False; i+=2; continue
+                i+=1; continue
+              if quote:
+                if esc: esc=False
+                elif ch=='\\': esc=True
+                elif ch==quote: quote=None
+                i+=1; continue
+              if ch=='/' and nxt=='/': line=True; i+=2; continue
+              if ch=='/' and nxt=='*': block=True; i+=2; continue
+              if ch in ("'",'"','`'): quote=ch; i+=1; continue
+              if ch=='{': depth+=1
+              elif ch=='}':
+                depth-=1
+                if depth==0: return code[start:i+1]
+              i+=1
+            return ''
+          functions=[
+            'doPost','pushDeviceChanges_','pullDeviceChanges_',
+            'pushDeviceChangesMultiUser_','pullDeviceChangesMultiUser_',
+            'uploadMediaAsset_','downloadMediaAsset_'
+          ]
+          state={
+            'files':{f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in protected_files},
+            'functions':{fn:hashlib.sha256(extract(fn).encode()).hexdigest() for fn in functions if extract(fn)}
+          }
+          Path('/tmp/webpanel-protected.json').write_text(json.dumps(state),encoding='utf-8')
+          PY
+
+      - name: Aplicar identidade visual ao painel do link
+        run: python tools/patch_web_management_panel_brand_v32991.py "$APP_DIR"
+
+      - name: Confirmar sincronização preservada
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          old=json.loads(Path('/tmp/webpanel-protected.json').read_text(encoding='utf-8'))
+          changed=[f for f,h in old['files'].items() if hashlib.sha256((root/f).read_bytes()).hexdigest()!=h]
+          if changed: raise SystemExit('ARQUIVOS DE SYNC/BANCO ALTERADOS: '+', '.join(changed))
+          code=(root/'painel_web_google_apps_script/Code.gs').read_text(encoding='utf-8')
+          def extract(name):
+            start=code.find('function '+name+'(')
+            if start<0: return ''
+            brace=code.find('{',start); depth=0; quote=None; esc=False; line=False; block=False; i=brace
+            while i<len(code):
+              ch=code[i]; nxt=code[i+1] if i+1<len(code) else ''
+              if line:
+                if ch=='\n': line=False
+                i+=1; continue
+              if block:
+                if ch=='*' and nxt=='/': block=False; i+=2; continue
+                i+=1; continue
+              if quote:
+                if esc: esc=False
+                elif ch=='\\': esc=True
+                elif ch==quote: quote=None
+                i+=1; continue
+              if ch=='/' and nxt=='/': line=True; i+=2; continue
+              if ch=='/' and nxt=='*': block=True; i+=2; continue
+              if ch in ("'",'"','`'): quote=ch; i+=1; continue
+              if ch=='{': depth+=1
+              elif ch=='}':
+                depth-=1
+                if depth==0: return code[start:i+1]
+              i+=1
+            return ''
+          changed_fn=[]
+          for fn,h in old['functions'].items():
+            now=extract(fn)
+            if hashlib.sha256(now.encode()).hexdigest()!=h: changed_fn.append(fn)
+          if changed_fn: raise SystemExit('ROTAS EXISTENTES ALTERADAS: '+', '.join(changed_fn))
+          print('SYNC_E_ROTAS_EXISTENTES_INTACTOS_OK')
+          PY
+
+      - name: Validar Code.gs e Index.html
+        run: |
+          set -euo pipefail
+          cp "$APP_DIR/painel_web_google_apps_script/Code.gs" /tmp/Code-web.js
+          node --check /tmp/Code-web.js
+          python tools/regression_web_management_panel_brand_v32991.py "$APP_DIR"
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import re,sys
+          root=Path(sys.argv[1])
+          html=(root/'painel_web_google_apps_script/Index.html').read_text(encoding='utf-8')
+          scripts='\n'.join(re.findall(r'<script[^>]*>(.*?)</script>',html,flags=re.S))
+          scripts=scripts.replace('<?!= payloadJson ?>','{}')
+          Path('/tmp/panel-index.js').write_text(scripts,encoding='utf-8')
+          PY
+          node --check /tmp/panel-index.js
+
+      - name: Exportar estado exato do painel e publicacao
+        run: |
+          set -euo pipefail
+          mkdir -p diag/client-app
+          cp "$APP_DIR/painel_web_google_apps_script/Code.gs" diag/Code.gs
+          cp "$APP_DIR/painel_web_google_apps_script/Index.html" diag/Index.html
+          for file in "$APP_DIR"/lib/screens/*panel* "$APP_DIR"/lib/services/*panel* "$APP_DIR"/lib/services/*report* "$APP_DIR"/lib/screens/*report*; do
+            [ -f "$file" ] && cp "$file" diag/client-app/ || true
+          done
+          find diag -type f -printf '%p %s\n' | sort
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: current-management-client-panel-sources
+          path: diag/*
+          retention-days: 3
