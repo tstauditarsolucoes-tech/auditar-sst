@@ -57,13 +57,12 @@ def multi_patch(s):
      """    companyIds: user.role === 'admin' || user.allCompanies ? [] : user.companyIds,
     clientPermissions: clientPortalPermissions_(user.clientPermissions)
 """,'public user'),
-    ("  const now = new Date().toISOString();\n  getSheet_(AUTH_USERS_SHEET).getRange(user.rowNumber, 12).setValue(now);",
-     """  if (user.role === 'cliente') {
+    ("  const user = users.find(item => item.email === email);",
+     """  const user = users.find(item => item.email === email);
+  if (user && user.role === 'cliente') {
     return {ok:false,code:'CLIENT_PORTAL_ONLY',
       message:'Esta conta acessa somente o Painel Gerencial no navegador.'};
-  }
-  const now = new Date().toISOString();
-  getSheet_(AUTH_USERS_SHEET).getRange(user.rowNumber, 12).setValue(now);""",'login app'),
+  }""",'login app'),
     ("  const role = String(input.role || '').toLowerCase() === 'admin' ? 'admin' : 'tecnico';",
      """  const requestedRole = String(input.role || '').toLowerCase();
   const role = ['admin','tecnico','cliente'].indexOf(requestedRole) >= 0
