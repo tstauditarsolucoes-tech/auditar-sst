@@ -339,3 +339,20 @@ function clientPortalEvidencePhoto(token, evidenceId) {
   }
   return {ok:false,message:'Fotografia não encontrada.'};
 }
+
+/**
+ * Link simples: continua como compartilhamento somente leitura, sem credenciais
+ * embutidas no JSON do navegador. Não confundir o link com login individual.
+ */
+function clientPortalSharePayload_(payload) {
+  const clean = publicPanelPayload_(payload);
+  [
+    'accessToken','syncKey','authToken','sessionToken','notifications',
+    'medicalExams','medicalAlerts','workforceDetails','apiKey','credentials'
+  ].forEach(function(key) {delete clean[key];});
+  if (clean.company && typeof clean.company === 'object') {
+    ['email','phone','contactEmail','contactPhone','medicalAlertsEnabled']
+      .forEach(function(key) {delete clean.company[key];});
+  }
+  return clean;
+}
