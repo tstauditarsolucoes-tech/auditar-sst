@@ -24,6 +24,9 @@ assert asset.is_file(), 'Missing exact SST source asset'
 brand = root/'assets/branding/sst_green_official.png'
 brand.parent.mkdir(parents=True, exist_ok=True)
 shutil.copyfile(asset, brand)
+test_dir=root/'test'
+test_dir.mkdir(parents=True,exist_ok=True)
+shutil.copyfile(Path(__file__).with_name('report_logo_smoke_test_v329112.dart'),test_dir/'report_logo_smoke_test.dart')
 
 def templates(s):
     s=once(s,
