@@ -115,6 +115,17 @@ new="""    } else if (entityType == 'extinguisher_photo' ||
         'sst_records',
 """
 s=one(s,old,new,'apply Ronda path')
+old="""      where: 'entity_type IN (?, ?)',
+      whereArgs: const ['evidence_photo', 'completion_photo'],
+"""
+new="""      where: 'entity_type IN (?, ?, ?)',
+      whereArgs: const [
+        'evidence_photo',
+        'completion_photo',
+        'round_photo',
+      ],
+"""
+s=one(s,old,new,'repair library includes Ronda')
 write(rel,s)
 
 # 2) Ronda screen: catalog immediately, kick independent media queue, restore
@@ -228,6 +239,87 @@ new_block=r'''  static List<pw.Widget> _aiReviewBlocks(
 
 '''
 s=s[:start]+new_block+s[end:]
+
+# If the original file is unavailable, do not waste half the page with a
+# blank "Sem foto" box. Keep the technical record readable and explicit.
+old="""    return [
+      pw.Container(
+        margin: const pw.EdgeInsets.only(bottom: 3),
+        decoration: pw.BoxDecoration(
+          border: pw.Border.all(color: PdfColors.grey500, width: .6),
+        ),
+        child: pw.Row(
+"""
+new="""    if (photo == null) {
+      return [
+        pw.Container(
+          width: double.infinity,
+          margin: const pw.EdgeInsets.only(bottom: 6),
+          padding: const pw.EdgeInsets.all(9),
+          decoration: pw.BoxDecoration(
+            border: pw.Border.all(color: PdfColors.grey500, width: .6),
+          ),
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Row(
+                children: [
+                  pw.Expanded(
+                    child: pw.Text(
+                      conform ? 'CONFORMIDADE / BOA PRÁTICA' : 'NÃO CONFORMIDADE',
+                      style: pw.TextStyle(
+                        fontSize: 7.5,
+                        fontWeight: pw.FontWeight.bold,
+                        color: conform ? green : red,
+                      ),
+                    ),
+                  ),
+                  pw.Text(
+                    'Evidência fotográfica indisponível',
+                    style: const pw.TextStyle(
+                      fontSize: 7,
+                      color: PdfColors.grey600,
+                    ),
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 4),
+              pw.Text(
+                _categories(record),
+                style: pw.TextStyle(
+                  fontSize: 9,
+                  fontWeight: pw.FontWeight.bold,
+                  color: primary,
+                ),
+              ),
+              pw.SizedBox(height: 5),
+              pw.Text(
+                narrative.isEmpty ? record.title : narrative,
+                style: const pw.TextStyle(fontSize: 8.2, lineSpacing: 1.5),
+                textAlign: pw.TextAlign.justify,
+              ),
+              pw.SizedBox(height: 4),
+              pw.Text(
+                _locationLine(record, sectors),
+                style: const pw.TextStyle(
+                  fontSize: 7,
+                  color: PdfColors.grey700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ];
+    }
+    return [
+      pw.Container(
+        margin: const pw.EdgeInsets.only(bottom: 3),
+        decoration: pw.BoxDecoration(
+          border: pw.Border.all(color: PdfColors.grey500, width: .6),
+        ),
+        child: pw.Row(
+"""
+s=one(s,old,new,'professional missing-photo card')
 write(rel,s)
 
 # Version bump only after all guarded edits succeeded.
@@ -244,5 +336,7 @@ pdf=read('lib/services/express_round_pdf_service.dart')
 assert "entityType: 'round_photo'" in media
 assert 'registerRoundPhoto' in screen and 'sendPendingMediaNow' in screen
 assert 'restoreRoundMedia' in screen
+assert "'round_photo'," in media
 assert "'actionPlanSuggestions'" not in pdf[pdf.index('static List<pw.Widget> _aiReviewBlocks'):pdf.index('static List<pw.Widget> _conclusionBlocks')]
+assert 'Evidência fotográfica indisponível' in pdf
 print('RONDA_MEDIA_BACKUP_REPORT_OK',platform,new)
