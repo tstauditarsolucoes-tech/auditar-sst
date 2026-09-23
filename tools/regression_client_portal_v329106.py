@@ -30,4 +30,13 @@ assert 'selectedCompanies.length != 1' in users
 assert 'clientPermissions: clientPermissions' in users
 assert '<script>' in html and 'google.script.run' in html
 assert "sessionStorage.getItem('auditar_client_portal_session')" in html
+import re, subprocess, tempfile
+scripts=re.findall(r'<script[^>]*>(.*?)</script>', html, flags=re.S)
+assert len(scripts)==1
+with tempfile.NamedTemporaryFile(mode='w',suffix='.js',encoding='utf-8',delete=False) as f:
+    f.write(scripts[0]); script_file=f.name
+try:
+    subprocess.run(['node','--check',script_file],check=True)
+finally:
+    Path(script_file).unlink(missing_ok=True)
 print('CLIENT_PORTAL_STATIC_REGRESSION_OK')
