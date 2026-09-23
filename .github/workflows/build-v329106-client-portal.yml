@@ -18,6 +18,7 @@ on:
       - 'tools/patch_report_models_branding_v329112.py'
       - 'tools/auditar_standard2_pdf_service_v329112.dart'
       - 'tools/report_logo_service_v329112.dart'
+      - 'tools/report_logo_smoke_test_v329112.dart'
       - 'tools/regression_report_models_v329112.py'
       - 'tools/sst_green_official.png'
       - 'tools/patch_report_email_v329111.py'
@@ -426,6 +427,7 @@ jobs:
           cd "$APP_DIR"
           dart format lib
           flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/report_logo_smoke_test.dart
           # Baseline full flutter test was executed earlier. A second run in the
           # same database workspace duplicates fixed IDs in sync_roundtrip.
 
