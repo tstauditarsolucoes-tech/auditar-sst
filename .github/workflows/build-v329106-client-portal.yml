@@ -221,8 +221,6 @@ jobs:
           python tools/patch_client_portal_v329106.py "$APP_DIR" android
           python tools/patch_client_accounts_ui_v329106.py "$APP_DIR"
           python tools/patch_hide_home_sync_card_v329107.py "$APP_DIR" android
-          python tools/patch_ronda_media_report_v329108.py "$APP_DIR" android
-          python tools/patch_ronda_evidence_protection_v329108.py "$APP_DIR" android
           python tools/patch_ronda_media_backup_report_v329108.py "$APP_DIR" android
           python tools/regression_client_portal_v329106.py "$APP_DIR"
           python - "$APP_DIR" <<'PY'
@@ -323,7 +321,7 @@ jobs:
           print('MEDIA_STRUCTURED_INDEPENDENT_OK')
           PY
           grep -Fq 'maxPages: 300' "$APP_DIR/lib/services/express_round_pdf_service.dart"
-          grep -Fq "entityType: 'express_round_photo'" "$APP_DIR/lib/services/media_sync_service.dart"
+          grep -Fq "entityType: 'round_photo'" "$APP_DIR/lib/services/media_sync_service.dart"
           grep -Fq 'DeviceSyncService.sendPendingMediaNow()' "$APP_DIR/lib/screens/express_round_screen.dart"
           grep -Fq 'Evidência fotográfica indisponível' "$APP_DIR/lib/services/express_round_pdf_service.dart"
           grep -Fq 'isAllowedCentralRedirect(endpoint, target)' "$APP_DIR/lib/services/apps_script_http.dart"
