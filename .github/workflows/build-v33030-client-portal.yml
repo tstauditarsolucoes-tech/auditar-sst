@@ -27,6 +27,7 @@ on:
       - 'tools/patch_remove_fine_ui_v329113.py'
       - 'tools/patch_report_public_titles_v329114.py'
       - 'tools/regression_report_public_titles_v329114.py'
+      - 'tools/install_report_editor_document_center_v329116.py'
       - 'tools/patch_report_editor_v329115.py'
       - 'tools/regression_report_editor_v329115.py'
       - 'build_sources/v3.29.115-report-editor/**'
