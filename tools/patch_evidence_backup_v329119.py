@@ -177,8 +177,8 @@ patch('lib/screens/safety_observations_screen.dart',
 
 p=root/'pubspec.yaml'
 s=p.read_text(encoding='utf-8')
-old='version: 3.29.118+260' if platform=='android' else 'version: 3.30.42+230'
-new='version: 3.29.119+261' if platform=='android' else 'version: 3.30.43+231'
+old='version: 3.29.118+260' if platform=='android' else 'version: 3.30.42+229'
+new='version: 3.29.119+261' if platform=='android' else 'version: 3.30.43+230'
 if old not in s:
  oldLine=next((v for v in s.splitlines() if v.startswith('version: ')),'')
  raise RuntimeError('Expected release baseline '+old+' but found '+oldLine)
