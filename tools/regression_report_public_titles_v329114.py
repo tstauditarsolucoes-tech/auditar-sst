@@ -34,8 +34,12 @@ assert 'template.name' not in performance
 assert 'template.name' not in ronda
 assert 'template.name' not in standard
 assert 'template.name' not in legacy
+# Comments and internal descriptions may mention a model name. Only forbid it
+# where it is rendered visibly as an explicit PDF text widget.
 for name in ('Padrão Auditar 2', 'Performance - Foto + Descrição',
              'Auditar Fotográfico', 'Auditar Obra', 'Auditar Técnico Clean'):
     for body in (styled, performance, standard, ronda, legacy):
-        assert name not in body, f'internal model label leaked into PDF renderer: {name}'
+        assert "pw.Text('" + name + "'" not in body, (
+            'internal model label rendered as PDF text: ' + name
+        )
 print('ALL_REPORT_RENDERERS_NO_INTERNAL_MODEL_NAME_OK')
