@@ -20,6 +20,15 @@ def patch(rel,old,new,label):
  if count!=1:raise RuntimeError(f'{label}: expected one occurrence, got {count}')
  p.write_text(s.replace(old,new,1),encoding='utf-8',newline='\n')
 
+def patch_section(rel,start,end,old,new,label):
+ p=root/rel
+ s=p.read_text(encoding='utf-8')
+ a=s.index(start);b=s.index(end,a)
+ section=s[a:b]
+ count=section.count(old)
+ if count!=1:raise RuntimeError(f'{label}: expected one in section, got {count}')
+ p.write_text(s[:a]+section.replace(old,new,1)+s[b:],encoding='utf-8',newline='\\n')
+
 # Company: a real, per-company protective status viewer rather than a fake green
 # success badge on the Home screen.
 patch('lib/screens/company_detail_screen.dart',
@@ -69,7 +78,9 @@ patch('lib/screens/express_round_screen.dart',
           IconButton(
             tooltip: 'Histórico de rondas',""",
       'Ronda backup app bar')
-patch('lib/screens/express_round_screen.dart',
+patch_section('lib/screens/express_round_screen.dart',
+      '  Future<void> _showRoundHistory() async {',
+      '  String _fallbackRoundConclusion()',
 """                        IconButton(
                           onPressed: () => Navigator.pop(sheetContext),
                           icon: const Icon(Icons.close_rounded),
