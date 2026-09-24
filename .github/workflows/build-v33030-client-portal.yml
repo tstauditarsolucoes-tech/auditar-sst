@@ -1,8 +1,8 @@
-name: Auditar SST Windows v3.30.40 Titulos Institucionais
+name: Auditar SST Windows v3.30.41 Titulos Institucionais
 
 on:
   push:
-    branches: [feature/client-panel-permissions-v329106]
+    branches: [fix/ronda-ai-fast-v329117]
     paths:
       - '.github/workflows/build-v33030-client-portal.yml'
       - 'tools/patch_client_portal_v329106.py'
@@ -27,6 +27,8 @@ on:
       - 'tools/patch_remove_fine_ui_v329113.py'
       - 'tools/patch_report_public_titles_v329114.py'
       - 'tools/regression_report_public_titles_v329114.py'
+      - 'tools/patch_ronda_fast_only_v329117.py'
+      - 'tools/regression_ronda_fast_only_v329117.py'
       - 'tools/install_report_editor_document_center_v329116.py'
       - 'tools/patch_report_editor_v329115.py'
       - 'tools/regression_report_editor_v329115.py'
@@ -433,6 +435,23 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha nos testes do editor de relatórios' }
           Pop-Location
 
+      - name: Ronda IA rápida isolada (sem alterar Checklist, GS ou sincronização)
+        shell: pwsh
+        run: |
+          python tools/patch_ronda_fast_only_v329117.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha no patch isolado da Ronda' }
+          python tools/regression_ronda_fast_only_v329117.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao da IA rápida na Ronda' }
+          $file = "$env:APP_DIR/pubspec.yaml"
+          $text = [System.IO.File]::ReadAllText($file)
+          if (-not $text.Contains('version: 3.30.40+228')) { throw 'Versao Windows anterior inesperada' }
+          [System.IO.File]::WriteAllText($file, $text.Replace('version: 3.30.40+228','version: 3.30.41+229'), [System.Text.UTF8Encoding]::new($false))
+          Push-Location "$env:APP_DIR"
+          dart format lib/services/ai_assistant_service.dart lib/screens/express_round_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na analise da IA rápida da Ronda' }
+          Pop-Location
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
@@ -455,8 +474,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.40-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.40-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.40-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.41-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.41-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.41-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -471,12 +490,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.40',
+            'AppVersion=3.30.41',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.40',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.41',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -493,10 +512,10 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.40.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.40.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.41.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.41.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.40-Windows-Painel-Cliente
+          name: Auditar-SST-v3.30.41-Windows-Painel-Cliente
           path: dist/windows/*
           retention-days: 30
