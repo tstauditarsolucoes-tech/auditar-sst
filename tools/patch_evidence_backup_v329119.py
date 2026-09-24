@@ -9,6 +9,9 @@ feature=Path(__file__).resolve().parents[1]/'feature_sources/evidence_backup_scr
 assert feature.exists(),'Protection screen source missing'
 dst=root/'lib/screens/evidence_backup_screen.dart'
 dst.write_bytes(feature.read_bytes())
+test_src=Path(__file__).resolve().parents[1]/'feature_sources/evidence_backup_status_test.dart'
+assert test_src.exists(),'Backup classifier regression test missing'
+(root/'test/evidence_backup_status_test.dart').write_bytes(test_src.read_bytes())
 
 def patch(rel,old,new,label):
  p=root/rel
@@ -85,10 +88,8 @@ patch('lib/screens/express_round_screen.dart',
                         ),""",
        'Ronda history protection shortcut')
 patch('lib/screens/express_round_screen.dart',
-"""            subtitle: Text(
-                              '$kind • ${record.priority}'""",
-"""            subtitle: Text(
-                              '$kind • ${record.priority} • salvo neste aparelho'""",
+"""                              '$kind • ${record.priority}'""",
+"""                              '$kind • ${record.priority} • salvo neste aparelho'""",
        'Ronda honest saved label')
 patch('lib/screens/express_round_screen.dart',
       "'Registro salvo. Continue a ronda.',",
