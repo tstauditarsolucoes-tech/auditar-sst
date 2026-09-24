@@ -27,5 +27,6 @@ for name in ['styled_report_pdf_service.dart','performance_report_pdf_service.da
  assert 'companyLogo ?? auditarLogo' not in s, name
  assert 'companyLogo ?? sstLogo' not in s, name
 assert "return title.isEmpty ? 'RELATÓRIO DE VISTORIA' : title;" in service
+assert "template.headerStyle == 'institucional2'" in (root/'lib/services/styled_report_pdf_service.dart').read_text(encoding='utf-8')
 assert (root/'test/report_template_editor_model_test.dart').exists()
 print('REPORT_EDITOR_ADVANCED_REGRESSION_OK',expected)
