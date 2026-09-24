@@ -14,3 +14,70 @@ if 'version: 3.30.' in (_root/'pubspec.yaml').read_text(encoding='utf-8'):
     _needle=', allowLongAndroidRequest: true'
     if _body.count(_needle)!=1: raise RuntimeError('Windows PDF email compatibility marker')
     _mail.write_text(_body.replace(_needle,'',1),encoding='utf-8',newline='\n')
+
+
+# Hotfix v3.29.115/v3.30.39: reuse the Gmail authorization already employed
+# by weekly/monthly emails; surface the real send error rather than a generic
+# message. No AI, database, media or device synchronization code is changed.
+from pathlib import Path as _EmailPath
+import sys as _emailSys
+_email_path = _EmailPath(_emailSys.argv[1]) / 'painel_web_google_apps_script/ReportEmail.gs'
+_email = _email_path.read_text(encoding='utf-8')
+_email_old = """    MailApp.sendEmail({
+      to:recipient,
+      cc:copy,
+      subject:'Auditar SST | Relatório de inspeção - '+(companyName || companyId),
+      body:'Prezados,\\n\\nSegue em anexo o relatório de inspeção de SST da empresa '+
+        (companyName || companyId)+'.\\n\\nEnviado pela equipe Auditar.\\n',
+      attachments:[attachment],
+      name:'Auditar Soluções'
+    });
+"""
+_email_new = """    // Reutiliza GmailApp, já empregado nos envios automáticos da Central.
+    const options = {attachments:[attachment], name:'Auditar Soluções'};
+    if (copy && copy !== recipient) options.cc = copy;
+    GmailApp.sendEmail(
+      recipient,
+      'Auditar SST | Relatório de inspeção - '+(companyName || companyId),
+      'Prezados,\\n\\nSegue em anexo o relatório de inspeção de SST da empresa '+
+        (companyName || companyId)+'.\\n\\nEnviado pela equipe Auditar.\\n',
+      options
+    );
+"""
+assert _email.count(_email_old) == 1, 'Unrecognized GS send email implementation'
+_email = _email.replace(_email_old, _email_new, 1)
+_email = _email.replace(
+    "    sheet.getRange(rowNumber,9,1,2).setValues([['SENT',new Date().toISOString()]]);",
+    """    // Envio aceito pelo Gmail não pode ser dado como falho por erro de auditoria.
+    try {sheet.getRange(rowNumber,9,1,2).setValues([['SENT',new Date().toISOString()]]);}
+    catch(logError) {console.error('EMAIL_ENVIADO_LOG_FALHOU '+requestId+': '+String(logError));}""",
+    1,
+)
+_email = _email.replace(
+    """    auditAuthEvent_(user,'report_email_send','report',referenceId,companyId,
+      '', 'report_email',{recipient:recipient,copy:copy,requestId:requestId});""",
+    """    try {auditAuthEvent_(user,'report_email_send','report',referenceId,companyId,
+      '', 'report_email',{recipient:recipient,copy:copy,requestId:requestId});}
+    catch(auditError) {console.error('EMAIL_ENVIADO_AUDITORIA_FALHOU '+requestId+': '+String(auditError));}""",
+    1,
+)
+_email = _email.replace(
+    "    try {sheet.getRange(rowNumber,9).setValue('FAILED');",
+    """    const realError = String(err && err.message || err).slice(0,300);
+    console.error('EMAIL_ENVIO_FALHOU '+requestId+': '+realError);
+    try {sheet.getRange(rowNumber,9).setValue('FAILED');""",
+    1,
+)
+_email = _email.replace("sheet.getRange(rowNumber,11).setValue(String(err).slice(0,300))",
+                        "sheet.getRange(rowNumber,11).setValue(realError)", 1)
+_email = _email.replace(
+    "return {ok:false,message:'O envio não foi confirmado. Confira a autorização de e-mail da Central e tente novamente com novo envio.'};",
+    """return {ok:false,code:/authoriz|permission|permissão|scope/i.test(realError) ? 'EMAIL_AUTH_REQUIRED' : 'EMAIL_SEND_FAILED',
+      message:'A Central não enviou o PDF: '+realError};""",
+    1,
+)
+assert 'GmailApp.sendEmail(' in _email
+assert '    MailApp.sendEmail({' not in _email
+assert 'EMAIL_ENVIO_FALHOU' in _email
+_email_path.write_text(_email, encoding='utf-8', newline='\\n')
+print('REPORT_EMAIL_GMAIL_REUSE_AND_DIAGNOSTICS_OK')
