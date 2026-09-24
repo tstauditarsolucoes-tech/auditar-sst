@@ -427,8 +427,12 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force dist/windows | Out-Null
           New-Item -ItemType Directory -Force dist/windows/Central-Painel-Cliente | Out-Null
-          foreach ($name in @('Code.gs','MultiUser.gs','ClientPortal.gs','ClientPortal.html','Index.html')) {
-            Copy-Item "$env:APP_DIR/painel_web_google_apps_script/$name" "dist/windows/Central-Painel-Cliente/$name" -Force
+          # Include every required Apps Script module in the Windows handoff.
+          # Omitting ReportEmail.gs breaks the new explicit PDF delivery route.
+          foreach ($name in @('Code.gs','MultiUser.gs','EpiSync.gs','ClientPortal.gs','ClientPortal.html','ReportEmail.gs','Index.html')) {
+            $source = "$env:APP_DIR/painel_web_google_apps_script/$name"
+            if (-not (Test-Path $source)) { throw "Arquivo da Central ausente: $name" }
+            Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
           Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.38-PORTATIL.zip' -Force
