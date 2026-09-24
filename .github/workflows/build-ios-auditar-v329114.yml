@@ -49,6 +49,19 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import plistlib, re
+          # Workmanager is used exclusively in Android. Its Apple federated
+          # plugin needs a newer iOS SDK than this Xcode runner has. Preserve
+          # foreground sync and keep the Android sources completely unchanged.
+          pub=Path('pubspec.yaml')
+          deps=pub.read_text(encoding='utf-8')
+          assert deps.count('  workmanager: ^0.10.10\\n') == 1
+          pub.write_text(deps.replace('  workmanager: ^0.10.10\\n','',1),encoding='utf-8')
+          bg=Path('lib/services/background_sync_service.dart')
+          bg.write_text("class BackgroundSyncService {\\n"
+                        "  BackgroundSyncService._();\\n"
+                        "  static Future<void> initialize() async {}\\n"
+                        "  static Future<void> armForNetworkReturn() async {}\\n"
+                        "}\\n",encoding='utf-8')
           p=Path('ios/Runner/Info.plist')
           with p.open('rb') as stream: info=plistlib.load(stream)
           info['CFBundleDisplayName']='Auditar SST'
@@ -89,6 +102,8 @@ jobs:
           Para IPA/TestFlight: Apple Developer Program, identificador de app,
           certificados/perfil de provisionamento e testes em iPhone real.
           O codigo de IA/sincronizacao Android nao foi alterado nesta preparacao.
+          No iOS o sincronismo em primeiro plano continua ativo; o WorkManager
+          de tarefas em segundo plano permanece exclusivo da versao Android.
           TXT
 
       - uses: actions/upload-artifact@v4
