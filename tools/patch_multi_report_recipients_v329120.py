@@ -80,8 +80,10 @@ one(companies,
     if (emailError != null) {""",
 'recipient validation')
 one(companies,
-"content: Text('Confira o endereço de e-mail informado.'),",
-"content: Text(emailError),",
+"""        const SnackBar(
+          content: Text(emailError),""",
+"""        SnackBar(
+          content: Text(emailError),""",
 'precise recipient validation')
 # Multi-address record must always have a primary.
 one(companies,
@@ -212,10 +214,8 @@ p.write_text(s,encoding='utf-8',newline='\n')
 
 # Label the existing automated email preview without changing the backend
 # which already forwards the additional comma-separated list as Gmail CC.
-one('lib/screens/management_panel_screen.dart',
-"' e cópia para ${widget.company.secondaryReportEmail}'",
-"' e para ${widget.company.secondaryReportEmail}'",
-'automatic email target label')
+# Presentation only: the existing automated Gmail CC list already accepts
+# comma-separated addresses via the unchanged Google Apps Script.
 
 version=root/'pubspec.yaml';s=version.read_text(encoding='utf-8')
 old,new=('3.29.119+261','3.29.120+262') if platform=='android' else ('3.30.43+230','3.30.44+231')
