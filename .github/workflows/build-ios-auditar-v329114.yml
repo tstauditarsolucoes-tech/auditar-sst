@@ -44,6 +44,8 @@ jobs:
         run: |
           set -euo pipefail
           flutter create --platforms=ios --project-name auditar_sst --org br.com.auditar .
+          # flutter create gera teste de exemplo MyApp, inexistente no projeto Auditar.
+          rm -f test/widget_test.dart
           python3 - <<'PY'
           from pathlib import Path
           import plistlib, re
