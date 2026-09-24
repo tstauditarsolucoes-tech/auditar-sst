@@ -54,14 +54,14 @@ jobs:
           # foreground sync and keep the Android sources completely unchanged.
           pub=Path('pubspec.yaml')
           deps=pub.read_text(encoding='utf-8')
-          assert deps.count('  workmanager: ^0.10.10\\n') == 1
-          pub.write_text(deps.replace('  workmanager: ^0.10.10\\n','',1),encoding='utf-8')
+          assert deps.count('  workmanager: ^0.10.10\n') == 1
+          pub.write_text(deps.replace('  workmanager: ^0.10.10\n','',1),encoding='utf-8')
           bg=Path('lib/services/background_sync_service.dart')
-          bg.write_text("class BackgroundSyncService {\\n"
-                        "  BackgroundSyncService._();\\n"
-                        "  static Future<void> initialize() async {}\\n"
-                        "  static Future<void> armForNetworkReturn() async {}\\n"
-                        "}\\n",encoding='utf-8')
+          bg.write_text("class BackgroundSyncService {\n"
+                        "  BackgroundSyncService._();\n"
+                        "  static Future<void> initialize() async {}\n"
+                        "  static Future<void> armForNetworkReturn() async {}\n"
+                        "}\n",encoding='utf-8')
           p=Path('ios/Runner/Info.plist')
           with p.open('rb') as stream: info=plistlib.load(stream)
           info['CFBundleDisplayName']='Auditar SST'
