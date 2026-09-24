@@ -126,28 +126,49 @@ class _LargeSignatureCaptureState extends State<LargeSignatureCapturePage> {
           :'Confira a assinatura e toque em Concluir.',
           style:const TextStyle(fontSize:11,color:Colors.black54)),
         const SizedBox(height:5),
-        Row(children:[
-          OutlinedButton.icon(onPressed:widget.controller.isEmpty?null:_undo,
-            icon:const Icon(Icons.undo_rounded,size:18),
-            label:const Text('Desfazer')),
-          const SizedBox(width:5),
-          OutlinedButton.icon(onPressed:canRedo?_redo:null,
-            icon:const Icon(Icons.redo_rounded,size:18),
-            label:const Text('Refazer')),
-          const SizedBox(width:5),
-          OutlinedButton(onPressed:widget.controller.isEmpty?null:_clear,
-            child:const Text('Limpar')),
-          const SizedBox(width:5),
-          Expanded(child:FilledButton.icon(
-            onPressed:widget.controller.isEmpty?null:(){
-              HapticFeedback.selectionClick();
-              Navigator.pop(context,true);
-            },
-            icon:const Icon(Icons.check_rounded),
-            label:const Text('Concluir'),
-            style:FilledButton.styleFrom(minimumSize:const Size(0,54)),
-          )),
-        ]),
+        LayoutBuilder(builder:(context,layout) {
+          final compact=layout.maxWidth<510;
+          return Row(children:[
+            if(compact) IconButton.outlined(
+              tooltip:'Desfazer último traço',
+              onPressed:widget.controller.isEmpty?null:_undo,
+              icon:const Icon(Icons.undo_rounded),
+              constraints:const BoxConstraints(minWidth:48,minHeight:54))
+            else OutlinedButton.icon(
+              onPressed:widget.controller.isEmpty?null:_undo,
+              icon:const Icon(Icons.undo_rounded,size:18),
+              label:const Text('Desfazer')),
+            const SizedBox(width:5),
+            if(compact) IconButton.outlined(
+              tooltip:'Refazer último traço',
+              onPressed:canRedo?_redo:null,
+              icon:const Icon(Icons.redo_rounded),
+              constraints:const BoxConstraints(minWidth:48,minHeight:54))
+            else OutlinedButton.icon(
+              onPressed:canRedo?_redo:null,
+              icon:const Icon(Icons.redo_rounded,size:18),
+              label:const Text('Refazer')),
+            const SizedBox(width:5),
+            if(compact) IconButton.outlined(
+              tooltip:'Limpar assinatura',
+              onPressed:widget.controller.isEmpty?null:_clear,
+              icon:const Icon(Icons.delete_outline),
+              constraints:const BoxConstraints(minWidth:48,minHeight:54))
+            else OutlinedButton(
+              onPressed:widget.controller.isEmpty?null:_clear,
+              child:const Text('Limpar')),
+            const SizedBox(width:5),
+            Expanded(child:FilledButton.icon(
+              onPressed:widget.controller.isEmpty?null:(){
+                HapticFeedback.selectionClick();
+                Navigator.pop(context,true);
+              },
+              icon:const Icon(Icons.check_rounded),
+              label:const Text('Concluir',maxLines:1),
+              style:FilledButton.styleFrom(minimumSize:const Size(0,54)),
+            )),
+          ]);
+        }),
       ])),
     )));
   }
