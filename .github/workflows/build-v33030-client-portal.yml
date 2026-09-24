@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.41 Ronda Rapida
+name: Auditar SST Windows v3.30.42 Ronda Rapida
 
 on:
   push:
@@ -33,6 +33,8 @@ on:
       - 'tools/patch_ronda_edit_fast_ai_v329117.py'
       - 'tools/install_ronda_ui_v329118.py'
       - 'tools/patch_ronda_report_v329118.py'
+      - 'tools/patch_ronda_pdf_second_photo_v329118.py'
+      - 'tools/patch_ronda_release_version_v329118.py'
       - 'build_sources/v3.29.118-ronda-reports/**'
       - 'tools/patch_report_editor_v329115.py'
       - 'tools/regression_report_editor_v329115.py'
@@ -433,12 +435,16 @@ jobs:
           python tools/patch_ronda_edit_fast_ai_v329117.py "$env:APP_DIR" windows
           python tools/install_ronda_ui_v329118.py "$env:APP_DIR" windows
           python tools/patch_ronda_report_v329118.py "$env:APP_DIR" windows
+          python tools/patch_ronda_pdf_second_photo_v329118.py "$env:APP_DIR" windows
+          python tools/patch_ronda_release_version_v329118.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Falha ao integrar Central de Documentos' }
           Push-Location "$env:APP_DIR"
           dart format lib/services/report_template_service.dart lib/services/report_header_pdf_service.dart lib/screens/report_template_library_screen.dart lib/services/styled_report_pdf_service.dart lib/services/performance_report_pdf_service.dart lib/services/auditar_standard2_pdf_service.dart lib/services/express_round_pdf_service.dart lib/services/document_delivery_service.dart lib/services/report_email_service.dart lib/widgets/document_dispatch_dialog.dart lib/screens/document_dispatch_center_screen.dart lib/screens/home_screen.dart lib/screens/report_screen.dart lib/screens/express_round_screen.dart lib/screens/safety_observations_screen.dart lib/screens/sst_records_screen.dart lib/screens/training_records_screen.dart lib/screens/non_conformity_detail_screen.dart lib/screens/improvements_screen.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
           if ($LASTEXITCODE -ne 0) { throw 'Falha na analise da Central de Documentos' }
           flutter test test/report_template_editor_model_test.dart
+          flutter test test/express_round_pdf_pagination_test.dart test/ronda_report_models_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha nos testes de PDF da vistoria' }
           if ($LASTEXITCODE -ne 0) { throw 'Falha nos testes do editor de relatórios' }
           Pop-Location
 
@@ -464,8 +470,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.41-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.41-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.41-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.42-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.42-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.42-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -485,7 +491,7 @@ jobs:
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.41',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.42',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -502,10 +508,10 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.41.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.41.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.42.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.42.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.41-Windows-Painel-Cliente
+          name: Auditar-SST-v3.30.42-Windows-Painel-Cliente
           path: dist/windows/*
           retention-days: 30
