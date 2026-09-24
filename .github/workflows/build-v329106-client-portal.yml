@@ -1,9 +1,9 @@
-name: Auditar SST Android v3.29.116 Titulos Institucionais
+name: Auditar SST Android v3.29.117 Titulos Institucionais
 # Rebuild v3.29.113 logo recovery
 
 on:
   push:
-    branches: [feature/client-panel-permissions-v329106]
+    branches: [fix/ronda-ai-fast-v329117]
     paths:
       - '.github/workflows/build-v329106-client-portal.yml'
       - 'tools/patch_client_portal_v329106.py'
@@ -28,6 +28,8 @@ on:
       - 'tools/patch_remove_fine_ui_v329113.py'
       - 'tools/patch_report_public_titles_v329114.py'
       - 'tools/regression_report_public_titles_v329114.py'
+      - 'tools/patch_ronda_fast_only_v329117.py'
+      - 'tools/regression_ronda_fast_only_v329117.py'
       - 'tools/install_report_editor_document_center_v329116.py'
       - 'tools/patch_report_editor_v329115.py'
       - 'tools/regression_report_editor_v329115.py'
@@ -474,6 +476,24 @@ jobs:
           flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter test test/report_template_editor_model_test.dart
 
+      - name: Ronda IA rápida isolada (sem alterar Checklist, GS ou sincronização)
+        run: |
+          set -euo pipefail
+          python tools/patch_ronda_fast_only_v329117.py "$APP_DIR"
+          python tools/regression_ronda_fast_only_v329117.py "$APP_DIR"
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import sys
+          f=Path(sys.argv[1])/'pubspec.yaml'
+          text=f.read_text(encoding='utf-8')
+          old='version: 3.29.116+258'
+          assert text.count(old)==1, 'Unexpected Android baseline version'
+          f.write_text(text.replace(old,'version: 3.29.117+259'), encoding='utf-8', newline='\n')
+          PY
+          cd "$APP_DIR"
+          dart format lib/services/ai_assistant_service.dart lib/screens/express_round_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+
       - name: Exportar fonte Flutter completa para iPhone
         run: |
           set -euo pipefail
@@ -523,11 +543,11 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.116-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.116-Android.apk > dist/Auditar-SST-v3.29.116-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.117-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.117-Android.apk > dist/Auditar-SST-v3.29.117-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.116-Android-Seguranca-Testes
+          name: Auditar-SST-v3.29.117-Android-Seguranca-Testes
           path: dist/*
           retention-days: 30
