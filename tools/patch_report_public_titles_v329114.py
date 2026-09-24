@@ -90,5 +90,5 @@ pub = pubspec.read_text(encoding='utf-8')
 assert pub.count('version: ' + old_version) == 1, 'Unexpected base version: ' + old_version
 pubspec.write_text(pub.replace('version: ' + old_version,
                                'version: ' + new_version, 1),
-                   encoding='utf-8', newline='\\n')
+                   encoding='utf-8', newline='\n')
 print('ALL_REPORT_PUBLIC_TITLES_WITHOUT_MODEL_NAMES_OK', platform, new_version)
