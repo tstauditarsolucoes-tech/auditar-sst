@@ -30,7 +30,7 @@ on:
       - 'tools/regression_report_public_titles_v329114.py'
       - 'tools/patch_report_editor_v329115.py'
       - 'tools/regression_report_editor_v329115.py'
-      - 'build_sources/v3.29.116-report-editor/**'
+      - 'build_sources/v3.29.115-report-editor/**'
       - 'tools/patch_document_dispatch_v329115.py'
       - 'tools/regression_document_dispatch_v329116.py'
       - 'build_sources/v3.29.116-document-dispatch/**'
@@ -459,7 +459,7 @@ jobs:
           python tools/patch_report_public_titles_v329114.py "$APP_DIR" android
           python tools/regression_report_public_titles_v329114.py "$APP_DIR"
           python tools/patch_report_editor_v329115.py "$APP_DIR" android
-          python tools/regression_report_editor_v329115.py "$APP_DIR" 3.29.116+257
+          python tools/regression_report_editor_v329115.py "$APP_DIR" 3.29.115+257
           (cd "$APP_DIR" && dart format lib/services/report_template_service.dart lib/services/report_header_pdf_service.dart lib/services/styled_report_pdf_service.dart lib/services/performance_report_pdf_service.dart lib/services/auditar_standard2_pdf_service.dart lib/services/express_round_pdf_service.dart lib/screens/report_template_library_screen.dart test/report_template_editor_model_test.dart && flutter analyze --no-fatal-infos --no-fatal-warnings && flutter test test/report_template_editor_model_test.dart)
           python tools/patch_document_dispatch_v329115.py "$APP_DIR" android
           python tools/regression_document_dispatch_v329116.py "$APP_DIR" 3.29.116+258
