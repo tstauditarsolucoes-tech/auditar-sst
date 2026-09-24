@@ -413,7 +413,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Nome interno do modelo detectado no PDF' }
           python tools/patch_report_editor_v329115.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Falha editor avancado relatorios' }
-          python tools/regression_report_editor_v329115.py "$env:APP_DIR" 3.30.40+227
+          python tools/regression_report_editor_v329115.py "$env:APP_DIR" 3.30.39+227
           if ($LASTEXITCODE -ne 0) { throw 'Falha regressao editor avancado' }
           Push-Location "$env:APP_DIR"
           dart format lib/services/report_template_service.dart lib/services/report_header_pdf_service.dart lib/services/styled_report_pdf_service.dart lib/services/performance_report_pdf_service.dart lib/services/auditar_standard2_pdf_service.dart lib/services/express_round_pdf_service.dart lib/screens/report_template_library_screen.dart test/report_template_editor_model_test.dart
