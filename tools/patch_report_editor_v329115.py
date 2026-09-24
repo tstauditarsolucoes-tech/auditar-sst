@@ -381,6 +381,15 @@ replace(editor,"""                    DropdownMenuItem(value: 'impacto', child: 
                   ],
                   onChanged:""",'editor special renderers')
 replace(editor, "        width: full ? 620 : 430,", "        width: full ? 780 : 430,", 'editor width')
+replace(editor, "widget.base.copyWith(\n        id: ReportTemplateService.newCustomId(),", "widget.base.copyWith(\n        id: widget.base.isBuiltIn ? ReportTemplateService.newCustomId() : widget.base.id,", 'edit saved custom without duplicated models')
+replace(editor, "label: const Text('Salvar como novo modelo'),", "label: Text(widget.base.isBuiltIn ? 'Salvar como novo modelo' : 'Salvar alterações'),", 'save button label')
+replace(editor, """                    hintText: '#0B2E4F',
+                  ),
+                )""", """                    hintText: '#0B2E4F',
+                  ),
+                  onChanged: (_) => setState(() {}),
+                )""", 'live color preview')
+
 
 # PDF integrations: no legacy renderer rewrite; each uses shared header only
 # for saved advanced variations and removes duplicate logo fallback.
