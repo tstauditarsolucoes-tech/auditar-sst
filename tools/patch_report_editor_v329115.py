@@ -454,6 +454,12 @@ replace(express,"""        header:
                : _header(""",'ronda advanced header')
 replace(express,"_pdfLogo(companyLogo ?? auditarLogo, 47, 47)","_pdfLogo(companyLogo, 47, 47)",'ronda duplicate')
 
+# Ship the additive pure-model test inside the assembled Flutter application.
+from shutil import copyfile
+model_test=Path(__file__).resolve().parent.parent/'build_sources/v3.29.115-report-editor/report_template_editor_model_test.dart'
+assert model_test.exists(), 'report editor model test unavailable'
+copyfile(model_test, root/'test/report_template_editor_model_test.dart')
+
 # Version change last: existing regression markers test old version before this patch.
 new_version='3.30.39+227' if platform=='windows' else '3.29.115+257'
 pub=root/'pubspec.yaml'; value=pub.read_text(encoding='utf-8')
