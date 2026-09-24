@@ -470,6 +470,15 @@ jobs:
           dart format lib/screens/companies_screen.dart lib/services/media_sync_service.dart lib/widgets/expand_text_button.dart lib/screens/checklist_screen.dart lib/screens/express_round_screen.dart lib/screens/sst_record_form_screen.dart lib/screens/safety_observations_screen.dart lib/screens/improvements_screen.dart lib/services/report_template_service.dart lib/services/styled_report_pdf_service.dart lib/services/express_round_pdf_service.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
 
+      - name: Editor avançado e Central de Documentos com histórico por empresa
+        run: |
+          set -euo pipefail
+          python tools/install_report_editor_document_center_v329116.py "$APP_DIR" android
+          cd "$APP_DIR"
+          dart format lib/services/report_template_service.dart lib/services/report_header_pdf_service.dart lib/screens/report_template_library_screen.dart lib/services/styled_report_pdf_service.dart lib/services/performance_report_pdf_service.dart lib/services/auditar_standard2_pdf_service.dart lib/services/express_round_pdf_service.dart lib/services/document_delivery_service.dart lib/services/report_email_service.dart lib/widgets/document_dispatch_dialog.dart lib/screens/document_dispatch_center_screen.dart lib/screens/home_screen.dart lib/screens/report_screen.dart lib/screens/express_round_screen.dart lib/screens/safety_observations_screen.dart lib/screens/sst_records_screen.dart lib/screens/training_records_screen.dart lib/screens/non_conformity_detail_screen.dart lib/screens/improvements_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/report_template_editor_model_test.dart
+
       - name: Exportar fonte Flutter completa para iPhone
         run: |
           set -euo pipefail
