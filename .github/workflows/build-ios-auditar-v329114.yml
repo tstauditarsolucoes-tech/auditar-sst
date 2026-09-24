@@ -64,9 +64,9 @@ jobs:
           # 6.1.5 supports the same List<ConnectivityResult> Dart API.
           deps=deps.replace('  connectivity_plus: ^7.3.1\n',
                             '  connectivity_plus: 6.1.5\n',1)
-          assert deps.count('\\nflutter:\\n') == 1
-          deps=deps.replace('\\nflutter:\\n',
-                            '\\nflutter:\\n  config:\\n    enable-swift-package-manager: false\\n',1)
+          assert deps.count('\nflutter:\n') == 1
+          deps=deps.replace('\nflutter:\n',
+                            '\nflutter:\n  config:\n    enable-swift-package-manager: false\n',1)
           pub.write_text(deps,encoding='utf-8')
           bg=Path('lib/services/background_sync_service.dart')
           bg.write_text("class BackgroundSyncService {\n"
