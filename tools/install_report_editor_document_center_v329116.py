@@ -26,6 +26,12 @@ def main():
     dispatch_patch.write_text(body.replace(wrong,
         "icon: const Icon(Icons.mark_email_read_outlined), label: const Text('Enviar por e-mail')",1),
         encoding="utf-8",newline="\n")
+    # Windows Python defaults to cp1252: keep regression reads explicitly UTF-8.
+    regression=repo/"tools/regression_document_dispatch_v329116.py"
+    checks=regression.read_text(encoding="utf-8")
+    assert checks.count(".read_text()")>=5, "Unrecognized document regression source"
+    regression.write_text(checks.replace(".read_text()", '.read_text(encoding="utf-8")'),
+        encoding="utf-8",newline="\n")
     def run(name,*args):
         old=sys.argv
         try:
