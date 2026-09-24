@@ -41,7 +41,9 @@ assert 'template.description,' not in styled
 assert "report_email_send" in backend and "reportEmailSend_(request)" in backend
 assert "Enviar PDF ao e-mail cadastrado" in screen
 assert "class ReportEmailService" in get('report_email_service.dart')
-assert 'MailApp.sendEmail(' in mail and 'userCanAccessCompany_' in mail
+assert 'GmailApp.sendEmail(' in mail and 'userCanAccessCompany_' in mail
+assert 'EMAIL_ENVIO_FALHOU' in mail and 'EMAIL_SEND_FAILED' in mail
+assert '    MailApp.sendEmail({' not in mail
 for fragment in ['DeviceSyncService','MediaSyncService','AppsScriptHttp','WebServiceConfig']:
  assert fragment not in templates+styled+performance
 print('REPORT_DELIVERY_V329111_REGRESSION_OK',expected)
