@@ -56,7 +56,7 @@ s=one(s,needle,"""      final delivery = await showDialog<bool>(context: context
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Compartilhar')),
           FilledButton.icon(onPressed: () => Navigator.pop(dialogContext, true),
-            icon: const Icon(Icons.mark_email_read_outlined), child: const Text('Enviar por e-mail')),
+            icon: const Icon(Icons.mark_email_read_outlined), label: const Text('Enviar por e-mail')),
         ],
       ));
       if (!mounted || delivery == null) return;
