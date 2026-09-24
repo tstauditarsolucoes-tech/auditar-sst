@@ -8,6 +8,9 @@ from pathlib import Path
 import sys
 
 root = Path(sys.argv[1])
+platform = sys.argv[2].strip().lower()
+assert platform in ('android', 'windows')
+
 
 def modify(path, old, new, label):
     p = root / path
@@ -78,4 +81,14 @@ modify(ronda,
                     ? 'RELATÓRIO FOTOGRÁFICO DE RONDA DE SEGURANÇA'
                     : 'RELATÓRIO TÉCNICO DE RONDA DE SEGURANÇA',""",
        'ronda body title')
-print('ALL_REPORT_PUBLIC_TITLES_WITHOUT_MODEL_NAMES_OK')
+pubspec = root / 'pubspec.yaml'
+old_version, new_version = {
+    'android': ('3.29.113+255', '3.29.114+256'),
+    'windows': ('3.30.37+224', '3.30.38+225'),
+}[platform]
+pub = pubspec.read_text(encoding='utf-8')
+assert pub.count('version: ' + old_version) == 1, 'Unexpected base version: ' + old_version
+pubspec.write_text(pub.replace('version: ' + old_version,
+                               'version: ' + new_version, 1),
+                   encoding='utf-8', newline='\\n')
+print('ALL_REPORT_PUBLIC_TITLES_WITHOUT_MODEL_NAMES_OK', platform, new_version)
