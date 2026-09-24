@@ -43,6 +43,9 @@ jobs:
         working-directory: ios-source
         run: |
           set -euo pipefail
+          # This Flutter version mixes SPM and legacy pods for MLKit and other
+          # packages; use CocoaPods exclusively for the isolated iOS preview.
+          flutter config --no-enable-swift-package-manager
           flutter create --platforms=ios --project-name auditar_sst --org br.com.auditar .
           # flutter create gera teste de exemplo MyApp, inexistente no projeto Auditar.
           rm -f test/widget_test.dart
@@ -61,6 +64,9 @@ jobs:
           # 6.1.5 supports the same List<ConnectivityResult> Dart API.
           deps=deps.replace('  connectivity_plus: ^7.3.1\n',
                             '  connectivity_plus: 6.1.5\n',1)
+          assert deps.count('flutter:\\n') == 1
+          deps=deps.replace('flutter:\\n',
+                            'flutter:\\n  config:\\n    enable-swift-package-manager: false\\n',1)
           pub.write_text(deps,encoding='utf-8')
           bg=Path('lib/services/background_sync_service.dart')
           bg.write_text("class BackgroundSyncService {\n"
