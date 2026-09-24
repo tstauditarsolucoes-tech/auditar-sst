@@ -104,25 +104,35 @@ patch('lib/screens/express_round_screen.dart',
 # This only reconciles an explicit existing Ronda asset when the current local
 # file path changes. Never delete the older local file; no schema/protocol edit.
 patch('lib/services/media_sync_service.dart',
-"""      entityId: record,
+"""    final db = await AppDatabase.instance.database;
+    await _ensureAsset(
+      db,
+      companyId: company,
+      entityType: 'round_photo',
+      entityId: record,
       localPath: path,
     );
   }
 
   static Future<int> restoreRoundMedia({""",
-"""      entityId: record,
-      localPath: path,
-    );
-    // Replacing a picture must invalidate the PREVIOUS picture's cloud ID.
-    // Only do this for an actual local file, never a path from another device.
-    if (!await File(path).exists()) return;
+"""    final db = await AppDatabase.instance.database;
     final mediaId = _assetId('round_photo', record);
-    final existing = await db.query('media_assets',
+    final before = await db.query('media_assets',
       columns: ['local_path','drive_file_id'],
       where: 'id = ?', whereArgs: [mediaId], limit: 1);
-    if (existing.isNotEmpty) {
-      final previous = '${existing.first['local_path'] ?? ''}'.trim();
-      if (previous.isNotEmpty && previous != path) {
+    await _ensureAsset(
+      db,
+      companyId: company,
+      entityType: 'round_photo',
+      entityId: record,
+      localPath: path,
+    );
+    // An existing Drive ID belongs to the previous photo. When the user
+    // replaces that photo, invalidate only this media asset's confirmation.
+    // No local file is deleted and the normal media queue handles the upload.
+    if (before.isNotEmpty && await File(path).exists()) {
+      final previous = (before.first['local_path'] ?? '').toString().trim();
+      if (previous != path) {
         await db.update('media_assets', {
           'local_path': path,
           'drive_file_id': '',
@@ -135,7 +145,7 @@ patch('lib/services/media_sync_service.dart',
   }
 
   static Future<int> restoreRoundMedia({""",
-      'reset stale Ronda media confirmation only for real replacement')
+      'invalidate old-photo cloud status when user replaces a local picture')
 
 # Editing a Ronda record does not wait for media uploads; registration happens
 # after the local save. The established queue uploads separately.
