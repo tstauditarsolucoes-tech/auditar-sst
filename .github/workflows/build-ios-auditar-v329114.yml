@@ -62,6 +62,24 @@ jobs:
                         "  static Future<void> initialize() async {}\n"
                         "  static Future<void> armForNetworkReturn() async {}\n"
                         "}\n",encoding='utf-8')
+          # Offline credentials use flutter_secure_storage on both mobile OSes.
+          # Only the iOS preview source is adapted; Android base stays intact.
+          auth=Path('lib/services/auth_service.dart')
+          body=auth.read_text(encoding='utf-8')
+          changes=[
+            ('    if (Platform.isAndroid) {',
+             '    if (Platform.isAndroid || Platform.isIOS) {'),
+            ('    if (!Platform.isAndroid) return;',
+             '    if (!(Platform.isAndroid || Platform.isIOS)) return;'),
+            ('    if (!Platform.isAndroid) {',
+             '    if (!(Platform.isAndroid || Platform.isIOS)) {'),
+            ('O modo offline está disponível somente no aplicativo Android.',
+             'O modo offline está disponível nos aplicativos Android e iPhone.'),
+          ]
+          for old,new in changes:
+            assert body.count(old)==1, 'Unexpected mobile login code: '+old
+            body=body.replace(old,new,1)
+          auth.write_text(body,encoding='utf-8')
           p=Path('ios/Runner/Info.plist')
           with p.open('rb') as stream: info=plistlib.load(stream)
           info['CFBundleDisplayName']='Auditar SST'
@@ -102,7 +120,7 @@ jobs:
           Para IPA/TestFlight: Apple Developer Program, identificador de app,
           certificados/perfil de provisionamento e testes em iPhone real.
           O codigo de IA/sincronizacao Android nao foi alterado nesta preparacao.
-          No iOS o sincronismo em primeiro plano continua ativo; o WorkManager
+          No iOS o sincronismo em primeiro plano e o login offline ficam ativos; o WorkManager
           de tarefas em segundo plano permanece exclusivo da versao Android.
           TXT
 
