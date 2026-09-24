@@ -1,0 +1,96 @@
+name: Auditar SST iPhone v3.29.114 Preview
+
+on:
+  push:
+    branches: [feature/ios-auditar-v329114]
+    paths:
+      - '.github/workflows/build-ios-auditar-v329114.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  ios-preview:
+    runs-on: macos-15
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+      - name: Recuperar fontes Android validadas para iOS
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p ios-source ios-artifacts
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if gh run download 35936821124 --repo tstauditarsolucoes-tech/auditar-sst --name Auditar-v329114-iOS-Fontes-Completas --dir ios-source; then break; fi
+            echo 'Fonte iOS ainda indisponivel; tentando novamente.'
+            sleep 30
+          done
+          test -s ios-source/auditar-v329114-ios-source.tar.gz
+          tar -xzf ios-source/auditar-v329114-ios-source.tar.gz -C ios-source
+          test -f ios-source/pubspec.yaml
+          grep -Fq 'version: 3.29.114+256' ios-source/pubspec.yaml
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.5'
+          cache: true
+
+      - name: Criar projeto nativo iOS sem modificar app Android
+        working-directory: ios-source
+        run: |
+          set -euo pipefail
+          flutter create --platforms=ios --project-name auditar_sst --org br.com.auditar .
+          python3 - <<'PY'
+          from pathlib import Path
+          import plistlib, re
+          p=Path('ios/Runner/Info.plist')
+          with p.open('rb') as stream: info=plistlib.load(stream)
+          info['CFBundleDisplayName']='Auditar SST'
+          info['NSCameraUsageDescription']='A camera registra fotos de vistorias, evidencias, assinaturas e documentos de SST.'
+          info['NSPhotoLibraryUsageDescription']='Permite selecionar fotos e evidencias para os registros de SST.'
+          info['NSPhotoLibraryAddUsageDescription']='Permite salvar relatorios e imagens de SST quando solicitado.'
+          info['NSMicrophoneUsageDescription']='Permite capturar audio ao registrar evidencias em video quando solicitado.'
+          with p.open('wb') as stream: plistlib.dump(info,stream)
+          pod=Path('ios/Podfile')
+          body=pod.read_text(encoding='utf-8')
+          body,n=re.subn(r"(?m)^#?\s*platform\s*:ios\s*,\s*['\"][^'\"]+['\"]", "platform :ios, '15.5'", body,count=1)
+          if not n: body="platform :ios, '15.5'\n"+body
+          pod.write_text(body, encoding='utf-8')
+          pbx=Path('ios/Runner.xcodeproj/project.pbxproj')
+          body=pbx.read_text(encoding='utf-8')
+          body=re.sub(r'IPHONEOS_DEPLOYMENT_TARGET = [0-9.]+;', 'IPHONEOS_DEPLOYMENT_TARGET = 15.5;', body)
+          pbx.write_text(body,encoding='utf-8')
+          PY
+          flutter pub get
+
+      - name: Validar codigo e relatorios no projeto iOS
+        working-directory: ios-source
+        run: |
+          set -euo pipefail
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/report_logo_smoke_test.dart
+
+      - name: Compilar versao de simulador iPhone sem assinatura
+        working-directory: ios-source
+        run: |
+          set -euo pipefail
+          flutter build ios --simulator --debug --no-codesign
+          test -d build/ios/iphonesimulator/Runner.app
+          ditto -c -k --sequesterRsrc --keepParent build/ios/iphonesimulator/Runner.app ../ios-artifacts/Auditar-SST-iPhone-v3.29.114-SIMULADOR.zip
+          cat > ../ios-artifacts/LEIA-ME-iOS.txt <<'TXT'
+          Auditar SST iOS v3.29.114: compilacao de simulador sem assinatura.
+          Nao pode ser instalada em iPhone fisico nem usada como versao final.
+          Para IPA/TestFlight: Apple Developer Program, identificador de app,
+          certificados/perfil de provisionamento e testes em iPhone real.
+          O codigo de IA/sincronizacao Android nao foi alterado nesta preparacao.
+          TXT
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-iPhone-v3.29.114-Preview-Simulador
+          path: ios-artifacts/*
+          retention-days: 14
