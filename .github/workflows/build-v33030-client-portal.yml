@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.37 Logos e Texto
+name: Auditar SST Windows v3.30.38 Titulos Institucionais
 
 on:
   push:
@@ -25,6 +25,8 @@ on:
       - 'tools/expand_text_button_v329113.dart'
       - 'tools/regression_logo_text_v329113.py'
       - 'tools/patch_remove_fine_ui_v329113.py'
+      - 'tools/patch_report_public_titles_v329114.py'
+      - 'tools/regression_report_public_titles_v329114.py'
       - 'tools/sst_green_official.png'
       - 'tools/sst_green_logo.b64'
       - 'tools/patch_report_email_v329111.py'
@@ -398,10 +400,15 @@ jobs:
           python tools/patch_remove_fine_ui_v329113.py "$env:APP_DIR"
           if ($LASTEXITCODE -ne 0) { throw 'Falha nos campos expansíveis' }
           python tools/regression_logo_text_v329113.py "$env:APP_DIR" 3.30.37+224
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na regressao de logos' }
+          python tools/patch_report_public_titles_v329114.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha nos titulos publicos dos relatorios' }
+          python tools/regression_report_public_titles_v329114.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Nome interno do modelo detectado no PDF' }
           if (Select-String -Path "$env:APP_DIR/lib/screens/checklist_screen.dart" -SimpleMatch 'Multa por descumprimento') { throw 'Multa ainda visivel no checklist' }
           if ($LASTEXITCODE -ne 0) { throw 'Regressao de logos e textos' }
           Push-Location "$env:APP_DIR"
-          dart format lib/screens/companies_screen.dart lib/services/media_sync_service.dart lib/widgets/expand_text_button.dart lib/screens/checklist_screen.dart lib/screens/express_round_screen.dart lib/screens/sst_record_form_screen.dart lib/screens/safety_observations_screen.dart lib/screens/improvements_screen.dart
+          dart format lib/screens/companies_screen.dart lib/services/media_sync_service.dart lib/widgets/expand_text_button.dart lib/screens/checklist_screen.dart lib/screens/express_round_screen.dart lib/screens/sst_record_form_screen.dart lib/screens/safety_observations_screen.dart lib/screens/improvements_screen.dart lib/services/report_template_service.dart lib/services/styled_report_pdf_service.dart lib/services/express_round_pdf_service.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
           if ($LASTEXITCODE -ne 0) { throw 'Falha na analise dos campos' }
           Pop-Location
@@ -424,8 +431,8 @@ jobs:
             Copy-Item "$env:APP_DIR/painel_web_google_apps_script/$name" "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.37-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.37-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.37-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.38-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.38-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.38-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -440,12 +447,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.37',
+            'AppVersion=3.30.38',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.37',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.38',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -462,10 +469,10 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.37.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.37.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.38.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.38.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.37-Windows-Painel-Cliente
+          name: Auditar-SST-v3.30.38-Windows-Painel-Cliente
           path: dist/windows/*
           retention-days: 30
