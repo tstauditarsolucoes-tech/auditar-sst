@@ -112,7 +112,7 @@ class BackupStatusReader {
   }
 
   static DateTime _date(Object? value) =>
-      DateTime.tryParse('\${value ?? ''}') ?? DateTime.fromMillisecondsSinceEpoch(0);
+      DateTime.tryParse('${value ?? ''}') ?? DateTime.fromMillisecondsSinceEpoch(0);
 
   static Future<BackupCompanySnapshot> inspect(Company company) async {
     final app = AppDatabase.instance;
