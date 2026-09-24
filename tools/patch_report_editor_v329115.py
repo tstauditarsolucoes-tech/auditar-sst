@@ -95,11 +95,11 @@ import 'report_template_service.dart';
 
 /// PDF-only presentation utility. Does not load/change any business data.
 class ReportHeaderPdfService {
-  static pw.MemoryImage? logo(
+  static pw.ImageProvider? logo(
     String source,
     String custom,
-    pw.MemoryImage? auditar,
-    pw.MemoryImage? company,
+    pw.ImageProvider? auditar,
+    pw.ImageProvider? company,
   ) {
     if (source == 'auditar') return auditar;
     if (source == 'cliente') return company; // Never duplicate Auditar as a fallback.
@@ -113,7 +113,7 @@ class ReportHeaderPdfService {
     }
   }
 
-  static pw.Widget _slot(pw.MemoryImage? image, double size) => pw.SizedBox(
+  static pw.Widget _slot(pw.ImageProvider? image, double size) => pw.SizedBox(
     width: size,
     height: size,
     child: image == null ? pw.SizedBox() : pw.Image(image, fit: pw.BoxFit.contain),
@@ -121,8 +121,8 @@ class ReportHeaderPdfService {
 
   static pw.Widget logoRow({
     required ReportTemplateDefinition template,
-    required pw.MemoryImage? auditar,
-    required pw.MemoryImage? company,
+    required pw.ImageProvider? auditar,
+    required pw.ImageProvider? company,
   }) {
     if (!template.showHeader) return pw.SizedBox();
     final left=logo(template.leftLogoSource,template.leftLogoBase64,auditar,company);
@@ -136,8 +136,8 @@ class ReportHeaderPdfService {
 
   static pw.Widget header({
     required ReportTemplateDefinition template,
-    required pw.MemoryImage? auditar,
-    required pw.MemoryImage? companyLogo,
+    required pw.ImageProvider? auditar,
+    required pw.ImageProvider? companyLogo,
     required String company,
     String details = '',
   }) {
@@ -401,6 +401,7 @@ replace(perf,"(companyLogo ?? sstLogo)!", "companyLogo!",'performance logo fallb
 
 styled='lib/services/styled_report_pdf_service.dart'
 replace(styled,"import 'report_logo_service.dart';", "import 'report_logo_service.dart';\nimport 'report_header_pdf_service.dart';",'styled import')
+replace(styled,"if (template.id == ReportTemplateService.standard2TemplateId) {", "if (template.id == ReportTemplateService.standard2TemplateId ||\n        template.headerStyle == 'institucional2') {",'keep standard2 renderer for customized variations')
 replace(styled,"""        _dualLogos(auditarLogo, companyLogo, 58),""", """        template.advancedHeader
           ? ReportHeaderPdfService.logoRow(template:template,auditar:auditarLogo,company:companyLogo)
           : _dualLogos(auditarLogo, companyLogo, 58),""",'styled cover logos')
