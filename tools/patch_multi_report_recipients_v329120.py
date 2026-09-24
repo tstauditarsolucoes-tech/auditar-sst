@@ -81,7 +81,7 @@ one(companies,
 'recipient validation')
 one(companies,
 """        const SnackBar(
-          content: Text(emailError),""",
+          content: Text('Confira o endereço de e-mail informado.'),""",
 """        SnackBar(
           content: Text(emailError),""",
 'precise recipient validation')
@@ -120,8 +120,8 @@ one('lib/screens/document_dispatch_center_screen.dart',
 "import '../services/document_delivery_service.dart';\nimport '../services/report_recipients.dart';",
 'center recipient import')
 one('lib/screens/document_dispatch_center_screen.dart',
-"""'${c.secondaryReportEmail.trim().isEmpty ? '' : 'Cópia: ${c.secondaryReportEmail}\\n'}'""",
-"""'${c.secondaryReportEmail.trim().isEmpty ? '' : 'Outros destinatários: ${ReportRecipients.additional(c.reportEmail,c.secondaryReportEmail).join(', ')}\\n'}'""",
+"Cópia: ${c.secondaryReportEmail}",
+"Outros destinatários: ${ReportRecipients.additional(c.reportEmail,c.secondaryReportEmail).join(', ')}",
 'center recipient confirmation')
 
 # Same PDF, individual email and log for EACH recipient. The deployed
