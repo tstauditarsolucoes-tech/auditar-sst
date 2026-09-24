@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.114 Titulos Institucionais
+name: Auditar SST Android v3.29.115 Titulos Institucionais
 # Rebuild v3.29.113 logo recovery
 
 on:
@@ -28,6 +28,9 @@ on:
       - 'tools/patch_remove_fine_ui_v329113.py'
       - 'tools/patch_report_public_titles_v329114.py'
       - 'tools/regression_report_public_titles_v329114.py'
+      - 'tools/patch_report_editor_v329115.py'
+      - 'tools/regression_report_editor_v329115.py'
+      - 'build_sources/v3.29.115-report-editor/**'
       - 'tools/sst_green_official.png'
       - 'tools/sst_green_logo.b64'
       - 'tools/patch_report_email_v329111.py'
@@ -452,6 +455,9 @@ jobs:
           python tools/regression_logo_text_v329113.py "$APP_DIR" 3.29.113+255
           python tools/patch_report_public_titles_v329114.py "$APP_DIR" android
           python tools/regression_report_public_titles_v329114.py "$APP_DIR"
+          python tools/patch_report_editor_v329115.py "$APP_DIR" android
+          python tools/regression_report_editor_v329115.py "$APP_DIR" 3.29.115+257
+          (cd "$APP_DIR" && dart format lib/services/report_template_service.dart lib/services/report_header_pdf_service.dart lib/services/styled_report_pdf_service.dart lib/services/performance_report_pdf_service.dart lib/services/auditar_standard2_pdf_service.dart lib/services/express_round_pdf_service.dart lib/screens/report_template_library_screen.dart test/report_template_editor_model_test.dart && flutter analyze --no-fatal-infos --no-fatal-warnings && flutter test test/report_template_editor_model_test.dart)
           grep -Fq 'CHECKLIST_FINE_UI_REMOVED_WITH_HISTORY_PRESERVED' /dev/null || true
           ! grep -Fq 'Multa por descumprimento' "$APP_DIR/lib/screens/checklist_screen.dart"
           cd "$APP_DIR"
@@ -507,11 +513,11 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.114-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.114-Android.apk > dist/Auditar-SST-v3.29.114-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.115-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.115-Android.apk > dist/Auditar-SST-v3.29.115-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.114-Android-Seguranca-Testes
+          name: Auditar-SST-v3.29.115-Android-Seguranca-Testes
           path: dist/*
           retention-days: 30
