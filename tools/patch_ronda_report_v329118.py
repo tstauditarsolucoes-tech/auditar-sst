@@ -58,8 +58,8 @@ update(pdf,"""              if (aiReview.isNotEmpty) ...[
               pw.SizedBox(height: 5),
               pw.Text(
                 nonConformities == 0
-                    ? 'Na vistoria presencial foram registrados \${sorted.length} item(ns), sem não conformidades nos registros apresentados. Recomenda-se manter os controles e acompanhar as condições observadas.'
-                    : 'Na vistoria presencial foram registrados \${sorted.length} item(ns), sendo \${nonConformities} não conformidade(s) e \${conformities} conformidade(s). Recomenda-se executar as correções descritas, priorizar os itens classificados como alta ou crítica e verificar a eficácia das ações em acompanhamento posterior.',
+                    ? 'Na vistoria presencial foram registrados ${sorted.length} item(ns), sem não conformidades nos registros apresentados. Recomenda-se manter os controles e acompanhar as condições observadas.'
+                    : 'Na vistoria presencial foram registrados ${sorted.length} item(ns), sendo ${nonConformities} não conformidade(s) e ${conformities} conformidade(s). Recomenda-se executar as correções descritas, priorizar os itens classificados como alta ou crítica e verificar a eficácia das ações em acompanhamento posterior.',
                 style:const pw.TextStyle(fontSize:9,lineSpacing:2)),
 """,'field conclusion')
 # Avoid duplicate verbose prose in photographic cards; risk/consequence data
@@ -72,7 +72,7 @@ update(pdf,"""    final narrative = <String>[
             ? 'Manutenção do padrão: $recommendation'
             : 'Recomendação: $recommendation',
       if (refs.isNotEmpty)
-        'Referências prováveis para conferência: \${refs.join(', ')}.',
+        'Referências prováveis para conferência: ${refs.join(', ')}.',
     ].join('\\n\\n');""",
 """    final narrative = description
         .split(RegExp(r'Risco identificado:|Recomendação:|Referências prováveis',
@@ -131,7 +131,7 @@ update(screen,"""      try {
         await _reloadRoundRecords();
       } catch (_) {}""",
 """      if (roundRecords.any((r) {
-        final path='\${r.payload['photoPath'] ?? ''}'.trim();
+        final path='${r.payload['photoPath'] ?? ''}'.trim();
         return path.isNotEmpty && !File(path).existsSync();
       })) {
         try {
@@ -145,8 +145,8 @@ update(screen,"""      try {
 for old,new in [
  ("title: const Text('Documento da Ronda Expressa')","title: const Text('Relatório de vistoria pronto')"),
  ("title: 'Ronda Expressa',","title: 'Relatório de vistoria SST',"),
- ("fileName: 'Ronda_Expressa_\${widget.company.id}.pdf',","fileName: 'Relatorio_Vistoria_\${widget.company.id}.pdf',"),
- ("'Ronda_\${styleName}_\${safeModel}_\${safeCompany.isEmpty ? 'Empresa' : safeCompany}.pdf'","'Vistoria_\${styleName}_\${safeModel}_\${safeCompany.isEmpty ? 'Empresa' : safeCompany}.pdf'"),
+ ("fileName: 'Ronda_Expressa_${widget.company.id}.pdf',","fileName: 'Relatorio_Vistoria_${widget.company.id}.pdf',"),
+ ("'Ronda_${styleName}_${safeModel}_${safeCompany.isEmpty ? 'Empresa' : safeCompany}.pdf'","'Vistoria_${styleName}_${safeModel}_${safeCompany.isEmpty ? 'Empresa' : safeCompany}.pdf'"),
 ]:update(screen,old,new,'delivery label '+old)
 # UI: don't suggest unreviewed generated conclusion automatically gets included.
 update(screen,"'Os registros e a conclusão revisada da IA serão mantidos.'",
