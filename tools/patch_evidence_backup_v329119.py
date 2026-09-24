@@ -27,7 +27,7 @@ def patch_section(rel,start,end,old,new,label):
  section=s[a:b]
  count=section.count(old)
  if count!=1:raise RuntimeError(f'{label}: expected one in section, got {count}')
- p.write_text(s[:a]+section.replace(old,new,1)+s[b:],encoding='utf-8',newline='\\n')
+ p.write_text(s[:a]+section.replace(old,new,1)+s[b:],encoding='utf-8',newline='\n')
 
 # Company: a real, per-company protective status viewer rather than a fake green
 # success badge on the Home screen.
