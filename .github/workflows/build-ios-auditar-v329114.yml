@@ -55,7 +55,13 @@ jobs:
           pub=Path('pubspec.yaml')
           deps=pub.read_text(encoding='utf-8')
           assert deps.count('  workmanager: ^0.10.10\n') == 1
-          pub.write_text(deps.replace('  workmanager: ^0.10.10\n','',1),encoding='utf-8')
+          deps=deps.replace('  workmanager: ^0.10.10\n','',1)
+          assert deps.count('  connectivity_plus: ^7.3.1\n') == 1
+          # Xcode 16 has no NWPath.isUltraConstrained (connectivity_plus 7).
+          # 6.1.5 supports the same List<ConnectivityResult> Dart API.
+          deps=deps.replace('  connectivity_plus: ^7.3.1\n',
+                            '  connectivity_plus: 6.1.5\n',1)
+          pub.write_text(deps,encoding='utf-8')
           bg=Path('lib/services/background_sync_service.dart')
           bg.write_text("class BackgroundSyncService {\n"
                         "  BackgroundSyncService._();\n"
