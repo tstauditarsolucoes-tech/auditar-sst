@@ -458,6 +458,20 @@ jobs:
           dart format lib/screens/companies_screen.dart lib/services/media_sync_service.dart lib/widgets/expand_text_button.dart lib/screens/checklist_screen.dart lib/screens/express_round_screen.dart lib/screens/sst_record_form_screen.dart lib/screens/safety_observations_screen.dart lib/screens/improvements_screen.dart lib/services/report_template_service.dart lib/services/styled_report_pdf_service.dart lib/services/express_round_pdf_service.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
 
+      - name: Exportar fonte Flutter completa para iPhone
+        run: |
+          set -euo pipefail
+          tar -czf auditar-v329114-ios-source.tar.gz \
+            --exclude='./.dart_tool' --exclude='./build' \
+            --exclude='./android/.gradle' --exclude='./.git' \
+            -C "$APP_DIR" .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-v329114-iOS-Fontes-Completas
+          path: auditar-v329114-ios-source.tar.gz
+          retention-days: 14
+
       - name: Exportar fonte atual dos relatorios
         run: |
           mkdir -p report-current/lib/services report-current/lib/screens report-current/assets/branding
