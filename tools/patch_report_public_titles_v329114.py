@@ -31,8 +31,8 @@ modify(template_path,
   /// Preserve explicit meaningful titles from custom models.
   String get publicTitle {
     final title = headerTitle.trim();
-    final internal = name.trim().toLowerCase().replaceAll(RegExp(r'\\s+'), ' ');
-    final value = title.toLowerCase().replaceAll(RegExp(r'\\s+'), ' ');
+    final internal = name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+    final value = title.toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
     if (id == 'auditar_performance_grid' || headerStyle == 'performance') {
       return 'RELATÓRIO DE VISTORIA';
     }
