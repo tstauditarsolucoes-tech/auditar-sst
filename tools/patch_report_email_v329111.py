@@ -79,5 +79,5 @@ _email = _email.replace(
 assert 'GmailApp.sendEmail(' in _email
 assert '    MailApp.sendEmail({' not in _email
 assert 'EMAIL_ENVIO_FALHOU' in _email
-_email_path.write_text(_email, encoding='utf-8', newline='\\n')
+_email_path.write_text(_email, encoding='utf-8', newline='\n')
 print('REPORT_EMAIL_GMAIL_REUSE_AND_DIAGNOSTICS_OK')
