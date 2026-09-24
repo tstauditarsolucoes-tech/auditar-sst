@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:sqflite/sqflite.dart';
 
 import '../brand.dart';
 import '../database.dart';
@@ -119,7 +118,7 @@ class BackupStatusReader {
     final app = AppDatabase.instance;
     final db = await app.database;
     final rows = await db.query('inspections',
-      columns:['id','company_id','date','template_id','status'],
+      columns:['id','company_id','date','checklist_type','status'],
       where:'company_id = ?',whereArgs:[company.id],orderBy:'date DESC');
     final rounds = await db.query('sst_records',
       columns:['id','title','date','payload'],
