@@ -18,6 +18,14 @@ def main():
             target=repo/name
             target.parent.mkdir(parents=True,exist_ok=True)
             with archive.extractfile(member) as src: target.write_bytes(src.read())
+    # Compatibility with Flutter FilledButton.icon: it uses label, not child.
+    dispatch_patch=repo/"tools/patch_document_dispatch_v329116.py"
+    body=dispatch_patch.read_text(encoding="utf-8")
+    wrong="icon: const Icon(Icons.mark_email_read_outlined), child: const Text('Enviar por e-mail')"
+    assert body.count(wrong)==1, "Unexpected Ronda action source"
+    dispatch_patch.write_text(body.replace(wrong,
+        "icon: const Icon(Icons.mark_email_read_outlined), label: const Text('Enviar por e-mail')",1),
+        encoding="utf-8",newline="\n")
     def run(name,*args):
         old=sys.argv
         try:
