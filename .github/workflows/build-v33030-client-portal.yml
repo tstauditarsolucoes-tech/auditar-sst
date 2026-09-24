@@ -26,6 +26,8 @@ on:
       - 'tools/regression_logo_text_v329113.py'
       - 'tools/patch_remove_fine_ui_v329113.py'
       - 'tools/patch_report_public_titles_v329114.py'
+      - 'tools/patch_document_center_v329115.py'
+      - 'feature_sources/**'
       - 'tools/regression_report_public_titles_v329114.py'
       - 'tools/install_report_editor_document_center_v329116.py'
       - 'tools/patch_report_editor_v329115.py'
@@ -411,6 +413,17 @@ jobs:
           python tools/patch_report_public_titles_v329114.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Falha nos titulos publicos dos relatorios' }
           python tools/regression_report_public_titles_v329114.py "$env:APP_DIR"
+          python tools/patch_document_center_v329115.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Central de documentos falhou' }
+          $pubspec="$env:APP_DIR/pubspec.yaml"
+          $source=Get-Content $pubspec -Raw
+          if (-not $source.Contains('version: 3.30.38+225')) { throw 'Versao Windows inesperada' }
+          [System.IO.File]::WriteAllText($pubspec, $source.Replace('version: 3.30.38+225','version: 3.30.39+226'), [System.Text.UTF8Encoding]::new($false))
+          Push-Location "$env:APP_DIR"
+          dart format lib/screens/document_center_screen.dart lib/services/document_delivery_service.dart lib/screens/company_detail_screen.dart lib/screens/report_screen.dart lib/screens/safety_observations_screen.dart lib/screens/express_round_screen.dart lib/screens/training_records_screen.dart lib/screens/sst_records_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Analise da central de documentos falhou' }
+          Pop-Location
           if ($LASTEXITCODE -ne 0) { throw 'Nome interno do modelo detectado no PDF' }
           if (Select-String -Path "$env:APP_DIR/lib/screens/checklist_screen.dart" -SimpleMatch 'Multa por descumprimento') { throw 'Multa ainda visivel no checklist' }
           if ($LASTEXITCODE -ne 0) { throw 'Regressao de logos e textos' }
