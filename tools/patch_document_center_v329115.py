@@ -54,10 +54,10 @@ update("lib/screens/report_screen.dart",
         title: 'Relatório de vistoria',""")
 
 # Direct per-module access opens the hub pre-selecting the current document.
-update("feature_sources/document_center_screen.dart",
+update("lib/screens/document_center_screen.dart",
        "  final Company company;\n  const DocumentCenterScreen({super.key, required this.company});",
        "  final Company company;\n  final String? initialDocumentId;\n  const DocumentCenterScreen({super.key, required this.company, this.initialDocumentId});")
-update("feature_sources/document_center_screen.dart",
+update("lib/screens/document_center_screen.dart",
        """        (value)=>!items.any((i)=>i.id==value));loading=false; });""",
        """        (value)=>!items.any((i)=>i.id==value));
         if (widget.initialDocumentId != null &&
@@ -65,9 +65,6 @@ update("feature_sources/document_center_screen.dart",
           chosen.add(widget.initialDocumentId!);
         }
         loading=false; });""")
-# Copy current feature after optional-id transformation.
-(root / "lib/screens/document_center_screen.dart").write_bytes(
-    (feature / "document_center_screen.dart").read_bytes())
 
 update("lib/screens/safety_observations_screen.dart",
        "import '../services/safety_observation_pdf_service.dart';",
