@@ -35,6 +35,7 @@ on:
       - 'tools/install_ronda_ui_v329118.py'
       - 'tools/patch_ronda_report_v329118.py'
       - 'tools/patch_report_optional_logo_v329118.py'
+      - 'tools/patch_ronda_pdf_2_fotos_v329118.py'
       - 'tools/patch_ronda_pdf_second_photo_v329118.py'
       - 'tools/patch_ronda_release_version_v329118.py'
       - 'build_sources/v3.29.118-ronda-reports/**'
@@ -482,6 +483,7 @@ jobs:
           python tools/install_ronda_ui_v329118.py "$APP_DIR" android
           python tools/patch_ronda_report_v329118.py "$APP_DIR" android
           python tools/patch_report_optional_logo_v329118.py "$APP_DIR"
+          python tools/patch_ronda_pdf_2_fotos_v329118.py "$APP_DIR" android
           python tools/patch_ronda_pdf_second_photo_v329118.py "$APP_DIR" android
           python tools/patch_ronda_release_version_v329118.py "$APP_DIR" android
           cd "$APP_DIR"
