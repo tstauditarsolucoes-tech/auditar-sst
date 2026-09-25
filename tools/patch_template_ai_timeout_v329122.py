@@ -47,11 +47,6 @@ change("""      } on SocketException catch (error) {
           'O modelo não foi cadastrado nem alterado. '
           'Tente novamente com um PDF menor ou com menos páginas.',
         );
-      } on CentralTransportException catch (error) {
-        throw ReportTemplateAiImportException(
-          'A Central não concluiu a análise deste PDF: ${error.message} '
-          'Nenhum modelo foi cadastrado. Tente novamente quando a conexão estabilizar.',
-        );
       } on SocketException catch (error) {
         lastError = error;""",
        'no blind timeout replay')
@@ -94,6 +89,6 @@ assert v.count('version: '+old)==1,[x for x in v.splitlines() if x.startswith('v
 pub.write_text(v.replace('version: '+old,'version: '+new,1),encoding='utf-8',newline='\n')
 
 assert s.count('allowLongAndroidRequest: true') == (1 if platform == 'android' else 0)
-assert "on TimeoutException {" in s and "on CentralTransportException catch" in s
+assert "on TimeoutException {" in s and "on SocketException catch" in s
 assert "mode': 'report_template_import'" in s
 print('REPORT_TEMPLATE_AI_LONG_REQUEST_FIXED',platform,new)
