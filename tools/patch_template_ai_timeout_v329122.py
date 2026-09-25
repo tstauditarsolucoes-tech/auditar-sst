@@ -68,6 +68,12 @@ change("""        'Não foi possível consultar a IA para analisar o modelo. $la
        'failure message')
 
 file.write_text(s,encoding='utf-8',newline='\n')
+ui=root/'lib/screens/report_template_library_screen.dart'
+screen=ui.read_text(encoding='utf-8')
+old_label="'IA analisando o PDF...'"
+assert screen.count(old_label)==1, 'PDF AI loading label absent'
+screen=screen.replace(old_label,"'Analisando PDF (até 2 min)...'",1)
+ui.write_text(screen,encoding='utf-8',newline='\n')
 pub=root/'pubspec.yaml';v=pub.read_text(encoding='utf-8')
 old,new=('3.29.121+263','3.29.122+264') if platform=='android' else ('3.30.45+232','3.30.46+233')
 assert v.count('version: '+old)==1,[x for x in v.splitlines() if x.startswith('version:')]
