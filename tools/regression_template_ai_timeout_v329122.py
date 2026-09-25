@@ -14,7 +14,8 @@ else:
     assert 'allowLongAndroidRequest' not in service
 assert 'timeout: const Duration(seconds: 105)' in service
 assert "on TimeoutException {" in service
-assert "on CentralTransportException catch (error)" in service
+assert "on SocketException catch (error)" in service
+assert "CentralTransportException" not in service
 assert "mode': 'report_template_import'" in service
 assert "maxPdfBytes = 11 * 1024 * 1024" in service
 assert "A análise do PDF ultrapassou o tempo" in service
