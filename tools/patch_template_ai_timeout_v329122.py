@@ -23,14 +23,21 @@ change("import 'dart:convert';",
 # AppsScriptHttp otherwise substitutes a 10-second Android timeout for
 # the requested 105 seconds. Opt in only for this AI PDF import.
 # Prior build stages may run dart format, which compacts the call onto a line.
-if "timeout: const Duration(seconds: 105));" in s:
-    change("timeout: const Duration(seconds: 105));",
-           "timeout: const Duration(seconds: 105), allowLongAndroidRequest: true);",
-           'long request opt-in compact')
+if platform == 'android':
+    if "timeout: const Duration(seconds: 105));" in s:
+        change("timeout: const Duration(seconds: 105));",
+               "timeout: const Duration(seconds: 105), allowLongAndroidRequest: true);",
+               'Android long request opt-in compact')
+    else:
+        change("timeout: const Duration(seconds: 105),\n        );",
+               "timeout: const Duration(seconds: 105),\n          allowLongAndroidRequest: true,\n        );",
+               'Android long request opt-in expanded')
 else:
-    change("timeout: const Duration(seconds: 105),\n        );",
-           "timeout: const Duration(seconds: 105),\n          allowLongAndroidRequest: true,\n        );",
-           'long request opt-in expanded')
+    # Windows transport has no Android-specific named argument. It already
+    # honours the explicitly supplied timeout=105s and must compile unchanged.
+    assert s.count("timeout: const Duration(seconds: 105)") == 1
+    assert "allowLongAndroidRequest" not in s
+
 # A timed-out POST may still be running in Apps Script. Do not duplicate it.
 change("""      } on SocketException catch (error) {
         lastError = error;""",
@@ -86,7 +93,7 @@ old,new=('3.29.121+263','3.29.122+264') if platform=='android' else ('3.30.45+23
 assert v.count('version: '+old)==1,[x for x in v.splitlines() if x.startswith('version:')]
 pub.write_text(v.replace('version: '+old,'version: '+new,1),encoding='utf-8',newline='\n')
 
-assert s.count('allowLongAndroidRequest: true')==1
+assert s.count('allowLongAndroidRequest: true') == (1 if platform == 'android' else 0)
 assert "on TimeoutException {" in s and "on CentralTransportException catch" in s
 assert "mode': 'report_template_import'" in s
 print('REPORT_TEMPLATE_AI_LONG_REQUEST_FIXED',platform,new)
