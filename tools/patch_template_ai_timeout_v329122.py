@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Fix only PDF model AI import on Android/Windows. Keep GS, sync and checklist AI unchanged."""
 from pathlib import Path
+import re
 import sys
 
 root=Path(sys.argv[1])
@@ -21,9 +22,15 @@ change("import 'dart:convert';",
        'import TimeoutException')
 # AppsScriptHttp otherwise substitutes a 10-second Android timeout for
 # the requested 105 seconds. Opt in only for this AI PDF import.
-change("          timeout: const Duration(seconds: 105),\n        );",
-       "          timeout: const Duration(seconds: 105),\n          allowLongAndroidRequest: true,\n        );",
-       'long request opt-in')
+# Prior build stages may run dart format, which compacts the call onto a line.
+if "timeout: const Duration(seconds: 105));" in s:
+    change("timeout: const Duration(seconds: 105));",
+           "timeout: const Duration(seconds: 105), allowLongAndroidRequest: true);",
+           'long request opt-in compact')
+else:
+    change("timeout: const Duration(seconds: 105),\n        );",
+           "timeout: const Duration(seconds: 105),\n          allowLongAndroidRequest: true,\n        );",
+           'long request opt-in expanded')
 # A timed-out POST may still be running in Apps Script. Do not duplicate it.
 change("""      } on SocketException catch (error) {
         lastError = error;""",
