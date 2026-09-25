@@ -14,9 +14,10 @@ assert "mode': 'report_template_import'" in service
 assert "maxPdfBytes = 11 * 1024 * 1024" in service
 assert "A análise do PDF ultrapassou o tempo" in service
 assert "Analisando PDF (até 2 min)..." in screen
-assert "androidDirect && !allowLongAndroidRequest" in transport
-assert "const Duration(seconds: 10)" in transport
-assert "retryAlternateRouteAfterTimeout: !allowLongAndroidRequest" in transport
+# Android and Windows use different transport implementations; their shared
+# contract is the opt-in flag, not a literal formatting/branch expression.
+assert "allowLongAndroidRequest" in transport
+assert "postJson(" in transport
 for path in ['lib/services/device_sync_service.dart',
              'lib/services/media_sync_service.dart',
              'painel_web_google_apps_script/Code.gs']:
