@@ -15,7 +15,7 @@ checks=[
  'confirme o backup das fotos', 'photoAvailable ? path', 'photoPath = persisted',
  'MediaSyncService.restoreRoundMedia(', 'Verificar e recuperar fotos salvas',
  'WidgetsBindingObserver', 'AppLifecycleState.paused',
- 'File(persisted).length()', 'roundRecords.add(record)',
+ 'File(persisted).lengthSync() == 0', 'roundRecords.add(record)',
  "'photoPath2': secondPhotoPath", 'secondPhotoAvailable ? secondPath',
 ]
 for token in checks:
