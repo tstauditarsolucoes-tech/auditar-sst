@@ -30,6 +30,8 @@ edit("  bool _restoringSavedPhotos = false;",
   Timer? _cloudDraftTimer;
   bool _cloudDraftBusy = false;
   bool _cloudDraftFetching = false;
+  Future<void> _cloudDraftIdle = Future<void>.value();
+  int _cloudDraftRevision = 0;
   final Map<String, dynamic> _cloudPhotoRefs = <String, dynamic>{};""",
  'cloud state')
 edit("""      unawaited(_flushRoundDraft());
@@ -46,6 +48,15 @@ edit("""      unawaited(_flushRoundDraft());
 edit("    _roundDraftTimer?.cancel();\n    if (_roundDraftDirty", 
      "    _roundDraftTimer?.cancel();\n    _cloudDraftTimer?.cancel();\n    if (_roundDraftDirty",
      'cancel timers')
+edit("      photoPath.isNotEmpty ||\n      secondPhotoPath.isNotEmpty ||",
+     "      photoPath.isNotEmpty ||\n      secondPhotoPath.isNotEmpty ||\n      _cloudPhotoRefs.isNotEmpty ||",
+     'cloud refs count as pending content')
+edit("""    _roundDraftDirty = true;
+    _roundDraftTimer?.cancel();""",
+     """    _roundDraftDirty = true;
+    _cloudDraftRevision++;
+    _roundDraftTimer?.cancel();""",
+     'revision of draft changes')
 edit("    'photoPath2': secondPhotoPath,\n    'categories':",
      "    'photoPath2': secondPhotoPath,\n    'cloudPhotoRefs': Map<String, dynamic>.from(_cloudPhotoRefs),\n    'categories':",
      'carry cloud refs')
@@ -68,6 +79,9 @@ methods=r'''  Future<void> _publishCloudRoundDraft({bool showMessage = false}) a
     final company = widget.company.id;
     final targetRound = roundId;
     final targetEntry = _roundDraftEntryId;
+    final revision = _cloudDraftRevision;
+    final completed = Completer<void>();
+    _cloudDraftIdle = completed.future;
     if (mounted) setState(() {
       _cloudDraftBusy = true;
       _roundDraftStatus = 'Enviando rascunho e fotos à nuvem...';
@@ -79,7 +93,8 @@ methods=r'''  Future<void> _publishCloudRoundDraft({bool showMessage = false}) a
         snapshot: _roundDraftPayload(),
       );
       if (!mounted || roundId != targetRound ||
-          _roundDraftEntryId != targetEntry) return;
+          _roundDraftEntryId != targetEntry ||
+          _cloudDraftRevision != revision) return;
       setState(() => _roundDraftStatus = confirmed
           ? 'Na nuvem • texto e fotos com backup confirmado'
           : 'Backup pendente • cópia preservada neste aparelho');
@@ -94,7 +109,16 @@ methods=r'''  Future<void> _publishCloudRoundDraft({bool showMessage = false}) a
             'Nuvem indisponível no momento. Seu rascunho local está salvo.');
       }
     } finally {
-      if (mounted) setState(() => _cloudDraftBusy = false);
+      completed.complete();
+      if (mounted) {
+        setState(() => _cloudDraftBusy = false);
+        if (_cloudDraftRevision != revision && _roundDraftHasContent) {
+          _cloudDraftTimer?.cancel();
+          _cloudDraftTimer = Timer(const Duration(seconds: 2), () {
+            unawaited(_publishCloudRoundDraft());
+          });
+        }
+      }
     }
   }
 
@@ -194,6 +218,8 @@ edit("""      await _roundDraftTail;
       try {
         await ExpressRoundDraftStorage.clear(widget.company.id, roundId);""",
      """      await _roundDraftTail;
+      _cloudDraftTimer?.cancel();
+      await _cloudDraftIdle;
       try {
         await ExpressRoundCloudDraftService.complete(
             companyId: widget.company.id, roundId: roundId);
@@ -249,6 +275,12 @@ edit(marker,marker+"""
                       label: const Text('Continuar rascunho da nuvem'),
                     ),""",
  'cloud button')
+edit("""                    _draftPhotoMissing = false;
+                    _clearAiState();""",
+     """                    _draftPhotoMissing = false;
+                    _cloudPhotoRefs.clear();
+                    _clearAiState();""",
+     'remove stale cloud photo refs')
 shutil.copyfile(source,target)
 screen.write_text(s,encoding='utf-8',newline='\n')
 changed=[name for name,h in before.items()
