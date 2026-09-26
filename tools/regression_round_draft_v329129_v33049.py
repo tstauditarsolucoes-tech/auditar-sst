@@ -12,7 +12,7 @@ checks=[
  '_roundDraftPayload()', '_scheduleRoundDraft()', '_flushRoundDraft(',
  '_roundDraftTail', "localDraftEntryId", 'Rascunho salvo neste aparelho',
  'Rascunho restaurado neste aparelho', 'Há uma ocorrência no rascunho.',
- 'Confirme o backup das fotos', 'photoAvailable ? path', 'photoPath = persisted',
+ 'confirme o backup das fotos', 'photoAvailable ? path', 'photoPath = persisted',
  'MediaSyncService.restoreRoundMedia(', 'Verificar e recuperar fotos salvas',
  'WidgetsBindingObserver', 'AppLifecycleState.paused',
  'File(persisted).length()', 'roundRecords.add(record)',
