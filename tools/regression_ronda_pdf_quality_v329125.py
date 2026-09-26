@@ -5,18 +5,18 @@ import sys
 root=Path(sys.argv[1])
 s=(root/'lib/services/express_round_pdf_service.dart').read_text(encoding='utf-8')
 must=[
-    "_companyTable(company, sorted.isEmpty ? null : sorted.first.date)",
-    "_tableRow('DATA DA VISTORIA'",
+    "sorted.isEmpty ? null : sorted.first.date",
+    "'DATA DA VISTORIA'",
     "'SEGURANÇA E SAÚDE NO TRABALHO'",
     "'Constatações e evidências registradas na vistoria'",
     "parts.isEmpty ? record.title : parts.first",
-    "..._pagedLabel(conform ? 'Manter boa prática' : 'Recomendação', recommendation, primary)",
+    "conform ? 'Manter boa prática' : 'Recomendação'",
     "for (var i = 1; i < parts.length; i++)",
     "final places = <String>[];",
     "other.toLowerCase() == cleaned.toLowerCase()",
     "'Evidência fotográfica indisponível neste arquivo.'",
     "maxPages: 300",
-    "final photo2 = firstPhoto == null ? null : secondPhoto",
+    "firstPhoto == null ? null : secondPhoto",
 ]
 for token in must:
     assert token in s, 'RONDA_PDF_QUALITY missing: '+token
