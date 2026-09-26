@@ -353,53 +353,85 @@ edit("""                    _header(),""","""                    _header(),
                         ),
                       ),
                     ),""",'visible status')
-edit("""                      onChanged: (value) => setState(
-                        () => sectorId = value == null || value.isEmpty ? null : value,
-                      ),""","""                      onChanged: (value) {
-                        setState(() =>
-                            sectorId = value == null || value.isEmpty ? null : value);
-                        _scheduleRoundDraft();
-                      },""",'sector')
-edit("""                      }),
-                    ),
-                    const SizedBox(height: 16),
-                    _label('2. Fotografe a situação'),""","""                      }),
-                    ),
-                    const SizedBox(height: 16),
-                    _label('2. Fotografe a situação'),""",'placeholder')
-# Wrap other selection callbacks with listeners without altering other fields.
-edit("""                        }
-                      }),
-                    ),
-                    const SizedBox(height: 16),
-                    _label('2. Fotografe a situação'),""","""                        }
-                        _scheduleRoundDraft();
-                      }),
-                    ),
-                    const SizedBox(height: 16),
-                    _label('2. Fotografe a situação'),""",'finding kind')
-edit("""                            } else {
-                              selectedCategories.remove(category);
+
+edit("""                        onChanged:
+                            (value) => setState(
+                              () =>
+                                  sectorId =
+                                      value == null || value.isEmpty
+                                          ? null
+                                          : value,
+                            ),""","""                        onChanged: (value) {
+                          setState(() =>
+                              sectorId = value == null || value.isEmpty
+                                  ? null
+                                  : value);
+                          _scheduleRoundDraft();
+                        },""",'sector')
+edit("""                        onSelectionChanged:
+                            (values) => setState(() {
+                              findingType = values.first;
+                              if (_isConformity) {
+                                priority = 'Baixa';
+                                recurring = false;
+                                aiRisk = '';
+                                aiConsequence = '';
+                                aiImmediateAction = '';
+                                aiResponsible = '';
+                              }
+                            }),""","""                        onSelectionChanged: (values) {
+                          setState(() {
+                            findingType = values.first;
+                            if (_isConformity) {
+                              priority = 'Baixa';
+                              recurring = false;
+                              aiRisk = '';
+                              aiConsequence = '';
+                              aiImmediateAction = '';
+                              aiResponsible = '';
                             }
-                          }),""","""                            } else {
-                              selectedCategories.remove(category);
-                            }
+                          });
+                          _scheduleRoundDraft();
+                        },""",'finding kind')
+edit("""                                onSelected:
+                                    (value) => setState(() {
+                                      if (value) {
+                                        selectedCategories.add(category);
+                                      } else {
+                                        selectedCategories.remove(category);
+                                      }
+                                    }),""","""                                onSelected: (value) {
+                                  setState(() {
+                                    if (value) {
+                                      selectedCategories.add(category);
+                                    } else {
+                                      selectedCategories.remove(category);
+                                    }
+                                  });
+                                  _scheduleRoundDraft();
+                                },""",'categories')
+edit("""                          onChanged:
+                              (value) =>
+                                  setState(() => priority = value ?? priority),""","""                          onChanged: (value) {
+                            setState(() => priority = value ?? priority);
                             _scheduleRoundDraft();
-                          }),""",'categories')
-edit("""                        onChanged: (value) =>
-                            setState(() => priority = value ?? priority),""","""                        onChanged: (value) {
-                          setState(() => priority = value ?? priority);
-                          _scheduleRoundDraft();
-                        },""",'priority')
-edit("""                        onChanged: (value) => setState(() => recurring = value),""","""                        onChanged: (value) {
-                          setState(() => recurring = value);
-                          _scheduleRoundDraft();
-                        },""",'recurrence')
-edit("""                    photoPath = '';
-                    _clearAiState();""","""                    photoPath = '';
+                          },""",'priority')
+edit("""                          onChanged:
+                              (value) => setState(() => recurring = value),""","""                          onChanged: (value) {
+                            setState(() => recurring = value);
+                            _scheduleRoundDraft();
+                          },""",'recurrence')
+edit("""              onPressed:
+                  () => setState(() {
+                    photoPath = '';
+                    _clearAiState();
+                  }),""","""              onPressed:
+                  () => setState(() {
+                    photoPath = '';
                     _draftPhotoMissing = false;
                     _clearAiState();
-                    _scheduleRoundDraft();""",'photo removal')
+                    _scheduleRoundDraft();
+                  }),""",'photo removal')
 shutil.copyfile(src,helper)
 shutil.copyfile(test_src,root/'test/express_round_draft_storage_test.dart')
 path.write_text(s,encoding='utf-8',newline='\n')
