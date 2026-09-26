@@ -12,6 +12,7 @@ on:
       - 'tools/patch_paper_attendance_v329126.py'
       - 'tools/regression_paper_attendance_v329126.py'
       - 'tools/patch_paper_attendance_ai_v329127.py'
+      - 'tools/patch_paper_ai_windows_http_compat_v33047.py'
       - 'tools/regression_paper_attendance_ai_v329127.py'
       - 'tools/patch_paper_attendance_ai_windows_version_v33047.py'
       - 'tools/patch_client_portal_v329106.py'
@@ -497,6 +498,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Regressao da ficha fisica falhou' }
           python tools/patch_paper_attendance_ai_v329127.py "$env:APP_DIR"
           if ($LASTEXITCODE -ne 0) { throw 'Leitura de nomes por IA falhou' }
+          python tools/patch_paper_ai_windows_http_compat_v33047.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Compatibilidade HTTP Windows da IA falhou' }
           python tools/regression_paper_attendance_ai_v329127.py "$env:APP_DIR"
           if ($LASTEXITCODE -ne 0) { throw 'Regressao de conferencia humana falhou' }
           Push-Location "$env:APP_DIR"
