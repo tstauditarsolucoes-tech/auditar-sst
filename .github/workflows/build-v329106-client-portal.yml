@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.125 Relatórios Padronizados
+name: Auditar SST Android v3.29.126 Fichas Fisicas DDS Treinamento
 # Rebuild v3.29.113 logo recovery
 
 on:
@@ -52,6 +52,10 @@ on:
       - 'tools/patch_ronda_pdf_quality_v329125.py'
       - 'tools/regression_ronda_pdf_quality_v329125.py'
       - 'tools/patch_report_quality_version_v329125.py'
+      - 'feature_sources/paper_attendance_screen_v329126.dart'
+      - 'tools/patch_paper_attendance_v329126.py'
+      - 'tools/regression_paper_attendance_v329126.py'
+      - 'tools/patch_paper_attendance_version_v329126.py'
       - 'tools/test_configure_release_signing_v329122.py'
       - 'tools/verify_android_apk_certificate_v329123.py'
       - 'tools/test_verify_android_apk_certificate_v329123.py'
@@ -592,6 +596,19 @@ jobs:
           python3 tools/regression_ronda_pdf_quality_v329125.py "$APP_DIR"
           python3 tools/patch_report_quality_version_v329125.py "$APP_DIR"
 
+      - name: Registrar fichas fisicas de DDS e treinamentos com sync protegido
+        run: |
+          set -euo pipefail
+          python3 tools/patch_paper_attendance_v329126.py "$APP_DIR"
+          python3 tools/regression_paper_attendance_v329126.py "$APP_DIR"
+          cd "$APP_DIR"
+          dart format lib/screens/paper_attendance_screen.dart lib/screens/sst_records_screen.dart lib/screens/sst_record_form_screen.dart lib/screens/training_records_screen.dart lib/services/training_record_pdf_service.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test --dart-define=AUDITAR_TEST_LOOPBACK=true
+          cd "$GITHUB_WORKSPACE"
+          python3 tools/regression_paper_attendance_v329126.py "$APP_DIR"
+          python3 tools/patch_paper_attendance_version_v329126.py "$APP_DIR"
+
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
         env:
@@ -653,11 +670,11 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.125-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.125-Android.apk > dist/Auditar-SST-v3.29.125-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.126-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.126-Android.apk > dist/Auditar-SST-v3.29.126-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.125-Android-Relatorios-Padronizados
+          name: Auditar-SST-v3.29.126-Android-Fichas-Fisicas
           path: dist/*
           retention-days: 30
