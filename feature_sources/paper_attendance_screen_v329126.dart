@@ -246,8 +246,7 @@ class _PaperAttendanceScreenState extends State<PaperAttendanceScreen> {
       }
       unawaited(MediaSyncService.uploadPending(limit: 6)
           .then((_) {}, onError: (Object _) {}));
-      _selected.clear();
-      _otherNames.clear();
+      // Keep selected names for the next page of the same paper sheet.
       await _load();
       _notify('Ficha registrada. Confirme o backup antes de excluir o original em papel.');
     } catch (e) {
