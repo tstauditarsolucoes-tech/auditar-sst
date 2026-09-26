@@ -596,7 +596,16 @@ jobs:
           "$signer" verify --print-certs "$apk" > "$RUNNER_TEMP/auditar-apk-certificate.txt"
           actual_cert="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "$RUNNER_TEMP/auditar-apk-certificate.txt" | head -n 1 | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
           if [[ "$actual_cert" != "$expected_cert" ]]; then
-            echo '::error::APK certificate differs from configured permanent signer; not publishing artifact.'
+            # Certificate fingerprints are public metadata; never print the
+            # private keystore, passwords, alias or encoded key material.
+            if [[ -z "$actual_cert" ]]; then
+              echo '::error::Could not parse the APK certificate from apksigner output.'
+              sed -n '/certificate SHA-256 digest:/p' "$RUNNER_TEMP/auditar-apk-certificate.txt"
+            else
+              echo "::error::APK signer fingerprint: $actual_cert"
+              echo "::error::Pinned permanent fingerprint: $expected_cert"
+            fi
+            echo '::error::Certificate mismatch; APK withheld. Do not install this build.'
             exit 1
           fi
           apk_package="$("$aapt" dump badging "$apk" | awk -F "'" '/^package:/{print $2;exit}')"
