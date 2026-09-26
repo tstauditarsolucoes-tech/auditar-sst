@@ -262,6 +262,7 @@ edit("""    setState(() => photoPath = persisted);
 edit("""        if (_isConformity) priority = 'Baixa';
       });
     }
+
     titleCtl.dispose();""","""        if (_isConformity) priority = 'Baixa';
       });
       _scheduleRoundDraft();
