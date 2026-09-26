@@ -546,7 +546,9 @@ jobs:
           retention-days: 7
 
       - name: Testar protecao da assinatura Android
-        run: python3 tools/test_configure_release_signing_v329122.py
+        run: |
+          python3 tools/test_configure_release_signing_v329122.py
+          python3 tools/test_verify_android_apk_certificate_v329123.py
 
       - name: Marcar primeira versao com chave permanente
         run: python3 tools/patch_permanent_signer_version_v329123.py "$APP_DIR"
