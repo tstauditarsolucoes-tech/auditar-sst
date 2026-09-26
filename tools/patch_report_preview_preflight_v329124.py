@@ -186,8 +186,8 @@ screen = screen[:start] + r'''  // The PDF generator has already attempted exist
 
 ''' + screen[end:]
 screen = once(screen,
-    "  Future<void> _sendReportByEmail() async {\\n    if (emailBusy) return;",
-    "  Future<void> _sendReportByEmail() async {\\n    if (emailBusy) return;\\n    if (!await _reviewBeforeDelivery()) return;",
+    "  Future<void> _sendReportByEmail() async {\n    if (emailBusy) return;",
+    "  Future<void> _sendReportByEmail() async {\n    if (emailBusy) return;\n    if (!await _reviewBeforeDelivery()) return;",
     "email preflight")
 
 start = screen.index("  Future<void> _saveLocal({required bool executive}) async {")
