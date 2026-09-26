@@ -6,6 +6,7 @@ root=Path(sys.argv[1])
 path=root/'lib/screens/express_round_screen.dart'
 helper=root/'lib/services/express_round_draft_storage.dart'
 src=Path(__file__).resolve().parents[1]/'feature_sources/express_round_draft_storage_v329129.dart'
+test_src=Path(__file__).resolve().parents[1]/'feature_sources/express_round_draft_storage_test_v329129.dart'
 protected=[
  'lib/database.dart','lib/services/device_sync_service.dart',
  'lib/services/sync_coordinator.dart','lib/services/media_sync_service.dart',
@@ -399,6 +400,7 @@ edit("""                    photoPath = '';
                     _clearAiState();
                     _scheduleRoundDraft();""",'photo removal')
 shutil.copyfile(src,helper)
+shutil.copyfile(test_src,root/'test/express_round_draft_storage_test.dart')
 path.write_text(s,encoding='utf-8',newline='\n')
 changed=[p for p,h in before.items() if hashlib.sha256((root/p).read_bytes()).hexdigest()!=h]
 if changed:raise SystemExit('PROTECTED SYNC MEDIA DB GS AI MODIFIED: '+repr(changed))
