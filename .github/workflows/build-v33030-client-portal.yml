@@ -7,6 +7,7 @@ on:
       - '.github/workflows/build-v33030-client-portal.yml'
       - 'tools/patch_report_preview_preflight_v329124.py'
       - 'tools/regression_report_preview_preflight_v329124.py'
+      - 'tools/regression_report_preview_windows_format_v33047.py'
       - 'tools/patch_ronda_pdf_quality_v329125.py'
       - 'tools/regression_ronda_pdf_quality_v329125.py'
       - 'tools/patch_paper_attendance_v329126.py'
@@ -510,7 +511,7 @@ jobs:
           flutter test test/training_import_service_test.dart test/report_template_editor_model_test.dart test/express_round_pdf_pagination_test.dart test/ronda_report_models_test.dart
           if ($LASTEXITCODE -ne 0) { throw 'Testes de regressao Windows falharam' }
           Pop-Location
-          python tools/regression_report_preview_preflight_v329124.py "$env:APP_DIR"
+          python tools/regression_report_preview_windows_format_v33047.py "$env:APP_DIR"
           if ($LASTEXITCODE -ne 0) { throw 'Regressao de preflight apos dart format' }
           python tools/regression_ronda_pdf_quality_v329125.py "$env:APP_DIR"
           if ($LASTEXITCODE -ne 0) { throw 'Regressao de Ronda apos dart format' }
