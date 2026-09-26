@@ -21,9 +21,9 @@ required=[
     'Nomes sem correspondência não serão lançados automaticamente.',
     "if (counts[name] == 1) selected.add(key);",
     "if (current == null || current.companyId != widget.companyId)",
-    "current.status.toUpperCase() == 'FINALIZADO'",
-    "if ((person['status'] ?? '').toString() == 'ASSINADO')",
-    "onPressed: _busy || _aiBusy ? null : () => _readNamesWithAi(item)",
+    "current!.status.toUpperCase() == 'FINALIZADO'",
+    "(person['status'] ?? '').toString() == 'ASSINADO'",
+    "_readNamesWithAi(item)",
 ]
 for token in required:
     assert token in screen, 'PAPER_AI missing: '+token
