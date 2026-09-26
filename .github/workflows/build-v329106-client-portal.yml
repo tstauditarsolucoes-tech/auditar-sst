@@ -44,6 +44,7 @@ on:
       - 'tools/patch_signature_training_v329121.py'
       - 'tools/patch_template_ai_timeout_v329122.py'
       - 'tools/configure_release_signing_v329122.py'
+      - 'tools/test_configure_release_signing_v329122.py'
       - 'tools/regression_template_ai_timeout_v329122.py'
       - 'feature_sources/large_signature_capture.dart'
       - 'feature_sources/report_recipients_v329120.dart'
@@ -541,6 +542,9 @@ jobs:
           name: Auditar-v329114-Report-Current-Sources
           path: report-current.zip
           retention-days: 7
+
+      - name: Testar protecao da assinatura Android
+        run: python3 tools/test_configure_release_signing_v329122.py
 
       - name: Compilar APK com assinatura de atualizacao verificada
         working-directory: ${{ env.APP_DIR }}
