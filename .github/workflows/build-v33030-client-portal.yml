@@ -1,10 +1,19 @@
-name: Auditar SST Windows v3.30.46 Modelos IA PDF
+name: Auditar SST Windows v3.30.47 Relatorios Fichas Fisicas IA
 
 on:
   push:
     branches: [feature/client-panel-permissions-v329106]
     paths:
       - '.github/workflows/build-v33030-client-portal.yml'
+      - 'tools/patch_report_preview_preflight_v329124.py'
+      - 'tools/regression_report_preview_preflight_v329124.py'
+      - 'tools/patch_ronda_pdf_quality_v329125.py'
+      - 'tools/regression_ronda_pdf_quality_v329125.py'
+      - 'tools/patch_paper_attendance_v329126.py'
+      - 'tools/regression_paper_attendance_v329126.py'
+      - 'tools/patch_paper_attendance_ai_v329127.py'
+      - 'tools/regression_paper_attendance_ai_v329127.py'
+      - 'tools/patch_paper_attendance_ai_windows_version_v33047.py'
       - 'tools/patch_client_portal_v329106.py'
       - 'tools/patch_client_accounts_ui_v329106.py'
       - 'tools/patch_hide_home_sync_card_v329107.py'
@@ -470,6 +479,45 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha nos testes do editor de relatórios' }
           Pop-Location
 
+      - name: Igualar relatorios e fichas fisicas Android e Windows sem mexer na sincronizacao
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python tools/patch_report_preview_preflight_v329124.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Pre-visualizacao e conferencia do relatorio falharam' }
+          python tools/regression_report_preview_preflight_v329124.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao da pre-visualizacao falhou' }
+          python tools/patch_ronda_pdf_quality_v329125.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Qualidade do PDF da Ronda falhou' }
+          python tools/regression_ronda_pdf_quality_v329125.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao da Ronda falhou' }
+          python tools/patch_paper_attendance_v329126.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Ficha fisica no DDS e treinamento falhou' }
+          python tools/regression_paper_attendance_v329126.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao da ficha fisica falhou' }
+          python tools/patch_paper_attendance_ai_v329127.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Leitura de nomes por IA falhou' }
+          python tools/regression_paper_attendance_ai_v329127.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao de conferencia humana falhou' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/screens/paper_attendance_screen.dart lib/screens/sst_records_screen.dart lib/screens/sst_record_form_screen.dart lib/screens/training_records_screen.dart lib/services/training_record_pdf_service.dart lib/services/report_file_service.dart lib/screens/report_screen.dart lib/services/express_round_pdf_service.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Formatacao das melhorias Windows falhou' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Analise das melhorias Windows falhou' }
+          flutter test test/training_import_service_test.dart test/report_template_editor_model_test.dart test/express_round_pdf_pagination_test.dart test/ronda_report_models_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Testes de regressao Windows falharam' }
+          Pop-Location
+          python tools/regression_report_preview_preflight_v329124.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao de preflight apos dart format' }
+          python tools/regression_ronda_pdf_quality_v329125.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao de Ronda apos dart format' }
+          python tools/regression_paper_attendance_v329126.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao de ficha apos dart format' }
+          python tools/regression_paper_attendance_ai_v329127.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao de IA apos dart format' }
+          python tools/patch_paper_attendance_ai_windows_version_v33047.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na versao Windows' }
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
@@ -492,8 +540,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.46-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.46-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.46-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.47-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.47-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.47-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -508,12 +556,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.46',
+            'AppVersion=3.30.47',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.46',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.47',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -530,10 +578,10 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.46.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.46.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.47.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.47.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.46-Windows-Painel-Cliente
+          name: Auditar-SST-v3.30.47-Windows-Painel-Cliente
           path: dist/windows/*
           retention-days: 30
