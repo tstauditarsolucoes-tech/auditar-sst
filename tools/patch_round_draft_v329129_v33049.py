@@ -242,24 +242,27 @@ edit("""      roundAiConclusion = storedConclusion;
       }
       _roundDraftRestoring = false;
       loading = false;""",'restore fields')
-edit("""    setState(() => photoPath = persisted);
-  }
-
-  Future<void> _improveTextWithAi() async {""","""    if (!await File(persisted).exists() ||
-        await File(persisted).length() == 0) {
-      _message('A foto não foi copiada para o armazenamento do aplicativo.');
-      return;
-    }
-    if (!mounted) return;
-    setState(() {
-      photoPath = persisted;
+# Preserve the current, already-tested camera/gallery flow; append only the
+# post-persistence draft safeguard, independent of layout changes upstream.
+photo_start=s.index('  Future<void> _pickPhoto(')
+photo_end=s.index('  Future<void> _improveTextWithAi()',photo_start)
+if photo_start<0 or photo_end<0:raise RuntimeError('DRAFT photo boundaries missing')
+photo=s[photo_start:photo_end]
+if 'persisted' not in photo:raise RuntimeError('DRAFT persisted image reference missing')
+photo_close=photo.rfind('\n  }')
+if photo_close<0:raise RuntimeError('DRAFT photo closing brace missing')
+photo=photo[:photo_close]+"""
+    if (persisted.isNotEmpty) {
+      if (!File(persisted).existsSync() || File(persisted).lengthSync() == 0) {
+        _message('A foto não foi copiada para o armazenamento do aplicativo.');
+        return;
+      }
       _draftPhotoMissing = false;
-    });
-    _scheduleRoundDraft();
-    await _flushRoundDraft();
-  }
-
-  Future<void> _improveTextWithAi() async {""",'persist photo')
+      _scheduleRoundDraft();
+      await _flushRoundDraft();
+    }
+"""+photo[photo_close:]
+s=s[:photo_start]+photo+s[photo_end:]
 edit("""        if (_isConformity) priority = 'Baixa';
       });
     }
