@@ -596,20 +596,7 @@ jobs:
           aapt="$(find "$sdk_root/build-tools" -type f -name aapt | sort -V | tail -n 1)"
           test -n "$signer" && test -n "$aapt"
           "$signer" verify --print-certs "$apk" > "$RUNNER_TEMP/auditar-apk-certificate.txt"
-          actual_cert="$(sed -nE 's/^.*certificate SHA-256 digest:[[:space:]]*([[:xdigit:]]{64}).*$/\1/p' "$RUNNER_TEMP/auditar-apk-certificate.txt" | head -n 1 | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
-          if [[ "$actual_cert" != "$expected_cert" ]]; then
-            # Certificate fingerprints are public metadata; never print the
-            # private keystore, passwords, alias or encoded key material.
-            if [[ -z "$actual_cert" ]]; then
-              echo '::error::Could not parse the APK certificate from apksigner output.'
-              sed -n '/certificate SHA-256 digest:/p' "$RUNNER_TEMP/auditar-apk-certificate.txt"
-            else
-              echo "::error::APK signer fingerprint: $actual_cert"
-              echo "::error::Pinned permanent fingerprint: $expected_cert"
-            fi
-            echo '::error::Certificate mismatch; APK withheld. Do not install this build.'
-            exit 1
-          fi
+          python3 "$GITHUB_WORKSPACE/tools/verify_android_apk_certificate_v329123.py" "$RUNNER_TEMP/auditar-apk-certificate.txt"
           apk_package="$("$aapt" dump badging "$apk" | awk -F "'" '/^package:/{print $2;exit}')"
           if [[ "$apk_package" != 'br.com.auditar.auditar_sst' ]]; then
             echo '::error::Unexpected package ID; not publishing artifact.'
