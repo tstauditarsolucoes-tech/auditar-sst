@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.123 Chave Permanente
+name: Auditar SST Android v3.29.124 Qualidade de Relatórios
 # Rebuild v3.29.113 logo recovery
 
 on:
@@ -46,6 +46,9 @@ on:
       - 'tools/patch_template_ai_timeout_v329122.py'
       - 'tools/configure_release_signing_v329122.py'
       - 'tools/patch_permanent_signer_version_v329123.py'
+      - 'tools/patch_report_preview_preflight_v329124.py'
+      - 'tools/regression_report_preview_preflight_v329124.py'
+      - 'tools/patch_report_quality_version_v329124.py'
       - 'tools/test_configure_release_signing_v329122.py'
       - 'tools/verify_android_apk_certificate_v329123.py'
       - 'tools/test_verify_android_apk_certificate_v329123.py'
@@ -309,6 +312,22 @@ jobs:
           node --check /tmp/report-email.js
           node tools/test_client_portal_v329106.cjs "$APP_DIR/painel_web_google_apps_script/ClientPortal.gs"
 
+      - name: Melhorar relatórios sem alterar sincronização, banco, GS ou IA
+        run: |
+          set -euo pipefail
+          python tools/patch_report_preview_preflight_v329124.py "$APP_DIR"
+          python tools/regression_report_preview_preflight_v329124.py "$APP_DIR"
+          python - "$APP_DIR" <<'PY'
+          import hashlib,json,sys
+          from pathlib import Path
+          root=Path(sys.argv[1])
+          old=json.loads(Path('/tmp/client_panel_protected.json').read_text())
+          changed=[name for name,digest in old.items()
+                   if hashlib.sha256((root/name).read_bytes()).hexdigest()!=digest]
+          if changed: raise SystemExit('RELATORIOS NAO PODEM ALTERAR SYNC/BANCO/IA: '+repr(changed))
+          print('REPORT_SYNC_CORE_BYTE_IDENTICAL_OK')
+          PY
+
       - name: Exportar fontes atuais de assinatura e auditoria
         run: |
           set -euo pipefail
@@ -553,7 +572,9 @@ jobs:
           python3 tools/test_verify_android_apk_certificate_v329123.py
 
       - name: Marcar primeira versao com chave permanente
-        run: python3 tools/patch_permanent_signer_version_v329123.py "$APP_DIR"
+        run: |
+          python3 tools/patch_permanent_signer_version_v329123.py "$APP_DIR"
+          python3 tools/patch_report_quality_version_v329124.py "$APP_DIR"
 
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
@@ -616,11 +637,11 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.123-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.123-Android.apk > dist/Auditar-SST-v3.29.123-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.124-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.124-Android.apk > dist/Auditar-SST-v3.29.124-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.123-Android-Chave-Permanente
+          name: Auditar-SST-v3.29.124-Android-Relatorios
           path: dist/*
           retention-days: 30
