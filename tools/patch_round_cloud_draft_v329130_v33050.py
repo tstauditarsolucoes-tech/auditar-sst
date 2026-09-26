@@ -60,18 +60,23 @@ edit("""    _roundDraftDirty = true;
 edit("    'photoPath2': secondPhotoPath,\n    'categories':",
      "    'photoPath2': secondPhotoPath,\n    'cloudPhotoRefs': Map<String, dynamic>.from(_cloudPhotoRefs),\n    'categories':",
      'carry cloud refs')
-edit("""        setState(() => _roundDraftStatus = 'Rascunho salvo neste aparelho');
-      }
-      if (showMessage) _message('Rascunho salvo neste aparelho. Continue ao reabrir a ronda.');""",
-     """        setState(() => _roundDraftStatus =
-            'Salvo no aparelho • aguardando confirmação na nuvem');
+# Work on Dart-formatted source (formatting varies between Windows and Android).
+# Always schedule cloud publish only after durable local save.
+edit("      await _enqueueRoundDraft(snapshot);",
+     """      await _enqueueRoundDraft(snapshot);
+      if (mounted && !_roundDraftDirty) {
         _cloudDraftTimer?.cancel();
         _cloudDraftTimer = Timer(const Duration(seconds: 12), () {
           unawaited(_publishCloudRoundDraft());
         });
-      }
-      if (showMessage) _message('Rascunho salvo localmente. Enviando para a nuvem...');""",
-     'cloud status after local save')
+      }""",
+     'schedule cloud only after local persistence')
+edit("'Rascunho salvo neste aparelho'",
+     "'Salvo no aparelho • aguardando confirmação na nuvem'",
+     'cloud local status')
+edit("'Rascunho salvo neste aparelho. Continue ao reabrir a ronda.'",
+     "'Rascunho salvo localmente. Enviando para a nuvem...'",
+     'cloud save message')
 methods=r'''  Future<void> _publishCloudRoundDraft({bool showMessage = false}) async {
     _cloudDraftTimer?.cancel();
     if (_cloudDraftBusy || _roundDraftRestoring || viewingHistoricalRound ||
