@@ -73,6 +73,7 @@ methods=r'''  bool get _roundDraftHasContent =>
       description.text.trim().isNotEmpty ||
       location.text.trim().isNotEmpty ||
       photoPath.isNotEmpty ||
+      secondPhotoPath.isNotEmpty ||
       selectedCategories.isNotEmpty ||
       findingType != 'Não conformidade' ||
       priority != 'Média' || recurring;
@@ -86,6 +87,7 @@ methods=r'''  bool get _roundDraftHasContent =>
     'description': description.text,
     'location': location.text,
     'photoPath': photoPath,
+    'photoPath2': secondPhotoPath,
     'categories': selectedCategories.toList(),
     'aiTextOriginal': aiTextOriginal,
     'aiTitle': aiTitle,
@@ -191,6 +193,9 @@ edit("""    if (!mounted) return;
     final path = (draft?['photoPath'] ?? '').toString().trim();
     final photoAvailable = path.isNotEmpty &&
         File(path).existsSync() && File(path).lengthSync() > 0;
+    final secondPath = (draft?['photoPath2'] ?? '').toString().trim();
+    final secondPhotoAvailable = secondPath.isNotEmpty &&
+        File(secondPath).existsSync() && File(secondPath).lengthSync() > 0;
     if (!mounted) return;
     setState(() {
       roundId = activeRound;""",'restore entry')
@@ -200,7 +205,8 @@ edit("""      roundAiConclusion = storedConclusion;
       if (_roundDraftEntryId.isEmpty) _roundDraftEntryId = uuid.v4();
       _roundDraftRestoring = true;
       _roundDraftDirty = false;
-      _draftPhotoMissing = path.isNotEmpty && !photoAvailable;
+      _draftPhotoMissing = (path.isNotEmpty && !photoAvailable) ||
+          (secondPath.isNotEmpty && !secondPhotoAvailable);
       if (draft != null) {
         final restoredSector = (draft['sectorId'] ?? '').toString();
         if (restoredSector.isEmpty ||
@@ -222,6 +228,7 @@ edit("""      roundAiConclusion = storedConclusion;
         description.text = (draft['description'] ?? '').toString();
         location.text = (draft['location'] ?? '').toString();
         photoPath = photoAvailable ? path : '';
+        secondPhotoPath = secondPhotoAvailable ? secondPath : '';
         aiTextOriginal = (draft['aiTextOriginal'] ?? '').toString();
         aiTitle = photoAvailable ? (draft['aiTitle'] ?? '').toString() : '';
         aiRisk = (draft['aiRisk'] ?? '').toString();
@@ -423,11 +430,13 @@ edit("""                          onChanged:
                           },""",'recurrence')
 edit("""              onPressed:
                   () => setState(() {
-                    photoPath = '';
+                    photoPath = secondPhotoPath;
+                    secondPhotoPath = '';
                     _clearAiState();
                   }),""","""              onPressed:
                   () => setState(() {
-                    photoPath = '';
+                    photoPath = secondPhotoPath;
+                    secondPhotoPath = '';
                     _draftPhotoMissing = false;
                     _clearAiState();
                     _scheduleRoundDraft();
