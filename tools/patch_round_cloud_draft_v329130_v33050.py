@@ -19,8 +19,21 @@ s=screen.read_text(encoding='utf-8')
 def edit(old,new,label):
  global s
  count=s.count(old)
- if count!=1:raise RuntimeError('CLOUD_DRAFT '+label+' expected once '+str(count))
- s=s.replace(old,new,1)
+ if count==1:
+  s=s.replace(old,new,1)
+  return
+ # Exact Dart formatting may wrap an expression or change indentation.
+ # Allow whitespace-only differences; refuse zero or ambiguous matches.
+ import re
+ parts=re.split(r'(\\s+)',old)
+ pattern=''.join(r'\\s*' if p.isspace() else re.escape(p)
+                 for p in parts if p)
+ matches=list(re.finditer(pattern,s,flags=re.S))
+ if len(matches)!=1:
+  raise RuntimeError('CLOUD_DRAFT '+label+
+                     ' expected once '+str(count)+' normalized '+str(len(matches)))
+ match=matches[0]
+ s=s[:match.start()]+new+s[match.end():]
 
 edit("import '../services/express_round_draft_storage.dart';",
  "import '../services/express_round_draft_storage.dart';\nimport '../services/express_round_cloud_draft_service.dart';",
