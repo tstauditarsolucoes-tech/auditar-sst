@@ -2,6 +2,7 @@ name: Auditar SST Android v3.29.122 Modelos IA PDF
 # Rebuild v3.29.113 logo recovery
 
 on:
+  workflow_dispatch:
   push:
     branches: [feature/client-panel-permissions-v329106]
     paths:
