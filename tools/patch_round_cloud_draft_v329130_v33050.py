@@ -292,24 +292,28 @@ edit("""                    ),
      """                    ),
                     const SizedBox(height: 7),""",
      'noop') if False else None
-# Insert an explicit open-from-cloud button after the draft status card,
-# using the unique anchor for the subsequent original widget.
-marker="""                          icon: const Icon(Icons.save_as_outlined),
-                        ),
-                      ),
-                    ),"""
-edit(marker,marker+"""
-                    const SizedBox(height: 6),
-                    OutlinedButton.icon(
-                      onPressed: _cloudDraftFetching || _cloudDraftBusy
-                          ? null : _openCloudRoundDrafts,
-                      icon: _cloudDraftFetching
-                          ? const SizedBox(width: 16, height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Icon(Icons.cloud_download_outlined),
-                      label: const Text('Continuar rascunho da nuvem'),
-                    ),""",
- 'cloud button')
+# Insert the cloud-resume action just before the uniquely colored draft card.
+# That anchor survives Dart formatting differences across platforms.
+import re
+card_pattern = r'(?m)^([ \t]*)Card\(\s*color:\s*_draftPhotoMissing\b'
+card_matches = list(re.finditer(card_pattern, s))
+if len(card_matches) != 1:
+ raise RuntimeError('CLOUD_DRAFT cloud status card expected once '+str(len(card_matches)))
+card_match = card_matches[0]
+indent = card_match.group(1)
+button = (
+ indent + 'OutlinedButton.icon(\n' +
+ indent + '  onPressed: _cloudDraftFetching || _cloudDraftBusy\n' +
+ indent + '      ? null : _openCloudRoundDrafts,\n' +
+ indent + '  icon: _cloudDraftFetching\n' +
+ indent + '      ? const SizedBox(width: 16, height: 16,\n' +
+ indent + '          child: CircularProgressIndicator(strokeWidth: 2))\n' +
+ indent + '      : const Icon(Icons.cloud_download_outlined),\n' +
+ indent + "  label: const Text('Continuar rascunho da nuvem'),\n" +
+ indent + '),\n' +
+ indent + 'const SizedBox(height: 6),\n'
+)
+s = s[:card_match.start()] + button + s[card_match.start():]
 edit("""                    _draftPhotoMissing = false;
                     _clearAiState();""",
      """                    _draftPhotoMissing = false;
