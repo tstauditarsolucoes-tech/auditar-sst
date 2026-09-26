@@ -14,8 +14,11 @@ e o script `tools/configure_release_signing_v329122.py`.
    - `AUDITAR_ANDROID_KEY_PASSWORD`: senha da chave.
    - `AUDITAR_ANDROID_SIGNER_SHA256`: impressão digital SHA-256 do certificado.
 4. Preserve `AUDITAR_SYNC_KEY`, que já é usado pelo aplicativo. Não substitua esse valor.
-5. Execute manualmente Actions > Auditar SST Android v3.29.122 Modelos IA PDF > Run workflow,
-   usando a branch `feature/client-panel-permissions-v329106`.
+5. Depois de cadastrar os secrets, faça um novo commit no workflow ou solicite
+   um commit de disparo na branch `feature/client-panel-permissions-v329106`.
+   Esse workflow é acionado por mudanças nos arquivos listados em `on.push.paths`.
+   Como ele ainda não existe na branch principal, não dependa de `Run workflow`
+   no GitHub para iniciá-lo manualmente.
 6. Somente distribua um APK quando a execução terminar com sucesso e
    `SAFE_ANDROID_SIGNER_VERIFIED` aparecer nos logs.
 
