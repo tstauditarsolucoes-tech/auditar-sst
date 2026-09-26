@@ -248,13 +248,16 @@ edit("""        _draftPhotoMissing = false;
 edit("""      _message('Há uma ocorrência no rascunho. Salve-a antes de finalizar.');""",
      """      _message('Há uma ocorrência no rascunho. Salve-a antes de finalizar.');""",
      'verify completion blocker') if False else None
-edit("""          'Rascunhos ficam neste aparelho. Salve o registro '
-                          'e confirme o backup das fotos antes de desinstalar '
-                          'ou limpar os dados do aplicativo.',""",
-     """          'O rascunho é enviado à nuvem. A cópia local permanece até '
-                          'a confirmação dos dados e fotos. Não desinstale '
-                          'enquanto o backup estiver pendente.',""",
-     'accurate cloud help')
+# Replace individual string literals to accommodate Dart's multi-line layout.
+edit("'Rascunhos ficam neste aparelho. Salve o registro '",
+     "'O rascunho é enviado à nuvem. A cópia local permanece até '",
+     'cloud help intro')
+edit("'e confirme o backup das fotos antes de desinstalar '",
+     "'a confirmação dos dados e fotos. Não desinstale '",
+     'cloud help confirmation')
+edit("'ou limpar os dados do aplicativo.'",
+     "'enquanto o backup estiver pendente.'",
+     'cloud help pending')
 edit("""                                  await _flushRoundDraft(showMessage: true);
                                 },""",
      """                                  await _flushRoundDraft();
