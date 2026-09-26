@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.122 Modelos IA PDF
+name: Auditar SST Android v3.29.123 Chave Permanente
 # Rebuild v3.29.113 logo recovery
 
 on:
@@ -45,6 +45,7 @@ on:
       - 'tools/patch_signature_training_v329121.py'
       - 'tools/patch_template_ai_timeout_v329122.py'
       - 'tools/configure_release_signing_v329122.py'
+      - 'tools/patch_permanent_signer_version_v329123.py'
       - 'tools/test_configure_release_signing_v329122.py'
       - 'tools/regression_template_ai_timeout_v329122.py'
       - 'feature_sources/large_signature_capture.dart'
@@ -547,6 +548,9 @@ jobs:
       - name: Testar protecao da assinatura Android
         run: python3 tools/test_configure_release_signing_v329122.py
 
+      - name: Marcar primeira versao com chave permanente
+        run: python3 tools/patch_permanent_signer_version_v329123.py "$APP_DIR"
+
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
         env:
@@ -612,11 +616,11 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.122-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.122-Android.apk > dist/Auditar-SST-v3.29.122-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.123-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.123-Android.apk > dist/Auditar-SST-v3.29.123-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.122-Android-Seguranca-Testes
+          name: Auditar-SST-v3.29.123-Android-Chave-Permanente
           path: dist/*
           retention-days: 30
