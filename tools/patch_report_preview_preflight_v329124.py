@@ -186,17 +186,8 @@ screen = screen[:start] + r'''  // The PDF generator has already attempted exist
 
 ''' + screen[end:]
 screen = once(screen,
-    """      final pdf = await PdfService.generateInspectionPdf(
-        widget.inspectionId,
-        includeActionPlan: includeActionPlan,
-      );
-      final message = await DocumentDeliveryService.send(""",
-    """      final pdf = await PdfService.generateInspectionPdf(
-        widget.inspectionId,
-        includeActionPlan: includeActionPlan,
-      );
-      if (!await _reviewBeforeDelivery()) return;
-      final message = await DocumentDeliveryService.send(""",
+    "  Future<void> _sendReportByEmail() async {\\n    if (emailBusy) return;",
+    "  Future<void> _sendReportByEmail() async {\\n    if (emailBusy) return;\\n    if (!await _reviewBeforeDelivery()) return;",
     "email preflight")
 
 start = screen.index("  Future<void> _saveLocal({required bool executive}) async {")
