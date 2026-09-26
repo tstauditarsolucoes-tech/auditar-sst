@@ -271,13 +271,22 @@ edit("'e confirme o backup das fotos antes de desinstalar '",
 edit("'ou limpar os dados do aplicativo.'",
      "'enquanto o backup estiver pendente.'",
      'cloud help pending')
-edit("""                                  await _flushRoundDraft(showMessage: true);
-                                },""",
-     """                                  await _flushRoundDraft();
-                                  await _publishCloudRoundDraft(
-                                      showMessage: true);
-                                },""",
-     'manual save immediate cloud')
+# Dart formatting may wrap a named argument on multiple lines. Locate only
+# the unique manual-save action, rather than depending on its indentation.
+import re
+manual_save_pattern = r'(?m)^([ \t]*)await\s+_flushRoundDraft\(\s*showMessage:\s*true,?\s*\);'
+manual_matches = list(re.finditer(manual_save_pattern, s))
+if len(manual_matches) != 1:
+ raise RuntimeError('CLOUD_DRAFT manual save expected once '+str(len(manual_matches)))
+manual_match = manual_matches[0]
+indent = manual_match.group(1)
+manual_new = (
+ indent + 'await _flushRoundDraft();\n' +
+ indent + 'await _publishCloudRoundDraft(\n' +
+ indent + '  showMessage: true,\n' +
+ indent + ');'
+)
+s = s[:manual_match.start()] + manual_new + s[manual_match.end():]
 edit("""                    ),
                     const SizedBox(height: 7),""",
      """                    ),
