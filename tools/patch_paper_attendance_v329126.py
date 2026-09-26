@@ -33,7 +33,7 @@ edit(dds,'  Future<void> _generateDdsPdf(SstRecord record) async {',
  """  Future<void> _paperSheet(SstRecord record) async {
     await Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => PaperAttendanceScreen(
-        companyId: record.companyId,
+        companyId: record.companyId ?? '',
         recordId: record.id,
         recordType: 'DDS',
       ),
