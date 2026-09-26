@@ -43,6 +43,7 @@ on:
       - 'tools/patch_signature_field_dds_v329121.py'
       - 'tools/patch_signature_training_v329121.py'
       - 'tools/patch_template_ai_timeout_v329122.py'
+      - 'tools/configure_release_signing_v329122.py'
       - 'tools/regression_template_ai_timeout_v329122.py'
       - 'feature_sources/large_signature_capture.dart'
       - 'feature_sources/report_recipients_v329120.dart'
@@ -541,13 +542,56 @@ jobs:
           path: report-current.zip
           retention-days: 7
 
-      - name: Compilar APK
+      - name: Compilar APK com assinatura de atualizacao verificada
         working-directory: ${{ env.APP_DIR }}
         env:
           AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+          AUDITAR_ANDROID_KEYSTORE_B64: ${{ secrets.AUDITAR_ANDROID_KEYSTORE_B64 }}
+          AUDITAR_ANDROID_STORE_PASSWORD: ${{ secrets.AUDITAR_ANDROID_STORE_PASSWORD }}
+          AUDITAR_ANDROID_KEY_ALIAS: ${{ secrets.AUDITAR_ANDROID_KEY_ALIAS }}
+          AUDITAR_ANDROID_KEY_PASSWORD: ${{ secrets.AUDITAR_ANDROID_KEY_PASSWORD }}
         run: |
-          test -n "$AUDITAR_SYNC_KEY"
+          set -euo pipefail
+          # A missing original key is a release blocker: never create another
+          # incompatible APK signed with the runner's ephemeral debug key.
+          for secret_name in AUDITAR_SYNC_KEY AUDITAR_ANDROID_KEYSTORE_B64 AUDITAR_ANDROID_STORE_PASSWORD AUDITAR_ANDROID_KEY_ALIAS AUDITAR_ANDROID_KEY_PASSWORD; do
+            if [[ -z "${!secret_name:-}" ]]; then
+              echo "::error::Missing $secret_name; cannot safely update existing Auditar installations."
+              exit 1
+            fi
+          done
+          export AUDITAR_ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/auditar-original-release.jks"
+          umask 077
+          printf '%s' "$AUDITAR_ANDROID_KEYSTORE_B64" | base64 --decode > "$AUDITAR_ANDROID_KEYSTORE_PATH"
+          trap 'rm -f "$AUDITAR_ANDROID_KEYSTORE_PATH"' EXIT
+          # SHA-256 of the v3.8.1 certificate provided by Auditar.
+          # A different key CANNOT update that installed package in place.
+          expected_cert='817325266D87A8A990A0642AC299CD70C99957FD35599EEEE47F61567BA5BF3D'
+          original_cert="$(keytool -list -v -keystore "$AUDITAR_ANDROID_KEYSTORE_PATH" -alias "$AUDITAR_ANDROID_KEY_ALIAS" -storepass:env AUDITAR_ANDROID_STORE_PASSWORD | sed -n 's/^[[:space:]]*SHA256:[[:space:]]*//p' | head -n 1 | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
+          if [[ "$original_cert" != "$expected_cert" ]]; then
+            echo '::error::Keystore certificate does not match Auditar v3.8.1; release stopped to protect installed data.'
+            exit 1
+          fi
+          python3 "$GITHUB_WORKSPACE/tools/configure_release_signing_v329122.py" .
           flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+          apk='build/app/outputs/flutter-apk/app-release.apk'
+          sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          test -n "$sdk_root"
+          signer="$(find "$sdk_root/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          aapt="$(find "$sdk_root/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          test -n "$signer" && test -n "$aapt"
+          "$signer" verify --print-certs "$apk" > "$RUNNER_TEMP/auditar-apk-certificate.txt"
+          actual_cert="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "$RUNNER_TEMP/auditar-apk-certificate.txt" | head -n 1 | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
+          if [[ "$actual_cert" != "$expected_cert" ]]; then
+            echo '::error::APK certificate differs from verified original; not publishing artifact.'
+            exit 1
+          fi
+          apk_package="$("$aapt" dump badging "$apk" | awk -F "'" '/^package:/{print $2;exit}')"
+          if [[ "$apk_package" != 'br.com.auditar.auditar_sst' ]]; then
+            echo '::error::Unexpected package ID; not publishing artifact.'
+            exit 1
+          fi
+          echo 'SAFE_ANDROID_UPDATE_VERIFIED: original certificate and package ID match.'
 
       - name: Empacotar
         run: |
