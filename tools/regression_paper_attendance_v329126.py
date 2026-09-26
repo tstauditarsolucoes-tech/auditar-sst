@@ -18,7 +18,7 @@ checks={
  'Backup pendente de confirmação','Backup confirmado',
 ]),
 'dds':(dds,["PaperAttendanceScreen(","recordType: 'DDS'","Ficha assinada em papel"]),
-'dds edit':(form,["'paper_attendance': widget.record?.payload['paper_attendance']"]),
+'dds edit':(form,["'paper_attendance':", "widget.record?.payload['paper_attendance']"]),
 'training':(train,["PaperAttendanceScreen(","recordType: 'TREINAMENTO_SESSAO'",
  "'FICHA_FISICA'","Ficha de presença assinada em papel"]),
 'pdf':(pdf,["'FICHA_FISICA'","VER FICHA ANEXADA","presença(s) em ficha física"]),
