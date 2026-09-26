@@ -16,6 +16,7 @@ checks=[
  'MediaSyncService.restoreRoundMedia(', 'Verificar e recuperar fotos salvas',
  'WidgetsBindingObserver', 'AppLifecycleState.paused',
  'File(persisted).length()', 'roundRecords.add(record)',
+ "'photoPath2': secondPhotoPath", 'secondPhotoAvailable ? secondPath',
 ]
 for token in checks:
  if token not in screen:raise SystemExit('ROUND_DRAFT missing: '+token)
