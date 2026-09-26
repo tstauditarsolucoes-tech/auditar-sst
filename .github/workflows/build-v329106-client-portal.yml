@@ -604,7 +604,9 @@ jobs:
           cd "$APP_DIR"
           dart format lib/screens/paper_attendance_screen.dart lib/screens/sst_records_screen.dart lib/screens/sst_record_form_screen.dart lib/screens/training_records_screen.dart lib/services/training_record_pdf_service.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
-          flutter test --dart-define=AUDITAR_TEST_LOOPBACK=true
+          # Full suite has already run above; rerunning its shared DB fixture
+          # in this job intermittently causes a duplicate inspection ID.
+          flutter test test/training_import_service_test.dart test/report_template_editor_model_test.dart test/express_round_pdf_pagination_test.dart
           cd "$GITHUB_WORKSPACE"
           python3 tools/regression_paper_attendance_v329126.py "$APP_DIR"
           python3 tools/patch_paper_attendance_version_v329126.py "$APP_DIR"
