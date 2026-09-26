@@ -205,17 +205,22 @@ methods=r'''  Future<void> _publishCloudRoundDraft({bool showMessage = false}) a
 edit("  Future<void> _restoreSavedRoundPhotos() async {",
  methods+"  Future<void> _restoreSavedRoundPhotos() async {",
  'cloud methods')
-edit("""      _roundDraftDirty = false;
-      _draftPhotoMissing = (path.isNotEmpty && !photoAvailable) ||""",
-     """      _roundDraftDirty = false;
-      _cloudPhotoRefs
-        ..clear()
-        ..addAll(draft?['cloudPhotoRefs'] is Map
-            ? Map<String, dynamic>.from(draft!['cloudPhotoRefs'] as Map)
-            : <String, dynamic>{});
-      _draftPhotoMissing = draft?['cloudPhotoMissing'] == true ||
-          (path.isNotEmpty && !photoAvailable) ||""",
-     'cloud restore state')
+# Dart format can wrap this assignment across multiple lines. Match the
+# restored-photo expression rather than relying on one line of layout.
+import re
+pattern = r"(?m)^([ \t]*)_draftPhotoMissing\s*=\s*(?=\(path\.isNotEmpty\s*&&\s*!photoAvailable\))"
+matches = list(re.finditer(pattern, s))
+if len(matches) != 1:
+ raise RuntimeError('CLOUD_DRAFT cloud restore state expected once '+str(len(matches)))
+indent = matches[0].group(1)
+insert = (indent + "_cloudPhotoRefs\n" +
+          indent + "  ..clear()\n" +
+          indent + "  ..addAll(draft?['cloudPhotoRefs'] is Map\n" +
+          indent + "      ? Map<String, dynamic>.from(draft!['cloudPhotoRefs'] as Map)\n" +
+          indent + "      : <String, dynamic>{});\n" +
+          indent + "_draftPhotoMissing = draft?['cloudPhotoMissing'] == true ||\n" +
+          indent + "    ")
+s = s[:matches[0].start()] + insert + s[matches[0].end():]
 edit("""      _roundDraftEntryId = (draft?['entryId'] ?? '').toString().trim();""",
      """      _roundDraftEntryId = (draft?['entryId'] ?? '').toString().trim();""",
      'verify restore entry') if False else None
