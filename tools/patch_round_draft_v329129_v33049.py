@@ -327,8 +327,7 @@ edit("""          IconButton(
           ),
           IconButton(
             tooltip: 'Histórico de rondas',""",'recovery button')
-edit("""                    _header(),
-                    const SizedBox(height: 12),""","""                    _header(),
+edit("""                    _header(),""","""                    _header(),
                     const SizedBox(height: 7),
                     Card(
                       color: _draftPhotoMissing
@@ -353,8 +352,7 @@ edit("""                    _header(),
                           icon: const Icon(Icons.save_as_outlined),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 12),""",'visible status')
+                    ),""",'visible status')
 edit("""                      onChanged: (value) => setState(
                         () => sectorId = value == null || value.isEmpty ? null : value,
                       ),""","""                      onChanged: (value) {
