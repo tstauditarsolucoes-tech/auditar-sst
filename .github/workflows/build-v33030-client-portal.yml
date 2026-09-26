@@ -1,0 +1,641 @@
+name: Auditar SST Windows v3.30.49 Rascunhos e Recuperacao de Fotos
+
+on:
+  push:
+    branches: [feature/client-panel-permissions-v329106]
+    paths:
+      - '.github/workflows/build-v33030-client-portal.yml'
+      - 'tools/patch_report_preview_preflight_v329124.py'
+      - 'tools/regression_report_preview_preflight_v329124.py'
+      - 'tools/regression_report_preview_windows_format_v33047.py'
+      - 'tools/patch_ronda_pdf_quality_v329125.py'
+      - 'tools/regression_ronda_pdf_quality_v329125.py'
+      - 'tools/patch_paper_attendance_v329126.py'
+      - 'tools/regression_paper_attendance_v329126.py'
+      - 'tools/patch_paper_attendance_ai_v329127.py'
+      - 'tools/patch_paper_ai_windows_http_compat_v33047.py'
+      - 'tools/regression_paper_attendance_ai_v329127.py'
+      - 'tools/patch_paper_attendance_ai_windows_version_v33047.py'
+      - 'tools/patch_signature_batch_v329128_v33048.py'
+      - 'feature_sources/express_round_draft_storage_v329129.dart'
+      - 'feature_sources/express_round_draft_storage_test_v329129.dart'
+      - 'tools/patch_round_draft_v329129_v33049.py'
+      - 'tools/regression_round_draft_v329129_v33049.py'
+      - 'tools/patch_round_draft_version_v329129_v33049.py'
+      - 'tools/regression_signature_batch_v329128_v33048.py'
+      - 'tools/patch_signature_batch_version_v329128_v33048.py'
+      - 'tools/patch_client_portal_v329106.py'
+      - 'tools/patch_client_accounts_ui_v329106.py'
+      - 'tools/patch_hide_home_sync_card_v329107.py'
+      - 'tools/patch_ronda_media_report_v329108.py'
+      - 'tools/patch_ronda_evidence_protection_v329108.py'
+      - 'tools/patch_ronda_media_backup_report_v329108.py'
+      - 'tools/patch_improvement_kind_v329109.py'
+      - 'tools/patch_field_ux_v329110.py'
+      - 'tools/patch_training_client_entry_v329110.py'
+      - 'tools/patch_report_policy_v329111.py'
+      - 'tools/patch_report_models_branding_v329112.py'
+      - 'tools/auditar_standard2_pdf_service_v329112.dart'
+      - 'tools/report_logo_service_v329112.dart'
+      - 'tools/report_logo_smoke_test_v329112.dart'
+      - 'tools/regression_report_models_v329112.py'
+      - 'tools/patch_company_logo_recovery_v329113.py'
+      - 'tools/patch_expand_inspection_text_v329113.py'
+      - 'tools/expand_text_button_v329113.dart'
+      - 'tools/regression_logo_text_v329113.py'
+      - 'tools/patch_remove_fine_ui_v329113.py'
+      - 'tools/patch_report_public_titles_v329114.py'
+      - 'tools/patch_document_center_v329115.py'
+      - 'feature_sources/**'
+      - 'tools/regression_report_public_titles_v329114.py'
+      - 'tools/install_report_editor_document_center_v329116.py'
+      - 'tools/patch_ronda_edit_fast_ai_v329117.py'
+      - 'tools/install_ronda_ui_v329118.py'
+      - 'tools/patch_ronda_report_v329118.py'
+      - 'tools/patch_report_optional_logo_v329118.py'
+      - 'tools/patch_ronda_pdf_2_fotos_v329118.py'
+      - 'tools/patch_ronda_pdf_second_photo_v329118.py'
+      - 'tools/patch_ronda_release_version_v329118.py'
+      - 'tools/patch_evidence_backup_v329119.py'
+      - 'tools/patch_multi_report_recipients_v329120.py'
+      - 'tools/patch_signature_field_dds_v329121.py'
+      - 'tools/patch_signature_training_v329121.py'
+      - 'tools/patch_template_ai_timeout_v329122.py'
+      - 'tools/regression_template_ai_timeout_v329122.py'
+      - 'feature_sources/large_signature_capture.dart'
+      - 'feature_sources/report_recipients_v329120.dart'
+      - 'feature_sources/report_recipients_test_v329120.dart'
+      - 'feature_sources/evidence_backup_screen.dart'
+      - 'feature_sources/evidence_backup_status_test.dart'
+      - 'build_sources/v3.29.118-ronda-reports/**'
+      - 'tools/patch_report_editor_v329115.py'
+      - 'tools/regression_report_editor_v329115.py'
+      - 'build_sources/v3.29.115-report-editor/**'
+      - 'tools/patch_document_dispatch_v329115.py'
+      - 'tools/regression_document_dispatch_v329116.py'
+      - 'build_sources/v3.29.115-document-dispatch/**'
+      - 'tools/sst_green_official.png'
+      - 'tools/sst_green_logo.b64'
+      - 'tools/patch_report_email_v329111.py'
+      - 'tools/patch_report_branding_auditar2_v329112.py'
+      - 'tools/patch_report_branding_fix_v329112.py'
+      - 'tools/sst_green_logo.b64'
+      - 'tools/regression_report_delivery_v329111.py'
+      - 'tools/patch_panel_list_ux_v329110.py'
+      - 'tools/regression_client_portal_v329106.py'
+      - 'tools/test_client_portal_v329106.cjs'
+      - 'build_sources/v3.29.108-client-portal/**'
+      - '.github/workflows/build-v33029-security-stress.yml'
+      - 'tools/patch_report_scale_security_v329105.py'
+      - 'build_sources/v3.29.105-commercial-audit/**'
+      - 'tools/patch_operational_media_v329104.py'
+      - 'tools/patch_operational_home_v329104.py'
+      - 'tools/patch_checklist_field_capture_v329104.py'
+      - 'build_sources/v3.29.104-field-speed/**'
+      - 'tools/patch_ronda_checklist_models_v329103.py'
+      - 'build_sources/v3.29.103-ronda-models/**'
+      - 'tools/patch_dual_ai_v329102.py'
+      - 'tools/regression_dual_ai_v329102.py'
+      - 'build_sources/v3.29.102-dual-ai/**'
+      - 'tools/patch_ronda_pdf_pagination_v329101.py'
+      - 'tools/patch_ronda_pdf_pagination_windows_v33025.py'
+      - 'build_sources/v3.29.101-ronda-pdf/**'
+      - 'tools/patch_windows_receive_first_v33024.py'
+      - 'tools/patch_home_immediate_sync_v32993_v33020.py'
+      - 'tools/regression_home_immediate_sync_v32993.py'
+      - 'tools/restore_fast_home_sync_windows_v33023.py'
+      - 'tools/patch_checklist_ai_stable_v32992_v33019.py'
+      - 'tools/regression_checklist_ai_stable_v32992.py'
+      - 'tools/patch_workers_manual_registration_v32994_v33021.py'
+      - 'tools/regression_workers_manual_registration_v32994.py'
+      - 'tools/patch_workers_windows_load_compat_v33021.py'
+      - 'tools/patch_worker_ai_central_endpoint_v32995_v33022.py'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 210
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar base Windows atual
+        shell: pwsh
+        run: |
+          python tools/assemble_windows_v3309_mobile_parity.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Base Windows falhou' }
+          python tools/patch_signature_handoff_v32982.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Assinatura Windows falhou' }
+          python tools/patch_pre_admission_search_v32983.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Pre-admissao Windows falhou' }
+          python tools/patch_deferred_inspection_ai_v32984.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'IA base Windows falhou' }
+          python tools/patch_checklist_reality_v32985.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Checklists revisados falharam' }
+          python tools/patch_checklist_ai_background_v32986_v33013.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'IA background base falhou' }
+
+      - name: Proteger sincronizacao e banco
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import hashlib,json
+          root=Path(r"app/Auditar_SST_v1_5_dashboard")
+          files=[
+            'lib/services/sync_coordinator.dart',
+            'lib/services/auth_service.dart',
+            'lib/services/drive_service.dart',
+            'lib/database.dart',
+          ]
+          Path('protected33021.json').write_text(
+            json.dumps({f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in files}),
+            encoding='utf-8'
+          )
+          '@ | python -
+
+      - name: Aplicar recursos atuais e correcao da IA do checklist
+        shell: pwsh
+        run: |
+          python tools/patch_checklist_ai_confirm_v32987_v33014.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Confirmacao IA falhou' }
+          python tools/patch_reports_management_v32988_v33015.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Relatorios gerenciais falharam' }
+          python tools/patch_report_template_ai_import_v32989_v33016.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Criador de modelos IA falhou' }
+          python tools/patch_management_panel_refine_v32990_v33017.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Painel Gerencial refinado falhou' }
+          python tools/patch_checklist_ai_stable_v32992_v33019.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'IA estavel do checklist falhou' }
+          python tools/patch_home_immediate_sync_v32993_v33020.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Sync imediato Home Windows falhou' }
+          python tools/patch_workers_manual_registration_v32994_v33021.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Cadastro de trabalhadores falhou' }
+          python tools/patch_workers_windows_load_compat_v33021.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Compatibilidade tela Windows falhou' }
+          python tools/patch_worker_ai_central_endpoint_v32995_v33022.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Central da IA falhou' }
+          python tools/restore_fast_home_sync_windows_v33023.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Restauracao da versao Windows falhou' }
+          python tools/patch_windows_receive_first_v33024.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Recebimento inicial Windows falhou' }
+          @'
+          from pathlib import Path
+          import hashlib,json
+          root=Path(r"app/Auditar_SST_v1_5_dashboard")
+          protected=['lib/services/device_sync_service.dart','lib/services/sync_coordinator.dart','lib/services/media_sync_service.dart','lib/services/ai_assistant_service.dart','lib/screens/express_round_screen.dart','lib/database.dart']
+          Path('pdf_win_protected.json').write_text(json.dumps({f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in protected}),encoding='utf-8')
+          '@ | python -
+          python tools/patch_ronda_pdf_pagination_windows_v33025.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Paginacao PDF Windows falhou' }
+          @'
+          from pathlib import Path
+          import hashlib,json
+          root=Path(r"app/Auditar_SST_v1_5_dashboard")
+          old=json.loads(Path('pdf_win_protected.json').read_text(encoding='utf-8'))
+          changed=[f for f,h in old.items() if hashlib.sha256((root/f).read_bytes()).hexdigest()!=h]
+          if changed: raise SystemExit('Fora do escopo PDF: '+', '.join(changed))
+          print('RONDA_PDF_WINDOWS_PATCH_ISOLADO_OK')
+          '@ | python -
+          python tools/patch_dual_ai_v329102.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'IA texto/foto Windows falhou' }
+          @'
+          from pathlib import Path
+          import hashlib,json
+          root=Path(r"app/Auditar_SST_v1_5_dashboard")
+          protected=['lib/services/sync_coordinator.dart','lib/services/ai_assistant_service.dart','lib/screens/safety_observations_screen.dart','lib/database.dart']
+          Path('ronda_model_windows_protected.json').write_text(json.dumps({f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in protected}),encoding='utf-8')
+          '@ | python -
+          python tools/patch_ronda_checklist_models_v329103.py "$env:APP_DIR" windows
+          @'
+          from pathlib import Path
+          import hashlib,json
+          root=Path(r"app/Auditar_SST_v1_5_dashboard")
+          protected=['lib/services/sync_coordinator.dart','lib/services/auth_service.dart','lib/services/drive_service.dart',
+                     'lib/services/ai_assistant_service.dart','lib/database.dart']
+          Path('operational_core_windows_protected.json').write_text(json.dumps({
+            f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in protected
+          }),encoding='utf-8')
+          '@ | python -
+          python tools/patch_operational_media_v329104.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Fila de midia Windows falhou' }
+          python tools/patch_operational_home_v329104.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Indicador de fila Windows falhou' }
+          python tools/patch_checklist_field_capture_v329104.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Captura rapida Windows falhou' }
+          python tools/patch_report_scale_security_v329105.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Seguranca/PDF Windows falhou' }
+          @'
+          from pathlib import Path
+          import hashlib,json
+          root=Path(r"app/Auditar_SST_v1_5_dashboard")
+          old=json.loads(Path('operational_core_windows_protected.json').read_text(encoding='utf-8'))
+          changed=[f for f,h in old.items() if hashlib.sha256((root/f).read_bytes()).hexdigest()!=h]
+          if changed:raise SystemExit('CORE AUTH DB OR TRANSPORT MODIFIED: '+', '.join(changed))
+          print('CORE_AUTH_DB_TRANSPORT_INTACT_OK')
+          '@ | python -
+
+          @'
+          from pathlib import Path
+          import hashlib,json
+          root=Path(r"app/Auditar_SST_v1_5_dashboard")
+          old=json.loads(Path('ronda_model_windows_protected.json').read_text(encoding='utf-8'))
+          changed=[f for f,h in old.items() if hashlib.sha256((root/f).read_bytes()).hexdigest()!=h]
+          if changed: raise SystemExit('Alteracao fora dos relatorios: '+', '.join(changed))
+          print('RONDA_MODEL_WINDOWS_PATCH_ISOLATED_OK')
+          '@ | python -
+
+
+
+      - name: Confirmar sincronizacao intacta
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import hashlib,json
+          root=Path(r"app/Auditar_SST_v1_5_dashboard")
+          old=json.loads(Path('protected33021.json').read_text(encoding='utf-8'))
+          changed=[f for f,h in old.items() if hashlib.sha256((root/f).read_bytes()).hexdigest()!=h]
+          if changed: raise SystemExit('SYNC/BANCO WINDOWS ALTERADO: '+', '.join(changed))
+          print('SYNC_WINDOWS_V33021_INTACTO_OK')
+          '@ | python -
+
+      - name: Integrar painel cliente sem alterar nucleo Windows
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import hashlib,json
+          root=Path(r"app/Auditar_SST_v1_5_dashboard")
+          # Ronda photo recovery intentionally extends only the media service.
+          # Protect structured sync, database, auth, transport and AI byte-for-byte.
+          files=['lib/database.dart','lib/services/device_sync_service.dart',
+                 'lib/services/apps_script_http.dart',
+                 'lib/services/sync_coordinator.dart','lib/services/drive_service.dart',
+                 'lib/services/ai_assistant_service.dart']
+          Path('client_panel_protected_windows.json').write_text(json.dumps({
+            f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in files}))
+          '@ | python -
+          python tools/patch_client_portal_v329106.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Integracao cliente falhou' }
+          python tools/patch_client_accounts_ui_v329106.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Cadastro clientes falhou' }
+          python tools/patch_hide_home_sync_card_v329107.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha ao ocultar o status de sincronizacao na Home' }
+          python tools/patch_ronda_media_backup_report_v329108.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Protecao das fotos e relatorio da Ronda falhou' }
+          python tools/patch_improvement_kind_v329109.py "$env:APP_DIR" windows
+          python tools/patch_field_ux_v329110.py "$env:APP_DIR" windows
+          python tools/patch_panel_list_ux_v329110.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Layout painel falhou' }
+          if ($LASTEXITCODE -ne 0) { throw 'DDS, rastreabilidade e logos falhou' }
+          python tools/patch_training_client_entry_v329110.py "$env:APP_DIR" windows
+          python tools/patch_report_policy_v329111.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Revisao PDF da empresa falhou' }
+          python tools/patch_report_email_v329111.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Envio de relatorio por e-mail falhou' }
+          if ($LASTEXITCODE -ne 0) { throw 'Assinatura e cliente por empresa falhou' }
+          if ($LASTEXITCODE -ne 0) { throw 'Classificacao de melhorias falhou' }
+          python tools/regression_client_portal_v329106.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao clientes falhou' }
+          @'
+          from pathlib import Path
+          import hashlib,json
+          root=Path(r"app/Auditar_SST_v1_5_dashboard")
+          old=json.loads(Path('client_panel_protected_windows.json').read_text())
+          diff=[f for f,h in old.items() if hashlib.sha256((root/f).read_bytes()).hexdigest()!=h]
+          if diff:raise SystemExit('SYNC ALTERADO: '+str(diff))
+          print('CLIENT_PANEL_WINDOWS_SYNC_CORE_UNCHANGED_OK')
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'Core sync modificado' }
+          Copy-Item "$env:APP_DIR/painel_web_google_apps_script/Code.gs" "$env:RUNNER_TEMP/client-code.js" -Force
+          Copy-Item "$env:APP_DIR/painel_web_google_apps_script/MultiUser.gs" "$env:RUNNER_TEMP/client-multiuser.js" -Force
+          Copy-Item "$env:APP_DIR/painel_web_google_apps_script/ClientPortal.gs" "$env:RUNNER_TEMP/client-portal.js" -Force
+          node --check "$env:RUNNER_TEMP/client-code.js"
+          if ($LASTEXITCODE -ne 0) { throw 'Code.gs invalido' }
+          node --check "$env:RUNNER_TEMP/client-multiuser.js"
+          if ($LASTEXITCODE -ne 0) { throw 'MultiUser.gs invalido' }
+          node --check "$env:RUNNER_TEMP/client-portal.js"
+          Copy-Item "$env:APP_DIR/painel_web_google_apps_script/ReportEmail.gs" "$env:RUNNER_TEMP/report-email.js" -Force
+          node --check "$env:RUNNER_TEMP/report-email.js"
+          if ($LASTEXITCODE -ne 0) { throw 'ReportEmail.gs invalido' }
+          if ($LASTEXITCODE -ne 0) { throw 'ClientPortal.gs invalido' }
+          node tools/test_client_portal_v329106.cjs "$env:APP_DIR/painel_web_google_apps_script/ClientPortal.gs"
+          if ($LASTEXITCODE -ne 0) { throw 'Teste tenant falhou' }
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar analisar testar
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ((Test-Path 'test/widget_test.dart') -and (Select-String test/widget_test.dart -Pattern 'MyApp' -Quiet)) { Remove-Item test/widget_test.dart -Force }
+          flutter pub get
+          Copy-Item '..\..\build_sources\v3.29.101-ronda-pdf\express_round_pdf_pagination_test.dart' 'test\express_round_pdf_pagination_test.dart' -Force
+          Copy-Item '..\..\build_sources\v3.29.102-dual-ai\inspection_text_ai_test.dart' 'test\inspection_text_ai_test.dart' -Force
+          Copy-Item '..\..\build_sources\v3.29.103-ronda-models\ronda_report_models_test.dart' 'test\ronda_report_models_test.dart' -Force
+          Copy-Item '..\..\build_sources\v3.29.104-field-speed\field_speed_policy_test.dart' 'test\field_speed_policy_test.dart' -Force
+          Copy-Item '..\..\build_sources\v3.29.105-commercial-audit\ronda_load_50_test.dart' 'test\ronda_load_50_test.dart' -Force
+          Copy-Item '..\..\build_sources\v3.29.105-commercial-audit\central_redirect_security_test.dart' 'test\central_redirect_security_test.dart' -Force
+          dart format lib
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Analyze Windows falhou' }
+          flutter test --dart-define=AUDITAR_TEST_LOOPBACK=true
+          if ($LASTEXITCODE -ne 0) { throw 'Testes Windows falharam' }
+
+      - name: Regressoes
+        shell: pwsh
+        run: |
+          python tools/regression_home_immediate_sync_v32993.py "$env:APP_DIR" 3.30.35+222
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao sync imediato Home falhou' }
+          python tools/regression_training_records_v32968_v3306.py "$env:APP_DIR" 3.30.35+222
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao treinamentos falhou' }
+          python tools/regression_internal_management_training_v32969_v3307.py "$env:APP_DIR" 3.30.35+222
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao gerencial falhou' }
+          python tools/regression_report_delivery_v329111.py "$env:APP_DIR" 3.30.35+222
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao relatorios falhou' }
+          python tools/regression_report_template_ai_import_v32989.py "$env:APP_DIR" 3.30.35+222
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao criador modelos IA falhou' }
+          python tools/regression_management_panel_refine_v32990.py "$env:APP_DIR" 3.30.35+222
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao Painel Gerencial falhou' }
+          python tools/regression_checklist_ai_stable_v32992.py "$env:APP_DIR" 3.30.35+222
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao IA checklist falhou' }
+          python tools/regression_workers_manual_registration_v32994.py "$env:APP_DIR" 3.30.35+222
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao trabalhadores falhou' }
+          if (-not (Select-String "$env:APP_DIR/lib/services/ai_assistant_service.dart" -Pattern 'embeddedEndpoint.isNotEmpty ? embeddedEndpoint : savedEndpoint' -SimpleMatch -Quiet)) { throw 'Central da IA nao priorizada' }
+          $service = Get-Content "$env:APP_DIR/lib/services/device_sync_service.dart" -Raw
+          if (-not ($service.Contains('final firstResponse = await _post(') -and $service.Contains('bootstrapHasMore'))) { throw 'Faltou primeiro pull Windows' }
+          python tools/regression_dual_ai_v329102.py "$env:APP_DIR" 3.30.35+222
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao IA texto/foto falhou' }
+          if (-not (Select-String "$env:APP_DIR/lib/screens/express_round_screen.dart" -Pattern 'ReportTemplateService.getAllTemplates()' -SimpleMatch -Quiet)) { throw 'Escolha de modelo na Ronda ausente' }
+          if (-not (Select-String "$env:APP_DIR/lib/screens/checklist_screen.dart" -Pattern '_fastCaptureCard' -SimpleMatch -Quiet)) { throw 'Captura rapida ausente' }
+          if (-not (Select-String "$env:APP_DIR/lib/services/device_sync_service.dart" -Pattern 'MediaSyncPolicy.shouldKick' -SimpleMatch -Quiet)) { throw 'Fila midia ausente' }
+          if (-not (Select-String "$env:APP_DIR/lib/services/express_round_pdf_service.dart" -Pattern 'maxPages: 300' -SimpleMatch -Quiet)) { throw 'Large PDF cap absent' }
+          if (-not (Select-String "$env:APP_DIR/lib/screens/express_round_screen.dart" -Pattern 'DeviceSyncService.sendPendingMediaNow()' -SimpleMatch -Quiet)) { throw 'Envio imediato de evidencias da Ronda ausente' }
+          if (-not (Select-String "$env:APP_DIR/lib/services/express_round_pdf_service.dart" -Pattern 'Evidência fotográfica indisponível' -SimpleMatch -Quiet)) { throw 'PDF sem tratamento de foto ausente' }
+          if (-not (Select-String "$env:APP_DIR/lib/services/apps_script_http.dart" -Pattern 'isAllowedCentralRedirect(endpoint, target)' -SimpleMatch -Quiet)) { throw 'Central redirect guard absent' }
+          Write-Host 'REGRESSOES_WINDOWS_V33029_OK'
+
+      - name: Verificar PDFs Windows com 30-50 fotos
+        shell: pwsh
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          python -m pip install --quiet pymupdf
+          @'
+          import fitz
+          from pathlib import Path
+          for name,count in [('ronda_30_fotografico.pdf',30),
+                             ('ronda_50_personalizado.pdf',50),
+                             ('ronda_50_tecnico.pdf',50)]:
+              p=Path('report_stress_samples')/name
+              with fitz.open(p) as d:
+                  img={i[0] for page in d for i in page.get_images(full=True)}
+                  assert d.page_count>1 and len(img)>=count,(name,d.page_count,len(img))
+                  print('WINDOWS_PDF_STRESS_OK',name,d.page_count,len(img))
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na inspeção Windows PDF' }
+
+      - name: Teste real da rota robusta de foto
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
+          New-Item -ItemType Directory -Force tool | Out-Null
+          Copy-Item '..\..\tools\live_ronda_ai_probe_v3304_windows.dart' 'tool\live_checklist_ai_probe.dart' -Force
+          dart run --define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY" tool/live_checklist_ai_probe.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Teste real da rota robusta falhou' }
+
+      - name: Integrar Padrao Auditar 2 e Performance
+        shell: pwsh
+        run: |
+          python tools/patch_report_models_branding_v329112.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na integracao dos modelos' }
+          python tools/regression_report_models_v329112.py "$env:APP_DIR" 3.30.36+223
+          if ($LASTEXITCODE -ne 0) { throw 'Falha nas regressoes dos modelos' }
+          Push-Location "$env:APP_DIR"
+          dart format lib
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na analise' }
+          flutter test test/report_logo_smoke_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha no teste de renderizacao da logo' }
+          # A primeira bateria completa de testes ja ocorreu neste job.
+          Pop-Location
+
+      - name: Recuperar logos e expandir textos em todas as vistorias
+        shell: pwsh
+        run: |
+          python tools/patch_company_logo_recovery_v329113.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na recuperacao de logos' }
+          python tools/patch_expand_inspection_text_v329113.py "$env:APP_DIR" windows
+          python tools/patch_remove_fine_ui_v329113.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha nos campos expansíveis' }
+          python tools/regression_logo_text_v329113.py "$env:APP_DIR" 3.30.37+224
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na regressao de logos' }
+          python tools/patch_report_public_titles_v329114.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha nos titulos publicos dos relatorios' }
+          python tools/regression_report_public_titles_v329114.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Nome interno do modelo detectado no PDF' }
+          if (Select-String -Path "$env:APP_DIR/lib/screens/checklist_screen.dart" -SimpleMatch 'Multa por descumprimento') { throw 'Multa ainda visivel no checklist' }
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao de logos e textos' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/screens/companies_screen.dart lib/services/media_sync_service.dart lib/widgets/expand_text_button.dart lib/screens/checklist_screen.dart lib/screens/express_round_screen.dart lib/screens/sst_record_form_screen.dart lib/screens/safety_observations_screen.dart lib/screens/improvements_screen.dart lib/services/report_template_service.dart lib/services/styled_report_pdf_service.dart lib/services/express_round_pdf_service.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na analise dos campos' }
+          Pop-Location
+
+      - name: Editor avançado e Central de Documentos com histórico por empresa
+        shell: pwsh
+        run: |
+          python tools/install_report_editor_document_center_v329116.py "$env:APP_DIR" windows
+          python tools/patch_ronda_edit_fast_ai_v329117.py "$env:APP_DIR" windows
+          python tools/install_ronda_ui_v329118.py "$env:APP_DIR" windows
+          python tools/patch_ronda_report_v329118.py "$env:APP_DIR" windows
+          python tools/patch_report_optional_logo_v329118.py "$env:APP_DIR"
+          python tools/patch_ronda_pdf_2_fotos_v329118.py "$env:APP_DIR" windows
+          python tools/patch_ronda_release_version_v329118.py "$env:APP_DIR" windows
+          python tools/patch_evidence_backup_v329119.py "$env:APP_DIR" windows
+          python tools/patch_multi_report_recipients_v329120.py "$env:APP_DIR" windows
+          python tools/patch_signature_field_dds_v329121.py "$env:APP_DIR"
+          python tools/patch_signature_training_v329121.py "$env:APP_DIR" windows
+          python tools/patch_template_ai_timeout_v329122.py "$env:APP_DIR" windows
+          python tools/regression_template_ai_timeout_v329122.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha ao integrar Central de Documentos' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/services/report_template_ai_import_service.dart lib/screens/report_template_library_screen.dart lib/widgets/large_signature_capture.dart lib/screens/signature_screen.dart lib/screens/dds_signature_capture_screen.dart lib/screens/training_records_screen.dart lib/screens/sst_record_form_screen.dart lib/services/report_recipients.dart lib/screens/companies_screen.dart lib/widgets/document_dispatch_dialog.dart lib/screens/report_screen.dart lib/screens/document_dispatch_center_screen.dart lib/services/document_delivery_service.dart lib/screens/evidence_backup_screen.dart lib/screens/company_detail_screen.dart lib/services/media_sync_service.dart lib/screens/safety_observations_screen.dart lib/services/report_template_service.dart lib/services/report_header_pdf_service.dart lib/screens/report_template_library_screen.dart lib/services/styled_report_pdf_service.dart lib/services/performance_report_pdf_service.dart lib/services/auditar_standard2_pdf_service.dart lib/services/express_round_pdf_service.dart lib/services/document_delivery_service.dart lib/services/report_email_service.dart lib/widgets/document_dispatch_dialog.dart lib/screens/document_dispatch_center_screen.dart lib/screens/home_screen.dart lib/screens/report_screen.dart lib/screens/express_round_screen.dart lib/screens/safety_observations_screen.dart lib/screens/sst_records_screen.dart lib/screens/training_records_screen.dart lib/screens/non_conformity_detail_screen.dart lib/screens/improvements_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na analise da Central de Documentos' }
+          flutter test test/report_template_editor_model_test.dart
+          flutter test test/evidence_backup_status_test.dart
+          flutter test test/report_recipients_test.dart
+          flutter test test/express_round_pdf_pagination_test.dart test/ronda_report_models_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha nos testes de PDF da vistoria' }
+          if ($LASTEXITCODE -ne 0) { throw 'Falha nos testes do editor de relatórios' }
+          Pop-Location
+
+      - name: Igualar relatorios e fichas fisicas Android e Windows sem mexer na sincronizacao
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python tools/patch_report_preview_preflight_v329124.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Pre-visualizacao e conferencia do relatorio falharam' }
+          python tools/regression_report_preview_preflight_v329124.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao da pre-visualizacao falhou' }
+          python tools/patch_ronda_pdf_quality_v329125.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Qualidade do PDF da Ronda falhou' }
+          python tools/regression_ronda_pdf_quality_v329125.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao da Ronda falhou' }
+          python tools/patch_paper_attendance_v329126.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Ficha fisica no DDS e treinamento falhou' }
+          python tools/regression_paper_attendance_v329126.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao da ficha fisica falhou' }
+          python tools/patch_paper_attendance_ai_v329127.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Leitura de nomes por IA falhou' }
+          python tools/patch_paper_ai_windows_http_compat_v33047.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Compatibilidade HTTP Windows da IA falhou' }
+          python tools/regression_paper_attendance_ai_v329127.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao de conferencia humana falhou' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/screens/paper_attendance_screen.dart lib/screens/sst_records_screen.dart lib/screens/sst_record_form_screen.dart lib/screens/training_records_screen.dart lib/services/training_record_pdf_service.dart lib/services/report_file_service.dart lib/screens/report_screen.dart lib/services/express_round_pdf_service.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Formatacao das melhorias Windows falhou' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Analise das melhorias Windows falhou' }
+          flutter test test/training_import_service_test.dart test/report_template_editor_model_test.dart test/express_round_pdf_pagination_test.dart test/ronda_report_models_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Testes de regressao Windows falharam' }
+          Pop-Location
+          python tools/regression_report_preview_windows_format_v33047.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao de preflight apos dart format' }
+          python tools/regression_ronda_pdf_quality_v329125.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao de Ronda apos dart format' }
+          python tools/regression_paper_attendance_v329126.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao de ficha apos dart format' }
+          python tools/regression_paper_attendance_ai_v329127.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao de IA apos dart format' }
+          python tools/patch_paper_attendance_ai_windows_version_v33047.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na versao Windows' }
+
+      - name: Assinatura sequencial DDS e treinamento sem alterar sincronizacao
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python tools/patch_signature_batch_v329128_v33048.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Coleta sequencial de assinaturas falhou' }
+          python tools/regression_signature_batch_v329128_v33048.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao coleta sequencial falhou' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/screens/sst_record_form_screen.dart lib/screens/training_records_screen.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Formatacao assinaturas falhou' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Analise de assinaturas falhou' }
+          flutter test test/training_import_service_test.dart test/report_template_editor_model_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Testes de treinamentos falharam' }
+          Pop-Location
+          python tools/regression_signature_batch_v329128_v33048.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao pos-formatacao falhou' }
+          python tools/patch_signature_batch_version_v329128_v33048.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Versao Windows incorreta' }
+
+      - name: Rascunho automatico Ronda e recuperacao de fotos sem modificar sincronizacao
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python tools/patch_round_draft_v329129_v33049.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha rascunhos locais' }
+          python tools/regression_round_draft_v329129_v33049.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao rascunhos' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/screens/express_round_screen.dart lib/services/express_round_draft_storage.dart test/express_round_draft_storage_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha formatação rascunhos' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha análise rascunhos' }
+          flutter test test/express_round_draft_storage_test.dart test/express_round_pdf_pagination_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha testes rascunhos' }
+          Pop-Location
+          python tools/regression_round_draft_v329129_v33049.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressão após formatação' }
+          python tools/patch_round_draft_version_v329129_v33049.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha versão Windows' }
+
+      - name: Compilar Windows release
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+        run: |
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
+          if ($LASTEXITCODE -ne 0) { throw 'Build Windows falhou' }
+
+      - name: Empacotar portatil
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/windows | Out-Null
+          New-Item -ItemType Directory -Force dist/windows/Central-Painel-Cliente | Out-Null
+          # Include every required Apps Script module in the Windows handoff.
+          # Omitting ReportEmail.gs breaks the new explicit PDF delivery route.
+          foreach ($name in @('Code.gs','MultiUser.gs','EpiSync.gs','ClientPortal.gs','ClientPortal.html','ReportEmail.gs','Index.html')) {
+            $source = "$env:APP_DIR/painel_web_google_apps_script/$name"
+            if (-not (Test-Path $source)) { throw "Arquivo da Central ausente: $name" }
+            Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
+          }
+          $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.49-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.49-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.49-PORTATIL.sha256.txt'
+
+      - name: Gerar instalador
+        shell: pwsh
+        run: |
+          $iscc='C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          if (-not (Test-Path $iscc)) { throw 'Inno Setup nao disponivel' }
+          $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
+          $output=(Resolve-Path 'dist/windows').Path
+          $issPath="$env:RUNNER_TEMP\auditar-v33021.iss"
+          $lines=@(
+            '[Setup]',
+            'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
+            'AppName=Auditar SST',
+            'AppVersion=3.30.49',
+            'AppPublisher=Auditar Solucoes',
+            'DefaultDirName={autopf}\Auditar SST',
+            'DefaultGroupName=Auditar SST',
+            "OutputDir=$output",
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.49',
+            'Compression=lzma2',
+            'SolidCompression=yes',
+            'WizardStyle=modern',
+            'ArchitecturesAllowed=x64compatible',
+            'ArchitecturesInstallIn64BitMode=x64compatible',
+            '[Files]',
+            ('Source: "' + $release + '\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs'),
+            '[Icons]',
+            'Name: "{autoprograms}\Auditar SST"; Filename: "{app}\auditar_sst.exe"',
+            'Name: "{autodesktop}\Auditar SST"; Filename: "{app}\auditar_sst.exe"',
+            '[Run]',
+            'Filename: "{app}\auditar_sst.exe"; Description: "Abrir Auditar SST"; Flags: nowait postinstall skipifsilent'
+          )
+          Set-Content $issPath $lines -Encoding UTF8
+          & $iscc $issPath
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.49.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.49.sha256.txt'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.30.49-Windows-Painel-Cliente
+          path: dist/windows/*
+          retention-days: 30

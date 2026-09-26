@@ -1,0 +1,733 @@
+name: Auditar SST Android v3.29.129 Rascunhos Fotos Vistorias
+# Rebuild v3.29.113 logo recovery
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/client-panel-permissions-v329106]
+    paths:
+      - '.github/workflows/build-v329106-client-portal.yml'
+      - 'tools/patch_client_portal_v329106.py'
+      - 'tools/patch_client_accounts_ui_v329106.py'
+      - 'tools/patch_hide_home_sync_card_v329107.py'
+      - 'tools/patch_ronda_media_report_v329108.py'
+      - 'tools/patch_ronda_evidence_protection_v329108.py'
+      - 'tools/patch_ronda_media_backup_report_v329108.py'
+      - 'tools/patch_improvement_kind_v329109.py'
+      - 'tools/patch_field_ux_v329110.py'
+      - 'tools/patch_training_client_entry_v329110.py'
+      - 'tools/patch_report_policy_v329111.py'
+      - 'tools/patch_report_models_branding_v329112.py'
+      - 'tools/auditar_standard2_pdf_service_v329112.dart'
+      - 'tools/report_logo_service_v329112.dart'
+      - 'tools/report_logo_smoke_test_v329112.dart'
+      - 'tools/regression_report_models_v329112.py'
+      - 'tools/patch_company_logo_recovery_v329113.py'
+      - 'tools/patch_expand_inspection_text_v329113.py'
+      - 'tools/expand_text_button_v329113.dart'
+      - 'tools/regression_logo_text_v329113.py'
+      - 'tools/patch_remove_fine_ui_v329113.py'
+      - 'tools/patch_report_public_titles_v329114.py'
+      - 'tools/patch_document_center_v329115.py'
+      - 'feature_sources/**'
+      - 'tools/regression_report_public_titles_v329114.py'
+      - 'tools/install_report_editor_document_center_v329116.py'
+      - 'tools/patch_ronda_edit_fast_ai_v329117.py'
+      - 'tools/install_ronda_ui_v329118.py'
+      - 'tools/patch_ronda_report_v329118.py'
+      - 'tools/patch_report_optional_logo_v329118.py'
+      - 'tools/patch_ronda_pdf_2_fotos_v329118.py'
+      - 'tools/patch_ronda_pdf_second_photo_v329118.py'
+      - 'tools/patch_ronda_release_version_v329118.py'
+      - 'tools/patch_evidence_backup_v329119.py'
+      - 'tools/patch_multi_report_recipients_v329120.py'
+      - 'tools/patch_signature_field_dds_v329121.py'
+      - 'tools/patch_signature_training_v329121.py'
+      - 'tools/patch_template_ai_timeout_v329122.py'
+      - 'tools/configure_release_signing_v329122.py'
+      - 'tools/patch_permanent_signer_version_v329123.py'
+      - 'tools/patch_report_preview_preflight_v329124.py'
+      - 'tools/regression_report_preview_preflight_v329124.py'
+      - 'tools/patch_report_quality_version_v329124.py'
+      - 'tools/patch_ronda_pdf_quality_v329125.py'
+      - 'tools/regression_ronda_pdf_quality_v329125.py'
+      - 'tools/patch_report_quality_version_v329125.py'
+      - 'feature_sources/paper_attendance_screen_v329126.dart'
+      - 'tools/patch_paper_attendance_v329126.py'
+      - 'tools/regression_paper_attendance_v329126.py'
+      - 'tools/patch_paper_attendance_version_v329126.py'
+      - 'feature_sources/paper_attendance_screen_v329127.dart'
+      - 'tools/patch_paper_attendance_ai_v329127.py'
+      - 'tools/regression_paper_attendance_ai_v329127.py'
+      - 'tools/patch_paper_attendance_ai_version_v329127.py'
+      - 'tools/patch_signature_batch_v329128_v33048.py'
+      - 'feature_sources/express_round_draft_storage_v329129.dart'
+      - 'feature_sources/express_round_draft_storage_test_v329129.dart'
+      - 'tools/patch_round_draft_v329129_v33049.py'
+      - 'tools/regression_round_draft_v329129_v33049.py'
+      - 'tools/patch_round_draft_version_v329129_v33049.py'
+      - 'tools/regression_signature_batch_v329128_v33048.py'
+      - 'tools/patch_signature_batch_version_v329128_v33048.py'
+      - 'tools/test_configure_release_signing_v329122.py'
+      - 'tools/verify_android_apk_certificate_v329123.py'
+      - 'tools/test_verify_android_apk_certificate_v329123.py'
+      - 'tools/regression_template_ai_timeout_v329122.py'
+      - 'feature_sources/large_signature_capture.dart'
+      - 'feature_sources/report_recipients_v329120.dart'
+      - 'feature_sources/report_recipients_test_v329120.dart'
+      - 'feature_sources/evidence_backup_screen.dart'
+      - 'feature_sources/evidence_backup_status_test.dart'
+      - 'build_sources/v3.29.118-ronda-reports/**'
+      - 'tools/patch_report_editor_v329115.py'
+      - 'tools/regression_report_editor_v329115.py'
+      - 'build_sources/v3.29.115-report-editor/**'
+      - 'tools/patch_document_dispatch_v329115.py'
+      - 'tools/regression_document_dispatch_v329116.py'
+      - 'build_sources/v3.29.116-document-dispatch/**'
+      - 'tools/sst_green_official.png'
+      - 'tools/sst_green_logo.b64'
+      - 'tools/patch_report_email_v329111.py'
+      - 'tools/patch_report_branding_auditar2_v329112.py'
+      - 'tools/patch_report_branding_fix_v329112.py'
+      - 'tools/sst_green_logo.b64'
+      - 'tools/regression_report_delivery_v329111.py'
+      - 'tools/patch_panel_list_ux_v329110.py'
+      - 'tools/regression_client_portal_v329106.py'
+      - 'tools/test_client_portal_v329106.cjs'
+      - 'build_sources/v3.29.113-client-portal/**'
+      - '.github/workflows/build-v329105-security-stress.yml'
+      - 'tools/patch_report_scale_security_v329105.py'
+      - 'build_sources/v3.29.105-commercial-audit/**'
+      - 'tools/patch_operational_media_v329104.py'
+      - 'tools/patch_operational_home_v329104.py'
+      - 'tools/patch_checklist_field_capture_v329104.py'
+      - 'build_sources/v3.29.104-field-speed/**'
+      - 'tools/patch_ronda_checklist_models_v329103.py'
+      - 'build_sources/v3.29.103-ronda-models/**'
+      - 'tools/patch_dual_ai_v329102.py'
+      - 'tools/regression_dual_ai_v329102.py'
+      - 'build_sources/v3.29.102-dual-ai/**'
+      - 'tools/patch_ronda_pdf_pagination_v329101.py'
+      - 'build_sources/v3.29.101-ronda-pdf/**'
+      - 'tools/patch_sync_singleflight_v329100.py'
+      - 'tools/restore_fast_home_sync_v32999.py'
+      - 'tools/patch_home_immediate_sync_v32993_v33020.py'
+      - 'tools/regression_home_immediate_sync_v32993.py'
+      - 'tools/patch_worker_flexible_pdf_v32998.py'
+      - 'tools/fix_worker_flexible_total_v32998.py'
+      - 'build_sources/v3.29.98-flexible-rh/**'
+      - 'tools/patch_checklist_ai_stable_v32992_v33019.py'
+      - 'tools/regression_checklist_ai_stable_v32992.py'
+      - 'tools/patch_workers_manual_registration_v32994_v33021.py'
+      - 'tools/regression_workers_manual_registration_v32994.py'
+      - 'tools/patch_worker_ai_central_endpoint_v32995_v33022.py'
+      - 'tools/patch_worker_pdf_local_android_v32996.py'
+      - 'tools/patch_worker_simple_pdf_local_v32997.py'
+      - 'build_sources/v3.29.97-simple-rh/**'
+
+permissions:
+  contents: read
+
+env:
+  APP_DIR: app/Auditar_SST_v1_5_dashboard
+  PUB_CACHE: /tmp/auditar-pub-v32994
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar base Android atual
+        run: |
+          set -euo pipefail
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python tools/patch_management_panel_logo_theme_v32970_v3308.py "$APP_DIR" android
+          python - <<'PY'
+          from pathlib import Path
+          import base64,lzma
+          for src,out in [
+            ('build_sources/v3.29.71-nc-quick-resolve/patch_nc_quick_resolve_v32971.py.xz.b64','/tmp/p71.py'),
+            ('build_sources/v3.29.74-training-photo/patch_training_import_photo_v32974.py.xz.b64','/tmp/p74.py'),
+            ('build_sources/v3.29.77-checklist-fine-face/patch_checklist_fine_face_v32977.py.xz.b64','/tmp/p77.py'),
+          ]:
+            Path(out).write_bytes(lzma.decompress(base64.b64decode(Path(src).read_text().strip())))
+          PY
+          python /tmp/p71.py "$APP_DIR"
+          python tools/patch_login_resilience_v32972.py "$APP_DIR"
+          python tools/patch_training_bulk_import_v32973.py "$APP_DIR"
+          python /tmp/p74.py "$APP_DIR"
+          python tools/patch_training_import_robust_v32975.py "$APP_DIR"
+          python tools/patch_cipa_management_v32976.py "$APP_DIR"
+          python /tmp/p77.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32978.py "$APP_DIR"
+          python tools/patch_refine_new_features_v32979.py "$APP_DIR"
+          python tools/patch_performance_report_v32980.py "$APP_DIR"
+          python tools/patch_cross_platform_refinement_v32981.py "$APP_DIR" android
+          python tools/patch_signature_handoff_v32982.py "$APP_DIR" android
+          python tools/patch_pre_admission_search_v32983.py "$APP_DIR" android
+          python tools/patch_deferred_inspection_ai_v32984.py "$APP_DIR" android
+          python tools/patch_checklist_reality_v32985.py "$APP_DIR" android
+          python tools/patch_checklist_ai_background_v32986_v33013.py "$APP_DIR" android
+
+      - name: Proteger sincronizacao e banco
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          files=[
+            'lib/services/sync_coordinator.dart',
+            'lib/services/auth_service.dart',
+            'lib/services/drive_service.dart',
+            'lib/database.dart',
+          ]
+          Path('/tmp/v32994_protected.json').write_text(
+            json.dumps({f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in files})
+          )
+          PY
+
+      - name: Aplicar recursos atuais e correcao da IA do checklist
+        run: |
+          set -euo pipefail
+          python tools/patch_checklist_ai_confirm_v32987_v33014.py "$APP_DIR" android
+          python tools/patch_reports_management_v32988_v33015.py "$APP_DIR" android
+          python tools/patch_report_template_ai_import_v32989_v33016.py "$APP_DIR" android
+          python tools/patch_management_panel_refine_v32990_v33017.py "$APP_DIR" android
+          python tools/patch_checklist_ai_stable_v32992_v33019.py "$APP_DIR" android
+          python tools/patch_home_immediate_sync_v32993_v33020.py "$APP_DIR" android
+          python tools/patch_workers_manual_registration_v32994_v33021.py "$APP_DIR" android
+          python tools/patch_worker_ai_central_endpoint_v32995_v33022.py "$APP_DIR" android
+          python tools/patch_worker_pdf_local_android_v32996.py "$APP_DIR" android
+          python tools/patch_worker_simple_pdf_local_v32997.py "$APP_DIR" android
+          python tools/patch_worker_flexible_pdf_v32998.py "$APP_DIR" android
+          python tools/fix_worker_flexible_total_v32998.py "$APP_DIR"
+          python tools/restore_fast_home_sync_v32999.py "$APP_DIR"
+          python tools/patch_sync_singleflight_v329100.py "$APP_DIR" android
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          protected=[
+            'lib/services/device_sync_service.dart',
+            'lib/services/sync_coordinator.dart',
+            'lib/services/media_sync_service.dart',
+            'lib/services/ai_assistant_service.dart',
+            'lib/screens/express_round_screen.dart',
+            'lib/database.dart',
+          ]
+          Path('/tmp/ronda_pdf_protected.json').write_text(json.dumps({
+            f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in protected}))
+          PY
+          python tools/patch_ronda_pdf_pagination_v329101.py "$APP_DIR"
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          protected=json.loads(Path('/tmp/ronda_pdf_protected.json').read_text())
+          changed=[f for f,h in protected.items() if hashlib.sha256((root/f).read_bytes()).hexdigest()!=h]
+          if changed: raise SystemExit('Alteracao fora do PDF: '+', '.join(changed))
+          print('RONDA_PDF_PATCH_ISOLADO_OK')
+          PY
+          python tools/patch_dual_ai_v329102.py "$APP_DIR" android
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          protected=['lib/services/sync_coordinator.dart','lib/services/ai_assistant_service.dart','lib/screens/safety_observations_screen.dart','lib/database.dart']
+          Path('/tmp/ronda_model_protected.json').write_text(json.dumps({f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in protected}))
+          PY
+          python tools/patch_ronda_checklist_models_v329103.py "$APP_DIR" android
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          protected=['lib/services/sync_coordinator.dart','lib/services/auth_service.dart','lib/services/drive_service.dart',
+                     'lib/services/ai_assistant_service.dart','lib/database.dart']
+          Path('/tmp/operational_core_protected.json').write_text(json.dumps({
+            f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in protected
+          }))
+          PY
+          python tools/patch_operational_media_v329104.py "$APP_DIR" android
+          python tools/patch_operational_home_v329104.py "$APP_DIR"
+          python tools/patch_checklist_field_capture_v329104.py "$APP_DIR"
+          python tools/patch_report_scale_security_v329105.py "$APP_DIR" android
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1]); old=json.loads(Path('/tmp/operational_core_protected.json').read_text())
+          changed=[f for f,h in old.items() if hashlib.sha256((root/f).read_bytes()).hexdigest()!=h]
+          if changed:raise SystemExit('CORE AUTH DB OR TRANSPORT MODIFIED: '+', '.join(changed))
+          print('CORE_AUTH_DB_TRANSPORT_INTACT_OK')
+          PY
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          old=json.loads(Path('/tmp/ronda_model_protected.json').read_text())
+          changed=[f for f,h in old.items() if hashlib.sha256((root/f).read_bytes()).hexdigest()!=h]
+          if changed: raise SystemExit('Alteracao fora dos relatorios: '+', '.join(changed))
+          print('RONDA_MODEL_PATCH_ISOLATED_OK')
+          PY
+
+      - name: Confirmar banco transporte e coordenador intactos
+        run: |
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1]); old=json.loads(Path('/tmp/v32994_protected.json').read_text())
+          changed=[f for f,h in old.items() if hashlib.sha256((root/f).read_bytes()).hexdigest()!=h]
+          if changed: raise SystemExit('SYNC/BANCO ALTERADO: '+', '.join(changed))
+          print('SYNC_OTHER_MODULES_INTACT_OK')
+          PY
+
+      - name: Integrar painel de clientes preservando a sincronizacao
+        run: |
+          set -euo pipefail
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,sys,json
+          root=Path(sys.argv[1])
+          # Ronda photo recovery intentionally extends only the media service.
+          # Protect structured sync, database, auth, transport and AI byte-for-byte.
+          files=['lib/database.dart','lib/services/device_sync_service.dart',
+                 'lib/services/apps_script_http.dart',
+                 'lib/services/sync_coordinator.dart','lib/services/drive_service.dart',
+                 'lib/services/ai_assistant_service.dart']
+          Path('/tmp/client_panel_protected.json').write_text(json.dumps({
+            f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in files}))
+          PY
+          python tools/patch_client_portal_v329106.py "$APP_DIR" android
+          python tools/patch_client_accounts_ui_v329106.py "$APP_DIR"
+          python tools/patch_hide_home_sync_card_v329107.py "$APP_DIR" android
+          python tools/patch_ronda_media_backup_report_v329108.py "$APP_DIR" android
+          python tools/patch_improvement_kind_v329109.py "$APP_DIR" android
+          python tools/patch_field_ux_v329110.py "$APP_DIR" android
+          python tools/patch_panel_list_ux_v329110.py "$APP_DIR" android
+          python tools/patch_training_client_entry_v329110.py "$APP_DIR" android
+          python tools/patch_report_policy_v329111.py "$APP_DIR" android
+          python tools/patch_report_email_v329111.py "$APP_DIR"
+          python tools/regression_client_portal_v329106.py "$APP_DIR"
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          old=json.loads(Path('/tmp/client_panel_protected.json').read_text())
+          diff=[f for f,h in old.items() if hashlib.sha256((root/f).read_bytes()).hexdigest()!=h]
+          if diff:raise SystemExit('NUCLEO DE SINCRONIZACAO MODIFICADO: '+str(diff))
+          print('CLIENT_PANEL_SYNC_CORE_UNCHANGED_OK')
+          PY
+          cp "$APP_DIR/painel_web_google_apps_script/Code.gs" /tmp/client-code.js
+          cp "$APP_DIR/painel_web_google_apps_script/MultiUser.gs" /tmp/client-multiuser.js
+          cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.gs" /tmp/client-portal.js
+          node --check /tmp/client-code.js
+          node --check /tmp/client-multiuser.js
+          node --check /tmp/client-portal.js
+          cp "$APP_DIR/painel_web_google_apps_script/ReportEmail.gs" /tmp/report-email.js
+          node --check /tmp/report-email.js
+          node tools/test_client_portal_v329106.cjs "$APP_DIR/painel_web_google_apps_script/ClientPortal.gs"
+
+      - name: Melhorar relatórios sem alterar sincronização, banco, GS ou IA
+        run: |
+          set -euo pipefail
+          python tools/patch_report_preview_preflight_v329124.py "$APP_DIR"
+          python tools/regression_report_preview_preflight_v329124.py "$APP_DIR"
+          python - "$APP_DIR" <<'PY'
+          import hashlib,json,sys
+          from pathlib import Path
+          root=Path(sys.argv[1])
+          old=json.loads(Path('/tmp/client_panel_protected.json').read_text())
+          changed=[name for name,digest in old.items()
+                   if hashlib.sha256((root/name).read_bytes()).hexdigest()!=digest]
+          if changed: raise SystemExit('RELATORIOS NAO PODEM ALTERAR SYNC/BANCO/IA: '+repr(changed))
+          print('REPORT_SYNC_CORE_BYTE_IDENTICAL_OK')
+          PY
+
+      - name: Exportar fontes atuais de assinatura e auditoria
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/auditar-signature-current
+          cp -R "$APP_DIR/lib" /tmp/auditar-signature-current/lib
+          cp "$APP_DIR/pubspec.yaml" /tmp/auditar-signature-current/pubspec.yaml
+          cd /tmp && zip -qr "$GITHUB_WORKSPACE/auditar-signature-source.zip" auditar-signature-current
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-v329108-Assinaturas-Auditoria-Fontes
+          path: auditar-signature-source.zip
+          retention-days: 3
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar projeto
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          if [ -f test/widget_test.dart ] && grep -q 'MyApp' test/widget_test.dart; then rm test/widget_test.dart; fi
+          flutter pub get
+          cp ../../build_sources/v3.29.97-simple-rh/worker_import_simple_columns_test.dart test/worker_import_simple_columns_test.dart
+          cp ../../build_sources/v3.29.98-flexible-rh/worker_import_flexible_test.dart test/worker_import_flexible_test.dart
+          cp ../../build_sources/v3.29.101-ronda-pdf/express_round_pdf_pagination_test.dart test/express_round_pdf_pagination_test.dart
+          cp ../../build_sources/v3.29.102-dual-ai/inspection_text_ai_test.dart test/inspection_text_ai_test.dart
+          cp ../../build_sources/v3.29.103-ronda-models/ronda_report_models_test.dart test/ronda_report_models_test.dart
+          cp ../../build_sources/v3.29.104-field-speed/field_speed_policy_test.dart test/field_speed_policy_test.dart
+          cp ../../build_sources/v3.29.105-commercial-audit/ronda_load_50_test.dart test/ronda_load_50_test.dart
+          cp ../../build_sources/v3.29.105-commercial-audit/central_redirect_security_test.dart test/central_redirect_security_test.dart
+          python ../../tools/fix_read_pdf_text_r8_v32965.py .
+          python ../../tools/fix_mlkit_text_r8_v32974.py .
+
+      - name: Formatar analisar testar
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          dart format lib
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test --dart-define=AUDITAR_TEST_LOOPBACK=true
+
+      - name: Regressoes
+        run: |
+          set -euo pipefail
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import sys
+          root=Path(sys.argv[1]); sync=(root/"lib/services/device_sync_service.dart").read_text(); home=(root/"lib/screens/home_screen.dart").read_text(); coord=(root/"lib/services/sync_coordinator.dart").read_text()
+          assert "_queuedForceSync" not in sync
+          assert "if (active != null) return active;" in sync
+          assert "_syncImmediatelyOnHomeEntry" not in home
+          assert "DeviceSyncService.events.listen" in home
+          assert "AuthService.sessionReadyEvents.listen" in coord
+          assert "Duration(seconds: 2)" in coord and "Duration(seconds: 5)" in coord
+          print("SYNC_SINGLEFLIGHT_REGRESSION_OK")
+          PY
+          python tools/regression_training_records_v32968_v3306.py "$APP_DIR" 3.29.111+253
+          python tools/regression_internal_management_training_v32969_v3307.py "$APP_DIR" 3.29.111+253
+          python tools/regression_report_delivery_v329111.py "$APP_DIR" 3.29.111+253
+          python tools/regression_report_template_ai_import_v32989.py "$APP_DIR" 3.29.111+253
+          python tools/regression_management_panel_refine_v32990.py "$APP_DIR" 3.29.111+253
+          python tools/regression_checklist_ai_stable_v32992.py "$APP_DIR" 3.29.111+253
+          python tools/regression_workers_manual_registration_v32994.py "$APP_DIR" 3.29.111+253
+          grep -q 'embeddedEndpoint.isNotEmpty ? embeddedEndpoint : savedEndpoint' "$APP_DIR/lib/services/ai_assistant_service.dart"
+          grep -q "Directory.systemTemp.createTemp('auditar_rh_')" "$APP_DIR/lib/services/worker_import_service.dart"
+          grep -q 'const Duration(seconds: 35)' "$APP_DIR/lib/services/worker_import_service.dart"
+          if grep -q 'const Duration(seconds: 90)' "$APP_DIR/lib/services/worker_import_service.dart"; then echo 'TIMEOUT_RH_ANTIGO_PRESENTE'; exit 1; fi
+          grep -q 'needsRoleReview' "$APP_DIR/lib/screens/workers_screen.dart"
+          grep -q 'parseSimpleSeparatedRhColumnsForTesting' "$APP_DIR/lib/services/worker_import_service.dart"
+          grep -q 'parseFlexibleEmployeeTextForTesting' "$APP_DIR/lib/services/worker_import_service.dart"
+          grep -q "_photographicBlocks" "$APP_DIR/lib/services/express_round_pdf_service.dart"
+          grep -q "_conclusionBlocks" "$APP_DIR/lib/services/express_round_pdf_service.dart"
+          python tools/regression_dual_ai_v329102.py "$APP_DIR" 3.29.111+253
+          grep -Fq 'ReportTemplateService.getAllTemplates()' "$APP_DIR/lib/screens/express_round_screen.dart"
+          grep -q '_photographicGridBlocks' "$APP_DIR/lib/services/express_round_pdf_service.dart"
+
+          grep -Fq 'MediaSyncPolicy.shouldKick' "$APP_DIR/lib/services/device_sync_service.dart"
+          grep -Fq '_fastCaptureCard' "$APP_DIR/lib/screens/checklist_screen.dart"
+          python - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import sys
+          root=Path(sys.argv[1])
+          body=(root/'lib/services/device_sync_service.dart').read_text()
+          assert 'if (sent == 0 && received == 0) {' not in body, 'media must not starve behind structured sync'
+          assert 'sendPendingMediaNow()' in body
+          print('MEDIA_STRUCTURED_INDEPENDENT_OK')
+          PY
+          grep -Fq 'maxPages: 300' "$APP_DIR/lib/services/express_round_pdf_service.dart"
+          grep -Fq "entityType: 'round_photo'" "$APP_DIR/lib/services/media_sync_service.dart"
+          grep -Fq 'DeviceSyncService.sendPendingMediaNow()' "$APP_DIR/lib/screens/express_round_screen.dart"
+          grep -Fq 'Evidência fotográfica indisponível' "$APP_DIR/lib/services/express_round_pdf_service.dart"
+          grep -Fq 'isAllowedCentralRedirect(endpoint, target)' "$APP_DIR/lib/services/apps_script_http.dart"
+          echo REGRESSOES_ANDROID_V329105_OK
+
+      - name: Validar 30-50 fotografias, textos e paginas PDF
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          python -m pip install --quiet pymupdf
+          python - <<'PY'
+          import fitz
+          from pathlib import Path
+          cases={'ronda_30_fotografico.pdf':30,
+                 'ronda_50_personalizado.pdf':50,
+                 'ronda_50_tecnico.pdf':50}
+          for name,count in cases.items():
+              file=Path('report_stress_samples')/name
+              with fitz.open(file) as doc:
+                  assert doc.page_count>1,(name,doc.page_count)
+                  body=' '.join(page.get_text() for page in doc)
+                  assert 'CONCLUS' in body.upper(),name
+                  imgrefs={picture[0] for page in doc for picture in page.get_images(full=True)}
+                  assert len(imgrefs)>=count,(name,count,len(imgrefs))
+                  for idx in (0, doc.page_count//2, doc.page_count-1):
+                      page=doc[idx]
+                      assert page.rect.width>500 and page.rect.height>800
+                      if name=='ronda_50_personalizado.pdf':
+                          image=page.get_pixmap(matrix=fitz.Matrix(0.7,0.7))
+                          image.save(f'report_stress_samples/{name[:-4]}_p{idx+1}.png')
+                  print('PDF_STRESS_VERIFIED',name,'pages',doc.page_count,
+                        'unique_images',len(imgrefs),'bytes',file.stat().st_size)
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v329105-PDF-Stress-Amostras
+          path: app/Auditar_SST_v1_5_dashboard/report_stress_samples/*
+          retention-days: 14
+
+      - name: Exportar fontes de diagnostico de fotos e Ronda
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/auditar-diagnostic/lib/services /tmp/auditar-diagnostic/lib/screens
+          for file in media_sync_service.dart device_sync_service.dart express_round_pdf_service.dart report_template_service.dart; do
+            cp "$APP_DIR/lib/services/$file" "/tmp/auditar-diagnostic/lib/services/$file"
+          done
+          for file in express_round_screen.dart settings_screen.dart home_screen.dart; do
+            cp "$APP_DIR/lib/screens/$file" "/tmp/auditar-diagnostic/lib/screens/$file"
+          done
+          cp "$APP_DIR/lib/database.dart" /tmp/auditar-diagnostic/lib/database.dart
+          cp "$APP_DIR/lib/models.dart" /tmp/auditar-diagnostic/lib/models.dart
+          cp "$APP_DIR/pubspec.yaml" /tmp/auditar-diagnostic/pubspec.yaml
+          cd /tmp && zip -qr "$GITHUB_WORKSPACE/auditar-diagnostic-source.zip" auditar-diagnostic
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-v329107-Fontes-Diagnostico
+          path: auditar-diagnostic-source.zip
+          retention-days: 3
+
+      - name: Integrar Padrão Auditar 2 e refinamento Performance
+        run: |
+          set -euo pipefail
+          python tools/patch_report_models_branding_v329112.py "$APP_DIR" android
+          python tools/regression_report_models_v329112.py "$APP_DIR" 3.29.112+254
+          cd "$APP_DIR"
+          dart format lib
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/report_logo_smoke_test.dart
+          # Baseline full flutter test was executed earlier. A second run in the
+          # same database workspace duplicates fixed IDs in sync_roundtrip.
+
+      - name: Recuperar logos e expandir textos em todas as vistorias
+        run: |
+          set -euo pipefail
+          python tools/patch_company_logo_recovery_v329113.py "$APP_DIR" android
+          python tools/patch_expand_inspection_text_v329113.py "$APP_DIR" android
+          python tools/patch_remove_fine_ui_v329113.py "$APP_DIR"
+          python tools/regression_logo_text_v329113.py "$APP_DIR" 3.29.113+255
+          python tools/patch_report_public_titles_v329114.py "$APP_DIR" android
+          python tools/regression_report_public_titles_v329114.py "$APP_DIR"
+          grep -Fq 'CHECKLIST_FINE_UI_REMOVED_WITH_HISTORY_PRESERVED' /dev/null || true
+          ! grep -Fq 'Multa por descumprimento' "$APP_DIR/lib/screens/checklist_screen.dart"
+          cd "$APP_DIR"
+          dart format lib/screens/companies_screen.dart lib/services/media_sync_service.dart lib/widgets/expand_text_button.dart lib/screens/checklist_screen.dart lib/screens/express_round_screen.dart lib/screens/sst_record_form_screen.dart lib/screens/safety_observations_screen.dart lib/screens/improvements_screen.dart lib/services/report_template_service.dart lib/services/styled_report_pdf_service.dart lib/services/express_round_pdf_service.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Editor avançado e Central de Documentos com histórico por empresa
+        run: |
+          set -euo pipefail
+          python tools/install_report_editor_document_center_v329116.py "$APP_DIR" android
+          python tools/patch_ronda_edit_fast_ai_v329117.py "$APP_DIR" android
+          python tools/install_ronda_ui_v329118.py "$APP_DIR" android
+          python tools/patch_ronda_report_v329118.py "$APP_DIR" android
+          python tools/patch_report_optional_logo_v329118.py "$APP_DIR"
+          python tools/patch_ronda_pdf_2_fotos_v329118.py "$APP_DIR" android
+          python tools/patch_ronda_release_version_v329118.py "$APP_DIR" android
+          python tools/patch_evidence_backup_v329119.py "$APP_DIR" android
+          python tools/patch_multi_report_recipients_v329120.py "$APP_DIR" android
+          python tools/patch_signature_field_dds_v329121.py "$APP_DIR"
+          python tools/patch_signature_training_v329121.py "$APP_DIR" android
+          python tools/patch_template_ai_timeout_v329122.py "$APP_DIR" android
+          python tools/regression_template_ai_timeout_v329122.py "$APP_DIR"
+          cd "$APP_DIR"
+          dart format lib/services/report_template_ai_import_service.dart lib/screens/report_template_library_screen.dart lib/widgets/large_signature_capture.dart lib/screens/signature_screen.dart lib/screens/dds_signature_capture_screen.dart lib/screens/training_records_screen.dart lib/screens/sst_record_form_screen.dart lib/services/report_recipients.dart lib/screens/companies_screen.dart lib/widgets/document_dispatch_dialog.dart lib/screens/report_screen.dart lib/screens/document_dispatch_center_screen.dart lib/services/document_delivery_service.dart lib/screens/evidence_backup_screen.dart lib/screens/company_detail_screen.dart lib/services/media_sync_service.dart lib/screens/safety_observations_screen.dart lib/services/report_template_service.dart lib/services/report_header_pdf_service.dart lib/screens/report_template_library_screen.dart lib/services/styled_report_pdf_service.dart lib/services/performance_report_pdf_service.dart lib/services/auditar_standard2_pdf_service.dart lib/services/express_round_pdf_service.dart lib/services/document_delivery_service.dart lib/services/report_email_service.dart lib/widgets/document_dispatch_dialog.dart lib/screens/document_dispatch_center_screen.dart lib/screens/home_screen.dart lib/screens/report_screen.dart lib/screens/express_round_screen.dart lib/screens/safety_observations_screen.dart lib/screens/sst_records_screen.dart lib/screens/training_records_screen.dart lib/screens/non_conformity_detail_screen.dart lib/screens/improvements_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/report_template_editor_model_test.dart
+          flutter test test/evidence_backup_status_test.dart
+          flutter test test/report_recipients_test.dart
+          flutter test test/express_round_pdf_pagination_test.dart test/ronda_report_models_test.dart
+
+      - name: Exportar fonte Flutter completa para iPhone
+        run: |
+          set -euo pipefail
+          tar -czf auditar-v329114-ios-source.tar.gz \
+            --exclude='./.dart_tool' --exclude='./build' \
+            --exclude='./android/.gradle' --exclude='./.git' \
+            -C "$APP_DIR" .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-v329114-iOS-Fontes-Completas
+          path: auditar-v329114-ios-source.tar.gz
+          retention-days: 14
+
+      - name: Exportar fonte atual dos relatorios
+        run: |
+          mkdir -p report-current/lib/services report-current/lib/screens report-current/assets/branding
+          for f in performance_report_pdf_service.dart styled_report_pdf_service.dart pdf_service.dart report_template_service.dart report_file_service.dart express_round_pdf_service.dart; do cp "$APP_DIR/lib/services/$f" "report-current/lib/services/$f"; done
+          for f in report_screen.dart report_templates_screen.dart; do test ! -f "$APP_DIR/lib/screens/$f" || cp "$APP_DIR/lib/screens/$f" "report-current/lib/screens/$f"; done
+          cp "$APP_DIR/pubspec.yaml" report-current/pubspec.yaml
+          cp "$APP_DIR/lib/models.dart" report-current/models.dart
+          cp "$APP_DIR/lib/database.dart" report-current/database.dart
+          cp -R "$APP_DIR/assets/branding/." report-current/assets/branding/
+          zip -qr report-current.zip report-current
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-v329114-Report-Current-Sources
+          path: report-current.zip
+          retention-days: 7
+
+      - name: Testar protecao da assinatura Android
+        run: |
+          python3 tools/test_configure_release_signing_v329122.py
+          python3 tools/test_verify_android_apk_certificate_v329123.py
+
+      - name: Marcar primeira versao com chave permanente
+        run: |
+          python3 tools/patch_permanent_signer_version_v329123.py "$APP_DIR"
+          python3 tools/patch_report_quality_version_v329124.py "$APP_DIR"
+
+      - name: Padronizar PDF da vistoria sem alterar o núcleo de sincronização
+        run: |
+          set -euo pipefail
+          python3 tools/patch_ronda_pdf_quality_v329125.py "$APP_DIR"
+          python3 tools/regression_ronda_pdf_quality_v329125.py "$APP_DIR"
+          cd "$APP_DIR"
+          dart format lib/services/express_round_pdf_service.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/express_round_pdf_pagination_test.dart test/ronda_report_models_test.dart
+          cd "$GITHUB_WORKSPACE"
+          python3 tools/regression_ronda_pdf_quality_v329125.py "$APP_DIR"
+          python3 tools/patch_report_quality_version_v329125.py "$APP_DIR"
+
+      - name: Registrar fichas fisicas de DDS e treinamentos com sync protegido
+        run: |
+          set -euo pipefail
+          python3 tools/patch_paper_attendance_v329126.py "$APP_DIR"
+          python3 tools/regression_paper_attendance_v329126.py "$APP_DIR"
+          cd "$APP_DIR"
+          dart format lib/screens/paper_attendance_screen.dart lib/screens/sst_records_screen.dart lib/screens/sst_record_form_screen.dart lib/screens/training_records_screen.dart lib/services/training_record_pdf_service.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          # Full suite has already run above; rerunning its shared DB fixture
+          # in this job intermittently causes a duplicate inspection ID.
+          flutter test test/training_import_service_test.dart test/report_template_editor_model_test.dart test/express_round_pdf_pagination_test.dart
+          cd "$GITHUB_WORKSPACE"
+          python3 tools/regression_paper_attendance_v329126.py "$APP_DIR"
+          python3 tools/patch_paper_attendance_version_v329126.py "$APP_DIR"
+
+      - name: IA nas fichas fisicas com conferencia humana e sync intocado
+        run: |
+          set -euo pipefail
+          python3 tools/patch_paper_attendance_ai_v329127.py "$APP_DIR"
+          python3 tools/regression_paper_attendance_ai_v329127.py "$APP_DIR"
+          cd "$APP_DIR"
+          dart format lib/screens/paper_attendance_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/training_import_service_test.dart test/report_template_editor_model_test.dart
+          cd "$GITHUB_WORKSPACE"
+          python3 tools/regression_paper_attendance_ai_v329127.py "$APP_DIR"
+          python3 tools/patch_paper_attendance_ai_version_v329127.py "$APP_DIR"
+
+      - name: Coleta sequencial de assinaturas para DDS e treinamento com base protegida
+        run: |
+          set -euo pipefail
+          python3 tools/patch_signature_batch_v329128_v33048.py "$APP_DIR"
+          python3 tools/regression_signature_batch_v329128_v33048.py "$APP_DIR"
+          cd "$APP_DIR"
+          dart format lib/screens/sst_record_form_screen.dart lib/screens/training_records_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/training_import_service_test.dart test/report_template_editor_model_test.dart
+          cd "$GITHUB_WORKSPACE"
+          python3 tools/regression_signature_batch_v329128_v33048.py "$APP_DIR"
+          python3 tools/patch_signature_batch_version_v329128_v33048.py "$APP_DIR" android
+
+      - name: Rascunho automatico de ronda e recuperacao de fotos com nucleo protegido
+        run: |
+          set -euo pipefail
+          python3 tools/patch_round_draft_v329129_v33049.py "$APP_DIR"
+          python3 tools/regression_round_draft_v329129_v33049.py "$APP_DIR"
+          cd "$APP_DIR"
+          dart format lib/screens/express_round_screen.dart lib/services/express_round_draft_storage.dart test/express_round_draft_storage_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/express_round_draft_storage_test.dart test/express_round_pdf_pagination_test.dart
+          cd "$GITHUB_WORKSPACE"
+          python3 tools/regression_round_draft_v329129_v33049.py "$APP_DIR"
+          python3 tools/patch_round_draft_version_v329129_v33049.py "$APP_DIR" android
+
+      - name: Compilar APK com chave permanente verificada
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
+          AUDITAR_ANDROID_KEYSTORE_B64: ${{ secrets.AUDITAR_ANDROID_KEYSTORE_B64 }}
+          AUDITAR_ANDROID_SIGNER_SHA256: ${{ secrets.AUDITAR_ANDROID_SIGNER_SHA256 }}
+          AUDITAR_ANDROID_STORE_PASSWORD: ${{ secrets.AUDITAR_ANDROID_STORE_PASSWORD }}
+          AUDITAR_ANDROID_KEY_ALIAS: ${{ secrets.AUDITAR_ANDROID_KEY_ALIAS }}
+          AUDITAR_ANDROID_KEY_PASSWORD: ${{ secrets.AUDITAR_ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          # A permanent, independently backed-up key is mandatory. Never generate a
+          # new key on a runner or fall back to an ephemeral Android debug signer.
+          # A NEW certificate cannot update old installations in place; first
+          # complete and verify the per-company records and media migration.
+          for secret_name in AUDITAR_SYNC_KEY AUDITAR_ANDROID_KEYSTORE_B64 AUDITAR_ANDROID_STORE_PASSWORD AUDITAR_ANDROID_KEY_ALIAS AUDITAR_ANDROID_KEY_PASSWORD AUDITAR_ANDROID_SIGNER_SHA256; do
+            if [[ -z "${!secret_name:-}" ]]; then
+              echo "::error::Missing $secret_name; no verified permanent signer is configured."
+              exit 1
+            fi
+          done
+          export AUDITAR_ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/auditar-permanent-release.jks"
+          umask 077
+          printf '%s' "$AUDITAR_ANDROID_KEYSTORE_B64" | base64 --decode > "$AUDITAR_ANDROID_KEYSTORE_PATH"
+          trap 'rm -f "$AUDITAR_ANDROID_KEYSTORE_PATH"' EXIT
+          # Pin the certificate of the chosen permanent key in a GitHub secret.
+          # Old and new certs are different: migration of local data is required.
+          expected_cert="$(printf '%s' "$AUDITAR_ANDROID_SIGNER_SHA256" | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
+          [[ "$expected_cert" =~ ^[0-9A-F]{64}$ ]] || { echo '::error::Invalid signer SHA-256'; exit 1; }
+          configured_cert="$(keytool -list -v -keystore "$AUDITAR_ANDROID_KEYSTORE_PATH" -alias "$AUDITAR_ANDROID_KEY_ALIAS" -storepass:env AUDITAR_ANDROID_STORE_PASSWORD | sed -n 's/^[[:space:]]*SHA256:[[:space:]]*//p' | head -n 1 | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
+          if [[ "$configured_cert" != "$expected_cert" ]]; then
+            echo '::error::Keystore certificate differs from pinned permanent certificate; release stopped.'
+            exit 1
+          fi
+          python3 "$GITHUB_WORKSPACE/tools/configure_release_signing_v329122.py" .
+          flutter build apk --release --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_SYNC_KEY"
+          apk='build/app/outputs/flutter-apk/app-release.apk'
+          sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          test -n "$sdk_root"
+          signer="$(find "$sdk_root/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          aapt="$(find "$sdk_root/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          test -n "$signer" && test -n "$aapt"
+          "$signer" verify --print-certs "$apk" > "$RUNNER_TEMP/auditar-apk-certificate.txt"
+          python3 "$GITHUB_WORKSPACE/tools/verify_android_apk_certificate_v329123.py" "$RUNNER_TEMP/auditar-apk-certificate.txt"
+          apk_package="$("$aapt" dump badging "$apk" | awk -F "'" '/^package:/{print $2;exit}')"
+          if [[ "$apk_package" != 'br.com.auditar.auditar_sst' ]]; then
+            echo '::error::Unexpected package ID; not publishing artifact.'
+            exit 1
+          fi
+          echo 'SAFE_ANDROID_SIGNER_VERIFIED: permanent certificate and package ID match. This does not imply compatibility with old signatures.'
+
+      - name: Empacotar
+        run: |
+          mkdir -p dist
+          mkdir -p dist/Central-Painel-Cliente
+          cp "$APP_DIR/painel_web_google_apps_script/Code.gs" dist/Central-Painel-Cliente/Code.gs.txt
+          cp "$APP_DIR/painel_web_google_apps_script/MultiUser.gs" dist/Central-Painel-Cliente/MultiUser.gs.txt
+          cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.gs" dist/Central-Painel-Cliente/ClientPortal.gs.txt
+          cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
+          cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
+          sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.129-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.129-Android.apk > dist/Auditar-SST-v3.29.129-Android.sha256.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.129-Android-Fichas-Fisicas-IA
+          path: dist/*
+          retention-days: 30
