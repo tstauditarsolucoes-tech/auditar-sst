@@ -47,6 +47,8 @@ on:
       - 'tools/configure_release_signing_v329122.py'
       - 'tools/patch_permanent_signer_version_v329123.py'
       - 'tools/test_configure_release_signing_v329122.py'
+      - 'tools/verify_android_apk_certificate_v329123.py'
+      - 'tools/test_verify_android_apk_certificate_v329123.py'
       - 'tools/regression_template_ai_timeout_v329122.py'
       - 'feature_sources/large_signature_capture.dart'
       - 'feature_sources/report_recipients_v329120.dart'
