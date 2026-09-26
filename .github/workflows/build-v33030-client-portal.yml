@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.49 Rascunhos e Recuperacao de Fotos
+name: Auditar SST Windows v3.30.50 Rascunhos na Nuvem
 
 on:
   push:
@@ -20,6 +20,10 @@ on:
       - 'feature_sources/express_round_draft_storage_v329129.dart'
       - 'feature_sources/express_round_draft_storage_test_v329129.dart'
       - 'tools/patch_round_draft_v329129_v33049.py'
+      - 'feature_sources/express_round_cloud_draft_v329130.dart'
+      - 'tools/patch_round_cloud_draft_v329130_v33050.py'
+      - 'tools/regression_round_cloud_draft_v329130_v33050.py'
+      - 'tools/patch_round_cloud_draft_version_v329130_v33050.py'
       - 'tools/regression_round_draft_v329129_v33049.py'
       - 'tools/patch_round_draft_version_v329129_v33049.py'
       - 'tools/regression_signature_batch_v329128_v33048.py'
@@ -572,6 +576,27 @@ jobs:
           python tools/patch_round_draft_version_v329129_v33049.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Falha versão Windows' }
 
+      - name: Rascunhos na nuvem e fotos com backup confirmado
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python tools/patch_round_cloud_draft_v329130_v33050.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha ao integrar rascunhos na nuvem' }
+          python tools/regression_round_cloud_draft_v329130_v33050.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na verificacao dos rascunhos' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/screens/express_round_screen.dart lib/services/express_round_cloud_draft_service.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha formatacao cloud draft' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha analise cloud draft' }
+          flutter test test/express_round_draft_storage_test.dart test/express_round_pdf_pagination_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha testes cloud draft' }
+          Pop-Location
+          python tools/regression_round_cloud_draft_v329130_v33050.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao cloud draft' }
+          python tools/patch_round_cloud_draft_version_v329130_v33050.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha versao Windows cloud draft' }
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
@@ -594,8 +619,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.49-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.49-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.49-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.50-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.50-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.50-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -610,12 +635,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.49',
+            'AppVersion=3.30.50',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.49',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.50',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -632,10 +657,10 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.49.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.49.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.50.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.50.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.49-Windows-Painel-Cliente
+          name: Auditar-SST-v3.30.50-Windows-Painel-Cliente
           path: dist/windows/*
           retention-days: 30
