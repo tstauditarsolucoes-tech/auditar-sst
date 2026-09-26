@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.128 Assinatura Sequencial DDS Treinamentos
+name: Auditar SST Android v3.29.129 Rascunhos Fotos Vistorias
 # Rebuild v3.29.113 logo recovery
 
 on:
@@ -61,6 +61,11 @@ on:
       - 'tools/regression_paper_attendance_ai_v329127.py'
       - 'tools/patch_paper_attendance_ai_version_v329127.py'
       - 'tools/patch_signature_batch_v329128_v33048.py'
+      - 'feature_sources/express_round_draft_storage_v329129.dart'
+      - 'feature_sources/express_round_draft_storage_test_v329129.dart'
+      - 'tools/patch_round_draft_v329129_v33049.py'
+      - 'tools/regression_round_draft_v329129_v33049.py'
+      - 'tools/patch_round_draft_version_v329129_v33049.py'
       - 'tools/regression_signature_batch_v329128_v33048.py'
       - 'tools/patch_signature_batch_version_v329128_v33048.py'
       - 'tools/test_configure_release_signing_v329122.py'
@@ -644,6 +649,19 @@ jobs:
           python3 tools/regression_signature_batch_v329128_v33048.py "$APP_DIR"
           python3 tools/patch_signature_batch_version_v329128_v33048.py "$APP_DIR" android
 
+      - name: Rascunho automatico de ronda e recuperacao de fotos com nucleo protegido
+        run: |
+          set -euo pipefail
+          python3 tools/patch_round_draft_v329129_v33049.py "$APP_DIR"
+          python3 tools/regression_round_draft_v329129_v33049.py "$APP_DIR"
+          cd "$APP_DIR"
+          dart format lib/screens/express_round_screen.dart lib/services/express_round_draft_storage.dart test/express_round_draft_storage_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/express_round_draft_storage_test.dart test/express_round_pdf_pagination_test.dart
+          cd "$GITHUB_WORKSPACE"
+          python3 tools/regression_round_draft_v329129_v33049.py "$APP_DIR"
+          python3 tools/patch_round_draft_version_v329129_v33049.py "$APP_DIR" android
+
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
         env:
@@ -705,11 +723,11 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.128-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.128-Android.apk > dist/Auditar-SST-v3.29.128-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.129-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.129-Android.apk > dist/Auditar-SST-v3.29.129-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.128-Android-Fichas-Fisicas-IA
+          name: Auditar-SST-v3.29.129-Android-Fichas-Fisicas-IA
           path: dist/*
           retention-days: 30
