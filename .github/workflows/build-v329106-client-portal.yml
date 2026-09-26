@@ -546,34 +546,38 @@ jobs:
       - name: Testar protecao da assinatura Android
         run: python3 tools/test_configure_release_signing_v329122.py
 
-      - name: Compilar APK com assinatura de atualizacao verificada
+      - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
         env:
           AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
           AUDITAR_ANDROID_KEYSTORE_B64: ${{ secrets.AUDITAR_ANDROID_KEYSTORE_B64 }}
+          AUDITAR_ANDROID_SIGNER_SHA256: ${{ secrets.AUDITAR_ANDROID_SIGNER_SHA256 }}
           AUDITAR_ANDROID_STORE_PASSWORD: ${{ secrets.AUDITAR_ANDROID_STORE_PASSWORD }}
           AUDITAR_ANDROID_KEY_ALIAS: ${{ secrets.AUDITAR_ANDROID_KEY_ALIAS }}
           AUDITAR_ANDROID_KEY_PASSWORD: ${{ secrets.AUDITAR_ANDROID_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          # A missing original key is a release blocker: never create another
-          # incompatible APK signed with the runner's ephemeral debug key.
-          for secret_name in AUDITAR_SYNC_KEY AUDITAR_ANDROID_KEYSTORE_B64 AUDITAR_ANDROID_STORE_PASSWORD AUDITAR_ANDROID_KEY_ALIAS AUDITAR_ANDROID_KEY_PASSWORD; do
+          # A permanent, independently backed-up key is mandatory. Never generate a
+          # new key on a runner or fall back to an ephemeral Android debug signer.
+          # A NEW certificate cannot update old installations in place; first
+          # complete and verify the per-company records and media migration.
+          for secret_name in AUDITAR_SYNC_KEY AUDITAR_ANDROID_KEYSTORE_B64 AUDITAR_ANDROID_STORE_PASSWORD AUDITAR_ANDROID_KEY_ALIAS AUDITAR_ANDROID_KEY_PASSWORD AUDITAR_ANDROID_SIGNER_SHA256; do
             if [[ -z "${!secret_name:-}" ]]; then
-              echo "::error::Missing $secret_name; cannot safely update existing Auditar installations."
+              echo "::error::Missing $secret_name; no verified permanent signer is configured."
               exit 1
             fi
           done
-          export AUDITAR_ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/auditar-original-release.jks"
+          export AUDITAR_ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/auditar-permanent-release.jks"
           umask 077
           printf '%s' "$AUDITAR_ANDROID_KEYSTORE_B64" | base64 --decode > "$AUDITAR_ANDROID_KEYSTORE_PATH"
           trap 'rm -f "$AUDITAR_ANDROID_KEYSTORE_PATH"' EXIT
-          # SHA-256 of the v3.8.1 certificate provided by Auditar.
-          # A different key CANNOT update that installed package in place.
-          expected_cert='817325266D87A8A990A0642AC299CD70C99957FD35599EEEE47F61567BA5BF3D'
-          original_cert="$(keytool -list -v -keystore "$AUDITAR_ANDROID_KEYSTORE_PATH" -alias "$AUDITAR_ANDROID_KEY_ALIAS" -storepass:env AUDITAR_ANDROID_STORE_PASSWORD | sed -n 's/^[[:space:]]*SHA256:[[:space:]]*//p' | head -n 1 | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
-          if [[ "$original_cert" != "$expected_cert" ]]; then
-            echo '::error::Keystore certificate does not match Auditar v3.8.1; release stopped to protect installed data.'
+          # Pin the certificate of the chosen permanent key in a GitHub secret.
+          # Old and new certs are different: migration of local data is required.
+          expected_cert="$(printf '%s' "$AUDITAR_ANDROID_SIGNER_SHA256" | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
+          [[ "$expected_cert" =~ ^[0-9A-F]{64}$ ]] || { echo '::error::Invalid signer SHA-256'; exit 1; }
+          configured_cert="$(keytool -list -v -keystore "$AUDITAR_ANDROID_KEYSTORE_PATH" -alias "$AUDITAR_ANDROID_KEY_ALIAS" -storepass:env AUDITAR_ANDROID_STORE_PASSWORD | sed -n 's/^[[:space:]]*SHA256:[[:space:]]*//p' | head -n 1 | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
+          if [[ "$configured_cert" != "$expected_cert" ]]; then
+            echo '::error::Keystore certificate differs from pinned permanent certificate; release stopped.'
             exit 1
           fi
           python3 "$GITHUB_WORKSPACE/tools/configure_release_signing_v329122.py" .
@@ -595,7 +599,7 @@ jobs:
             echo '::error::Unexpected package ID; not publishing artifact.'
             exit 1
           fi
-          echo 'SAFE_ANDROID_UPDATE_VERIFIED: original certificate and package ID match.'
+          echo 'SAFE_ANDROID_SIGNER_VERIFIED: permanent certificate and package ID match. This does not imply compatibility with old signatures.'
 
       - name: Empacotar
         run: |
