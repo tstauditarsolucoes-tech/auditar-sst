@@ -23,7 +23,7 @@ for token in (
  "Adicionar outro acesso",
  "Cadastrar primeiro acesso",
  "Acessos da empresa ao Painel Gerencial",
- "cada pessoa usa seu próprio e-mail e senha".replace('cada','Cada'),
+ "Cada pessoa usa seu próprio e-mail e senha",
  "Gerência, diretoria, RH",
  "Este e-mail já possui acesso a esta empresa.",
  "E-mail de acesso *","Senha inicial (mín. 8 caracteres)",
