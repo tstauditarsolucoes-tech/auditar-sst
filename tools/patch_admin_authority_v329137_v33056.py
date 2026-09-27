@@ -58,6 +58,7 @@ s = replace(s, "  List<_ModuleData> get _modules => [\n",
         if (AuthService.isAdmin)
           _ModuleData(
             title: 'Administração Auditar',
+            tutorialId: 'admin',
             subtitle: 'Contas, clientes e gestão administrativa',
             icon: Icons.admin_panel_settings_rounded,
             color: AuditarBrand.greenDark,
