@@ -30,7 +30,7 @@ for forbidden in (
         raise SystemExit('CLIENT_EXECUTIVE read-only helper writes data: '+forbidden)
 for marker in (
     'executive-compact-v329137',
-    "function renderKanban(actions)",
+    "function renderKanban(actions,company)",
     "function renderTrainingAndDds(company)",
     "Atualização automática",
     "setInterval(()=>",
