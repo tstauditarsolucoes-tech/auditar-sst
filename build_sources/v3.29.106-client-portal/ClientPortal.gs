@@ -399,6 +399,26 @@ function clientPortalEvidenceQueue(token, companyId) {
   })};
 }
 
+/** Cliente acompanha somente as correções enviadas por sua própria conta. */
+function clientPortalMyEvidence(token, companyId) {
+  const user=clientPortalAuthorizedUser_(token),cid=String(companyId||'').trim();
+  if(!user)return {ok:false,code:'SESSION_INVALID',message:'Entre novamente.'};
+  if(!cid||!userCanAccessCompany_(user,cid)||
+     (user.role==='cliente'&&!clientPortalPermissions_(user.clientPermissions).enviarEvidencia)){
+    return {ok:false,code:'ACCESS_DENIED',message:'Acesso negado.'};
+  }
+  const sheet=clientPortalEvidenceSheet_();
+  const rows=sheet.getLastRow()<2?[]:sheet.getRange(2,1,sheet.getLastRow()-1,10).getValues();
+  const selected=rows.filter(function(row){
+    return String(row[1])===cid&&(user.role!=='cliente'||String(row[3])===user.id);
+  }).slice(-50).reverse().map(function(row){
+    return {id:String(row[0]),ncId:String(row[2]),date:String(row[4]),
+      note:String(row[5]).slice(0,1000),hasPhoto:!!row[6],status:String(row[7]),
+      reviewedAt:String(row[8]||'')};
+  });
+  return {ok:true,evidences:selected};
+}
+
 function clientPortalReviewEvidence(token, evidenceId, decision) {
   const user = clientPortalAuthorizedUser_(token);
   if (!user || user.role === 'cliente') {
@@ -431,7 +451,8 @@ function clientPortalReviewEvidence(token, evidenceId, decision) {
 /** Fotografia privada, acessível somente ao técnico autorizado na mesma empresa. */
 function clientPortalEvidencePhoto(token, evidenceId) {
   const user = clientPortalAuthorizedUser_(token);
-  if (!user || user.role === 'cliente') {
+  if (!user) return {ok:false,code:'SESSION_INVALID',message:'Entre novamente.'};
+  if (user.role==='cliente'&&!clientPortalPermissions_(user.clientPermissions).enviarEvidencia) {
     return {ok:false,code:'ACCESS_DENIED',message:'Acesso negado.'};
   }
   const sheet = clientPortalEvidenceSheet_();
@@ -441,7 +462,8 @@ function clientPortalEvidencePhoto(token, evidenceId) {
     const row=rows[i];
     if (String(row[0]) !== String(evidenceId || '')) continue;
     const companyId = String(row[1] || '');
-    if (!companyId || !userCanAccessCompany_(user,companyId)) {
+    if (!companyId || !userCanAccessCompany_(user,companyId) ||
+        (user.role==='cliente'&&String(row[3])!==user.id)) {
       return {ok:false,code:'ACCESS_DENIED',message:'Acesso negado.'};
     }
     const fileId = String(row[6] || '');
