@@ -111,6 +111,104 @@ button.secondary{color:#234365;background:#e8eff7}button.warn{background:#b25d21
  #printPlan .print-item p{margin:4pt 0}
  #printPlan small{color:#4c5560}
 }
+
+/* auditar-dashboard-identity-v329141 | Somente visual, sem alterar dados ou acesso. */
+:root{--auditar-navy:#112d47;--auditar-blue:#1b3e64;--auditar-green:#098d43}
+body:has(#dashboard:not(.hidden)){background:linear-gradient(180deg,#eaf1f8 0,#f4f7fa 360px,#f5f7fb 100%);color:#19344c}
+body:has(#dashboard:not(.hidden)) .wrap{max-width:1320px;padding:25px 20px 45px}
+.auditar-app-header{background:linear-gradient(105deg,#102a42,#194565 72%,#145b60);border-bottom:4px solid var(--auditar-green);box-shadow:0 4px 16px #132f4921;padding:13px max(20px,calc((100vw - 1280px)/2));gap:22px}
+.auditar-brand-shell{display:flex;align-items:center;gap:15px;min-width:0}
+.auditar-brand-frame{background:#fff;display:flex;align-items:center;justify-content:center;width:172px;height:62px;border-radius:13px;padding:6px 11px;flex:none;box-shadow:0 3px 12px #0b223123}
+.auditar-official-logo{display:block;width:100%;height:100%;object-fit:contain}
+.auditar-header-caption{display:flex;flex-direction:column;gap:4px}
+.auditar-header-caption b{font-size:16px;letter-spacing:.025em}
+.auditar-header-caption small{font-size:11px;color:#cfe4e9;opacity:1}
+.auditar-header-actions{display:flex;align-items:center;gap:14px}
+.auditar-header-trust{font-size:11px;color:#d3ede8;border:1px solid #ffffff30;padding:7px 11px;border-radius:999px}
+.auditar-app-header #logout{background:#ffffffed;color:#143a4b;font-size:12px;padding:9px 15px}
+.auditar-portal-footer{max-width:1280px;margin:0 auto;padding:8px 20px 30px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:11px;color:#64798b}
+.auditar-portal-footer strong{color:var(--auditar-green)}
+body:has(#login:not(.hidden)) .auditar-portal-footer{display:none}
+#dashboard>.panel.row{background:transparent;border:0;box-shadow:none;padding:4px 1px 12px;margin-bottom:0}
+#dashboard>.panel.row h1{font-size:25px;letter-spacing:-.035em;color:#17354d}
+#dashboard #welcome{font-size:12px}
+#dashboard #refresh{padding:9px 13px;font-size:11px;border:1px solid #d8e3ec;background:#fff}
+#dashboard #status{min-height:17px;margin:0 0 14px;font-size:11px}
+.portal-company{border:1px solid #dde7ef;box-shadow:0 20px 44px #1737520c;border-radius:21px;padding:23px}
+.portal-company .exec-head{background:linear-gradient(105deg,#11314e,#20516a 75%,#176a60);padding:21px 24px;border-radius:15px;align-items:center;margin:0 0 15px;position:relative;overflow:hidden}
+.portal-company .exec-head:after{content:"";position:absolute;right:-60px;bottom:-115px;width:250px;height:250px;border:1px solid #ffffff26;border-radius:50%;pointer-events:none}
+.portal-company .exec-company{font-size:25px;color:#fff;overflow-wrap:anywhere;margin:3px 0 0}
+.portal-company .exec-kicker{color:#9cdec0}
+.portal-company .update-chip{background:#ffffff19;color:#f1fff9;border-color:#ffffff3d;max-width:100%;font-size:10.5px}
+.portal-company .auto-dot{background:#64e7a7;box-shadow:0 0 0 3px #62daa820}
+.portal-company .exec-metrics{gap:12px;margin:13px 0}
+.portal-company .exec-card{min-height:116px;padding:18px 18px 14px;background:#fff;border:1px solid #e1e8f0;border-radius:15px;box-shadow:0 4px 14px #142c4507;border-top:3px solid #8baec3}
+.portal-company .exec-card.alert{border-top-color:#c55a61;background:linear-gradient(150deg,#fff,#fff9f9)}
+.portal-company .exec-card.warn{border-top-color:#d0a84e;background:linear-gradient(150deg,#fff,#fffcf6)}
+.portal-company .exec-card.good{border-top-color:#1c9b67;background:linear-gradient(150deg,#fff,#f6fdf9)}
+.portal-company .exec-card span{display:block;font-size:12px;color:#4d647a;font-weight:680}
+.portal-company .exec-card strong{font-size:33px;letter-spacing:-.045em;margin:13px 0 0;font-variant-numeric:tabular-nums}
+.metric-hint{display:block;margin-top:5px;font-size:9.5px;color:#70879a}
+.portal-company .attention-strip{border:1px solid #f0e0b4;background:linear-gradient(115deg,#fffdf6,#fffbef);padding:14px 18px;margin:17px 0}
+.portal-company .attention-head b{font-size:13px;color:#354459}
+.portal-company .attention-item{font-size:11px}
+.portal-company .section-grid{grid-template-columns:minmax(0,1.35fr) minmax(300px,.85fr);gap:15px;margin-top:15px;align-items:start}
+.portal-company .compact-box{min-width:0;border:1px solid #e0e9f1;box-shadow:0 3px 13px #193d5507;border-radius:16px;padding:19px}
+.section-eyebrow{font-size:10px;letter-spacing:.13em;font-weight:850;color:#108854;margin-bottom:4px}
+.portal-company .compact-box h3{font-size:16px;color:#193c55;letter-spacing:-.02em;margin:0 0 15px}
+.portal-company .kanban{grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible;gap:11px}
+.portal-company .kanban-col{min-width:0;min-height:123px;background:#f7f9fc;border:1px solid #e3ebf2;border-radius:12px;padding:13px}
+.portal-company .kanban-col:nth-child(1){border-top:3px solid #a9bccf}
+.portal-company .kanban-col:nth-child(2){border-top:3px solid #639ab7}
+.portal-company .kanban-col:nth-child(3){border-top:3px solid #d5b15d}
+.portal-company .kanban-col:nth-child(4){border-top:3px solid #54ab86}
+.portal-company .kanban-title{font-size:10px;letter-spacing:.045em;line-height:1.4}
+.portal-company .kanban-title span:last-child{background:#fff;border:1px solid #e1e8ef;min-width:25px;text-align:center;border-radius:999px;padding:2px 7px;font-size:11px}
+.kanban-empty{padding:10px 2px;font-size:11px;color:#7c8fa0;line-height:1.5}
+.portal-company .k-card{border-radius:9px;box-shadow:none}
+.portal-company .training-grid{gap:9px}
+.portal-company .training-stat{min-height:77px;padding:12px;background:#f8fafc}
+.portal-company .training-stat strong{font-size:25px;line-height:1.15}
+.portal-company .training-stat span{font-size:11px}
+.portal-company .training-stat:nth-child(2) strong,.portal-company .training-stat:nth-child(4) strong{color:#ad4d47}
+.portal-company .pill-row{border-top:1px solid #edf1f5;padding-top:12px}
+.portal-company .mini-pill{font-size:10.5px;background:#edf6f7}
+.portal-company .drill,.portal-company .activity-toggle{border:1px solid #e2e9f1;background:#fff;border-radius:13px;margin-top:11px;padding:0;overflow:hidden}
+.portal-company .drill summary,.portal-company .activity-toggle summary{display:block;padding:15px 17px;font-size:12.5px;font-weight:800;list-style:none;color:#29455f;cursor:pointer}
+.portal-company .drill summary:after{content:"+";font-size:17px;line-height:1;color:#1a8666}
+.portal-company .drill[open] summary:after{content:"−";transform:none}
+.portal-company .activity-toggle summary::after{content:"+";float:right;color:#1a8666;font-size:17px}
+.portal-company .activity-toggle[open] summary::after{content:"−"}
+.portal-company .drill> :not(summary),.portal-company .activity-toggle> :not(summary){margin-left:17px;margin-right:17px}
+.portal-company .drill>.improvement-card{margin-top:11px;margin-bottom:11px}
+.portal-company .drill>.manager-tools{margin-top:0;padding-top:11px}
+.portal-company .activity-toggle>.record-line{padding:12px 0}
+.portal-company .improvement-card{border-left:3px solid #1b9671}
+.portal-company .manager-btn{border-radius:8px}
+.portal-company .worker-table{margin-bottom:12px}
+.portal-company .record-line b{color:#27465f}
+@media(max-width:900px){.portal-company .section-grid{grid-template-columns:1fr}.auditar-header-trust{display:none}}
+@media(max-width:640px){
+ body:has(#dashboard:not(.hidden)) .wrap{padding:13px 10px 25px}
+ .auditar-app-header{padding:10px 13px}
+ .auditar-brand-frame{width:123px;height:48px;padding:5px 6px}
+ .auditar-header-caption b{font-size:13px}
+ .auditar-header-caption small{font-size:9px}
+ .auditar-app-header #logout{font-size:11px;padding:8px}
+ .portal-company{padding:12px;border-radius:16px}
+ .portal-company .exec-head{padding:17px 15px}
+ .portal-company .exec-company{font-size:20px}
+ .portal-company .update-chip{font-size:9.5px;line-height:1.4}
+ .portal-company .exec-metrics{gap:8px}
+ .portal-company .exec-card{padding:12px;min-height:103px}
+ .portal-company .exec-card strong{font-size:27px}
+ .portal-company .compact-box{padding:13px}
+ .portal-company .kanban{grid-template-columns:1fr}
+ .portal-company .kanban-col{min-height:0}
+ .auditar-portal-footer{padding:7px 15px 24px}
+}
+@media print{.auditar-app-header,.auditar-portal-footer{display:none!important}}
+
 </style>
 </head>
 <body>
