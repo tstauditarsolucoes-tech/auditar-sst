@@ -2,6 +2,11 @@
 """Static guardrails for the Auditar administrator hub on both platforms."""
 from pathlib import Path
 import sys
+import re
+
+
+def normalized(text):
+    return re.sub(r'\s+', '', text)
 
 root = Path(sys.argv[1])
 service = (root / 'lib/services/admin_access_policy.dart').read_text(encoding='utf-8')
@@ -17,7 +22,7 @@ for value in (
     "static bool canAccessCompany",
     "if (isAdmin(user)) return true;",
 ):
-    if value not in service:
+    if normalized(value) not in normalized(service):
         raise SystemExit('Admin policy missing: ' + value)
 for value in (
     "AuditarAdminAccess.isAdmin(AuthService.currentUser)",
@@ -27,10 +32,10 @@ for value in (
     'const UsersScreen()',
     'const CompaniesScreen()',
 ):
-    if value not in center:
+    if normalized(value) not in normalized(center):
         raise SystemExit('Admin center missing: ' + value)
-if 'if (AuthService.isAdmin)' not in home or \
-        'page: () => const AuditarAdminCenterScreen()' not in home:
+if normalized('if (AuthService.isAdmin)') not in normalized(home) or \
+        normalized('page: () => const AuditarAdminCenterScreen()') not in normalized(home):
     raise SystemExit('Home admin entry not properly gated')
 # Existing account screen stays unchanged. The admin hub is gated in Home
 # and backend remains the authority for auth_users_list/auth_user_save.
