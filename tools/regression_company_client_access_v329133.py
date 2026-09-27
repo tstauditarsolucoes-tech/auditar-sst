@@ -12,7 +12,7 @@ assert "CompanyClientAccessSection(" in screen
 assert screen.index("CompanyClientAccessSection(") < screen.index("title: const Text('Enviar relatório mensal')")
 assert "reportEmail: reportEmail" in screen and "reportRecipient: reportRecipient" in screen
 assert "if (AuthService.isAdmin && company == null)" in screen
-flat=re.sub(r'\\s+','',section)
+flat=re.sub(r'\s+','',section)
 for token in (
  "AuthService.isAdmin","AuthService.isOfflineMode",
  "AuthService.listUsers()","AuthService.saveUser(",
@@ -25,7 +25,7 @@ for token in (
  "O e-mail de login é independente dos destinatários de relatórios.",
  "Publique o painel da empresa antes de liberar acesso.",
 ):
- assert re.sub(r'\\s+','',token) in flat,'COMPANY CLIENT ACCESS missing '+token
+ assert re.sub(r'\s+','',token) in flat,'COMPANY CLIENT ACCESS missing '+token
 assert "AppDatabase" not in section
 assert "DeviceSyncService" not in section
 assert "MediaSyncService" not in section
