@@ -38,8 +38,8 @@ old = widget.read_text(encoding='utf-8')
 new = source.read_text(encoding='utf-8')
 if 'class ClientCompanyAccessRules' in old:
     raise SystemExit('Multiple client login patch already applied.')
-normalized_old = re.sub(r'\\s+', '', old)
-normalized_new = re.sub(r'\\s+', '', new)
+normalized_old = re.sub(r'\s+', '', old)
+normalized_new = re.sub(r'\s+', '', new)
 for marker in ('class CompanyClientAccessSection',
                'AuthService.listUsers()', 'AuthService.saveUser(',
                'companyIds:[widget.company.id]'):
