@@ -134,6 +134,7 @@ function load(){
  },err=>setMessage(err,true));
 }
 function safeNum(value,fallback){
+ if(value===null||value===undefined||value==='')return fallback==null?null:fallback;
  const n=Number(value);return Number.isFinite(n)?n:(fallback==null?null:fallback);
 }
 function formatPortalDate(value){
