@@ -122,16 +122,26 @@ function showLogin(message){
 function showDashboard(){
  $('login').classList.add('hidden');$('dashboard').classList.remove('hidden');$('logout').classList.remove('hidden');
 }
-function load(){
+let portalLoading=false;
+function load(silent=false){
  if(!token)return showLogin('');
- setMessage('Carregando informações…');
+ if(portalLoading)return;
+ if(silent&&document.querySelector('.manager-photo-form'))return;
+ portalLoading=true;
+ if(!silent)setMessage('Carregando informações…');
+ const expanded=new Set([...document.querySelectorAll('details[data-portal-key][open]')].map(e=>e.dataset.portalKey));
+ const requestedToken=token;
  call('clientPortalData',[token],res=>{
+  portalLoading=false;
+  if(token!==requestedToken)return;
   if(!res||!res.ok)return showLogin(res&&res.message||'Sessão expirada.');
   current=res;showDashboard();$('welcome').textContent=res.user.name+' • '+(res.user.role==='cliente'?'Empresa cliente':'Auditar');
   $('companies').replaceChildren();
   if(!res.companies.length){$('companies').append(text('p','Nenhuma empresa com painel publicado está disponível.','notice'));}
-  res.companies.forEach(renderCompany);setMessage('Dados atualizados.');
- },err=>setMessage(err,true));
+  res.companies.forEach(renderCompany);
+  document.querySelectorAll('details[data-portal-key]').forEach(e=>{if(expanded.has(e.dataset.portalKey))e.open=true;});
+  setMessage('Dados conferidos • '+new Date().toLocaleTimeString('pt-BR'));
+ },err=>{portalLoading=false;if(requestedToken===token)setMessage(err,true);});
 }
 function safeNum(value,fallback){
  if(value===null||value===undefined||value==='')return fallback==null?null:fallback;
@@ -410,14 +420,14 @@ let autoRefreshTimer=null;
 function armAutoRefresh(){
  if(autoRefreshTimer)clearInterval(autoRefreshTimer);
  autoRefreshTimer=setInterval(()=>{
-  if(token&&current&&current.user&&current.user.role==='cliente'&&!document.hidden)load();
+  if(token&&current&&current.user&&current.user.role==='cliente'&&!document.hidden)load(true);
  },60000);
 }
 document.addEventListener('visibilitychange',()=>{
- if(!document.hidden&&token&&current&&current.user&&current.user.role==='cliente')load();
+ if(!document.hidden&&token&&current&&current.user&&current.user.role==='cliente')load(true);
 });
 window.addEventListener('focus',()=>{
- if(token&&current&&current.user&&current.user.role==='cliente')load();
+ if(token&&current&&current.user&&current.user.role==='cliente')load(true);
 });
 armAutoRefresh();
 if(token)load();
