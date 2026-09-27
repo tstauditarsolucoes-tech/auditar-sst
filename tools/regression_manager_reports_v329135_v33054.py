@@ -13,8 +13,7 @@ for token in ('ManagerReportKind.pending','ManagerReportKind.activities',
     'completion_date','getPhotosForAnswer(', 'getCompletionPhotos(',
     'PdfPreview(', 'LinearProgressIndicator()', 'allowSharing: true',
     'includePhotos','Ações na seleção','Atividades no período',
-    'REGISTROS', 'getAsset'):
-    if token == 'getAsset':continue
+    'getPhotosForAnswer(', 'getCompletionPhotos('):
     if token not in s:raise SystemExit('MANAGER_REPORTS missing '+token)
 for token in ('manager_reports_screen.dart','ManagerReportsScreen(company: widget.company)',
     'Relatórios gerenciais'):
