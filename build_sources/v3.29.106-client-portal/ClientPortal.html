@@ -52,6 +52,9 @@ button.secondary{color:#234365;background:#e8eff7}button.warn{background:#b25d21
 @media(max-width:500px){.exec-company{font-size:21px}.exec-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.exec-card{min-height:82px;padding:12px}.exec-card strong{font-size:23px}}
 
 
+.highlight-action{outline:3px solid #55b29b;outline-offset:2px;transition:outline-color .2s}
+.k-card .manager-btn{width:100%;padding:7px 9px}
+@media(prefers-reduced-motion:reduce){.highlight-action{transition:none}}
 /* executive-actionable-v329138 */
 .attention-strip{border:1px solid #e6e8df;background:#fffdf6;border-radius:14px;padding:13px 15px;margin:10px 0 14px}
 .attention-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px}
@@ -181,31 +184,45 @@ function formatPortalDate(value){
 }
 function statusBucket(row){
  const status=String(row.status||'').toLowerCase();
- const due=row.dueDate?new Date(row.dueDate):null;
- const overdue=due&&!Number.isNaN(due.getTime())&&due.getTime()<Date.now()&&!/concl|resol|feito|final/.test(status);
  if(/concl|resol|feito|final/.test(status))return 'done';
  if(/aguard|verifica|confer|evid[eê]ncia/.test(status))return 'verify';
  if(/andamento|execu|tratamento|iniciado/.test(status))return 'doing';
  return 'todo';
 }
-function renderKanban(actions){
+function renderKanban(actions,company){
  const wrap=text('div','','kanban');
  const defs=[['todo','A fazer'],['doing','Em andamento'],['verify','Aguardando Auditar'],['done','Concluídas']];
  defs.forEach(def=>{
-  const rows=(actions||[]).filter(r=>statusBucket(r)===def[0]).slice(0,6);
+  const all=(actions||[]).filter(r=>statusBucket(r)===def[0]);
+  const rows=all.slice(0,5);
   const col=text('div','','kanban-col');const title=text('div','','kanban-title');
-  title.append(text('span',def[1]),text('span',rows.length));col.append(title);
+  title.append(text('span',def[1]),text('span',all.length));col.append(title);
   if(!rows.length)col.append(text('div','Sem registros','compact-note'));
   rows.forEach(row=>{
    const card=text('div','','k-card');card.append(text('b',row.title||row.description||'Ação'));
    const due=row.dueDate?new Date(row.dueDate):null;
    const overdue=due&&!Number.isNaN(due.getTime())&&due.getTime()<Date.now()&&statusBucket(row)!=='done';
    const meta=[row.sector,row.responsible,row.dueDate?'Prazo '+row.dueDate:''].filter(Boolean).join(' • ');
-   if(meta)card.append(text('small',meta));if(overdue)card.append(text('span','Prazo vencido','status-dot bad'));col.append(card);
+   if(meta)card.append(text('small',meta));
+   if(overdue)card.append(text('span','Prazo vencido','status-dot bad'));
+   const more=text('button','Ver providência','secondary manager-btn');more.type='button';
+   more.style.marginTop='8px';more.onclick=()=>openImprovementFromKanban(company,row);
+   card.append(more);col.append(card);
   });
   wrap.append(col);
  });
  return wrap;
+}
+function openImprovementFromKanban(company,row){
+ const plan=[...document.querySelectorAll('details[data-portal-key]')]
+  .find(item=>item.dataset.portalKey===company.id+':plan');
+ if(!plan){setMessage('Plano de melhorias indisponível nesta publicação.',true);return;}
+ plan.open=true;
+ const ids=[String(row.id||''),String(row.ncCode||'')].filter(Boolean);
+ const card=[...plan.querySelectorAll('.improvement-card')]
+  .find(item=>ids.includes(item.dataset.ncId));
+ (card||plan).scrollIntoView({behavior:'smooth',block:'start'});
+ if(card){card.classList.add('highlight-action');setTimeout(()=>card.classList.remove('highlight-action'),2200);}
 }
 function renderTrainingAndDds(company){
  const side=text('div','','compact-box');
@@ -284,7 +301,7 @@ function renderTrainingWorkers(company){
  const count=text('span','','manager-total');bar.append(search,count);details.append(bar);
  const table=document.createElement('table');table.className='worker-table';
  const thead=document.createElement('thead'),tr=document.createElement('tr');
- ['Trabalhador','Setor','Treinamento','Situação'].forEach(v=>tr.append(text('th',v)));thead.append(tr);table.append(thead);
+ ['Trabalhador','Setor / função','Treinamento','Situação'].forEach(v=>tr.append(text('th',v)));thead.append(tr);table.append(thead);
  const tbody=document.createElement('tbody');table.append(tbody);details.append(table);
  function draw(){
   const q=search.value.toLocaleLowerCase('pt-BR').trim();
@@ -429,9 +446,10 @@ function renderCompany(company){
  shell.append(renderExecutiveAttention(company));
  const grid=text('div','','section-grid');const main=text('div','','compact-box');
  main.append(text('h3','Acompanhamento das providências'));
- const actions=company.actions||[];main.append(renderKanban(actions));
+ const actions=company.actions||[];main.append(renderKanban(actions,company));
  if(actions.length>24)main.append(text('div','Mostrando as ações mais recentes por etapa.','compact-note'));
  grid.append(main,renderTrainingAndDds(company));shell.append(grid);
+ if(company.permissions&&company.permissions.indicadores)shell.append(renderTrainingWorkers(company));
  renderRecentRecords(shell,company);
  shell.append(renderImprovementPlan(company));
  shell.append(renderReportHighlights(company));
