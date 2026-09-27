@@ -51,6 +51,33 @@ button.secondary{color:#234365;background:#e8eff7}button.warn{background:#b25d21
 @media(max-width:900px){.exec-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.section-grid{grid-template-columns:1fr}.kanban{grid-template-columns:repeat(4,220px)}}
 @media(max-width:500px){.exec-company{font-size:21px}.exec-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.exec-card{min-height:82px;padding:12px}.exec-card strong{font-size:23px}}
 
+
+/* executive-actionable-v329138 */
+.attention-strip{border:1px solid #e6e8df;background:#fffdf6;border-radius:14px;padding:13px 15px;margin:10px 0 14px}
+.attention-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px}
+.attention-head b{font-size:13px;color:#374454}.attention-list{display:flex;gap:8px;flex-wrap:wrap}
+.attention-item{font-size:11px;border-radius:999px;padding:7px 10px;background:#fff;border:1px solid #e9e6d9;color:#5a5660}
+.attention-item.urgent{border-color:#eed1d1;color:#9a3b3b;background:#fff7f7}
+.attention-item.warn{border-color:#ebdfba;color:#8a6515;background:#fffaf0}
+.drill{margin-top:12px;border-top:1px solid #edf1f5;padding-top:11px}
+.drill summary{cursor:pointer;font-size:12px;font-weight:780;color:#31506b;list-style:none}
+.drill summary::-webkit-details-marker{display:none}
+.drill summary:after{content:"›";float:right;color:#7890a4;font-size:18px;line-height:14px}
+.drill[open] summary:after{transform:rotate(90deg)}
+.worker-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:11px}
+.worker-table th,.worker-table td{text-align:left;padding:8px 6px;border-bottom:1px solid #edf1f5;vertical-align:top}
+.worker-table th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#74889a}
+.status-dot{display:inline-block;border-radius:999px;padding:4px 7px;background:#f6f7f9;color:#516373;font-size:10px;font-weight:750}
+.status-dot.bad{background:#fff0f0;color:#a24040}.status-dot.warn{background:#fff7e8;color:#94670e}.status-dot.good{background:#edf8f4;color:#16705d}
+.improvement-card{border:1px solid #e4eaf1;border-radius:12px;padding:13px;margin-top:9px;background:#fff}
+.improvement-card h4{font-size:13px;margin:0 0 7px;color:#243d57}.improvement-card p{margin:6px 0;font-size:11.5px;line-height:1.5;color:#53677c}
+.improvement-card .label{display:block;margin-top:8px;font-size:9.5px;font-weight:850;letter-spacing:.07em;text-transform:uppercase;color:#7b8c9e}
+.norma-box{background:#f4f8fb;border-left:3px solid #2b6880;padding:8px 10px;border-radius:0 8px 8px 0;margin-top:8px;font-size:11px;color:#314f66}
+.report-ribbon{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.report-mini{border:1px solid #e5eaf0;border-radius:11px;padding:11px;background:#fafcfd;min-height:74px}
+.report-mini b{font-size:11.5px;color:#29445d;display:block}.report-mini small{font-size:10px;color:#788b9d;display:block;margin-top:5px}
+@media(max-width:700px){.worker-table th:nth-child(2),.worker-table td:nth-child(2){display:none}.report-ribbon{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -149,6 +176,7 @@ function renderTrainingAndDds(company){
   const box=text('div','','training-stat');box.append(text('strong',pair[1]==null?'—':pair[1]),text('span',pair[0]));tg.append(box);
  });
  side.append(tg);
+ side.append(renderTrainingWorkers(company));
  const pills=text('div','','pill-row');pills.style.marginTop='10px';
  pills.append(text('span','DDS no mês: '+(dds.month==null?'—':dds.month),'mini-pill'),
               text('span','DDS no ano: '+(dds.year==null?'—':dds.year),'mini-pill'),
@@ -178,6 +206,79 @@ function renderRecentRecords(shell,company){
  });
  shell.append(details);
 }
+
+function trainingStatusClass(value){
+ const s=String(value||'').toLowerCase();
+ if(/venc|sem registro|pend/.test(s))return 'bad';
+ if(/vencer|aten/.test(s))return 'warn';
+ return 'good';
+}
+function renderExecutiveAttention(company){
+ const summary=company.summary||{},training=company.trainingSummary||{};
+ const strip=text('div','','attention-strip');const head=text('div','','attention-head');
+ head.append(text('b','Precisa da sua atenção'),text('span','Somente o essencial','compact-note'));strip.append(head);
+ const list=text('div','','attention-list');let count=0;
+ const add=(label,value,cls)=>{if(value==null||Number(value)<=0)return;list.append(text('span',label+': '+value,'attention-item '+(cls||'')));count++;};
+ add('Ações vencidas',summary.overdueActions,'urgent');
+ add('Treinamentos vencidos',training.expired,'urgent');
+ add('Sem registro',training.missing,'warn');
+ const high=(company.nonConformities||[]).filter(r=>/alta|cr[ií]tica|imediata/i.test(String(r.priority||''))).length;
+ add('Problemas prioritários',high,'warn');
+ if(!count)list.append(text('span','Nenhuma prioridade crítica publicada no momento.','attention-item'));
+ strip.append(list);return strip;
+}
+function renderTrainingWorkers(company){
+ const rows=company.trainingPendingWorkers||[];
+ const details=document.createElement('details');details.className='drill';
+ details.append(text('summary','Ver trabalhadores com pendências ('+rows.length+')'));
+ if(!rows.length){details.append(text('p','Nenhum trabalhador com pendência nominal publicada.','compact-note'));return details;}
+ const table=document.createElement('table');table.className='worker-table';
+ const thead=document.createElement('thead'),tr=document.createElement('tr');
+ ['Trabalhador','Setor','Treinamento','Situação'].forEach(v=>tr.append(text('th',v)));thead.append(tr);table.append(thead);
+ const tbody=document.createElement('tbody');
+ rows.slice(0,80).forEach(item=>{
+  const row=document.createElement('tr');
+  row.append(text('td',item.worker||'—'),text('td',item.sector||'—'),text('td',item.training||'—'));
+  const status=text('span',item.status||'Sem registro','status-dot '+trainingStatusClass(item.status));
+  const td=document.createElement('td');td.append(status);row.append(td);tbody.append(row);
+ });
+ table.append(tbody);details.append(table);
+ if(rows.length>80)details.append(text('p','Mostrando os primeiros 80 registros. Use os filtros no módulo de treinamentos para aprofundar.','compact-note'));
+ return details;
+}
+function renderImprovementPlan(company){
+ const details=document.createElement('details');details.className='drill';
+ details.append(text('summary','O que precisamos resolver?'));
+ const source=(company.nonConformities||[]).filter(r=>statusBucket(r)!=='done').slice(0,12);
+ if(!source.length){details.append(text('p','Nenhuma pendência publicada no momento.','compact-note'));return details;}
+ source.forEach((row,index)=>{
+  const card=text('div','','improvement-card');
+  card.append(text('h4',(index+1)+'. '+(row.title||row.description||'Providência')));
+  if(row.description){card.append(text('span','O que encontramos','label'),text('p',row.description));}
+  const action=row.action||row.recommendation;
+  if(action){card.append(text('span','O que precisa ser feito','label'),text('p',action));}
+  if(row.normative){
+   const base=row.normative+(row.normativeItem?' • Item '+row.normativeItem:'');
+   card.append(text('div','Base normativa: '+base,'norma-box'));
+  }
+  const meta=[row.responsible?'Responsável: '+row.responsible:'',row.dueDate?'Prazo: '+row.dueDate:'',row.priority?'Prioridade: '+row.priority:''].filter(Boolean).join(' • ');
+  if(meta)card.append(text('p',meta,'compact-note'));
+  if(row.recurrence)card.append(text('span','Problema já registrado anteriormente','status-dot warn'));
+  details.append(card);
+ });
+ return details;
+}
+function renderReportHighlights(company){
+ const details=document.createElement('details');details.className='drill';
+ const rows=(company.reports||[]).slice(0,3);
+ details.append(text('summary','Relatórios e resultados'));
+ if(!rows.length){details.append(text('p','Nenhum relatório publicado no momento.','compact-note'));return details;}
+ const grid=text('div','','report-ribbon');
+ rows.forEach(r=>{
+  const c=text('div','','report-mini');c.append(text('b',r.title||'Relatório técnico'),text('small',[r.date,r.status].filter(Boolean).join(' • ')));grid.append(c);
+ });
+ details.append(grid);return details;
+}
 function renderCompany(company){
  const shell=text('section','','panel');
  const head=text('div','','exec-head');const left=text('div');
@@ -194,12 +295,15 @@ function renderCompany(company){
  ];
  metricData.forEach(m=>{const c=text('div','',('exec-card '+m[2]).trim());c.append(text('span',m[0]),text('strong',m[1]==null?'—':m[1]+(m[3]||'')));metrics.append(c);});
  shell.append(metrics);
+ shell.append(renderExecutiveAttention(company));
  const grid=text('div','','section-grid');const main=text('div','','compact-box');
  main.append(text('h3','Plano de ação'));
  const actions=company.actions||[];main.append(renderKanban(actions));
  if(actions.length>24)main.append(text('div','Mostrando as ações mais recentes por etapa.','compact-note'));
  grid.append(main,renderTrainingAndDds(company));shell.append(grid);
  renderRecentRecords(shell,company);
+ shell.append(renderImprovementPlan(company));
+ shell.append(renderReportHighlights(company));
  if(company.permissions&&company.permissions.naoConformidades){
   const nc=document.createElement('details');nc.className='activity-toggle';
   const rows=(company.nonConformities||[]);
