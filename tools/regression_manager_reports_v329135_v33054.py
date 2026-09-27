@@ -14,7 +14,8 @@ for token in ('ManagerReportKind.pending','ManagerReportKind.activities',
     'PdfPreview(', 'LinearProgressIndicator()', 'allowSharing: true',
     'includePhotos','Ações na seleção','Atividades no período',
     'DocumentDeliveryService.send(', 'ReportRecipients.parse(',
-    'Enviar relatório gerencial?', 'bytes.length > 7500000'):
+    'Enviar relatório gerencial?', 'bytes.length > 7500000',
+    'specificSearch', 'String search =', 'Busca específica (opcional)'):
     if token not in s:raise SystemExit('MANAGER_REPORTS missing '+token)
 for token in ('manager_reports_screen.dart','ManagerReportsScreen(company: widget.company)',
     'Relatórios gerenciais'):
