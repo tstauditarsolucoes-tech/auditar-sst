@@ -156,7 +156,7 @@ class _CompanyClientAccessSectionState extends State<CompanyClientAccessSection>
           label:const Text('Cadastrar acesso do cliente'),
         ),
         TextButton.icon(
-          onPressed:saving?_load:_load,
+          onPressed:saving?null:_load,
           icon:const Icon(Icons.refresh_outlined),
           label:const Text('Atualizar acessos'),
         ),
