@@ -43,7 +43,8 @@ normalized_new = re.sub(r'\s+', '', new)
 for marker in ('class CompanyClientAccessSection',
                'AuthService.listUsers()', 'AuthService.saveUser(',
                'companyIds:[widget.company.id]'):
-    if marker not in normalized_old or marker not in normalized_new:
+    needle = re.sub(r'\s+', '', marker)
+    if needle not in normalized_old or needle not in normalized_new:
         raise SystemExit('Existing client account implementation mismatch: ' + marker)
 for marker in ('ClientCompanyAccessRules.belongsTo',
                'ClientCompanyAccessRules.duplicates',
