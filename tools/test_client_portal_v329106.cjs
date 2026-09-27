@@ -49,7 +49,10 @@ assert.equal(context.clientPortalSubmitEvidence('valid','B','NC-A','teste',null)
 assert.equal(context.clientPortalSubmitEvidence('valid','A','NC-OUTRA','teste',null).code,'ACCESS_DENIED');
 assert.equal(context.clientPortalEvidenceQueue('valid','A').code,'ACCESS_DENIED');
 assert.equal(context.clientPortalReviewEvidence('valid','1','VALIDADA').code,'ACCESS_DENIED');
+actor.clientPermissions.enviarEvidencia=false;
 assert.equal(context.clientPortalEvidencePhoto('valid','1').code,'ACCESS_DENIED');
+assert.equal(context.clientPortalMyEvidence('valid','A').code,'ACCESS_DENIED');
+actor.clientPermissions.enviarEvidencia=true;
 context.publicPanelPayload_=value=>JSON.parse(JSON.stringify(value));
 const shared=context.clientPortalSharePayload_({
  accessToken:'SECRET',syncKey:'SECRET',notifications:{email:'secret'},
@@ -61,6 +64,26 @@ assert.equal(shared.notifications,undefined);
 assert.equal(shared.workforceDetails,undefined);
 assert.equal(shared.company.email,undefined);
 
+const pdfId='REPORT_DRIVE_FILE_VALID_123456789';
+context.clientPortalFindSnapshot_=id=>id==='A'?{
+ updatedAt:'2026-09-27T12:00:00Z',payload:{company:{id:'A',name:'Empresa A'},
+  reports:[{id:'R-PDF',title:'Relatório publicado',driveFileId:pdfId}]
+ }}:null;
+context.Utilities={base64Encode:bytes=>Buffer.from(bytes).toString('base64')};
+context.DriveApp={getFileById:id=>{
+ assert.equal(id,pdfId);
+ return {getBlob:()=>({getContentType:()=> 'application/pdf',
+  getBytes:()=>[37,80,68,70,45,49,46,52]})};
+}};
+assert.equal(context.clientPortalReportPdf('valid','B','R-PDF').code,'ACCESS_DENIED');
+assert.equal(context.clientPortalReportPdf('valid','A','OUTRO').ok,false);
+actor.clientPermissions.relatorios=false;
+assert.equal(context.clientPortalReportPdf('valid','A','R-PDF').code,'ACCESS_DENIED');
+actor.clientPermissions.relatorios=true;
+const pdf=context.clientPortalReportPdf('valid','A','R-PDF');
+assert.equal(pdf.ok,true);assert.equal(pdf.mimeType,'application/pdf');
+assert.equal(Buffer.from(pdf.base64,'base64').toString('utf8'),'%PDF-1.4');
+assert.equal(JSON.stringify(context.clientPortalData('valid')).includes(pdfId),false);
 actor={...actor,companyIds:['A','B']};
 assert.equal(context.clientPortalAuthorizedUser_('valid'),null);
 actor={...actor,role:'admin',companyIds:[],allCompanies:true};
