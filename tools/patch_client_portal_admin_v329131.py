@@ -89,7 +89,7 @@ after_login='''<p class="muted">Administrador da Auditar: utilize a conta do apl
  '''+before_login
 if h.count(before_login)!=1:raise SystemExit('Admin login form anchor missing')
 h=h.replace(before_login,after_login,1)
-dashboard_anchor='  <div id="companies"></div>'
+dashboard_anchor='<div id="companies"></div>'
 admin_markup=r'''  <section id="adminAccess" class="panel hidden" aria-label="Gestão de acesso dos clientes">
    <div class="row"><div><h2>Administração Auditar • Acessos de clientes</h2>
     <p class="muted">Crie uma conta individual para cada empresa, com permissões específicas.</p></div>
