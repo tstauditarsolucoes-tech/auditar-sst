@@ -50,6 +50,16 @@ void main() {
     expect(ManagerReportService.selectActions(rows, ManagerReportKind.activities,
         period, 'Todas', now), isEmpty);
   });
+  test('specific management search covers NC code, sector and responsible', () {
+    final row = <String, Object?>{
+      'code': 'NC-004', 'sector_name': 'Forno', 'responsible': 'Manutenção',
+      'description': 'Proteção danificada',
+    };
+    expect(ManagerReportService.matches(row, 'nc-004'), isTrue);
+    expect(ManagerReportService.matches(row, 'FORNO'), isTrue);
+    expect(ManagerReportService.matches(row, 'manuten'), isTrue);
+    expect(ManagerReportService.matches(row, 'Escritório'), isFalse);
+  });
   test('all four report kinds generate a valid, nonempty PDF', () async {
     TestWidgetsFlutterBinding.ensureInitialized();
     final company = Company(id: 'company-test', name: 'Empresa de teste');
