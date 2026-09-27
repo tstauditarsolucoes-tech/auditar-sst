@@ -166,7 +166,20 @@ function clientPortalData(token) {
     };
     if (permissions.indicadores) {
       result.summary = clientPortalSummary_(payload);
-      result.trainingSummary = clientPortalSummary_({summary:payload.trainingSummary || {}});
+      const trainingRaw=payload.trainingSummary&&typeof payload.trainingSummary==='object'
+        ? payload.trainingSummary : {};
+      const safeTraining=function(key){
+        const n=Number(trainingRaw[key]);
+        return trainingRaw[key]==null||!Number.isFinite(n)?null:Math.max(0,Math.min(n,1000000));
+      };
+      result.trainingSummary={
+        current:safeTraining('current'),
+        expired:safeTraining('expired'),
+        pending:safeTraining('pending'),
+        total:safeTraining('total'),
+        missing:Array.isArray(payload.missingRequiredTrainings)
+          ? payload.missingRequiredTrainings.length : null
+      };
     }
     if (permissions.naoConformidades) {
       result.nonConformities = clientPortalRows_(payload,
