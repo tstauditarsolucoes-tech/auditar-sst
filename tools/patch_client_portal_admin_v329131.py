@@ -81,13 +81,13 @@ function clientPortalAdminSaveClient(token,input) {
 }
 '''
 h=html.read_text(encoding='utf-8')
-before_login='  <p class="muted">Utilize o e-mail e a senha fornecidos pela Auditar. Você verá somente as informações liberadas para sua empresa.</p>'
-after_login=before_login+'''
-  <p class="muted">Administrador da Auditar: use sua conta do aplicativo.
-   Se ainda não houver usuários, crie a primeira conta na tela
-   <strong>Primeiro acesso</strong> do Auditar SST. O portal não cria
-   administradores publicamente.</p>'''
-if h.count(before_login)!=1:raise SystemExit('Admin login note anchor missing')
+before_login='<form id="loginForm">'
+after_login='''<p class="muted">Administrador da Auditar: utilize a conta do aplicativo.
+ Se não houver usuários, crie a primeira conta pela tela
+ <strong>Primeiro acesso</strong> do Auditar SST. O portal não cria
+ administradores publicamente.</p>
+ '''+before_login
+if h.count(before_login)!=1:raise SystemExit('Admin login form anchor missing')
 h=h.replace(before_login,after_login,1)
 dashboard_anchor='  <div id="companies"></div>'
 admin_markup=r'''  <section id="adminAccess" class="panel hidden" aria-label="Gestão de acesso dos clientes">
