@@ -70,6 +70,7 @@ class ManagerReportService {
   static List<Map<String, Object?>> selectNcs(
       List<Map<String, Object?>> rows, ManagerReportKind kind,
       ManagerReportPeriod period, String filter, DateTime now) {
+    if (kind == ManagerReportKind.activities) return const [];
     return rows.where((row) {
       final done = closed(row);
       if (kind == ManagerReportKind.pending && done) return false;
@@ -87,6 +88,7 @@ class ManagerReportService {
   static List<Map<String, Object?>> selectActions(
       List<Map<String, Object?>> rows, ManagerReportKind kind,
       ManagerReportPeriod period, String filter, DateTime now) {
+    if (kind == ManagerReportKind.activities) return const [];
     return rows.where((row) {
       final done = closed(row);
       if (kind == ManagerReportKind.pending && done) return false;
