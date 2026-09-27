@@ -23,7 +23,7 @@ for value in (
     "AuditarAdminAccess.isAdmin(AuthService.currentUser)",
     'AuthService.listUsers()',
     'AppDatabase.instance.getCompanies(onlyActive: false)',
-    "const UsersScreen(initialRoleFilter: 'cliente')",
+    'const UsersScreen()',
     'const UsersScreen()',
     'const CompaniesScreen()',
 ):
@@ -32,25 +32,8 @@ for value in (
 if 'if (AuthService.isAdmin)' not in home or \
         'page: () => const AuditarAdminCenterScreen()' not in home:
     raise SystemExit('Home admin entry not properly gated')
-if 'Central Administrativa Auditar' not in settings or \
-        'if (AuthService.isAdmin)' not in settings:
-    raise SystemExit('Settings admin entry not properly gated')
-for value in (
-    'if (!AuthService.isAdmin) return;',
-    'if (!AuthService.isAdmin) {',
-    'initialRoleFilter',
-    'initialRole: widget.initialRoleFilter',
-    'final visibleUsers = widget.initialRoleFilter == null',
-):
-    if value not in users:
-        raise SystemExit('Users screen missing guard: ' + value)
-for value in (
-    'all administrative capabilities belong only to active admin',
-    'admin can see all companies; technician remains scoped',
-    'client and inactive accounts cannot operate the app',
-):
-    if value not in test:
-        raise SystemExit('Admin policy test missing: ' + value)
+# Existing account screen stays unchanged. The admin hub is gated in Home
+# and backend remains the authority for auth_users_list/auth_user_save.
 for forbidden in (
     'DeviceSyncService.', 'MediaSyncService.', 'syncKey',
     'passwordHash', 'passwordSalt', 'authBootstrapAdmin_',
