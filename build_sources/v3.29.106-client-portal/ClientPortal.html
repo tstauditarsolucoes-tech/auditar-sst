@@ -25,6 +25,32 @@ button.secondary{color:#234365;background:#e8eff7}button.warn{background:#b25d21
 .notice{padding:11px 13px;border-radius:10px;background:#f6f5e9;font-size:13px;color:#514a26;margin:10px 0}
 .photo-preview{max-width:240px;max-height:180px;border-radius:8px}.section-title{margin:18px 0 9px}
 @media(max-width:500px){header{padding:16px}.wrap{padding:13px 10px}.panel{padding:17px}.login{margin:22px auto}}
+
+/* executive-compact-v329137 */
+.exec-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:14px}
+.exec-company{font-size:24px;margin:0;color:#17324e}.exec-kicker{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#6b8295}
+.update-chip{display:inline-flex;align-items:center;gap:7px;background:#edf7f4;color:#176d61;border:1px solid #d8ebe6;border-radius:999px;padding:7px 10px;font-size:11px;font-weight:750}
+.exec-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}
+.exec-card{border:1px solid #e3eaf2;background:#f9fbfd;border-radius:14px;padding:14px;min-height:92px}
+.exec-card strong{display:block;font-size:27px;line-height:1;color:#173f5b;margin:6px 0}.exec-card span{font-size:11px;color:#607487}
+.exec-card.alert strong{color:#b34848}.exec-card.good strong{color:#19715e}.exec-card.warn strong{color:#9b6a18}
+.section-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(270px,.75fr);gap:14px;margin-top:14px}
+.compact-box{border:1px solid #e3eaf2;border-radius:14px;padding:15px;background:#fff}
+.compact-box h3{font-size:14px;margin-bottom:10px}.compact-note{font-size:11px;color:#718397}
+.kanban{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:9px;overflow:auto;padding-bottom:3px}
+.kanban-col{background:#f6f8fb;border:1px solid #e5eaf1;border-radius:12px;padding:10px;min-height:120px}
+.kanban-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#587087;display:flex;justify-content:space-between;gap:8px;margin-bottom:8px}
+.k-card{background:#fff;border:1px solid #e2e8ef;border-radius:10px;padding:10px;margin-bottom:7px;box-shadow:0 2px 6px rgba(22,47,75,.04)}
+.k-card:last-child{margin-bottom:0}.k-card b{font-size:12px;display:block;color:#223a55}.k-card small{display:block;margin-top:5px;color:#718397;line-height:1.35}
+.pill-row{display:flex;gap:7px;flex-wrap:wrap}.mini-pill{background:#f3f7fb;border:1px solid #e1e8f0;border-radius:999px;padding:6px 9px;font-size:11px;color:#4e657b}
+.training-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.training-stat{border:1px solid #e4eaf1;border-radius:11px;padding:11px;background:#fbfcfe}
+.training-stat strong{display:block;font-size:20px;color:#1f566f}.training-stat span{font-size:10.5px;color:#687b8e}
+.activity-toggle{margin-top:12px}.activity-toggle summary{cursor:pointer;font-size:12px;font-weight:750;color:#37526b}
+.record-line{padding:10px 0;border-top:1px solid #edf1f5}.record-line:first-child{border-top:0}.record-line b{font-size:12px}.record-line small{display:block;color:#748598;margin-top:3px}
+.auto-dot{width:7px;height:7px;border-radius:50%;background:#20a36e;display:inline-block}
+@media(max-width:900px){.exec-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.section-grid{grid-template-columns:1fr}.kanban{grid-template-columns:repeat(4,220px)}}
+@media(max-width:500px){.exec-company{font-size:21px}.exec-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.exec-card{min-height:82px;padding:12px}.exec-card strong{font-size:23px}}
+
 </style>
 </head>
 <body>
@@ -41,7 +67,7 @@ button.secondary{color:#234365;background:#e8eff7}button.warn{background:#b25d21
  </form>
 </section>
 <section id="dashboard" class="hidden">
- <div class="panel row"><div><h1>Meu Painel Gerencial</h1><span id="welcome" class="muted"></span></div><button id="refresh" class="secondary" type="button">Atualizar</button></div>
+ <div class="panel row"><div><h1>Painel Gerencial de SST</h1><span id="welcome" class="muted"></span></div><button id="refresh" class="secondary" type="button">Atualizar</button></div>
  <p id="status" role="status"></p>
  <div id="companies"></div>
 </section>
@@ -80,24 +106,109 @@ function load(){
   res.companies.forEach(renderCompany);setMessage('Dados atualizados.');
  },err=>setMessage(err,true));
 }
-function renderCompany(company){
- const shell=text('section','','panel');const top=text('div','','row');
- const head=text('div');head.append(text('h2',company.name),text('div','Última atualização: '+(company.updatedAt||'não informada'),'muted'));
- top.append(head);shell.append(top);
- const permissions=company.permissions||{};
- if(permissions.indicadores){
-  const metrics=text('div','','metrics');
-  const dict=[['conformity','Conformidade','%'],['inspections','Vistorias',''],['openNcs','NC abertas',''],['overdueNcs','NC vencidas',''],
-  ['resolvedNcs','NC resolvidas',''],['pendingActions','Ações pendentes',''],['overdueActions','Ações vencidas','']];
-  let found=0;
-  dict.forEach(pair=>{const value=company.summary&&company.summary[pair[0]];if(value==null)return;
-   const card=text('div','','metric');card.append(text('strong',value+pair[2]),text('span',pair[1]));metrics.append(card);found++;});
-  if(found){shell.append(text('h3','Indicadores','section-title'),metrics);}
+function safeNum(value,fallback){
+ const n=Number(value);return Number.isFinite(n)?n:(fallback==null?null:fallback);
+}
+function formatPortalDate(value){
+ const raw=String(value||'').trim();if(!raw)return 'não informada';
+ const d=new Date(raw);if(Number.isNaN(d.getTime()))return raw;
+ return d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function statusBucket(row){
+ const status=String(row.status||'').toLowerCase();
+ const due=row.dueDate?new Date(row.dueDate):null;
+ const overdue=due&&!Number.isNaN(due.getTime())&&due.getTime()<Date.now()&&!/concl|resol|feito|final/.test(status);
+ if(/concl|resol|feito|final/.test(status))return 'done';
+ if(overdue)return 'late';
+ if(/andamento|execu|tratamento|iniciado/.test(status))return 'doing';
+ return 'todo';
+}
+function renderKanban(actions){
+ const wrap=text('div','','kanban');
+ const defs=[['todo','A fazer'],['doing','Em andamento'],['late','Vencidas'],['done','Concluídas']];
+ defs.forEach(def=>{
+  const rows=(actions||[]).filter(r=>statusBucket(r)===def[0]).slice(0,6);
+  const col=text('div','','kanban-col');const title=text('div','','kanban-title');
+  title.append(text('span',def[1]),text('span',rows.length));col.append(title);
+  if(!rows.length)col.append(text('div','Sem registros','compact-note'));
+  rows.forEach(row=>{
+   const card=text('div','','k-card');card.append(text('b',row.title||row.description||'Ação'));
+   const meta=[row.sector,row.responsible,row.dueDate?'Prazo '+row.dueDate:''].filter(Boolean).join(' • ');
+   if(meta)card.append(text('small',meta));col.append(card);
+  });
+  wrap.append(col);
+ });
+ return wrap;
+}
+function renderTrainingAndDds(company){
+ const side=text('div','','compact-box');
+ side.append(text('h3','Capacitação e DDS'));
+ const ts=company.trainingSummary||{},dds=company.ddsSummary||{};
+ const tg=text('div','','training-grid');
+ [['Em dia',ts.current],['Vencidos',ts.expired],['Pendentes',ts.pending],['Sem registro',ts.missing]].forEach(pair=>{
+  const box=text('div','','training-stat');box.append(text('strong',pair[1]==null?'—':pair[1]),text('span',pair[0]));tg.append(box);
+ });
+ side.append(tg);
+ const pills=text('div','','pill-row');pills.style.marginTop='10px';
+ pills.append(text('span','DDS no mês: '+(dds.month==null?'—':dds.month),'mini-pill'),
+              text('span','DDS no ano: '+(dds.year==null?'—':dds.year),'mini-pill'),
+              text('span','Participações: '+(dds.participations==null?'—':dds.participations),'mini-pill'));
+ side.append(pills);
+ const recent=(dds.recent||[]).slice(0,5);
+ if(recent.length){
+  const details=document.createElement('details');details.className='activity-toggle';
+  details.append(text('summary','Últimos DDS'));
+  recent.forEach(item=>{
+   const line=text('div','','record-line');line.append(text('b',item.title||'DDS'),
+    text('small',[item.date,item.participants+' participante(s)',
+      (item.photos||[]).length+' foto(s)',(item.paper||[]).length+' ficha(s)'].join(' • ')));
+   details.append(line);
+  });side.append(details);
  }
- if(permissions.naoConformidades)renderList(shell,'Não conformidades',company.nonConformities||[],company);
- if(permissions.acoesCorretivas)renderList(shell,'Ações corretivas',company.actions||[],company);
- if(permissions.relatorios){renderList(shell,'Relatórios publicados',company.reports||[],company);
-  renderList(shell,'Vistorias recentes',company.inspections||[],company);}
+ return side;
+}
+function renderRecentRecords(shell,company){
+ const details=document.createElement('details');details.className='activity-toggle';
+ details.append(text('summary','Relatórios, vistorias e registros recentes'));
+ const rows=[...(company.reports||[]).slice(0,4),...(company.inspections||[]).slice(0,4)];
+ if(!rows.length)details.append(text('p','Nenhum registro recente publicado.','muted'));
+ rows.forEach(row=>{
+  const line=text('div','','record-line');line.append(text('b',row.title||'Registro'),
+   text('small',[row.date,row.status,row.sector].filter(Boolean).join(' • ')));details.append(line);
+ });
+ shell.append(details);
+}
+function renderCompany(company){
+ const shell=text('section','','panel');
+ const head=text('div','','exec-head');const left=text('div');
+ left.append(text('div','Empresa acompanhada','exec-kicker'),text('h2',company.name,'exec-company'));
+ const updated=text('span','','update-chip');updated.append(text('span','','auto-dot'),text('span','Atualização automática • '+formatPortalDate(company.updatedAt)));
+ head.append(left,updated);shell.append(head);
+ const summary=company.summary||{},training=company.trainingSummary||{};
+ const metrics=text('div','','exec-metrics');
+ const metricData=[
+  ['NC em aberto',safeNum(summary.openNcs), ''],
+  ['Ações vencidas',safeNum(summary.overdueActions), 'alert'],
+  ['Treinamentos vencidos',safeNum(training.expired), 'warn'],
+  ['Conformidade',safeNum(summary.conformity), 'good','%']
+ ];
+ metricData.forEach(m=>{const c=text('div','',('exec-card '+m[2]).trim());c.append(text('span',m[0]),text('strong',m[1]==null?'—':m[1]+(m[3]||'')));metrics.append(c);});
+ shell.append(metrics);
+ const grid=text('div','','section-grid');const main=text('div','','compact-box');
+ main.append(text('h3','Plano de ação'));
+ const actions=company.actions||[];main.append(renderKanban(actions));
+ if(actions.length>24)main.append(text('div','Mostrando as ações mais recentes por etapa.','compact-note'));
+ grid.append(main,renderTrainingAndDds(company));shell.append(grid);
+ renderRecentRecords(shell,company);
+ if(company.permissions&&company.permissions.naoConformidades){
+  const nc=document.createElement('details');nc.className='activity-toggle';
+  const rows=(company.nonConformities||[]);
+  nc.append(text('summary','Não conformidades ('+rows.length+')'));
+  rows.slice(0,20).forEach(row=>{
+   const line=text('div','','record-line');line.append(text('b',row.title||row.description||'Não conformidade'),
+    text('small',[row.sector,row.status,row.priority].filter(Boolean).join(' • ')));nc.append(line);
+  });shell.append(nc);
+ }
  if(current.user.role!=='cliente')renderQueue(shell,company);
  $('companies').append(shell);
 }
@@ -188,6 +299,20 @@ $('loginForm').onsubmit=event=>{
 };
 $('refresh').onclick=load;
 $('logout').onclick=()=>{const old=token;showLogin('');call('clientPortalLogout',[old],()=>{},()=>{});};
+let autoRefreshTimer=null;
+function armAutoRefresh(){
+ if(autoRefreshTimer)clearInterval(autoRefreshTimer);
+ autoRefreshTimer=setInterval(()=>{
+  if(token&&current&&current.user&&current.user.role==='cliente'&&!document.hidden)load();
+ },60000);
+}
+document.addEventListener('visibilitychange',()=>{
+ if(!document.hidden&&token&&current&&current.user&&current.user.role==='cliente')load();
+});
+window.addEventListener('focus',()=>{
+ if(token&&current&&current.user&&current.user.role==='cliente')load();
+});
+armAutoRefresh();
 if(token)load();
 })();
 </script>
