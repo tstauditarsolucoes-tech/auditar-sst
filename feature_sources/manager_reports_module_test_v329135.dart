@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:auditar_sst/screens/manager_reports_screen.dart';
+import 'package:auditar_sst/models.dart';
 
 void main() {
   final now = DateTime(2026, 9, 26);
@@ -48,6 +49,19 @@ void main() {
         period, 'Todas', now), isEmpty);
     expect(ManagerReportService.selectActions(rows, ManagerReportKind.activities,
         period, 'Todas', now), isEmpty);
+  });
+  test('all four report kinds generate a valid, nonempty PDF', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    final company = Company(id: 'company-test', name: 'Empresa de teste');
+    const dataset = ManagerReportDataset([], [], [], []);
+    for (final kind in ManagerReportKind.values) {
+      final bytes = await ManagerReportService.generate(
+        company: company, dataset: dataset, kind: kind,
+        period: period, status: 'Todas', includePhotos: false,
+      );
+      expect(bytes.length, greaterThan(1024), reason: kind.label);
+      expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+    }
   });
   test('period respects date-only boundaries', () {
     expect(period.contains(DateTime(2026, 9, 1, 0, 0)), isTrue);
