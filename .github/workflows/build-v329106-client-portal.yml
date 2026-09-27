@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.132 Rascunhos e Login Auditar
+name: Auditar SST Android v3.29.133 Rascunhos e Login Auditar
 # Rebuild v3.29.113 logo recovery
 
 on:
@@ -11,6 +11,9 @@ on:
       - 'tools/patch_company_client_access_v329133.py'
       - 'tools/regression_company_client_access_v329133.py'
       - 'tools/patch_company_client_access_version_v329133.py'
+      - 'tools/patch_client_portal_login_premium_v329134.py'
+      - 'tools/regression_client_portal_login_premium_v329134.py'
+      - 'tools/patch_client_portal_login_premium_version_v329134.py'
       - 'tools/patch_client_portal_v329106.py'
       - 'tools/patch_client_portal_admin_v329131.py'
       - 'tools/patch_client_portal_login_brand_v329132.py'
@@ -706,6 +709,13 @@ jobs:
           python3 tools/regression_company_client_access_v329133.py "$APP_DIR"
           python3 tools/patch_company_client_access_version_v329133.py "$APP_DIR" android
 
+      - name: Refinar identidade visual do login do cliente sem alterar autenticacao ou sincronizacao
+        run: |
+          set -euo pipefail
+          python3 tools/patch_client_portal_login_premium_v329134.py "$APP_DIR"
+          python3 tools/regression_client_portal_login_premium_v329134.py "$APP_DIR"
+          python3 tools/patch_client_portal_login_premium_version_v329134.py "$APP_DIR" android
+
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
         env:
@@ -767,11 +777,11 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.132-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.132-Android.apk > dist/Auditar-SST-v3.29.132-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.133-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.133-Android.apk > dist/Auditar-SST-v3.29.133-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.132-Android-Cliente-Na-Empresa
+          name: Auditar-SST-v3.29.133-Android-Cliente-Na-Empresa
           path: dist/*
           retention-days: 30
