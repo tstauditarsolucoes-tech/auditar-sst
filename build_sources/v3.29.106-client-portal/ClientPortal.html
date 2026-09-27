@@ -26,6 +26,10 @@ button.secondary{color:#234365;background:#e8eff7}button.warn{background:#b25d21
 .photo-preview{max-width:240px;max-height:180px;border-radius:8px}.section-title{margin:18px 0 9px}
 @media(max-width:500px){header{padding:16px}.wrap{padding:13px 10px}.panel{padding:17px}.login{margin:22px auto}}
 
+/* portal-training-filters-v329140 */
+.training-filters{display:grid;grid-template-columns:minmax(190px,1.5fr) minmax(140px,1fr) minmax(130px,.8fr);gap:9px;margin:11px 0 5px}
+.training-filters input,.training-filters select{width:100%;min-width:0;padding:9px 10px;font-size:12px}
+@media(max-width:700px){.training-filters{grid-template-columns:1fr}.worker-table th:nth-child(4),.worker-table td:nth-child(4){display:none}}
 /* executive-compact-v329137 */
 .exec-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:14px}
 .exec-company{font-size:24px;margin:0;color:#17324e}.exec-kicker{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#6b8295}
@@ -279,8 +283,8 @@ function renderRecentRecords(shell,company){
 
 function trainingStatusClass(value){
  const s=String(value||'').toLowerCase();
- if(/venc|sem registro|pend/.test(s))return 'bad';
- if(/vencer|aten/.test(s))return 'warn';
+ if(/a vencer|vence em|aten/.test(s))return 'warn';
+ if(/vencid|sem registro|pend/.test(s))return 'bad';
  return 'good';
 }
 function renderExecutiveAttention(company){
@@ -301,36 +305,57 @@ function renderTrainingWorkers(company){
  const rows=company.trainingPendingWorkers||[];
  const details=document.createElement('details');details.className='drill';
  details.dataset.portalKey=company.id+':training-workers';
- details.append(text('summary','Ver trabalhadores com pendências ('+rows.length+')'));
+ details.append(text('summary','Trabalhadores com treinamentos pendentes ('+rows.length+')'));
  if(!rows.length){
   details.append(text('p',company.trainingMissingCount>0?
    'Existem treinamentos sem registro, mas a relação nominal ainda não foi publicada.':
    'Nenhuma pendência nominal publicada para consulta.','compact-note'));
   return details;
  }
- const bar=text('div','','manager-tools');
- const search=document.createElement('input');search.type='search';search.placeholder='Buscar trabalhador, setor ou treinamento';
- search.setAttribute('aria-label','Buscar pendências por nome, setor ou treinamento');
- const count=text('span','','manager-total');bar.append(search,count);details.append(bar);
+ const saved=trainingFilters[company.id]||{query:'',sector:'',status:''};
+ const bar=text('div','','training-filters');
+ const search=document.createElement('input');search.type='search';
+ search.placeholder='Buscar trabalhador ou treinamento';
+ search.setAttribute('aria-label','Buscar por trabalhador ou treinamento');
+ search.value=saved.query||'';
+ const option=(select,value,label)=>{const el=document.createElement('option');el.value=value;el.textContent=label;select.append(el);};
+ const sector=document.createElement('select');sector.setAttribute('aria-label','Filtrar pendências por setor');
+ option(sector,'','Todos os setores');
+ [...new Set(rows.map(item=>String(item.sector||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'))
+  .forEach(name=>option(sector,name,name));
+ sector.value=[...sector.options].some(item=>item.value===saved.sector)?saved.sector:'';
+ const status=document.createElement('select');status.setAttribute('aria-label','Filtrar pendências por situação');
+ [['','Todas as situações'],['Sem registro','Sem registro'],['Vencido','Vencidos'],['Pendente','Pendentes']].forEach(pair=>option(status,pair[0],pair[1]));
+ status.value=saved.status||'';
+ const count=text('span','','manager-total');bar.append(search,sector,status);details.append(bar,count);
  const table=document.createElement('table');table.className='worker-table';
  const thead=document.createElement('thead'),tr=document.createElement('tr');
- ['Trabalhador','Setor / função','Treinamento','Situação'].forEach(v=>tr.append(text('th',v)));thead.append(tr);table.append(thead);
+ ['Trabalhador','Setor / função','Treinamento','Vencimento','Situação'].forEach(v=>tr.append(text('th',v)));
+ thead.append(tr);table.append(thead);
  const tbody=document.createElement('tbody');table.append(tbody);details.append(table);
  function draw(){
   const q=search.value.toLocaleLowerCase('pt-BR').trim();
-  const filtered=rows.filter(item=>[item.worker,item.sector,item.training,item.status]
-   .some(v=>String(v||'').toLocaleLowerCase('pt-BR').includes(q)));
+  trainingFilters[company.id]={query:search.value,sector:sector.value,status:status.value};
+  const filtered=rows.filter(item=>
+   (!q||[item.worker,item.sector,item.training].some(v=>String(v||'').toLocaleLowerCase('pt-BR').includes(q)))&&
+   (!sector.value||item.sector===sector.value)&&(!status.value||item.status===status.value));
   tbody.replaceChildren();
   filtered.slice(0,80).forEach(item=>{
    const row=document.createElement('tr');
-   row.append(text('td',item.worker||'—'),text('td',item.sector||'—'),text('td',item.training||'—'));
-   const status=text('span',item.status||'Sem registro','status-dot '+trainingStatusClass(item.status));
-   const td=document.createElement('td');td.append(status);row.append(td);tbody.append(row);
+   row.append(text('td',item.worker||'—'),text('td',item.sector||'—'),
+    text('td',item.training||'—'),text('td',item.dueDate||'—'));
+   const badge=text('span',item.status||'Sem registro','status-dot '+trainingStatusClass(item.status));
+   const cell=document.createElement('td');cell.append(badge);row.append(cell);tbody.append(row);
   });
-  count.textContent=filtered.length+' ocorrência(s)'+(filtered.length>80?' • mostrando 80':'');
-  if(!filtered.length)tbody.append(text('tr','Nenhum resultado para a pesquisa.'));
+  count.textContent=filtered.length+' pendência(s)'+(filtered.length>80?' • exibindo 80':'');
+  if(!filtered.length){
+   const row=document.createElement('tr'),cell=document.createElement('td');
+   cell.colSpan=5;cell.textContent='Nenhuma pendência corresponde aos filtros.';
+   row.append(cell);tbody.append(row);
+  }
  }
- search.oninput=draw;draw();return details;
+ search.oninput=draw;sector.onchange=draw;status.onchange=draw;draw();
+ return details;
 }
 function managerOpenProblems(company){
  return (company.nonConformities||[]).filter(row=>statusBucket(row)!=='done')
