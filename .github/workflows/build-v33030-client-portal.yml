@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.50 Rascunhos e Gestao de Acessos
+name: Auditar SST Windows v3.30.51 Rascunhos e Login Auditar
 
 on:
   push:
@@ -30,6 +30,9 @@ on:
       - 'tools/patch_signature_batch_version_v329128_v33048.py'
       - 'tools/patch_client_portal_v329106.py'
       - 'tools/patch_client_portal_admin_v329131.py'
+      - 'tools/patch_client_portal_login_brand_v329132.py'
+      - 'tools/regression_client_portal_login_brand_v329132.py'
+      - 'tools/patch_client_portal_login_brand_version_v329132.py'
       - 'tools/test_client_portal_admin_v329131.cjs'
       - 'tools/patch_client_accounts_ui_v329106.py'
       - 'tools/patch_hide_home_sync_card_v329107.py'
@@ -307,6 +310,11 @@ jobs:
           python tools/patch_report_email_v329111.py "$env:APP_DIR"
           if ($LASTEXITCODE -ne 0) { throw 'Envio de relatorio por e-mail falhou' }
           python tools/patch_client_portal_admin_v329131.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na gestao de clientes' }
+          python tools/patch_client_portal_login_brand_v329132.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha no login personalizado Auditar' }
+          python tools/regression_client_portal_login_brand_v329132.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na validacao do login personalizado' }
           if ($LASTEXITCODE -ne 0) { throw 'Gestao de acesso do cliente falhou' }
           if ($LASTEXITCODE -ne 0) { throw 'Assinatura e cliente por empresa falhou' }
           if ($LASTEXITCODE -ne 0) { throw 'Classificacao de melhorias falhou' }
@@ -601,6 +609,9 @@ jobs:
           python tools/regression_round_cloud_draft_v329130_v33050.py "$env:APP_DIR"
           if ($LASTEXITCODE -ne 0) { throw 'Falha regressao cloud draft' }
           python tools/patch_round_cloud_draft_version_v329130_v33050.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na versao de rascunhos' }
+          python tools/patch_client_portal_login_brand_version_v329132.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na versao com login Auditar' }
           if ($LASTEXITCODE -ne 0) { throw 'Falha versao Windows cloud draft' }
 
       - name: Compilar Windows release
@@ -625,8 +636,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.50-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.50-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.50-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.51-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.51-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.51-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -641,12 +652,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.50',
+            'AppVersion=3.30.51',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.50',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.51',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -663,10 +674,10 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.50.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.50.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.51.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.51.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.50-Windows-Painel-Cliente-Admin
+          name: Auditar-SST-v3.30.51-Windows-Painel-Cliente-Admin
           path: dist/windows/*
           retention-days: 30
