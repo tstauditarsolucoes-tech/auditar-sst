@@ -444,6 +444,8 @@ function renderCompany(company){
     text('small',[row.sector,row.status,row.priority].filter(Boolean).join(' • ')));nc.append(line);
   });shell.append(nc);
  }
+ if(company.permissions&&company.permissions.enviarEvidencia&&current.user.role==='cliente')
+  shell.append(renderMyEvidence(company));
  if(current.user.role!=='cliente')renderQueue(shell,company);
  $('companies').append(shell);
 }
@@ -468,7 +470,7 @@ function renderList(shell,title,rows,company){
 }
 function showEvidenceForm(e,companyId,ncId,button){
  button.disabled=true;const form=text('form');form.append(text('label','Descrição da correção'));
- const note=document.createElement('textarea');note.rows=3;note.maxLength=1000;note.required=false;form.append(note);
+ const note=document.createElement('textarea');note.rows=3;note.maxLength=1000;note.required=false;note.placeholder='Conte o que foi feito e, se possível, por quem.';form.className='manager-photo-form';form.append(note);
  form.append(text('label','Fotografia (opcional, até 2 MB)'));
  const photo=document.createElement('input');photo.type='file';photo.accept='image/jpeg,image/png,image/webp';form.append(photo);
  const message=text('p','','muted');const submit=text('button','Enviar para validação');submit.type='submit';form.append(message,submit);
@@ -490,6 +492,44 @@ function showEvidenceForm(e,companyId,ncId,button){
   reader.readAsDataURL(file);
  };
  e.append(form);
+}
+function renderMyEvidence(company){
+ const details=document.createElement('details');details.className='drill';
+ details.dataset.portalKey=company.id+':my-evidence';
+ details.append(text('summary','Minhas correções enviadas'));
+ const btn=text('button','Consultar envios','secondary manager-btn');btn.type='button';
+ const area=text('div');details.append(btn,area);
+ btn.onclick=()=>{
+  btn.disabled=true;area.replaceChildren(text('p','Carregando…','muted'));
+  call('clientPortalMyEvidence',[token,company.id],res=>{
+   btn.disabled=false;area.replaceChildren();
+   if(!res||!res.ok){area.append(text('p',res&&res.message||'Não foi possível consultar.','error'));return;}
+   const labels={PENDENTE_VALIDACAO:'Aguardando conferência da Auditar',
+    VALIDADA:'Evidência conferida pela Auditar',REJEITADA:'Precisa de complemento'};
+   if(!(res.evidences||[]).length)area.append(text('p','Você ainda não enviou correções pelo painel.','compact-note'));
+   (res.evidences||[]).forEach(row=>{
+    const line=text('div','','record-line');
+    line.append(text('b','Problema: '+row.ncId),
+     text('small',[formatPortalDate(row.date),labels[row.status]||row.status].filter(Boolean).join(' • ')));
+    if(row.note)line.append(text('p',row.note));
+    if(row.hasPhoto){
+     const view=text('button','Ver foto enviada','secondary manager-btn');view.type='button';
+     view.onclick=()=>{
+      view.disabled=true;
+      call('clientPortalEvidencePhoto',[token,row.id],image=>{
+       view.disabled=false;
+       if(!image||!image.ok){line.append(text('p',image&&image.message||'Foto indisponível.','error'));return;}
+       const img=document.createElement('img');img.className='photo-preview';
+       img.alt='Fotografia da correção enviada';img.src='data:'+image.mimeType+';base64,'+image.base64;
+       line.append(img);view.remove();
+      },err=>{view.disabled=false;line.append(text('p',err,'error'));});
+     };line.append(view);
+    }
+    area.append(line);
+   });
+  },err=>{btn.disabled=false;area.replaceChildren(text('p',err,'error'));});
+ };
+ return details;
 }
 function renderQueue(shell,company){
  const details=document.createElement('details');details.style.marginTop='18px';
