@@ -1,4 +1,4 @@
-import '../services/auth_service.dart';
+import 'auth_service.dart';
 
 /// Client accounts never gain operational access to the Auditar app.
 /// Administrative capabilities require the authenticated Auditar admin.
