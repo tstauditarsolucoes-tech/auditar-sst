@@ -56,6 +56,14 @@ class ManagerReportService {
       (row[key] ?? '').toString().trim();
   static DateTime? date(Map<String, Object?> row, String key) =>
       DateTime.tryParse(value(row, key));
+  static bool matches(Map<String, Object?> row, String term) {
+    final needle = term.trim().toLowerCase();
+    if (needle.isEmpty) return true;
+    return const [
+      'code', 'nc_code', 'description', 'non_conformity',
+      'corrective_action', 'sector_name', 'area', 'responsible',
+    ].any((key) => value(row, key).toLowerCase().contains(needle));
+  }
   static bool closed(Map<String, Object?> row) {
     final text = value(row, 'status').toLowerCase();
     return text == 'concluída' || text == 'concluida' ||
@@ -209,10 +217,15 @@ class ManagerReportService {
     required ManagerReportPeriod period,
     required String status,
     required bool includePhotos,
+    String search = '',
   }) async {
     final now = DateTime.now();
-    final ncs = selectNcs(dataset.ncs, kind, period, status, now);
-    final actions = selectActions(dataset.actions, kind, period, status, now);
+    final ncs = selectNcs(dataset.ncs, kind, period, status, now)
+        .where((row) => matches(row, search)).toList();
+    final linkedNcIds = ncs.map((row) => value(row, 'id')).toSet();
+    final actions = selectActions(dataset.actions, kind, period, status, now)
+        .where((row) => matches(row, search) ||
+            linkedNcIds.contains(value(row, 'nc_id'))).toList();
     final inspections = dataset.inspections.where((r) =>
         period.contains(date(r, 'date'))).toList();
     final activities = dataset.activities.where((r) =>
@@ -273,6 +286,7 @@ class ManagerReportService {
       _line('Período de referência', period.label),
       _line('Emissão', DateFormat('dd/MM/yyyy HH:mm').format(now)),
       _line('Filtro de situação', status),
+      if (search.trim().isNotEmpty) _line('Pesquisa específica', search.trim()),
       _line('Critério', 'Pendências mostram o estoque aberto atual, inclusive de visitas anteriores. '
           'Atividades e conclusões consideram o período selecionado.'),
       _section('VISÃO GERAL'),
@@ -402,6 +416,7 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
   ManagerReportKind kind = ManagerReportKind.pending;
   String periodChoice = 'Mês atual';
   String status = 'Todas';
+  String specificSearch = '';
   bool includePhotos = true;
   bool busy = false;
   bool sending = false;
@@ -543,7 +558,8 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
     try {
       final bytes = await ManagerReportService.generate(
           company: widget.company, dataset: data!, kind: kind,
-          period: period, status: status, includePhotos: includePhotos);
+          period: period, status: status, includePhotos: includePhotos,
+          search: specificSearch);
       if (!mounted) return;
       if (bytes.length < 1024 ||
           bytes[0] != 0x25 || bytes[1] != 0x50 ||
@@ -638,6 +654,18 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
             if (v != null) setState(() => status = v);
           },
         ),
+        if (kind != ManagerReportKind.activities) ...[
+          const SizedBox(height: 13),
+          TextField(
+            decoration: const InputDecoration(
+              labelText: 'Busca específica (opcional)',
+              hintText: 'Código da NC, setor ou responsável',
+              prefixIcon: Icon(Icons.search),
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (value) => specificSearch = value,
+          ),
+        ],
         SwitchListTile.adaptive(
           title: const Text('Incluir fotografias disponíveis'),
           subtitle: const Text('Registros sem foto continuam no relatório.'),
