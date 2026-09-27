@@ -107,16 +107,8 @@ class ManagerReportService {
     final db = AppDatabase.instance;
     final ncs = await db.getNonConformityRows(
         companyId: company.id, includeClosed: true);
-    final sql = await db.database;
-    final actions = await sql.rawQuery(
-      'SELECT a.*, i.date AS inspection_date, i.area AS area, '
-      'nc.code AS nc_code, nc.status AS nc_status '
-      'FROM action_plans a '
-      'JOIN inspections i ON i.id = a.inspection_id '
-      'LEFT JOIN non_conformities nc ON nc.id = a.nc_id '
-      'WHERE i.company_id = ? ORDER BY a.due_date ASC, a.rowid DESC',
-      [company.id],
-    );
+    final actions = await db.getPendingActions(
+        companyId: company.id, includeCompleted: true);
     final inspections = await db.getInspectionHistory(companyId: company.id);
     final activities = <SstRecord>[];
     for (final type in const [
