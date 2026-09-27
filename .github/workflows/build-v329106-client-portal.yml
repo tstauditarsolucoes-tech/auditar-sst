@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.130 Rascunhos na Nuvem
+name: Auditar SST Android v3.29.130 Rascunhos e Gestao de Acessos
 # Rebuild v3.29.113 logo recovery
 
 on:
@@ -8,6 +8,8 @@ on:
     paths:
       - '.github/workflows/build-v329106-client-portal.yml'
       - 'tools/patch_client_portal_v329106.py'
+      - 'tools/patch_client_portal_admin_v329131.py'
+      - 'tools/test_client_portal_admin_v329131.cjs'
       - 'tools/patch_client_accounts_ui_v329106.py'
       - 'tools/patch_hide_home_sync_card_v329107.py'
       - 'tools/patch_ronda_media_report_v329108.py'
@@ -315,6 +317,7 @@ jobs:
           python tools/patch_training_client_entry_v329110.py "$APP_DIR" android
           python tools/patch_report_policy_v329111.py "$APP_DIR" android
           python tools/patch_report_email_v329111.py "$APP_DIR"
+          python tools/patch_client_portal_admin_v329131.py "$APP_DIR"
           python tools/regression_client_portal_v329106.py "$APP_DIR"
           python - "$APP_DIR" <<'PY'
           from pathlib import Path
@@ -334,6 +337,7 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ReportEmail.gs" /tmp/report-email.js
           node --check /tmp/report-email.js
           node tools/test_client_portal_v329106.cjs "$APP_DIR/painel_web_google_apps_script/ClientPortal.gs"
+          node tools/test_client_portal_admin_v329131.cjs "$APP_DIR/painel_web_google_apps_script/ClientPortal.gs" "$APP_DIR/painel_web_google_apps_script/ClientPortal.html"
 
       - name: Melhorar relatórios sem alterar sincronização, banco, GS ou IA
         run: |
@@ -745,6 +749,6 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.130-Android-Fichas-Fisicas-IA
+          name: Auditar-SST-v3.29.130-Android-Portal-Admin
           path: dist/*
           retention-days: 30
