@@ -182,6 +182,11 @@ function clientPortalData(token) {
       result.inspections = clientPortalRows_(payload,
         ['recentInspections','inspections','inspectionRows']);
     }
+    if (permissions.indicadores) {
+      const operational = clientPortalOperationalSummary_(companyId);
+      result.ddsSummary = operational.dds;
+      result.trainingRecords = operational.trainingRecords;
+    }
     companies.push(result);
   });
   auditAuthEvent_(user,'client_portal_view','panel','',companies.map(function(c){return c.id;}).join(','),
@@ -360,4 +365,77 @@ function clientPortalSharePayload_(payload) {
       .forEach(function(key) {delete clean.company[key];});
   }
   return clean;
+}
+
+
+/** Leitura somente leitura dos registros SST já sincronizados.
+ * Não escreve na fila de sync, não altera versão e não publica mídia.
+ */
+function clientPortalDeviceSstRecords_(companyId) {
+  const cid=String(companyId||'').trim();
+  if(!cid)return [];
+  const sheet=getSheet_(DEVICE_SYNC_SHEET);
+  if(sheet.getLastRow()<2)return [];
+  const lastColumn=Math.max(10,sheet.getLastColumn());
+  const rows=sheet.getRange(2,1,sheet.getLastRow()-1,lastColumn).getValues();
+  return rows.filter(function(row){
+    if(String(row[0]||'')!=='sst_records')return false;
+    if(row[2]===true||String(row[2]).toLowerCase()==='true')return false;
+    let payload={};try{payload=JSON.parse(String(row[7]||'{}'));}catch(_){}
+    const storedCompany=String(row[8]||payload.company_id||payload.companyId||'').trim();
+    return storedCompany===cid;
+  }).map(function(row){
+    let raw={};try{raw=JSON.parse(String(row[7]||'{}'));}catch(_){}
+    let details={};
+    const nested=raw.payload;
+    if(nested&&typeof nested==='object')details=nested;
+    else if(typeof nested==='string'){try{details=JSON.parse(nested||'{}');}catch(_){}}
+    const list=function(value){return Array.isArray(value)?value:[];};
+    const type=String(raw.type||'').toUpperCase();
+    const participants=type==='DDS'
+      ? list(details.dds_participants||details.participants)
+      : list(details.participants);
+    const photos=list(details.photos);
+    const paper=list(details.paper_attendance);
+    return {
+      id:String(raw.id||row[1]||'').slice(0,160),
+      type:type.slice(0,60),
+      title:String(raw.title||details.theme||details.topic||details.code||'Registro SST').slice(0,220),
+      date:String(raw.date||'').slice(0,60),
+      status:String(raw.status||'').slice(0,80),
+      participants:participants.length,
+      photos:photos.slice(0,20).map(function(item){
+        const x=item&&typeof item==='object'?item:{};
+        return {id:String(x.id||'').slice(0,160),fileName:String(x.fileName||'Foto').slice(0,180)};
+      }),
+      paper:paper.slice(0,20).map(function(item){
+        const x=item&&typeof item==='object'?item:{};
+        return {id:String(x.id||'').slice(0,160),fileName:String(x.fileName||'Ficha assinada').slice(0,180)};
+      })
+    };
+  }).sort(function(a,b){return String(b.date||'').localeCompare(String(a.date||''));});
+}
+
+function clientPortalOperationalSummary_(companyId) {
+  const records=clientPortalDeviceSstRecords_(companyId);
+  const now=new Date();
+  const month=now.getUTCMonth(),year=now.getUTCFullYear();
+  const dds=records.filter(function(r){return r.type==='DDS';});
+  const trainings=records.filter(function(r){return r.type==='TREINAMENTO_SESSAO';});
+  const parsed=function(value){const d=new Date(value);return Number.isNaN(d.getTime())?null:d;};
+  const ddsMonth=dds.filter(function(r){const d=parsed(r.date);return d&&d.getUTCFullYear()===year&&d.getUTCMonth()===month;});
+  const ddsYear=dds.filter(function(r){const d=parsed(r.date);return d&&d.getUTCFullYear()===year;});
+  return {
+    dds:{
+      month:ddsMonth.length,
+      year:ddsYear.length,
+      participations:ddsYear.reduce(function(total,r){return total+(Number(r.participants)||0);},0),
+      recent:dds.slice(0,8)
+    },
+    trainingRecords:{
+      total:trainings.length,
+      finalized:trainings.filter(function(r){return /FINAL|CONCLU|REALIZ/.test(r.status);}).length,
+      recent:trainings.slice(0,8)
+    }
+  };
 }
