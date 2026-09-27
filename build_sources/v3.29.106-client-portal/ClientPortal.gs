@@ -149,30 +149,48 @@ function clientPortalSummary_(payload) {
 /** Only employee name, sector and the required training are published to an
  * authorized company. Never expose CPF, health data or raw HR records. */
 function clientPortalPendingTrainingRows_(payload) {
-  const raw=Array.isArray(payload.missingRequiredTrainings)
-    ? payload.missingRequiredTrainings : [];
+  const missing=Array.isArray(payload.missingRequiredTrainings)
+    ?payload.missingRequiredTrainings:[];
+  const registered=Array.isArray(payload.trainingRecords)
+    ?payload.trainingRecords:[];
   const pick=function(obj,keys,max) {
     for(let i=0;i<keys.length;i++){
       const value=obj[keys[i]];
       if(value!==null&&value!==undefined&&typeof value!=='object'){
-        const text=String(value).trim();
-        if(text)return text.slice(0,max||200);
+        const v=String(value).trim();
+        if(v)return v.slice(0,max||200);
       }
     }
     return '';
   };
-  return raw.slice(0,200).map(function(value){
+  const clean=function(value,kind){
     const item=value&&typeof value==='object'?value:{};
-    return {
-      worker:pick(item,['workerName','employeeName','collaboratorName','name','worker'],150),
-      sector:pick(item,['sectorName','sector','area'],100),
+    const row={
+      worker:pick(item,['workerName','employeeName','collaboratorName','worker','name'],150),
+      sector:pick(item,['sectorName','sector','area','role'],100),
       training:pick(item,['trainingTitle','trainingName','title','training','requirementName','code'],180),
-      status:pick(item,['status','situation'],70)||'Sem registro',
+      status:kind==='missing'?'Sem registro':
+        pick(item,['status','situation'],70),
       dueDate:pick(item,['dueDate','expiryDate','expiresAt','validUntil'],60)
     };
-  }).filter(function(item){return item.worker&&item.training;});
+    if(kind!=='missing'){
+      const status=row.status.toUpperCase();
+      if(!/VENCID|PENDENT/.test(status))return null;
+      row.status=/VENCID/.test(status)?'Vencido':'Pendente';
+    }
+    return row.worker&&row.training?row:null;
+  };
+  const result=[],seen={};
+  const add=function(item,kind){
+    const row=clean(item,kind);
+    if(!row)return;
+    const key=[row.worker,row.training,row.status].join('|').toLocaleLowerCase('pt-BR');
+    if(seen[key])return;seen[key]=true;result.push(row);
+  };
+  missing.slice(0,250).forEach(function(item){add(item,'missing');});
+  registered.slice(0,250).forEach(function(item){add(item,'record');});
+  return result.slice(0,250);
 }
-
 function clientPortalData(token) {
   const user = clientPortalAuthorizedUser_(token);
   if (!user) return {ok:false, code:'SESSION_INVALID', message:'Entre novamente.'};
@@ -265,7 +283,6 @@ function clientPortalPublishedReport_(payload, id) {
       const key=String(row.id||row.code||row.reportNumber||'').trim();
       if(key===requested)return row;
     }
-    return null;
   }
   return null;
 }
