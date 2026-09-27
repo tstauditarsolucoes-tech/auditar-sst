@@ -10,6 +10,8 @@ import 'package:printing/printing.dart';
 
 import '../database.dart';
 import '../models.dart';
+import '../services/document_delivery_service.dart';
+import '../services/report_recipients.dart';
 
 /// Gerencial: somente leitura dos registros existentes. Sem novas tabelas,
 /// transporte, endpoints, publicacao automatica ou alteracao do GS.
@@ -402,6 +404,7 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
   String status = 'Todas';
   bool includePhotos = true;
   bool busy = false;
+  bool sending = false;
   String progress = '';
   ManagerReportDataset? data;
   DateTime? from;
@@ -453,6 +456,73 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
     if (result == null || !mounted) return;
     setState(() { if (start) { from = result; } else { through = result; } });
   }
+  Future<void> _emailReport(
+      BuildContext previewContext, Uint8List bytes, String fileName) async {
+    if (sending) return;
+    final primary = widget.company.reportEmail.trim();
+    final additional = widget.company.secondaryReportEmail.trim();
+    final validation = ReportRecipients.validationError(primary, additional);
+    if (validation != null || primary.isEmpty) {
+      if (previewContext.mounted) {
+        ScaffoldMessenger.of(previewContext).showSnackBar(SnackBar(
+          content: Text(validation ??
+              'Cadastre os destinatários na edição da empresa.'),
+        ));
+      }
+      return;
+    }
+    final recipients = ReportRecipients.parse(primary, additional);
+    final confirmed = await showDialog<bool>(
+      context: previewContext,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Enviar relatório gerencial?'),
+        content: Text(
+          'Documento: ' + kind.label +
+          '\nEmpresa: ' + widget.company.name +
+          '\nDestinatários: ' + recipients.join(', ') +
+          '\n\nO envio será registrado no histórico de documentos da empresa.',
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancelar')),
+          FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Confirmar envio')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => sending = true);
+    try {
+      final result = await DocumentDeliveryService.send(
+        companyId: widget.company.id,
+        companyName: widget.company.name,
+        documentId: 'gerencial:' + kind.name + ':' +
+            DateTime.now().millisecondsSinceEpoch.toString(),
+        category: 'Relatório gerencial',
+        title: kind.label + ' • ' + period.label,
+        to: primary,
+        cc: additional,
+        fileName: fileName,
+        bytes: bytes,
+      );
+      if (previewContext.mounted) {
+        ScaffoldMessenger.of(previewContext).showSnackBar(
+          SnackBar(content: Text(result)),
+        );
+      }
+    } catch (error) {
+      if (previewContext.mounted) {
+        ScaffoldMessenger.of(previewContext).showSnackBar(
+          SnackBar(content: Text('Envio não confirmado: ' + error.toString())),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => sending = false);
+    }
+  }
+
   Future<void> _generate() async {
     if (busy || data == null) return;
     if (periodChoice == 'Personalizado' &&
@@ -474,9 +544,19 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
       }
       final name = 'Auditar_Gerencial_' + kind.name + '_' +
           DateFormat('yyyyMMdd').format(DateTime.now()) + '.pdf';
+      setState(() { busy = false; progress = ''; });
       await Navigator.of(context).push(MaterialPageRoute<void>(
-          builder: (_) => Scaffold(
-            appBar: AppBar(title: Text(kind.label)),
+          builder: (previewContext) => Scaffold(
+            appBar: AppBar(
+              title: Text(kind.label),
+              actions: [
+                IconButton(
+                  tooltip: 'Enviar aos e-mails cadastrados da empresa',
+                  icon: const Icon(Icons.mark_email_read_outlined),
+                  onPressed: () => _emailReport(previewContext, bytes, name),
+                ),
+              ],
+            ),
             body: PdfPreview(
                 build: (format) async => bytes,
                 pdfFileName: name,
