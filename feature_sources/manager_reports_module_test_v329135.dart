@@ -73,6 +73,30 @@ void main() {
       expect(String.fromCharCodes(bytes.take(4)), '%PDF');
     }
   });
+  test('management PDF renders one real action without requiring photos', () async {
+    final nc = <String, Object?>{
+      'id': 'nc1', 'answer_id': 'answer1', 'code': 'NC-001',
+      'status': 'Pendente', 'description': 'Proteção ausente',
+      'recommendation': 'Regularizar antes do uso',
+      'classification': 'Alta', 'sector_name': 'Produção',
+      'inspection_date': '2026-09-20',
+    };
+    final action = <String, Object?>{
+      'id': 'action1', 'nc_id': 'nc1', 'answer_id': 'answer1',
+      'non_conformity': 'Proteção ausente',
+      'corrective_action': 'Instalar proteção',
+      'responsible': 'Manutenção', 'due_date': '2026-09-30',
+      'status': 'Pendente',
+    };
+    final bytes = await ManagerReportService.generate(
+      company: Company(id: 'company-test', name: 'Empresa de teste'),
+      dataset: ManagerReportDataset([nc], [action], [], []),
+      kind: ManagerReportKind.pending, period: period,
+      status: 'Todas', includePhotos: false,
+    );
+    expect(bytes.length, greaterThan(1024));
+    expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+  });
   test('period respects date-only boundaries', () {
     expect(period.contains(DateTime(2026, 9, 1, 0, 0)), isTrue);
     expect(period.contains(DateTime(2026, 9, 26, 23, 59)), isTrue);
