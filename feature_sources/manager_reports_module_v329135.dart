@@ -285,7 +285,7 @@ class ManagerReportService {
       if ((company.cnpj ?? '').isNotEmpty) _line('CNPJ', company.cnpj!),
       _line('Período de referência', period.label),
       _line('Emissão', DateFormat('dd/MM/yyyy HH:mm').format(now)),
-      _line('Filtro de situação', status),
+      _line('Filtro de situação', kind == ManagerReportKind.activities ? 'Não se aplica' : status),
       if (search.trim().isNotEmpty) _line('Pesquisa específica', search.trim()),
       _line('Critério', 'Pendências mostram o estoque aberto atual, inclusive de visitas anteriores. '
           'Atividades e conclusões consideram o período selecionado.'),
@@ -558,7 +558,9 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
     try {
       final bytes = await ManagerReportService.generate(
           company: widget.company, dataset: data!, kind: kind,
-          period: period, status: status, includePhotos: includePhotos,
+          period: period,
+          status: kind == ManagerReportKind.activities ? 'Todas' : status,
+          includePhotos: includePhotos,
           search: specificSearch);
       if (!mounted) return;
       if (bytes.length < 1024 ||
@@ -644,16 +646,17 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
           ]),
         ],
         const SizedBox(height: 13),
-        DropdownButtonFormField<String>(
-          value: status,
-          decoration: const InputDecoration(
-              labelText: 'Filtro de situação', border: OutlineInputBorder()),
-          items: const ['Todas', 'Pendentes', 'Atrasadas', 'Resolvidas']
-              .map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-          onChanged: busy ? null : (v) {
-            if (v != null) setState(() => status = v);
-          },
-        ),
+        if (kind != ManagerReportKind.activities)
+          DropdownButtonFormField<String>(
+            value: status,
+            decoration: const InputDecoration(
+                labelText: 'Filtro de situação', border: OutlineInputBorder()),
+            items: const ['Todas', 'Pendentes', 'Atrasadas', 'Resolvidas']
+                .map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+            onChanged: busy ? null : (v) {
+              if (v != null) setState(() => status = v);
+            },
+          ),
         if (kind != ManagerReportKind.activities) ...[
           const SizedBox(height: 13),
           TextField(
