@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.133 Rascunhos e Login Auditar
+name: Auditar SST Android v3.29.134 Rascunhos e Login Auditar
 # Rebuild v3.29.113 logo recovery
 
 on:
@@ -14,6 +14,11 @@ on:
       - 'tools/patch_client_portal_login_premium_v329134.py'
       - 'tools/regression_client_portal_login_premium_v329134.py'
       - 'tools/patch_client_portal_login_premium_version_v329134.py'
+      - 'feature_sources/manager_reports_module_v329135.dart'
+      - 'feature_sources/manager_reports_module_test_v329135.dart'
+      - 'tools/patch_manager_reports_v329135_v33054.py'
+      - 'tools/regression_manager_reports_v329135_v33054.py'
+      - 'tools/patch_manager_reports_version_v329135_v33054.py'
       - 'tools/patch_client_portal_v329106.py'
       - 'tools/patch_client_portal_admin_v329131.py'
       - 'tools/patch_client_portal_login_brand_v329132.py'
@@ -716,6 +721,19 @@ jobs:
           python3 tools/regression_client_portal_login_premium_v329134.py "$APP_DIR"
           python3 tools/patch_client_portal_login_premium_version_v329134.py "$APP_DIR" android
 
+      - name: Central gerencial quatro PDFs por empresa com nucleo protegido
+        run: |
+          set -euo pipefail
+          python3 tools/patch_manager_reports_v329135_v33054.py "$APP_DIR"
+          python3 tools/regression_manager_reports_v329135_v33054.py "$APP_DIR"
+          cd "$APP_DIR"
+          dart format lib/screens/manager_reports_screen.dart lib/screens/company_detail_screen.dart test/manager_reports_module_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/manager_reports_module_test.dart test/express_round_pdf_pagination_test.dart
+          cd "$GITHUB_WORKSPACE"
+          python3 tools/regression_manager_reports_v329135_v33054.py "$APP_DIR"
+          python3 tools/patch_manager_reports_version_v329135_v33054.py "$APP_DIR" android
+
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
         env:
@@ -777,11 +795,11 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.133-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.133-Android.apk > dist/Auditar-SST-v3.29.133-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.134-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.134-Android.apk > dist/Auditar-SST-v3.29.134-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.133-Android-Cliente-Na-Empresa
+          name: Auditar-SST-v3.29.134-Android-Cliente-Na-Empresa
           path: dist/*
           retention-days: 30
