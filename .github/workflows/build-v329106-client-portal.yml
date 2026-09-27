@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.135 Rascunhos e Login Auditar
+name: Auditar SST Android v3.29.136 Rascunhos e Login Auditar
 # Rebuild v3.29.113 logo recovery
 
 on:
@@ -25,6 +25,12 @@ on:
       - 'tools/regression_client_multi_access_v329136_v33055.py'
       - 'tools/patch_client_multi_access_version_v329136_v33055.py'
       - 'tools/test_client_multi_access_v329136.cjs'
+      - 'feature_sources/admin_access_policy_v329137.dart'
+      - 'feature_sources/admin_center_screen_v329137.dart'
+      - 'feature_sources/admin_access_policy_test_v329137.dart'
+      - 'tools/patch_admin_authority_v329137_v33056.py'
+      - 'tools/regression_admin_authority_v329137_v33056.py'
+      - 'tools/patch_admin_authority_version_v329137_v33056.py'
       - 'tools/patch_client_portal_v329106.py'
       - 'tools/patch_client_portal_admin_v329131.py'
       - 'tools/patch_client_portal_login_brand_v329132.py'
@@ -754,6 +760,19 @@ jobs:
           python3 tools/regression_client_multi_access_v329136_v33055.py "$APP_DIR"
           python3 tools/patch_client_multi_access_version_v329136_v33055.py "$APP_DIR" android
 
+      - name: Central administrativa Auditar somente para ADM Android
+        run: |
+          set -euo pipefail
+          python3 tools/patch_admin_authority_v329137_v33056.py "$APP_DIR"
+          python3 tools/regression_admin_authority_v329137_v33056.py "$APP_DIR"
+          cd "$APP_DIR"
+          dart format lib/services/admin_access_policy.dart lib/screens/admin_center_screen.dart lib/screens/users_screen.dart lib/screens/home_screen.dart lib/screens/settings_screen.dart test/admin_access_policy_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/admin_access_policy_test.dart test/company_multi_client_access_test.dart
+          cd "$GITHUB_WORKSPACE"
+          python3 tools/regression_admin_authority_v329137_v33056.py "$APP_DIR"
+          python3 tools/patch_admin_authority_version_v329137_v33056.py "$APP_DIR" android
+
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
         env:
@@ -815,11 +834,11 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.135-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.135-Android.apk > dist/Auditar-SST-v3.29.135-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.136-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.136-Android.apk > dist/Auditar-SST-v3.29.136-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.135-Android-Cliente-Na-Empresa
+          name: Auditar-SST-v3.29.136-Android-Cliente-Na-Empresa
           path: dist/*
           retention-days: 30
