@@ -270,21 +270,37 @@ function renderExecutiveAttention(company){
 function renderTrainingWorkers(company){
  const rows=company.trainingPendingWorkers||[];
  const details=document.createElement('details');details.className='drill';
+ details.dataset.portalKey=company.id+':training-workers';
  details.append(text('summary','Ver trabalhadores com pendências ('+rows.length+')'));
- if(!rows.length){details.append(text('p','Nenhum trabalhador com pendência nominal publicada.','compact-note'));return details;}
+ if(!rows.length){
+  details.append(text('p',company.trainingMissingCount>0?
+   'Existem treinamentos sem registro, mas a relação nominal ainda não foi publicada.':
+   'Nenhuma pendência nominal publicada para consulta.','compact-note'));
+  return details;
+ }
+ const bar=text('div','','manager-tools');
+ const search=document.createElement('input');search.type='search';search.placeholder='Buscar trabalhador, setor ou treinamento';
+ search.setAttribute('aria-label','Buscar pendências por nome, setor ou treinamento');
+ const count=text('span','','manager-total');bar.append(search,count);details.append(bar);
  const table=document.createElement('table');table.className='worker-table';
  const thead=document.createElement('thead'),tr=document.createElement('tr');
  ['Trabalhador','Setor','Treinamento','Situação'].forEach(v=>tr.append(text('th',v)));thead.append(tr);table.append(thead);
- const tbody=document.createElement('tbody');
- rows.slice(0,80).forEach(item=>{
-  const row=document.createElement('tr');
-  row.append(text('td',item.worker||'—'),text('td',item.sector||'—'),text('td',item.training||'—'));
-  const status=text('span',item.status||'Sem registro','status-dot '+trainingStatusClass(item.status));
-  const td=document.createElement('td');td.append(status);row.append(td);tbody.append(row);
- });
- table.append(tbody);details.append(table);
- if(rows.length>80)details.append(text('p','Mostrando os primeiros 80 registros. Use os filtros no módulo de treinamentos para aprofundar.','compact-note'));
- return details;
+ const tbody=document.createElement('tbody');table.append(tbody);details.append(table);
+ function draw(){
+  const q=search.value.toLocaleLowerCase('pt-BR').trim();
+  const filtered=rows.filter(item=>[item.worker,item.sector,item.training,item.status]
+   .some(v=>String(v||'').toLocaleLowerCase('pt-BR').includes(q)));
+  tbody.replaceChildren();
+  filtered.slice(0,80).forEach(item=>{
+   const row=document.createElement('tr');
+   row.append(text('td',item.worker||'—'),text('td',item.sector||'—'),text('td',item.training||'—'));
+   const status=text('span',item.status||'Sem registro','status-dot '+trainingStatusClass(item.status));
+   const td=document.createElement('td');td.append(status);row.append(td);tbody.append(row);
+  });
+  count.textContent=filtered.length+' ocorrência(s)'+(filtered.length>80?' • mostrando 80':'');
+  if(!filtered.length)tbody.append(text('tr','Nenhum resultado para a pesquisa.'));
+ }
+ search.oninput=draw;draw();return details;
 }
 function renderImprovementPlan(company){
  const details=document.createElement('details');details.className='drill';
