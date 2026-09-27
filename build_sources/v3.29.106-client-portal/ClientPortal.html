@@ -146,13 +146,13 @@ function statusBucket(row){
  const due=row.dueDate?new Date(row.dueDate):null;
  const overdue=due&&!Number.isNaN(due.getTime())&&due.getTime()<Date.now()&&!/concl|resol|feito|final/.test(status);
  if(/concl|resol|feito|final/.test(status))return 'done';
- if(overdue)return 'late';
+ if(/aguard|verifica|confer|evid[eê]ncia/.test(status))return 'verify';
  if(/andamento|execu|tratamento|iniciado/.test(status))return 'doing';
  return 'todo';
 }
 function renderKanban(actions){
  const wrap=text('div','','kanban');
- const defs=[['todo','A fazer'],['doing','Em andamento'],['late','Vencidas'],['done','Concluídas']];
+ const defs=[['todo','A fazer'],['doing','Em andamento'],['verify','Aguardando Auditar'],['done','Concluídas']];
  defs.forEach(def=>{
   const rows=(actions||[]).filter(r=>statusBucket(r)===def[0]).slice(0,6);
   const col=text('div','','kanban-col');const title=text('div','','kanban-title');
@@ -160,8 +160,10 @@ function renderKanban(actions){
   if(!rows.length)col.append(text('div','Sem registros','compact-note'));
   rows.forEach(row=>{
    const card=text('div','','k-card');card.append(text('b',row.title||row.description||'Ação'));
+   const due=row.dueDate?new Date(row.dueDate):null;
+   const overdue=due&&!Number.isNaN(due.getTime())&&due.getTime()<Date.now()&&statusBucket(row)!=='done';
    const meta=[row.sector,row.responsible,row.dueDate?'Prazo '+row.dueDate:''].filter(Boolean).join(' • ');
-   if(meta)card.append(text('small',meta));col.append(card);
+   if(meta)card.append(text('small',meta));if(overdue)card.append(text('span','Prazo vencido','status-dot bad'));col.append(card);
   });
   wrap.append(col);
  });
@@ -288,7 +290,7 @@ function renderCompany(company){
  const summary=company.summary||{},training=company.trainingSummary||{};
  const metrics=text('div','','exec-metrics');
  const metricData=[
-  ['NC em aberto',safeNum(summary.openNcs), ''],
+  ['Problemas em aberto',safeNum(summary.openNcs), ''],
   ['Ações vencidas',safeNum(summary.overdueActions), 'alert'],
   ['Treinamentos vencidos',safeNum(training.expired), 'warn'],
   ['Conformidade',safeNum(summary.conformity), 'good','%']
@@ -297,7 +299,7 @@ function renderCompany(company){
  shell.append(metrics);
  shell.append(renderExecutiveAttention(company));
  const grid=text('div','','section-grid');const main=text('div','','compact-box');
- main.append(text('h3','Plano de ação'));
+ main.append(text('h3','Acompanhamento das providências'));
  const actions=company.actions||[];main.append(renderKanban(actions));
  if(actions.length>24)main.append(text('div','Mostrando as ações mais recentes por etapa.','compact-note'));
  grid.append(main,renderTrainingAndDds(company));shell.append(grid);
@@ -307,7 +309,7 @@ function renderCompany(company){
  if(company.permissions&&company.permissions.naoConformidades){
   const nc=document.createElement('details');nc.className='activity-toggle';
   const rows=(company.nonConformities||[]);
-  nc.append(text('summary','Não conformidades ('+rows.length+')'));
+  nc.append(text('summary','Problemas encontrados ('+rows.length+')'));
   rows.slice(0,20).forEach(row=>{
    const line=text('div','','record-line');line.append(text('b',row.title||row.description||'Não conformidade'),
     text('small',[row.sector,row.status,row.priority].filter(Boolean).join(' • ')));nc.append(line);
