@@ -27,7 +27,7 @@ for value in (
 for value in (
     "AuditarAdminAccess.isAdmin(AuthService.currentUser)",
     'AuthService.listUsers()',
-    'AppDatabase.instance.getCompanies(onlyActive: false)',
+    'AppDatabase.instance.getCompanies(',
     'const UsersScreen()',
     'const UsersScreen()',
     'const CompaniesScreen()',
