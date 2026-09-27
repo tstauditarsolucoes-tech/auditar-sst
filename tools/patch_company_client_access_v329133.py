@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Admin-only company client access next to report emails. No sync/DB/GS/auth mutations."""
 from pathlib import Path
-import hashlib,shutil,sys
+import hashlib,shutil,sys,re
 root=Path(sys.argv[1])
 source=Path(__file__).resolve().parents[1]/'feature_sources/company_client_access_section_v329133.dart'
 target=root/'lib/widgets/company_client_access_section.dart'
@@ -46,7 +46,13 @@ insertion="""                if (AuthService.isAdmin && company != null)
                     ),
                   ),
 """
-one(anchor,insertion+anchor,'company email-section insertion')
+matches=list(re.finditer(
+    r"(?m)^(?P<indent>[ \\t]*)SwitchListTile\\(\\s*contentPadding:\\s*EdgeInsets\\.zero,\\s*title:\\s*const Text\\('Enviar relatório mensal'\\)",
+    s))
+if len(matches)!=1:
+ raise SystemExit('company email-section marker expected once: '+str(len(matches)))
+hit=matches[0]
+s=s[:hit.start()]+insertion+s[hit.start():]
 shutil.copyfile(source,target)
 screen.write_text(s,encoding='utf-8',newline='\n')
 changed=[p for p,h in before.items()
