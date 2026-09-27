@@ -68,8 +68,8 @@ class _CompanyClientAccessSectionState extends State<CompanyClientAccessSection>
     }
   }
   void _start([AuditarUser? user]){
-    name.text=user?.name??widget.reportRecipient.text.trim();
-    email.text=user?.email??widget.reportEmail.text.trim();
+    name.text=user?.name??'';
+    email.text=user?.email??'';
     password.clear();
     setState((){
       editing=user;permissions={...defaults,...?user?.clientPermissions};
@@ -89,6 +89,12 @@ class _CompanyClientAccessSectionState extends State<CompanyClientAccessSection>
     }
     if((editing==null||secret.isNotEmpty)&&secret.length<8){
       setState(()=>error='A senha inicial ou nova senha precisa de 8 caracteres.');
+      return;
+    }
+    final duplicate=clients.any((u)=>
+        u.id!=editing?.id && u.email.trim().toLowerCase()==address.toLowerCase());
+    if(duplicate){
+      setState(()=>error='Este e-mail já possui acesso a esta empresa.');
       return;
     }
     if(editing!=null&&(editing!.role.toLowerCase()!='cliente' ||
@@ -123,13 +129,25 @@ class _CompanyClientAccessSectionState extends State<CompanyClientAccessSection>
     if(!AuthService.isAdmin)return const SizedBox.shrink();
     return Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
       const SizedBox(height:14),const Divider(),const SizedBox(height:8),
-      const Text('Acesso da empresa ao Painel Gerencial',
+      const Text('Acessos da empresa ao Painel Gerencial',
           style:TextStyle(fontWeight:FontWeight.w800)),
       const SizedBox(height:5),
-      Text('Cadastre aqui quem pode entrar no painel de '+widget.company.name+
-          '. O e-mail de login é independente dos destinatários de relatórios.',
+      Text('Cadastre quantas pessoas forem necessárias para entrar no painel de '+
+          widget.company.name+
+          '. Gerência, diretoria, RH e outros responsáveis podem ter e-mail e senha próprios, todos vinculados ao mesmo ambiente da empresa.',
           style:const TextStyle(fontSize:12)),
       const SizedBox(height:6),
+      Text(
+        clients.isEmpty
+            ? 'Nenhum acesso individual cadastrado nesta empresa.'
+            : clients.length.toString()+
+              (clients.length==1?' acesso individual cadastrado.':' acessos individuais cadastrados.'),
+        style:const TextStyle(fontSize:12,fontWeight:FontWeight.w700),
+      ),
+      const SizedBox(height:4),
+      const Text('Cada pessoa usa seu próprio e-mail e senha. Desativar um acesso não interfere nos demais. O e-mail de login é independente dos destinatários de relatórios.',
+          style:TextStyle(fontSize:11.5)),
+      const SizedBox(height:4),
       const Text('Publique o painel da empresa antes de liberar acesso. '
           'Somente um administrador Auditar pode cadastrar clientes.',
           style:TextStyle(fontSize:11.5)),
@@ -153,7 +171,7 @@ class _CompanyClientAccessSectionState extends State<CompanyClientAccessSection>
         OutlinedButton.icon(
           onPressed:saving?null:()=>_start(),
           icon:const Icon(Icons.person_add_alt_1_outlined),
-          label:const Text('Cadastrar acesso do cliente'),
+          label:Text(clients.isEmpty?'Cadastrar primeiro acesso':'Adicionar outro acesso'),
         ),
         TextButton.icon(
           onPressed:saving?null:_load,
@@ -162,7 +180,7 @@ class _CompanyClientAccessSectionState extends State<CompanyClientAccessSection>
         ),
       ],
       if(showForm)...[
-        Text(editing==null?'Novo acesso do cliente':'Editar acesso do cliente',
+        Text(editing==null?'Novo acesso individual':'Editar acesso individual',
           style:const TextStyle(fontWeight:FontWeight.w700)),
         const SizedBox(height:8),
         TextField(controller:name,enabled:!saving,
@@ -186,8 +204,11 @@ class _CompanyClientAccessSectionState extends State<CompanyClientAccessSection>
         SwitchListTile(contentPadding:EdgeInsets.zero,
           title:const Text('Conta ativa'),value:active,
           onChanged:saving?null:(value)=>setState(()=>active=value)),
-        const Text('Permissões do cliente',
+        const Text('Permissões deste acesso',
           style:TextStyle(fontWeight:FontWeight.w700)),
+        const SizedBox(height:3),
+        const Text('As permissões podem ser diferentes para gerente, diretoria, RH ou outro responsável.',
+          style:TextStyle(fontSize:11.5)),
         ...labels.entries.map((e)=>CheckboxListTile(
           dense:true,contentPadding:EdgeInsets.zero,
           value:permissions[e.key]==true,title:Text(e.value),
