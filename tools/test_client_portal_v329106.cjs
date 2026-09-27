@@ -15,6 +15,12 @@ let actor={
 context.authUserFromToken_=()=>actor;
 context.userCanAccessCompany_=(user,id)=>user.role==='admin'||(!user.allCompanies&&user.companyIds.length===1&&user.companyIds[0]===id);
 context.auditAuthEvent_=()=>{};
+context.DEVICE_SYNC_SHEET='DispositivosDados';
+context.getSheet_=name=>{
+ assert.equal(name,'DispositivosDados');
+ return {getLastRow:()=>1,getLastColumn:()=>10};
+};
+
 context.clientPortalFindSnapshot_=id=>id==='A'?{
  updatedAt:'2026-09-22T12:00:00Z',
  payload:{
