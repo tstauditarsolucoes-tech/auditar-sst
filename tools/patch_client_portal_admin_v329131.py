@@ -207,8 +207,8 @@ $('clientForm').onsubmit=event=>{
 anchor_js="$('loginForm').onsubmit=event=>{"
 if h.count(anchor_js)!=1:raise SystemExit('Admin js anchor missing')
 h=h.replace(anchor_js,insert_js+anchor_js,1)
-anchor_load="  res.companies.forEach(renderCompany);setMessage('Dados atualizados.');"
-replacement="""  res.companies.forEach(renderCompany);setMessage('Dados atualizados.');
+anchor_load="  res.companies.forEach(renderCompany);"
+replacement="""  res.companies.forEach(renderCompany);
   if(res.user.role==='admin'){
    $('adminAccess').classList.remove('hidden');adminCompanies();adminLoadUsers();
   }else{
