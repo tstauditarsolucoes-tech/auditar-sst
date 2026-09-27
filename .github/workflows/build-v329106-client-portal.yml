@@ -32,6 +32,9 @@ on:
       - 'tools/regression_admin_authority_v329137_v33056.py'
       - 'tools/patch_admin_authority_version_v329137_v33056.py'
       - 'tools/patch_client_portal_v329106.py'
+      - 'build_sources/v3.29.106-client-portal/ClientPortal.gs'
+      - 'build_sources/v3.29.106-client-portal/ClientPortal.html'
+      - 'tools/regression_client_portal_executive_compact_v329137.py'
       - 'tools/patch_client_portal_admin_v329131.py'
       - 'tools/patch_client_portal_login_brand_v329132.py'
       - 'tools/regression_client_portal_login_brand_v329132.py'
@@ -335,6 +338,7 @@ jobs:
             f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in files}))
           PY
           python tools/patch_client_portal_v329106.py "$APP_DIR" android
+          python tools/regression_client_portal_executive_compact_v329137.py "$APP_DIR"
           python tools/patch_client_accounts_ui_v329106.py "$APP_DIR"
           python tools/patch_hide_home_sync_card_v329107.py "$APP_DIR" android
           python tools/patch_ronda_media_backup_report_v329108.py "$APP_DIR" android
