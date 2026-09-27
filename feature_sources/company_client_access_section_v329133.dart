@@ -43,7 +43,7 @@ class _CompanyClientAccessSectionState extends State<CompanyClientAccessSection>
   void dispose(){name.dispose();email.dispose();password.dispose();super.dispose();}
 
   Future<void> _load() async {
-    if (!AuthService.isAdmin || AuthService.isOfflineMode) {
+    if (!AuthService.isAdmin) {
       if(mounted)setState((){
         loading=false;
         error='Entre como administrador Auditar com a Central Online conectada.';
@@ -81,7 +81,7 @@ class _CompanyClientAccessSectionState extends State<CompanyClientAccessSection>
     setState((){showForm=false;editing=null;error='';});
   }
   Future<void> _save() async {
-    if(saving||!AuthService.isAdmin||AuthService.isOfflineMode)return;
+    if(saving||!AuthService.isAdmin)return;
     final person=name.text.trim(),address=email.text.trim(),secret=password.text;
     if(person.length<3){setState(()=>error='Informe o nome do contato.');return;}
     if(!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(address)){
@@ -151,7 +151,7 @@ class _CompanyClientAccessSectionState extends State<CompanyClientAccessSection>
           ),
         )),
         OutlinedButton.icon(
-          onPressed:saving||AuthService.isOfflineMode?null:()=>_start(),
+          onPressed:saving?null:()=>_start(),
           icon:const Icon(Icons.person_add_alt_1_outlined),
           label:const Text('Cadastrar acesso do cliente'),
         ),
