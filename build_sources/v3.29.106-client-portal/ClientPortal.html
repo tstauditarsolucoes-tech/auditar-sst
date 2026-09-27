@@ -114,8 +114,13 @@ button.secondary{color:#234365;background:#e8eff7}button.warn{background:#b25d21
 </style>
 </head>
 <body>
-<header><div><strong>Auditar SST</strong><br><small>Área do Cliente • Painel Gerencial</small></div>
-<button id="logout" class="secondary hidden" type="button">Sair</button></header>
+<header class="auditar-app-header">
+ <div class="auditar-brand-shell">
+  <span class="auditar-brand-frame"><img id="auditarOfficialLogo" class="auditar-official-logo" alt="Auditar Soluções — Medicina Ocupacional e Segurança do Trabalho"></span>
+  <span class="auditar-header-caption"><b>Auditar SST</b><small>Área do Cliente · Painel Gerencial</small></span>
+ </div>
+ <div class="auditar-header-actions"><span class="auditar-header-trust">Acesso individual por empresa</span><button id="logout" class="secondary hidden" type="button">Sair da conta</button></div>
+</header>
 <main class="wrap">
 <section class="panel login" id="login">
  <h1>Acesso individual</h1>
@@ -132,6 +137,7 @@ button.secondary{color:#234365;background:#e8eff7}button.warn{background:#b25d21
  <div id="companies"></div>
 </section>
 </main>
+<footer class="auditar-portal-footer"><span><strong>Auditar Soluções</strong> · Medicina Ocupacional e Segurança do Trabalho</span><span>Seu painel de acompanhamento em SST</span></footer>
 <section id="printPlan" class="hidden" aria-hidden="true"></section>
 <script>
 (function(){
@@ -215,7 +221,7 @@ function renderKanban(actions,company){
   const rows=all.slice(0,5);
   const col=text('div','','kanban-col');const title=text('div','','kanban-title');
   title.append(text('span',def[1]),text('span',all.length));col.append(title);
-  if(!rows.length)col.append(text('div','Sem registros','compact-note'));
+  if(!rows.length)col.append(text('div','Nenhuma ação nesta etapa','kanban-empty'));
   rows.forEach(row=>{
    const card=text('div','','k-card');card.append(text('b',row.title||row.description||'Ação'));
    const due=dueDateEndOfDay(row.dueDate);
@@ -243,8 +249,8 @@ function openImprovementFromKanban(company,row){
  if(card){card.classList.add('highlight-action');setTimeout(()=>card.classList.remove('highlight-action'),2200);}
 }
 function renderTrainingAndDds(company){
- const side=text('div','','compact-box');
- side.append(text('h3','Capacitação e DDS'));
+ const side=text('div','','compact-box capacitacao-box');
+ side.append(text('div','TREINAMENTOS E DDS','section-eyebrow'),text('h3','Capacitação e DDS'));
  const ts=company.trainingSummary||{},dds=company.ddsSummary||{};
  const tg=text('div','','training-grid');
  [['Em dia',ts.current],['Vencidos',ts.expired],['Pendentes',ts.pending],['Sem registro',ts.missing]].forEach(pair=>{
@@ -273,7 +279,7 @@ function renderRecentRecords(shell,company){
  const details=document.createElement('details');details.className='activity-toggle';
  details.append(text('summary','Relatórios, vistorias e registros recentes'));
  const rows=[...(company.reports||[]).slice(0,4),...(company.inspections||[]).slice(0,4)];
- if(!rows.length)details.append(text('p','Nenhum registro recente publicado.','muted'));
+ if(!rows.length)return;
  rows.forEach(row=>{
   const line=text('div','','record-line');line.append(text('b',row.title||'Registro'),
    text('small',[row.date,row.status,row.sector].filter(Boolean).join(' • ')));details.append(line);
@@ -393,7 +399,7 @@ function renderImprovementPlan(company){
  details.dataset.portalKey=company.id+':plan';
  const source=managerOpenProblems(company);
  details.append(text('summary','O que precisamos resolver? ('+source.length+')'));
- if(!source.length){details.append(text('p','Nenhuma pendência publicada no momento.','compact-note'));return details;}
+ if(!source.length){details.append(text('p','Nenhuma providência pendente nesta publicação.','compact-note'));return details;}
  const tools=text('div','','manager-tools');
  tools.append(text('span','Instruções simples, prazo e base normativa','manager-total'));
  const print=text('button','Imprimir / salvar plano em PDF','secondary manager-btn');print.type='button';
@@ -443,7 +449,7 @@ function renderReportHighlights(company){
  details.dataset.portalKey=company.id+':reports';
  const rows=company.reports||[];
  details.append(text('summary','Relatórios publicados ('+rows.length+')'));
- if(!rows.length){details.append(text('p','Nenhum relatório publicado no momento.','compact-note'));return details;}
+ if(!rows.length){details.append(text('p','Os PDFs aparecerão aqui após publicação pela Auditar.','compact-note'));return details;}
  const grid=text('div','','report-ribbon');
  function add(rows,holder){
   rows.forEach(r=>{
@@ -466,24 +472,25 @@ function renderReportHighlights(company){
  return details;
 }
 function renderCompany(company){
- const shell=text('section','','panel');
+ const shell=text('section','','panel portal-company');
  const head=text('div','','exec-head');const left=text('div');
  left.append(text('div','Empresa acompanhada','exec-kicker'),text('h2',company.name,'exec-company'));
  const updated=text('span','','update-chip');updated.append(text('span','','auto-dot'),text('span','Última publicação da Auditar: '+formatPortalDate(company.updatedAt)));
  head.append(left,updated);shell.append(head);
  const summary=company.summary||{},training=company.trainingSummary||{};
  const metrics=text('div','','exec-metrics');
+ const hasConformityBase=(safeNum(summary.total)>0 || safeNum(summary.inspections)>0);
  const metricData=[
   ['Problemas em aberto',safeNum(summary.openNcs), ''],
   ['Ações vencidas',safeNum(summary.overdueActions), 'alert'],
   ['Treinamentos vencidos',safeNum(training.expired), 'warn'],
-  ['Conformidade',safeNum(summary.conformity), 'good','%']
+  ['Conformidade',hasConformityBase?safeNum(summary.conformity):null, 'good','%']
  ];
- metricData.forEach(m=>{const c=text('div','',('exec-card '+m[2]).trim());c.append(text('span',m[0]),text('strong',m[1]==null?'—':m[1]+(m[3]||'')));metrics.append(c);});
+ metricData.forEach((m,i)=>{const c=text('div','',('exec-card '+m[2]).trim());c.append(text('span',m[0]),text('strong',m[1]==null?'—':m[1]+(m[3]||'')));if(i===3&&!hasConformityBase)c.append(text('small','Aguardando dados da vistoria','metric-hint'));metrics.append(c);});
  shell.append(metrics);
  shell.append(renderExecutiveAttention(company));
- const grid=text('div','','section-grid');const main=text('div','','compact-box');
- main.append(text('h3','Acompanhamento das providências'));
+ const grid=text('div','','section-grid');const main=text('div','','compact-box providencias-box');
+ main.append(text('div','PLANO DE AÇÃO','section-eyebrow'),text('h3','Acompanhamento das providências'));
  const actions=company.actions||[];main.append(renderKanban(actions,company));
  if(actions.length>24)main.append(text('div','Mostrando as ações mais recentes por etapa.','compact-note'));
  grid.append(main,renderTrainingAndDds(company));shell.append(grid);
