@@ -387,9 +387,13 @@ function clientPortalSharePayload_(payload) {
 function clientPortalDeviceSstRecords_(companyId) {
   const cid=String(companyId||'').trim();
   if(!cid)return [];
-  const sheet=getSheet_(DEVICE_SYNC_SHEET);
-  if(sheet.getLastRow()<2)return [];
-  const lastColumn=Math.max(10,sheet.getLastColumn());
+  // The source is optional on older installations. Never break portal access
+  // when the read-only device snapshot is not available.
+  if(typeof getSheet_!=='function' || typeof DEVICE_SYNC_SHEET==='undefined')return [];
+  let sheet;
+  try {sheet=getSheet_(DEVICE_SYNC_SHEET);} catch(_) {return [];}
+  if(!sheet || sheet.getLastRow()<2)return [];
+  const lastColumn=Math.max(10,typeof sheet.getLastColumn==='function'?sheet.getLastColumn():10);
   const rows=sheet.getRange(2,1,sheet.getLastRow()-1,lastColumn).getValues();
   return rows.filter(function(row){
     if(String(row[0]||'')!=='sst_records')return false;
