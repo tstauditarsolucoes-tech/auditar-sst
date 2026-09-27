@@ -302,26 +302,69 @@ function renderTrainingWorkers(company){
  }
  search.oninput=draw;draw();return details;
 }
+function managerOpenProblems(company){
+ return (company.nonConformities||[]).filter(row=>statusBucket(row)!=='done')
+  .sort((a,b)=>{
+   const priority=v=>/cr[ií]tic|imediat/.test(v)?0:/alta/.test(v)?1:/m[eé]dia/.test(v)?2:3;
+   const p=priority(String(a.priority||'').toLowerCase())-priority(String(b.priority||'').toLowerCase());
+   return p||String(a.dueDate||'9999').localeCompare(String(b.dueDate||'9999'));
+  });
+}
+function printManagerPlan(company,rows){
+ const target=$('printPlan');target.replaceChildren();target.classList.remove('hidden');
+ target.removeAttribute('aria-hidden');
+ target.append(text('h1','O que sua empresa precisa resolver'),
+  text('p','Plano de melhorias • Auditar SST'),
+  text('p','Empresa: '+company.name+' • Publicado em: '+formatPortalDate(company.updatedAt)));
+ if(!rows.length)target.append(text('p','Nenhuma pendência publicada para este período.'));
+ rows.forEach((row,index)=>{
+  const item=text('section','','print-item');item.append(text('h2',(index+1)+'. '+(row.title||'Providência')));
+  const line=(label,value)=>item.append(text('p',label+': '+(value||'Não informado no registro.')));
+  line('Problema encontrado',row.description);
+  line('O que precisa ser feito',row.action||row.recommendation);
+  line('Base normativa',row.normative?(row.normative+(row.normativeItem?' • Item '+row.normativeItem:'')):'Não informada; confirmar com a Auditar.');
+  line('Responsável',row.responsible);line('Prazo',row.dueDate);
+  line('Como comprovar','Envie a foto da correção e os documentos solicitados pela Auditar, quando aplicável.');
+  target.append(item);
+ });
+ target.append(text('small','As correções devem ser verificadas pela Auditar antes do encerramento técnico.'));
+ window.print();
+}
+window.addEventListener('afterprint',()=>{
+ const target=$('printPlan');target.classList.add('hidden');target.setAttribute('aria-hidden','true');
+});
 function renderImprovementPlan(company){
  const details=document.createElement('details');details.className='drill';
- details.append(text('summary','O que precisamos resolver?'));
- const source=(company.nonConformities||[]).filter(r=>statusBucket(r)!=='done').slice(0,12);
+ details.dataset.portalKey=company.id+':plan';
+ const source=managerOpenProblems(company);
+ details.append(text('summary','O que precisamos resolver? ('+source.length+')'));
  if(!source.length){details.append(text('p','Nenhuma pendência publicada no momento.','compact-note'));return details;}
- source.forEach((row,index)=>{
-  const card=text('div','','improvement-card');
+ const tools=text('div','','manager-tools');
+ tools.append(text('span','Instruções simples, prazo e base normativa','manager-total'));
+ const print=text('button','Imprimir / salvar plano em PDF','secondary manager-btn');print.type='button';
+ print.onclick=()=>printManagerPlan(company,source);tools.append(print);details.append(tools);
+ source.slice(0,12).forEach((row,index)=>{
+  const card=text('div','','improvement-card');card.dataset.ncId=row.id||'';
   card.append(text('h4',(index+1)+'. '+(row.title||row.description||'Providência')));
   if(row.description){card.append(text('span','O que encontramos','label'),text('p',row.description));}
   const action=row.action||row.recommendation;
-  if(action){card.append(text('span','O que precisa ser feito','label'),text('p',action));}
-  if(row.normative){
-   const base=row.normative+(row.normativeItem?' • Item '+row.normativeItem:'');
-   card.append(text('div','Base normativa: '+base,'norma-box'));
-  }
-  const meta=[row.responsible?'Responsável: '+row.responsible:'',row.dueDate?'Prazo: '+row.dueDate:'',row.priority?'Prioridade: '+row.priority:''].filter(Boolean).join(' • ');
+  card.append(text('span','O que precisa ser feito','label'),
+    text('p',action||'Orientação específica ainda não publicada. Consulte a Auditar.'));
+  card.append(text('div','Base normativa: '+(row.normative?
+   row.normative+(row.normativeItem?' • Item '+row.normativeItem:''):
+   'Não informada no registro. Consulte a Auditar.'),'norma-box'));
+  const meta=[row.responsible?'Responsável: '+row.responsible:'',
+   row.dueDate?'Prazo: '+row.dueDate:'',row.priority?'Prioridade: '+row.priority:''].filter(Boolean).join(' • ');
   if(meta)card.append(text('p',meta,'compact-note'));
-  if(row.recurrence)card.append(text('span','Problema já registrado anteriormente','status-dot warn'));
+  if(row.recurrence)card.append(text('span','Problema encontrado novamente','status-dot warn'));
+  if(company.permissions&&company.permissions.enviarEvidencia&&row.id){
+   const actions=text('div','','manager-actions');
+   const send=text('button','Enviar foto da correção','secondary manager-btn');send.type='button';
+   send.onclick=()=>showEvidenceForm(card,company.id,row.id,send);actions.append(send);card.append(actions);
+  }
   details.append(card);
  });
+ if(source.length>12)details.append(text('p','Mostrando as 12 primeiras providências. O plano para impressão inclui todas as publicadas.','compact-note'));
  return details;
 }
 function renderReportHighlights(company){
