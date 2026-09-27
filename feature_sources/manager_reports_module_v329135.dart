@@ -459,6 +459,14 @@ class _ManagerReportsScreenState extends State<ManagerReportsScreen> {
   Future<void> _emailReport(
       BuildContext previewContext, Uint8List bytes, String fileName) async {
     if (sending) return;
+    if (bytes.length > 7500000) {
+      if (previewContext.mounted) {
+        ScaffoldMessenger.of(previewContext).showSnackBar(const SnackBar(
+          content: Text('O envio direto aceita PDF de até 7 MB. Use o compartilhamento do PDF.'),
+        ));
+      }
+      return;
+    }
     final primary = widget.company.reportEmail.trim();
     final additional = widget.company.secondaryReportEmail.trim();
     final validation = ReportRecipients.validationError(primary, additional);
