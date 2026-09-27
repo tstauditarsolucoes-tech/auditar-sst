@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.54 Rascunhos e Login Auditar
+name: Auditar SST Windows v3.30.55 Rascunhos e Login Auditar
 
 on:
   push:
@@ -17,6 +17,12 @@ on:
       - 'tools/patch_manager_reports_v329135_v33054.py'
       - 'tools/regression_manager_reports_v329135_v33054.py'
       - 'tools/patch_manager_reports_version_v329135_v33054.py'
+      - 'feature_sources/company_multi_client_access_v329136.dart'
+      - 'feature_sources/company_multi_client_access_test_v329136.dart'
+      - 'tools/patch_client_multi_access_v329136_v33055.py'
+      - 'tools/regression_client_multi_access_v329136_v33055.py'
+      - 'tools/patch_client_multi_access_version_v329136_v33055.py'
+      - 'tools/test_client_multi_access_v329136.cjs'
       - 'tools/patch_report_preview_preflight_v329124.py'
       - 'tools/regression_report_preview_preflight_v329124.py'
       - 'tools/regression_report_preview_windows_format_v33047.py'
@@ -679,6 +685,29 @@ jobs:
           python tools/patch_manager_reports_version_v329135_v33054.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Falha versao relatorios gerenciais' }
 
+      - name: Multiplos emails pessoais acessam o mesmo painel com permissoes individuais
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python tools/patch_client_multi_access_v329136_v33055.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha ao instalar multiplos acessos' }
+          python tools/regression_client_multi_access_v329136_v33055.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao cadastro multi-cliente' }
+          node tools/test_client_multi_access_v329136.cjs "$env:APP_DIR/painel_web_google_apps_script/MultiUser.gs" "$env:APP_DIR/painel_web_google_apps_script/ClientPortal.gs"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha isolamento entre empresas ou contas' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/widgets/company_client_access_section.dart test/company_multi_client_access_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha formatacao acessos cliente' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha analise acessos cliente' }
+          flutter test test/company_multi_client_access_test.dart test/report_recipients_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha testes multiplos acessos' }
+          Pop-Location
+          python tools/regression_client_multi_access_v329136_v33055.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao apos formatacao' }
+          python tools/patch_client_multi_access_version_v329136_v33055.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha versao multiplos acessos' }
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
@@ -701,8 +730,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.54-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.54-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.54-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.55-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.55-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.55-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -717,12 +746,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.54',
+            'AppVersion=3.30.55',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.54',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.55',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -739,10 +768,10 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.54.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.54.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.55.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.55.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.54-Windows-Cliente-Na-Empresa
+          name: Auditar-SST-v3.30.55-Windows-Cliente-Na-Empresa
           path: dist/windows/*
           retention-days: 30
