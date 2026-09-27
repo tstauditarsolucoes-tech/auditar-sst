@@ -53,6 +53,9 @@ on:
       - 'tools/regression_signature_batch_v329128_v33048.py'
       - 'tools/patch_signature_batch_version_v329128_v33048.py'
       - 'tools/patch_client_portal_v329106.py'
+      - 'build_sources/v3.29.106-client-portal/ClientPortal.gs'
+      - 'build_sources/v3.29.106-client-portal/ClientPortal.html'
+      - 'tools/regression_client_portal_executive_compact_v329137.py'
       - 'tools/patch_client_portal_admin_v329131.py'
       - 'tools/patch_client_portal_login_brand_v329132.py'
       - 'tools/regression_client_portal_login_brand_v329132.py'
@@ -316,6 +319,8 @@ jobs:
             f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in files}))
           '@ | python -
           python tools/patch_client_portal_v329106.py "$env:APP_DIR" windows
+          python tools/regression_client_portal_executive_compact_v329137.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha no portal executivo compacto' }
           if ($LASTEXITCODE -ne 0) { throw 'Integracao cliente falhou' }
           python tools/patch_client_accounts_ui_v329106.py "$env:APP_DIR"
           if ($LASTEXITCODE -ne 0) { throw 'Cadastro clientes falhou' }
