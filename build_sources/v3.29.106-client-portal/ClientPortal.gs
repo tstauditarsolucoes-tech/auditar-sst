@@ -226,7 +226,11 @@ function clientPortalData(token) {
     }
     if (permissions.relatorios) {
       result.reports = clientPortalRows_(payload,
-        ['reports','reportHistory','recentReports']);
+        ['reports','reportHistory','recentReports']).map(function(row){
+          const raw=clientPortalPublishedReport_(payload,row.id);
+          row.hasPdf=!!(raw&&clientPortalReportDriveId_(raw));
+          return row;
+        });
       result.inspections = clientPortalRows_(payload,
         ['recentInspections','inspections','inspectionRows']);
     }
@@ -244,6 +248,65 @@ function clientPortalData(token) {
     '', 'client_portal', {companyCount:companies.length});
   return {ok:true, user:{name:user.name,role:user.role},
     companies:companies};
+}
+
+/** Report access is resolved ONLY against the published snapshot for this company.
+ * The private Drive ID never leaves the server. No public sharing is created.
+ */
+function clientPortalPublishedReport_(payload, id) {
+  const requested=String(id||'').trim();
+  if(!requested)return null;
+  const keys=['reports','reportHistory','recentReports'];
+  for(let k=0;k<keys.length;k++){
+    const records=payload[keys[k]];
+    if(!Array.isArray(records))continue;
+    for(let i=0;i<records.length;i++){
+      const row=records[i]&&typeof records[i]==='object'?records[i]:{};
+      const key=String(row.id||row.code||row.reportNumber||'').trim();
+      if(key===requested)return row;
+    }
+    return null;
+  }
+  return null;
+}
+function clientPortalReportDriveId_(row) {
+  if(!row||typeof row!=='object')return '';
+  const raw=String(row.driveFileId||row.pdfDriveFileId||row.fileId||'').trim();
+  return /^[A-Za-z0-9_-]{20,150}$/.test(raw)?raw:'';
+}
+function clientPortalReportPdf(token, companyId, reportId) {
+  const user=clientPortalAuthorizedUser_(token);
+  const cid=String(companyId||'').trim();
+  if(!user)return {ok:false,code:'SESSION_INVALID',message:'Entre novamente.'};
+  if(!cid||!userCanAccessCompany_(user,cid))return {
+    ok:false,code:'ACCESS_DENIED',message:'Documento não autorizado.'};
+  if(user.role==='cliente'&&!clientPortalPermissions_(user.clientPermissions).relatorios){
+    return {ok:false,code:'ACCESS_DENIED',message:'Documento não autorizado.'};
+  }
+  const snapshot=clientPortalFindSnapshot_(cid);
+  if(!snapshot)return {ok:false,message:'Empresa indisponível.'};
+  const report=clientPortalPublishedReport_(snapshot.payload,reportId);
+  const fileId=clientPortalReportDriveId_(report);
+  if(!fileId)return {ok:false,message:'Arquivo PDF ainda não disponível para consulta.'};
+  try{
+    const blob=DriveApp.getFileById(fileId).getBlob();
+    if(String(blob.getContentType()).toLowerCase()!=='application/pdf'){
+      return {ok:false,message:'O arquivo publicado não é um PDF.'};
+    }
+    const bytes=blob.getBytes();
+    if(bytes.length<1||bytes.length>7*1024*1024){
+      return {ok:false,message:'PDF indisponível neste visualizador. Solicite o arquivo à Auditar.'};
+    }
+    auditAuthEvent_(user,'client_portal_view_report','report',String(reportId),
+      cid,'','client_portal',{});
+    const label=String(report.title||report.reportNumber||'Relatorio_Auditar')
+      .replace(/[^A-Za-z0-9_-]+/g,'_').slice(0,80);
+    return {ok:true,mimeType:'application/pdf',fileName:label+'.pdf',
+      base64:Utilities.base64Encode(bytes)};
+  }catch(err){
+    console.error('Não foi possível abrir PDF do painel: '+String(err));
+    return {ok:false,message:'PDF indisponível no momento.'};
+  }
 }
 
 function clientPortalEvidenceSheet_() {
@@ -280,7 +343,7 @@ function clientPortalSubmitEvidence(token, companyId, ncId, note, image) {
   const snapshot = clientPortalFindSnapshot_(cid);
   if (!snapshot) return {ok:false, message:'Empresa indisponível.'};
   const ncs = clientPortalRows_(snapshot.payload,
-    ['nonConformities','ncs','ncRecords','nonConformityRows']);
+    ['openNonConformities','nonConformities','ncs','ncRecords','nonConformityRows']);
   if (!ncs.some(function(row) {return row.id && row.id === id;})) {
     return {ok:false, code:'ACCESS_DENIED', message:'Não conformidade não publicada.'};
   }
