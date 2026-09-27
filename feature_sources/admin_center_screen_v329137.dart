@@ -192,7 +192,7 @@ class _AuditarAdminCenterScreenState extends State<AuditarAdminCenterScreen> {
           _action('Acessos ao painel dos clientes',
               'Gerente, diretoria e RH: e-mail, senha, empresa e permissões individuais.',
               Icons.shield_outlined,
-              () => _open(const UsersScreen(initialRoleFilter: 'cliente'))),
+              () => _open(const UsersScreen())),
           _action('Empresas e ambientes',
               'Abrir o cadastro e administrar os acessos individuais de cada empresa.',
               Icons.business_outlined,
