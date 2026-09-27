@@ -367,16 +367,48 @@ function renderImprovementPlan(company){
  if(source.length>12)details.append(text('p','Mostrando as 12 primeiras providências. O plano para impressão inclui todas as publicadas.','compact-note'));
  return details;
 }
+function downloadPublishedReport(company,report,button){
+ button.disabled=true;const initial=button.textContent;button.textContent='Preparando PDF…';
+ call('clientPortalReportPdf',[token,company.id,report.id],res=>{
+  button.disabled=false;button.textContent=initial;
+  if(!res||!res.ok){setMessage(res&&res.message||'Arquivo indisponível.',true);return;}
+  try{
+   const binary=atob(res.base64);const bytes=new Uint8Array(binary.length);
+   for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+   const url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
+   const anchor=document.createElement('a');anchor.href=url;anchor.download=res.fileName||'Relatorio_Auditar.pdf';
+   document.body.append(anchor);anchor.click();anchor.remove();
+   setTimeout(()=>URL.revokeObjectURL(url),60000);
+   setMessage('PDF preparado para baixar.');
+  }catch(_){setMessage('Não foi possível preparar o PDF neste navegador.',true);}
+ },err=>{button.disabled=false;button.textContent=initial;setMessage(err,true);});
+}
 function renderReportHighlights(company){
  const details=document.createElement('details');details.className='drill';
- const rows=(company.reports||[]).slice(0,3);
- details.append(text('summary','Relatórios e resultados'));
+ details.dataset.portalKey=company.id+':reports';
+ const rows=company.reports||[];
+ details.append(text('summary','Relatórios publicados ('+rows.length+')'));
  if(!rows.length){details.append(text('p','Nenhum relatório publicado no momento.','compact-note'));return details;}
  const grid=text('div','','report-ribbon');
- rows.forEach(r=>{
-  const c=text('div','','report-mini');c.append(text('b',r.title||'Relatório técnico'),text('small',[r.date,r.status].filter(Boolean).join(' • ')));grid.append(c);
- });
- details.append(grid);return details;
+ function add(rows,holder){
+  rows.forEach(r=>{
+   const c=text('div','','report-mini');
+   c.append(text('b',r.title||'Relatório técnico'),
+    text('small',[r.date,r.status].filter(Boolean).join(' • ')));
+   if(r.hasPdf&&r.id){
+    const open=text('button','Baixar PDF','secondary manager-btn');open.type='button';
+    open.onclick=()=>downloadPublishedReport(company,r,open);c.append(open);
+   }else c.append(text('div','Arquivo ainda não disponível para abrir no painel.','document-note'));
+   holder.append(c);
+  });
+ }
+ add(rows.slice(0,3),grid);details.append(grid);
+ if(rows.length>3){
+  const more=document.createElement('details');more.className='activity-toggle';
+  more.append(text('summary','Ver todos os relatórios ('+rows.length+')'));
+  const full=text('div','','report-ribbon');add(rows.slice(3),full);more.append(full);details.append(more);
+ }
+ return details;
 }
 function renderCompany(company){
  const shell=text('section','','panel');
