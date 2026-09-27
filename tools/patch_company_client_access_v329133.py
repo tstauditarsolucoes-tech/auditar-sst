@@ -47,7 +47,7 @@ insertion="""                if (AuthService.isAdmin && company != null)
                   ),
 """
 matches=list(re.finditer(
-    r"(?m)^(?P<indent>[ \\t]*)SwitchListTile\\(\\s*contentPadding:\\s*EdgeInsets\\.zero,\\s*title:\\s*const Text\\('Enviar relatório mensal'\\)",
+    r"(?m)^(?P<indent>[ \t]*)SwitchListTile\(\s*contentPadding:\s*EdgeInsets\.zero,\s*title:\s*const Text\('Enviar relatório mensal'\)",
     s))
 if len(matches)!=1:
  raise SystemExit('company email-section marker expected once: '+str(len(matches)))
