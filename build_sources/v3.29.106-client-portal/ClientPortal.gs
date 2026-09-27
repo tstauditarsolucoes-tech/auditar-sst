@@ -110,7 +110,15 @@ function clientPortalRow_(item) {
     dueDate:safeText('dueDate',60) || safeText('nextDueDate',60),
     responsible:safeText('responsible',180),
     recommendation:safeText('recommendation',1200),
-    action:safeText('action',1200) || safeText('correctiveAction',1200)
+    action:safeText('action',1200) || safeText('correctiveAction',1200),
+    normative:safeText('normativeReference',320) || safeText('normativeBase',320) ||
+      safeText('legalBasis',320) || safeText('baseNormativa',320) ||
+      safeText('norma',320) || safeText('nr',320) || safeText('reference',320),
+    normativeItem:safeText('normativeItem',100) || safeText('nrItem',100) ||
+      safeText('itemNorma',100) || safeText('subitem',100),
+    verifiedAt:safeText('verifiedAt',60) || safeText('resolvedAt',60),
+    recurrence:obj.recurrence===true || obj.recurrent===true ||
+      String(obj.recurrence||'').toLowerCase()==='sim'
   };
 }
 
@@ -136,6 +144,33 @@ function clientPortalSummary_(payload) {
   if (safe.overdueNcs == null) safe.overdueNcs = Math.max(0,Number(raw.ncOverdue)||0);
   if (safe.overdueActions == null) safe.overdueActions = Math.max(0,Number(raw.overdue)||0);
   return safe;
+}
+
+/** Only employee name, sector and the required training are published to an
+ * authorized company. Never expose CPF, health data or raw HR records. */
+function clientPortalPendingTrainingRows_(payload) {
+  const raw=Array.isArray(payload.missingRequiredTrainings)
+    ? payload.missingRequiredTrainings : [];
+  const pick=function(obj,keys,max) {
+    for(let i=0;i<keys.length;i++){
+      const value=obj[keys[i]];
+      if(value!==null&&value!==undefined&&typeof value!=='object'){
+        const text=String(value).trim();
+        if(text)return text.slice(0,max||200);
+      }
+    }
+    return '';
+  };
+  return raw.slice(0,200).map(function(value){
+    const item=value&&typeof value==='object'?value:{};
+    return {
+      worker:pick(item,['workerName','employeeName','collaboratorName','name','worker'],150),
+      sector:pick(item,['sectorName','sector','area'],100),
+      training:pick(item,['trainingTitle','trainingName','title','training','requirementName','code'],180),
+      status:pick(item,['status','situation'],70)||'Sem registro',
+      dueDate:pick(item,['dueDate','expiryDate','expiresAt','validUntil'],60)
+    };
+  }).filter(function(item){return item.worker&&item.training;});
 }
 
 function clientPortalData(token) {
@@ -199,6 +234,9 @@ function clientPortalData(token) {
       const operational = clientPortalOperationalSummary_(companyId);
       result.ddsSummary = operational.dds;
       result.trainingRecords = operational.trainingRecords;
+      result.trainingPendingWorkers = clientPortalPendingTrainingRows_(payload);
+      result.trainingMissingCount = Array.isArray(payload.missingRequiredTrainings)
+        ? payload.missingRequiredTrainings.length : null;
     }
     companies.push(result);
   });
