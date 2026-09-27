@@ -135,6 +135,7 @@ button.secondary{color:#234365;background:#e8eff7}button.warn{background:#b25d21
 const $=id=>document.getElementById(id);
 let token=sessionStorage.getItem('auditar_client_portal_session')||'';
 let current=null;
+const trainingFilters=Object.create(null);
 const text=(tag,value,cls)=>{const e=document.createElement(tag);e.textContent=String(value==null?'':value);if(cls)e.className=cls;return e;};
 function call(name,args,onSuccess,onFailure){
  const runner=google.script.run.withSuccessHandler(onSuccess).withFailureHandler(
@@ -170,7 +171,7 @@ function load(silent=false){
   if(!res.companies.length){$('companies').append(text('p','Nenhuma empresa com painel publicado está disponível.','notice'));}
   res.companies.forEach(renderCompany);
   document.querySelectorAll('details[data-portal-key]').forEach(e=>{if(expanded.has(e.dataset.portalKey))e.open=true;});
-  setMessage('Dados conferidos • '+new Date().toLocaleTimeString('pt-BR'));
+  setMessage('Última consulta: '+new Date().toLocaleTimeString('pt-BR')+' • Atualização automática ativa');
  },err=>{portalLoading=false;if(requestedToken===token)setMessage(err,true);});
 }
 function safeNum(value,fallback){
@@ -184,14 +185,27 @@ function formatPortalDate(value){
 }
 function statusBucket(row){
  const status=String(row.status||'').toLowerCase();
- if(/concl|resol|feito|final/.test(status))return 'done';
  if(/aguard|verifica|confer|evid[eê]ncia/.test(status))return 'verify';
+ if(/n[aã]o[ _-]+(?:concl|resol)/.test(status))return 'todo';
+ if(/concl|resol|feito|final/.test(status))return 'done';
  if(/andamento|execu|tratamento|iniciado/.test(status))return 'doing';
  return 'todo';
 }
+function dueDateEndOfDay(value){
+ const raw=String(value||'').trim();
+ if(!raw)return null;
+ const br=raw.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+ const iso=raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+ let year,month,day;
+ if(br){day=Number(br[1]);month=Number(br[2]);year=Number(br[3]);}
+ else if(iso){year=Number(iso[1]);month=Number(iso[2]);day=Number(iso[3]);}
+ else return null;
+ const date=new Date(year,month-1,day,23,59,59,999);
+ return date.getFullYear()===year&&date.getMonth()===month-1&&date.getDate()===day?date.getTime():null;
+}
 function renderKanban(actions,company){
  const wrap=text('div','','kanban');
- const defs=[['todo','A fazer'],['doing','Em andamento'],['verify','Aguardando Auditar'],['done','Concluídas']];
+ const defs=[['todo','A fazer'],['doing','Em andamento'],['verify','Aguardando verificação'],['done','Concluído']];
  defs.forEach(def=>{
   const all=(actions||[]).filter(r=>statusBucket(r)===def[0]);
   const rows=all.slice(0,5);
@@ -200,8 +214,8 @@ function renderKanban(actions,company){
   if(!rows.length)col.append(text('div','Sem registros','compact-note'));
   rows.forEach(row=>{
    const card=text('div','','k-card');card.append(text('b',row.title||row.description||'Ação'));
-   const due=row.dueDate?new Date(row.dueDate):null;
-   const overdue=due&&!Number.isNaN(due.getTime())&&due.getTime()<Date.now()&&statusBucket(row)!=='done';
+   const due=dueDateEndOfDay(row.dueDate);
+   const overdue=due!==null&&due<Date.now()&&statusBucket(row)!=='done';
    const meta=[row.sector,row.responsible,row.dueDate?'Prazo '+row.dueDate:''].filter(Boolean).join(' • ');
    if(meta)card.append(text('small',meta));
    if(overdue)card.append(text('span','Prazo vencido','status-dot bad'));
@@ -233,7 +247,6 @@ function renderTrainingAndDds(company){
   const box=text('div','','training-stat');box.append(text('strong',pair[1]==null?'—':pair[1]),text('span',pair[0]));tg.append(box);
  });
  side.append(tg);
- side.append(renderTrainingWorkers(company));
  const pills=text('div','','pill-row');pills.style.marginTop='10px';
  pills.append(text('span','DDS no mês: '+(dds.month==null?'—':dds.month),'mini-pill'),
               text('span','DDS no ano: '+(dds.year==null?'—':dds.year),'mini-pill'),
@@ -431,7 +444,7 @@ function renderCompany(company){
  const shell=text('section','','panel');
  const head=text('div','','exec-head');const left=text('div');
  left.append(text('div','Empresa acompanhada','exec-kicker'),text('h2',company.name,'exec-company'));
- const updated=text('span','','update-chip');updated.append(text('span','','auto-dot'),text('span','Atualização automática • '+formatPortalDate(company.updatedAt)));
+ const updated=text('span','','update-chip');updated.append(text('span','','auto-dot'),text('span','Última publicação da Auditar: '+formatPortalDate(company.updatedAt)));
  head.append(left,updated);shell.append(head);
  const summary=company.summary||{},training=company.trainingSummary||{};
  const metrics=text('div','','exec-metrics');
