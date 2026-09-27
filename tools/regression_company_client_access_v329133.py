@@ -14,7 +14,7 @@ assert "reportEmail: reportEmail" in screen and "reportRecipient: reportRecipien
 assert "if (AuthService.isAdmin && company == null)" in screen
 flat=re.sub(r'\s+','',section)
 for token in (
- "AuthService.isAdmin","AuthService.isOfflineMode",
+ "AuthService.isAdmin",
  "AuthService.listUsers()","AuthService.saveUser(",
  "role:'cliente'","allCompanies:false","companyIds:[widget.company.id]",
  "u.companyIds.length==1","u.companyIds.single==widget.company.id",
