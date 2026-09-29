@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.56 Rascunhos e Login Auditar
+name: Auditar SST Windows v3.30.57 Extintores Mensais e Relatorio Padrao
 
 on:
   push:
@@ -29,6 +29,12 @@ on:
       - 'tools/patch_admin_authority_v329137_v33056.py'
       - 'tools/regression_admin_authority_v329137_v33056.py'
       - 'tools/patch_admin_authority_version_v329137_v33056.py'
+      - 'feature_sources/extinguisher_monthly_inspection_v329138.dart'
+      - 'feature_sources/extinguisher_inspection_pdf_service_v329138.dart'
+      - 'feature_sources/auditar_technical_inspection_pdf_service_v329138.dart'
+      - 'tools/patch_extinguisher_monthly_default_report_v329138_v33057.py'
+      - 'tools/regression_extinguisher_monthly_default_report_v329138_v33057.py'
+      - 'tools/patch_extinguisher_monthly_version_v329138_v33057.py'
       - 'tools/patch_report_preview_preflight_v329124.py'
       - 'tools/regression_report_preview_preflight_v329124.py'
       - 'tools/regression_report_preview_windows_format_v33047.py'
@@ -740,6 +746,45 @@ jobs:
           python tools/patch_admin_authority_version_v329137_v33056.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Falha versao admin Windows' }
 
+      - name: Inspecao mensal de extintores e novo relatorio padrao sem alterar sincronizacao
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          @'
+          from pathlib import Path
+          import hashlib,json
+          root=Path(r"app/Auditar_SST_v1_5_dashboard")
+          protected=[
+            'lib/database.dart',
+            'lib/services/device_sync_service.dart',
+            'lib/services/apps_script_http.dart',
+            'lib/services/sync_coordinator.dart',
+            'lib/services/auth_service.dart',
+            'lib/services/drive_service.dart',
+            'lib/services/media_sync_service.dart',
+          ]
+          Path('extinguisher_core_protected.json').write_text(
+            json.dumps({f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in protected}),
+            encoding='utf-8'
+          )
+          '@ | python -
+          python tools/patch_extinguisher_monthly_default_report_v329138_v33057.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha ao instalar inspecao mensal de extintores' }
+          python tools/regression_extinguisher_monthly_default_report_v329138_v33057.py "$env:APP_DIR" extinguisher_core_protected.json
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na regressao de extintores/relatorio' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/screens/extinguishers_screen.dart lib/screens/extinguisher_monthly_inspection_screen.dart lib/services/extinguisher_inspection_pdf_service.dart lib/services/auditar_technical_inspection_pdf_service.dart lib/services/report_template_service.dart lib/services/styled_report_pdf_service.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na formatacao da nova funcao' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na analise da nova funcao' }
+          flutter test test/report_template_editor_model_test.dart test/report_logo_smoke_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha nos testes dos relatorios' }
+          Pop-Location
+          python tools/regression_extinguisher_monthly_default_report_v329138_v33057.py "$env:APP_DIR" extinguisher_core_protected.json
+          if ($LASTEXITCODE -ne 0) { throw 'Nucleo protegido foi alterado' }
+          python tools/patch_extinguisher_monthly_version_v329138_v33057.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na versao Windows' }
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
@@ -762,8 +807,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.56-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.56-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.56-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.57-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.57-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.57-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -778,12 +823,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.56',
+            'AppVersion=3.30.57',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.56',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.57',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -800,10 +845,10 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.56.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.56.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.57.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.57.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.56-Windows-Cliente-Na-Empresa
+          name: Auditar-SST-v3.30.57-Windows-Extintores-Relatorio-Padrao
           path: dist/windows/*
           retention-days: 30
