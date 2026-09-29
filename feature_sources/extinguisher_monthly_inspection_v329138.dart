@@ -7,7 +7,6 @@ import 'package:printing/printing.dart';
 import '../database.dart';
 import '../models.dart';
 import '../services/extinguisher_inspection_pdf_service.dart';
-import '../services/media_sync_service.dart';
 
 const String extinguisherMonthlyRecordType = 'EXTINTOR_INSPECAO_MENSAL';
 
@@ -386,7 +385,7 @@ class _ExtinguisherMonthlyInspectionScreenState
 
   Future<void> _takePhoto() async {
     final file = await picker.pickImage(
-      source: ImageSource.camera,
+      source: Platform.isWindows ? ImageSource.gallery : ImageSource.camera,
       imageQuality: 82,
       maxWidth: 1800,
     );
@@ -431,13 +430,6 @@ class _ExtinguisherMonthlyInspectionScreenState
         payload: payload,
       );
       await AppDatabase.instance.upsertSstRecord(record);
-      if (photoPath.isNotEmpty && File(photoPath).existsSync()) {
-        await MediaSyncService.registerExtinguisherPhoto(
-          companyId: widget.company.id,
-          recordId: id,
-          localPath: photoPath,
-        );
-      }
       await _load();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
