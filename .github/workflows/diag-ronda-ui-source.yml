@@ -18,6 +18,11 @@ jobs:
           src=Path('build_sources/v3.29.118-ronda-reports/patch_ronda_ui_v329118.py.gz.b64').read_text().strip()
           Path('diagnostics/patch_ronda_ui_v329118.py').write_bytes(gzip.decompress(base64.b64decode(src)))
           PY
+      - name: Imprimir pontos de IA da Ronda
+        run: |
+          echo '=== MATCHES ==='
+          grep -n -C 35 -E "analyzeSafetyObservationPhoto|Não foi possível|Nao foi possivel|Prioridade|Sugestão da IA|_analyze" diagnostics/patch_ronda_ui_v329118.py || true
+          echo '=== END MATCHES ==='
       - uses: actions/upload-artifact@v4
         with:
           name: Ronda-Patch-Fonte-Diagnostico
