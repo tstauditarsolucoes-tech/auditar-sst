@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.57 Extintores Mensais e Relatorio Padrao
+name: Auditar SST Windows v3.30.58 IA Ronda Rapida e Texto Corrigido
 
 on:
   push:
@@ -35,6 +35,7 @@ on:
       - 'tools/patch_extinguisher_monthly_default_report_v329138_v33057.py'
       - 'tools/regression_extinguisher_monthly_default_report_v329138_v33057.py'
       - 'tools/patch_extinguisher_monthly_version_v329138_v33057.py'
+      - 'tools/patch_ronda_ai_restore_v329139_v33058.py'
       - 'tools/patch_report_preview_preflight_v329124.py'
       - 'tools/regression_report_preview_preflight_v329124.py'
       - 'tools/regression_report_preview_windows_format_v33047.py'
@@ -785,6 +786,23 @@ jobs:
           python tools/patch_extinguisher_monthly_version_v329138_v33057.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Falha na versao Windows' }
 
+      - name: Restaurar IA rapida da Ronda sem alterar sincronizacao ou GS
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python tools/patch_ronda_ai_restore_v329139_v33058.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha ao restaurar IA da Ronda' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/services/ai_assistant_service.dart lib/screens/express_round_screen.dart lib/screens/checklist_screen.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha formatacao IA Ronda' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha analise IA Ronda' }
+          Pop-Location
+          if (-not (Select-String -Path "$env:APP_DIR/lib/services/ai_assistant_service.dart" -SimpleMatch "'mode': 'safety_observation_photo'")) { throw 'Modo dedicado da Ronda ausente' }
+          if (-not (Select-String -Path "$env:APP_DIR/lib/screens/express_round_screen.dart" -SimpleMatch "_safeRondaAiPriority")) { throw 'Sanitizacao da Ronda ausente' }
+          if (-not (Select-String -Path "$env:APP_DIR/lib/screens/checklist_screen.dart" -SimpleMatch "_safeChecklistAiPriority")) { throw 'Sanitizacao checklist ausente' }
+          if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.58+245")) { throw 'Versao Windows incorreta' }
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
@@ -807,8 +825,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.57-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.57-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.57-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.58-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.58-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.58-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -823,12 +841,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.57',
+            'AppVersion=3.30.58',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.57',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.58',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -845,10 +863,10 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.57.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.57.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.58.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.58.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.57-Windows-Extintores-Relatorio-Padrao
+          name: Auditar-SST-v3.30.58-Windows-IA-Ronda-Rapida
           path: dist/windows/*
           retention-days: 30
