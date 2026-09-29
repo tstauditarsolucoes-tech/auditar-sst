@@ -7,6 +7,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../database.dart';
+import '../models.dart';
 import 'report_template_service.dart';
 
 /// Relatório padrão Auditar inspirado no modelo de vistoria técnica fornecido
@@ -320,7 +321,7 @@ class AuditarTechnicalInspectionPdfService {
         border: pw.Border.all(color: _line, width: .55),
       ),
       child: pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Expanded(
             flex: 49,
