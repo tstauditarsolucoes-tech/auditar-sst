@@ -156,7 +156,7 @@ class AuditarTechnicalInspectionPdfService {
           decoration: pw.BoxDecoration(
             border: pw.Border.all(color: _line, width: .6),
           ),
-          child: const pw.Text(
+          child: pw.Text(
             'Nenhum item com descrição ou evidência fotográfica foi registrado para este relatório.',
             style: pw.TextStyle(fontSize: 9),
           ),
@@ -409,7 +409,7 @@ class AuditarTechnicalInspectionPdfService {
               color: PdfColors.grey100,
               border: pw.Border.all(color: PdfColors.grey300),
             ),
-            child: const pw.Text(
+            child: pw.Text(
               'Sem fotografia associada',
               style: pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
             ),
@@ -536,7 +536,7 @@ class AuditarTechnicalInspectionPdfService {
   static pw.Widget _footer(pw.Context context) => pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
-          const pw.Text(
+          pw.Text(
             'Auditar Soluções • Medicina Ocupacional e Segurança do Trabalho',
             style: pw.TextStyle(fontSize: 6.8, color: PdfColors.grey700),
           ),
