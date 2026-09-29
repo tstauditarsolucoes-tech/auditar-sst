@@ -159,8 +159,8 @@ service_path = 'lib/services/report_template_service.dart'
 service = read(service_path)
 
 current_pattern = re.compile(
-    r"  static const ReportTemplateDefinition currentTemplate = "
-    r"ReportTemplateDefinition\(.*?\n  \);",
+    r"  static const ReportTemplateDefinition\s+"
+    r"currentTemplate\s*=\s*ReportTemplateDefinition\(.*?\n  \);",
     re.S,
 )
 match = current_pattern.search(service)
