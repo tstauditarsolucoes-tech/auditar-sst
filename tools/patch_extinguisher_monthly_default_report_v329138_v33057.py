@@ -100,53 +100,56 @@ if 'Future<void> _openMonthlyOverview()' not in ext:
 """
     ext = ext.replace(anchor, helper + anchor, 1)
 
-handler_anchor = "                                    if (value == 'edit') _edit(record);\n"
 if "value == 'monthly_inspect'" not in ext:
-    if handler_anchor not in ext:
+    handler_pattern = re.compile(
+        r"(\s+if \(value == 'edit'\) _edit\(record\);\n)"
+    )
+    match = handler_pattern.search(ext)
+    if not match:
         raise RuntimeError('extinguisher menu handler anchor not found')
-    ext = ext.replace(
-        handler_anchor,
-        handler_anchor +
-        """                                    if (value == 'monthly_inspect') {
-                                      _openMonthlyInspection(record);
-                                    }
-                                    if (value == 'monthly_overview') {
-                                      _openMonthlyOverview();
-                                    }
-""",
-        1,
+    line = match.group(1)
+    indent = line[:len(line) - len(line.lstrip())]
+    extra = (
+        indent + "if (value == 'monthly_inspect') {\n"
+        + indent + "  _openMonthlyInspection(record);\n"
+        + indent + "}\n"
+        + indent + "if (value == 'monthly_overview') {\n"
+        + indent + "  _openMonthlyOverview();\n"
+        + indent + "}\n"
     )
+    ext = ext[:match.end()] + extra + ext[match.end():]
 
-item_anchor = """                                    const PopupMenuItem(
-                                      value: 'edit',
-                                      child: Text('Editar'),
-                                    ),
-"""
 if "value: 'monthly_inspect'" not in ext:
-    if item_anchor not in ext:
-        raise RuntimeError('extinguisher popup item anchor not found')
-    ext = ext.replace(
-        item_anchor,
-        item_anchor +
-        """                                    const PopupMenuItem(
-                                      value: 'monthly_inspect',
-                                      child: ListTile(
-                                        contentPadding: EdgeInsets.zero,
-                                        leading: Icon(Icons.fact_check_outlined),
-                                        title: Text('Inspeção mensal'),
-                                      ),
-                                    ),
-                                    const PopupMenuItem(
-                                      value: 'monthly_overview',
-                                      child: ListTile(
-                                        contentPadding: EdgeInsets.zero,
-                                        leading: Icon(Icons.calendar_month_outlined),
-                                        title: Text('Resumo mensal da empresa'),
-                                      ),
-                                    ),
-""",
-        1,
+    item_pattern = re.compile(
+        r"(\s+const PopupMenuItem\(\n"
+        r"\s+value: 'edit',\n"
+        r"\s+child: Text\('Editar'\),\n"
+        r"\s+\),\n)"
     )
+    match = item_pattern.search(ext)
+    if not match:
+        raise RuntimeError('extinguisher popup item anchor not found')
+    first_line = match.group(1).splitlines()[0]
+    indent = first_line[:len(first_line) - len(first_line.lstrip())]
+    extra = (
+        indent + "const PopupMenuItem(\n"
+        + indent + "  value: 'monthly_inspect',\n"
+        + indent + "  child: ListTile(\n"
+        + indent + "    contentPadding: EdgeInsets.zero,\n"
+        + indent + "    leading: Icon(Icons.fact_check_outlined),\n"
+        + indent + "    title: Text('Inspeção mensal'),\n"
+        + indent + "  ),\n"
+        + indent + "),\n"
+        + indent + "const PopupMenuItem(\n"
+        + indent + "  value: 'monthly_overview',\n"
+        + indent + "  child: ListTile(\n"
+        + indent + "    contentPadding: EdgeInsets.zero,\n"
+        + indent + "    leading: Icon(Icons.calendar_month_outlined),\n"
+        + indent + "    title: Text('Resumo mensal da empresa'),\n"
+        + indent + "  ),\n"
+        + indent + "),\n"
+    )
+    ext = ext[:match.end()] + extra + ext[match.end():]
 
 write(ext_path, ext)
 
