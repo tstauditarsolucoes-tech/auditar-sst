@@ -373,7 +373,7 @@ class AuditarTechnicalInspectionPdfService {
                     pw.Text(
                       'PRIORIDADE: ${issue.priority.toUpperCase()}',
                       style: pw.TextStyle(
-                        color: _statusColor(issue.priority),
+                        color: _priorityColor(issue.priority),
                         fontSize: 8.2,
                         fontWeight: pw.FontWeight.bold,
                       ),
@@ -576,6 +576,21 @@ class AuditarTechnicalInspectionPdfService {
           ],
         ),
       );
+
+  static PdfColor _priorityColor(String value) {
+    final priority = value.toLowerCase();
+    if (priority.contains('imediat') ||
+        priority.contains('crític') ||
+        priority.contains('critic')) {
+      return _red;
+    }
+    if (priority.contains('alta')) return _amber;
+    if (priority.contains('média') ||
+        priority.contains('media')) {
+      return _amber;
+    }
+    return _navy;
+  }
 
   static PdfColor _statusColor(String value) {
     final status = value.toLowerCase();
