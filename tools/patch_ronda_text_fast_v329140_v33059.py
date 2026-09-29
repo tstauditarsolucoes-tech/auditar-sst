@@ -166,7 +166,11 @@ if changed:
 ai = read('lib/services/ai_assistant_service.dart')
 screen = read('lib/screens/express_round_screen.dart')
 assert "technicalMarker" in ai
-assert "'mode': 'checklist_photo'" in ai[start:] if False else True
+final_method_start = ai.find('  static Future<AiAssistantReply> improveInspectionText({')
+final_method_end = ai.find('  static Future<AiAssistantReply> analyzeChecklistPhotos({', final_method_start)
+final_method = ai[final_method_start:final_method_end]
+assert "'mode': 'checklist_photo'" in final_method
+assert "'mode': 'report_review_chat'" in final_method
 assert "text_only_fast" in ai
 assert "text_only_fallback" in ai
 assert "sem enviar sua foto" in screen
