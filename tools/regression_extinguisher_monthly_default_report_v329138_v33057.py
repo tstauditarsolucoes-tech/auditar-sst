@@ -17,7 +17,6 @@ required = {
         "Em manutenção",
         "Em recarga",
         "Não localizado",
-        "MediaSyncService.registerExtinguisherPhoto",
     ],
     'lib/services/extinguisher_inspection_pdf_service.dart': [
         "INSPEÇÃO MENSAL DE EXTINTORES",
