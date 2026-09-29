@@ -118,12 +118,15 @@ if "value == 'monthly_inspect'" not in ext:
         + indent + "}\n"
     )
     ext = ext[:match.end()] + extra + ext[match.end():]
+    monthly_menu_search_start = match.end() + len(extra)
+else:
+    monthly_menu_search_start = 0
 
 if "value: 'monthly_inspect'" not in ext:
     item_pattern = re.compile(
         r"(\s+itemBuilder:\s*\([^)]*\)\s*=>\s*\[\n)"
     )
-    match = item_pattern.search(ext)
+    match = item_pattern.search(ext, monthly_menu_search_start)
     if not match:
         raise RuntimeError('extinguisher popup itemBuilder anchor not found')
     first_line = match.group(1).splitlines()[0]
