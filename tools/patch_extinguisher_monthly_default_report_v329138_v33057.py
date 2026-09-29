@@ -67,7 +67,15 @@ if monthly_import not in ext:
 if 'Future<void> _openMonthlyOverview()' not in ext:
     anchor = '  void _showExtinguisherPhoto(String path) {'
     if anchor not in ext:
-        raise RuntimeError('extinguisher monthly method anchor not found')
+        # Some newer builds no longer keep the photo helper at the same place.
+        # Insert before the State build method instead of touching sync/database.
+        candidates = [
+            '  @override\n  Widget build(BuildContext context) {',
+            '  Widget build(BuildContext context) {',
+        ]
+        anchor = next((item for item in candidates if item in ext), '')
+        if not anchor:
+            raise RuntimeError('extinguisher monthly method anchor not found')
     helper = """  Future<void> _openMonthlyOverview() async {
     await Navigator.of(context).push(
       MaterialPageRoute(
