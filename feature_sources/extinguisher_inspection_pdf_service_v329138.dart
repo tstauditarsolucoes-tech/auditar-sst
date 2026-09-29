@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 
-import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -304,7 +303,7 @@ class ExtinguisherInspectionPdfService {
               for (var month = 1; month <= 12; month++)
                 pw.TableRow(
                   children: [
-                    _cell(DateFormat('MMM', 'pt_BR').format(DateTime(year, month)).toUpperCase()),
+                    _cell(const ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'][month - 1]),
                     _statusCell(
                       '${byMonth[month]?.payload['result'] ?? 'Pendente'}',
                     ),
