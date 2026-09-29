@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.136 Rascunhos e Login Auditar
+name: Auditar SST Android v3.29.138 Extintores Mensais e Relatorio Padrao
 # Rebuild v3.29.113 logo recovery
 
 on:
@@ -31,6 +31,12 @@ on:
       - 'tools/patch_admin_authority_v329137_v33056.py'
       - 'tools/regression_admin_authority_v329137_v33056.py'
       - 'tools/patch_admin_authority_version_v329137_v33056.py'
+      - 'feature_sources/extinguisher_monthly_inspection_v329138.dart'
+      - 'feature_sources/extinguisher_inspection_pdf_service_v329138.dart'
+      - 'feature_sources/auditar_technical_inspection_pdf_service_v329138.dart'
+      - 'tools/patch_extinguisher_monthly_default_report_v329138_v33057.py'
+      - 'tools/regression_extinguisher_monthly_default_report_v329138_v33057.py'
+      - 'tools/patch_extinguisher_monthly_version_v329138_v33057.py'
       - 'tools/patch_client_portal_v329106.py'
       - 'build_sources/v3.29.106-client-portal/ClientPortal.gs'
       - 'build_sources/v3.29.106-client-portal/ClientPortal.html'
@@ -777,6 +783,37 @@ jobs:
           python3 tools/regression_admin_authority_v329137_v33056.py "$APP_DIR"
           python3 tools/patch_admin_authority_version_v329137_v33056.py "$APP_DIR" android
 
+      - name: Inspecao mensal de extintores e novo relatorio padrao sem alterar sincronizacao
+        run: |
+          set -euo pipefail
+          python3 - "$APP_DIR" <<'PY'
+          from pathlib import Path
+          import hashlib,json,sys
+          root=Path(sys.argv[1])
+          protected=[
+            'lib/database.dart',
+            'lib/services/device_sync_service.dart',
+            'lib/services/apps_script_http.dart',
+            'lib/services/sync_coordinator.dart',
+            'lib/services/auth_service.dart',
+            'lib/services/drive_service.dart',
+            'lib/services/media_sync_service.dart',
+          ]
+          Path('/tmp/extinguisher_core_protected.json').write_text(
+            json.dumps({f:hashlib.sha256((root/f).read_bytes()).hexdigest() for f in protected}),
+            encoding='utf-8'
+          )
+          PY
+          python3 tools/patch_extinguisher_monthly_default_report_v329138_v33057.py "$APP_DIR" android
+          python3 tools/regression_extinguisher_monthly_default_report_v329138_v33057.py "$APP_DIR" /tmp/extinguisher_core_protected.json
+          cd "$APP_DIR"
+          dart format lib/screens/extinguishers_screen.dart lib/screens/extinguisher_monthly_inspection_screen.dart lib/services/extinguisher_inspection_pdf_service.dart lib/services/auditar_technical_inspection_pdf_service.dart lib/services/report_template_service.dart lib/services/styled_report_pdf_service.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/report_template_editor_model_test.dart test/report_logo_smoke_test.dart
+          cd "$GITHUB_WORKSPACE"
+          python3 tools/regression_extinguisher_monthly_default_report_v329138_v33057.py "$APP_DIR" /tmp/extinguisher_core_protected.json
+          python3 tools/patch_extinguisher_monthly_version_v329138_v33057.py "$APP_DIR" android
+
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
         env:
@@ -838,11 +875,11 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.136-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.136-Android.apk > dist/Auditar-SST-v3.29.136-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.138-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.138-Android.apk > dist/Auditar-SST-v3.29.138-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.136-Android-Cliente-Na-Empresa
+          name: Auditar-SST-v3.29.138-Android-Extintores-Relatorio-Padrao
           path: dist/*
           retention-days: 30
