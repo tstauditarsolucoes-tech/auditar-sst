@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.58 IA Ronda Rapida e Texto Corrigido
+name: Auditar SST Windows v3.30.59 IA Texto Rapida
 
 on:
   push:
@@ -36,6 +36,7 @@ on:
       - 'tools/regression_extinguisher_monthly_default_report_v329138_v33057.py'
       - 'tools/patch_extinguisher_monthly_version_v329138_v33057.py'
       - 'tools/patch_ronda_ai_restore_v329139_v33058.py'
+      - 'tools/patch_ronda_text_fast_v329140_v33059.py'
       - 'tools/patch_report_preview_preflight_v329124.py'
       - 'tools/regression_report_preview_preflight_v329124.py'
       - 'tools/regression_report_preview_windows_format_v33047.py'
@@ -803,6 +804,24 @@ jobs:
           if (-not (Select-String -Path "$env:APP_DIR/lib/screens/checklist_screen.dart" -SimpleMatch "_safeChecklistAiPriority")) { throw 'Sanitizacao checklist ausente' }
           if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.58+245")) { throw 'Versao Windows incorreta' }
 
+      - name: Acelerar IA de texto da vistoria e Ronda sem tocar na IA de foto
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python tools/patch_ronda_text_fast_v329140_v33059.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha ao acelerar IA de texto' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/services/ai_assistant_service.dart lib/screens/express_round_screen.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha formatacao IA texto' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha analise IA texto' }
+          flutter test test/inspection_text_ai_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha teste IA texto' }
+          Pop-Location
+          if (-not (Select-String -Path "$env:APP_DIR/lib/services/ai_assistant_service.dart" -SimpleMatch "text_only_fast")) { throw 'Fluxo rapido de texto ausente' }
+          if (-not (Select-String -Path "$env:APP_DIR/lib/services/ai_assistant_service.dart" -SimpleMatch "'mode': 'safety_observation_photo'")) { throw 'IA por foto foi alterada indevidamente' }
+          if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.59+246")) { throw 'Versao Windows incorreta' }
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
@@ -825,8 +844,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.58-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.58-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.58-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.59-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.59-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.59-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -841,12 +860,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.58',
+            'AppVersion=3.30.59',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.58',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.59',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -863,10 +882,10 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.58.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.58.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.59.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.59.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.58-Windows-IA-Ronda-Rapida
+          name: Auditar-SST-v3.30.59-Windows-IA-Texto-Rapida
           path: dist/windows/*
           retention-days: 30
