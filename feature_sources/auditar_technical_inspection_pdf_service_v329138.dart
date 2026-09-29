@@ -93,6 +93,7 @@ class AuditarTechnicalInspectionPdfService {
       ]);
       final risk = _first([
         nc?.riskIdentified,
+        answer.riskIdentified,
       ]);
       final correction = _first([
         nc?.recommendation,
