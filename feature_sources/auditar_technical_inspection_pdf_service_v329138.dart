@@ -91,10 +91,17 @@ class AuditarTechnicalInspectionPdfService {
         nc?.description,
         answer.observation,
       ]);
+      final risk = _first([
+        nc?.riskIdentified,
+      ]);
       final correction = _first([
         nc?.recommendation,
         answer.recommendation,
         if (linked.isNotEmpty) linked.first.correctiveAction,
+      ]);
+      final priority = _first([
+        if (linked.isNotEmpty) linked.first.priority,
+        nc?.classification,
       ]);
 
       // Itens conformes sem texto nem foto permanecem no checklist original,
@@ -115,7 +122,9 @@ class AuditarTechnicalInspectionPdfService {
           ]),
           caption: answer.questionText.trim(),
           situation: situation,
+          risk: risk,
           correction: correction,
+          priority: priority,
           reference: answer.questionReference.trim(),
           status: answer.status.trim(),
           photos: images,
@@ -353,19 +362,31 @@ class AuditarTechnicalInspectionPdfService {
                   pw.SizedBox(height: 7),
                   if (issue.situation.isNotEmpty)
                     _paragraph('Situação', issue.situation),
+                  if (issue.risk.isNotEmpty)
+                    _paragraph('Risco', issue.risk),
                   if (issue.correction.isNotEmpty)
                     _paragraph('Correção', issue.correction),
                   if (issue.reference.isNotEmpty)
                     _paragraph('Referência', issue.reference),
                   pw.SizedBox(height: 5),
-                  pw.Text(
-                    'STATUS: ${issue.status.isEmpty ? 'REGISTRADO' : issue.status.toUpperCase()}',
-                    style: pw.TextStyle(
-                      color: statusColor,
-                      fontSize: 8.2,
-                      fontWeight: pw.FontWeight.bold,
+                  if (issue.priority.isNotEmpty)
+                    pw.Text(
+                      'PRIORIDADE: ${issue.priority.toUpperCase()}',
+                      style: pw.TextStyle(
+                        color: _statusColor(issue.priority),
+                        fontSize: 8.2,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
                     ),
-                  ),
+                  if (issue.priority.isEmpty)
+                    pw.Text(
+                      'STATUS: ${issue.status.isEmpty ? 'REGISTRADO' : issue.status.toUpperCase()}',
+                      style: pw.TextStyle(
+                        color: statusColor,
+                        fontSize: 8.2,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -599,7 +620,9 @@ class _IssueData {
   final String title;
   final String caption;
   final String situation;
+  final String risk;
   final String correction;
+  final String priority;
   final String reference;
   final String status;
   final List<pw.MemoryImage> photos;
@@ -608,7 +631,9 @@ class _IssueData {
     required this.title,
     required this.caption,
     required this.situation,
+    required this.risk,
     required this.correction,
+    required this.priority,
     required this.reference,
     required this.status,
     required this.photos,
