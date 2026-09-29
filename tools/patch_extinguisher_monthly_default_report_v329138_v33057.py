@@ -121,16 +121,13 @@ if "value == 'monthly_inspect'" not in ext:
 
 if "value: 'monthly_inspect'" not in ext:
     item_pattern = re.compile(
-        r"(\s+const PopupMenuItem\(\n"
-        r"\s+value: 'edit',\n"
-        r"\s+child: Text\('Editar'\),\n"
-        r"\s+\),\n)"
+        r"(\s+itemBuilder:\s*\([^)]*\)\s*=>\s*\[\n)"
     )
     match = item_pattern.search(ext)
     if not match:
-        raise RuntimeError('extinguisher popup item anchor not found')
+        raise RuntimeError('extinguisher popup itemBuilder anchor not found')
     first_line = match.group(1).splitlines()[0]
-    indent = first_line[:len(first_line) - len(first_line.lstrip())]
+    indent = first_line[:len(first_line) - len(first_line.lstrip())] + "  "
     extra = (
         indent + "const PopupMenuItem(\n"
         + indent + "  value: 'monthly_inspect',\n"
