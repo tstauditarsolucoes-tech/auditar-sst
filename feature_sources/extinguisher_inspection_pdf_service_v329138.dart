@@ -153,7 +153,7 @@ class ExtinguisherInspectionPdfService {
         footer: (context) => pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
-            const pw.Text(
+            pw.Text(
               'Auditar SST • Inspeção mensal de extintores',
               style: pw.TextStyle(fontSize: 7, color: PdfColors.grey700),
             ),
@@ -257,7 +257,7 @@ class ExtinguisherInspectionPdfService {
         footer: (context) => pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
-            const pw.Text(
+            pw.Text(
               'Auditar SST • Ficha anual de extintor',
               style: pw.TextStyle(fontSize: 7, color: PdfColors.grey700),
             ),
