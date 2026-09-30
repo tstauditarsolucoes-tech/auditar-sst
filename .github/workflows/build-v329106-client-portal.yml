@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.140 IA Texto Rapida
+name: Auditar SST Android v3.29.141 IA Foto + Relatorios
 # Rebuild v3.29.113 logo recovery
 
 on:
@@ -39,6 +39,7 @@ on:
       - 'tools/patch_extinguisher_monthly_version_v329138_v33057.py'
       - 'tools/patch_ronda_ai_restore_v329139_v33058.py'
       - 'tools/patch_ronda_text_fast_v329140_v33059.py'
+      - 'tools/patch_ronda_ai_report_busy_v329141_v33060.py'
       - 'tools/patch_client_portal_v329106.py'
       - 'build_sources/v3.29.106-client-portal/ClientPortal.gs'
       - 'build_sources/v3.29.106-client-portal/ClientPortal.html'
@@ -841,6 +842,20 @@ jobs:
           grep -Fq "text_only_fast" "$APP_DIR/lib/services/ai_assistant_service.dart"
           grep -Fq "'mode': 'safety_observation_photo'" "$APP_DIR/lib/services/ai_assistant_service.dart"
           grep -Fq "version: 3.29.140+282" "$APP_DIR/pubspec.yaml"
+
+      - name: Corrigir IA foto da Ronda e loading dos relatorios
+        run: |
+          set -euo pipefail
+          python3 tools/patch_ronda_ai_report_busy_v329141_v33060.py "$APP_DIR" android
+          cd "$APP_DIR"
+          dart format lib/services/ai_assistant_service.dart lib/screens/report_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          cd "$GITHUB_WORKSPACE"
+          grep -Fq "'mode': 'checklist_photo'" "$APP_DIR/lib/services/ai_assistant_service.dart"
+          grep -Fq "'mode': 'safety_observation_photo'" "$APP_DIR/lib/services/ai_assistant_service.dart"
+          grep -Fq "busy: fullPdfBusy" "$APP_DIR/lib/screens/report_screen.dart"
+          grep -Fq "busy: executivePdfBusy" "$APP_DIR/lib/screens/report_screen.dart"
+          grep -Fq "version: 3.29.141+283" "$APP_DIR/pubspec.yaml"
 
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
