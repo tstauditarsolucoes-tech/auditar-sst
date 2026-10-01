@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.141 IA Foto + Relatorios
+name: Auditar SST Android v3.29.142 Loading Individual Relatorios
 # Rebuild v3.29.113 logo recovery
 
 on:
@@ -40,6 +40,8 @@ on:
       - 'tools/patch_ronda_ai_restore_v329139_v33058.py'
       - 'tools/patch_ronda_text_fast_v329140_v33059.py'
       - 'tools/patch_ronda_ai_report_busy_v329141_v33060.py'
+      - 'tools/patch_report_busy_exclusive_v329142_v33061.py'
+      - 'tools/regression_report_busy_exclusive_v329142_v33061.py'
       - 'tools/patch_client_portal_v329106.py'
       - 'build_sources/v3.29.106-client-portal/ClientPortal.gs'
       - 'build_sources/v3.29.106-client-portal/ClientPortal.html'
@@ -857,6 +859,19 @@ jobs:
           grep -Fq "busy: executivePdfBusy" "$APP_DIR/lib/screens/report_screen.dart"
           grep -Fq "version: 3.29.141+283" "$APP_DIR/pubspec.yaml"
 
+      - name: Garantir loading exclusivo por formato de relatorio
+        run: |
+          set -euo pipefail
+          python3 tools/patch_report_busy_exclusive_v329142_v33061.py "$APP_DIR" android
+          cd "$APP_DIR"
+          dart format lib/screens/report_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          cd "$GITHUB_WORKSPACE"
+          python3 tools/regression_report_busy_exclusive_v329142_v33061.py "$APP_DIR"
+          grep -Fq "busy: _activeReportFormat == 'full'" "$APP_DIR/lib/screens/report_screen.dart"
+          grep -Fq "busy: _activeReportFormat == 'executive'" "$APP_DIR/lib/screens/report_screen.dart"
+          grep -Fq "version: 3.29.142+284" "$APP_DIR/pubspec.yaml"
+
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
         env:
@@ -918,11 +933,11 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.140-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.140-Android.apk > dist/Auditar-SST-v3.29.140-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.142-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.142-Android.apk > dist/Auditar-SST-v3.29.142-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.140-Android-IA-Texto-Rapida
+          name: Auditar-SST-v3.29.142-Android-IA-Texto-Rapida
           path: dist/*
           retention-days: 30
