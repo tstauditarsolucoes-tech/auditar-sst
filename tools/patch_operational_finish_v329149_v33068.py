@@ -80,21 +80,30 @@ s = once(
 )
 
 if "Consultar DDS, treinamentos e integrações" not in s:
-    marker = "              if (structuredPending + mediaPending > 0)"
-    pos = s.find(marker)
-    if pos < 0:
-        raise RuntimeError("ancora central capacitacao ausente")
-    block = """              quickRow(
-                'Consultar DDS, treinamentos e integrações',
-                () => openPage(
-                  TrainingActivityCenterScreen(
-                    companyId: selectedCompanyId,
-                    companyName: selectedCompany?.name ?? '',
-                  ),
+    today_pos = s.find("  Widget todayTab() {")
+    if today_pos < 0:
+        raise RuntimeError("metodo todayTab ausente")
+    children_pos = s.find("children: [", today_pos)
+    if children_pos < 0:
+        raise RuntimeError("lista todayTab ausente")
+    insert_pos = s.find("\n", children_pos)
+    if insert_pos < 0:
+        raise RuntimeError("linha todayTab ausente")
+    insert_pos += 1
+    block = """          Card(
+            child: quickRow(
+              'Consultar DDS, treinamentos e integrações',
+              () => openPage(
+                TrainingActivityCenterScreen(
+                  companyId: selectedCompanyId,
+                  companyName: selectedCompany?.name ?? '',
                 ),
               ),
+            ),
+          ),
+          const SizedBox(height: 10),
 """
-    s = s[:pos] + block + s[pos:]
+    s = s[:insert_pos] + block + s[insert_pos:]
 
 if "Operação local sem alertas técnicos" not in s:
     diag_pos = s.find("  Widget diagnosticsTab() {")
