@@ -58,17 +58,22 @@ def replace_once(text, old, new, label):
 # Central de documentos: evitar corte do título e do chip em telas estreitas.
 rel = "lib/screens/document_dispatch_center_screen.dart"
 doc = read(rel)
-doc = replace_once(
-    doc,
-    "appBar:AppBar(title:const Text('Central de documentos e envios'),actions:[",
-    "appBar:AppBar(title:const Text('Central de documentos'),actions:[",
-    "titulo central documentos",
+if "'Central de documentos e envios'" not in doc:
+    raise RuntimeError("titulo central documentos ausente")
+doc = doc.replace(
+    "'Central de documentos e envios'",
+    "'Central de documentos'",
+    1,
 )
-doc = replace_once(
-    doc,
-    "Expanded(child:ChoiceChip(label:const Text('Histórico de envios'),selected:showHistory,",
-    "Expanded(child:ChoiceChip(label:const FittedBox(fit:BoxFit.scaleDown,child:Text('Histórico de envios')),selected:showHistory,",
-    "chip historico responsivo",
+history_label = "const Text('Histórico de envios')"
+if history_label not in doc:
+    raise RuntimeError("rotulo historico de envios ausente")
+doc = doc.replace(
+    history_label,
+    "const FittedBox("
+    "fit: BoxFit.scaleDown, "
+    "child: Text('Histórico de envios'))",
+    1,
 )
 write(rel, doc)
 
