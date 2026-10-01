@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.67 Busca e Filtros de Treinamentos
+name: Auditar SST Windows v3.30.68 Pacote Operacional Completo
 # Clean rebuild v3.30.64 after protected productivity consolidation
 
 on:
@@ -51,6 +51,9 @@ on:
       - 'tools/regression_correction_evidence_v329147_v33066.py'
       - 'tools/patch_training_history_filters_v329148_v33067.py'
       - 'tools/regression_training_history_filters_v329148_v33067.py'
+      - 'feature_sources/training_activity_center_v329149.dart'
+      - 'tools/patch_operational_finish_v329149_v33068.py'
+      - 'tools/regression_operational_finish_v329149_v33068.py'
       - 'feature_sources/field_intelligence_center_v329143.dart'
       - 'tools/patch_field_intelligence_v329143_v33062.py'
       - 'tools/regression_field_intelligence_v329143_v33062.py'
@@ -985,6 +988,26 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha regressao evidencias anterior' }
           if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.67+254")) { throw 'Versao Windows v3.30.67 incorreta' }
 
+      - name: Aplicar pacote operacional final sem alterar nucleo
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python tools/patch_operational_finish_v329149_v33068.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha pacote operacional final' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/screens/training_activity_center_screen.dart lib/screens/field_intelligence_center_screen.dart lib/screens/cipa_management_screen.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha formatacao pacote operacional' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha analise pacote operacional' }
+          Pop-Location
+          python tools/regression_operational_finish_v329149_v33068.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao pacote operacional' }
+          python tools/regression_training_history_filters_v329148_v33067.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao treinamento anterior' }
+          python tools/regression_correction_evidence_v329147_v33066.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao evidencias anterior' }
+          if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.68+255")) { throw 'Versao Windows v3.30.68 incorreta' }
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
@@ -1007,8 +1030,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.67-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.67-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.67-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.68-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.68-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.68-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -1023,12 +1046,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.67',
+            'AppVersion=3.30.68',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.67',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.68',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -1045,10 +1068,10 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.67.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.67.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.68.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.68.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.67-Windows-Treinamentos-Filtros
+          name: Auditar-SST-v3.30.68-Windows-Pacote-Operacional
           path: dist/windows/*
           retention-days: 30
