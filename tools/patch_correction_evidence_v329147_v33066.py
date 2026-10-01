@@ -142,7 +142,21 @@ new_block = """        FilledButton.tonalIcon(
           icon: const Icon(Icons.assignment_turned_in_outlined),
           label: const Text('Abrir plano de ação completo'),
         ),"""
-s = once(s, old_block, new_block, "Central evidence block")
+if new_block not in s:
+    first_label = "label: const Text('Abrir evidências da empresa'),"
+    second_label = "label: const Text('Abrir Antes × Depois das correções'),"
+    if s.count(first_label) != 1 or s.count(second_label) != 1:
+        raise RuntimeError(
+            "Central evidence labels: esperado 1 de cada, encontrados "
+            + str((s.count(first_label), s.count(second_label)))
+        )
+    first_pos = s.index(first_label)
+    start = s.rfind("        FilledButton.tonalIcon(", 0, first_pos)
+    second_pos = s.index(second_label, first_pos)
+    end = s.find("\n      ],", second_pos)
+    if start < 0 or end < 0 or start >= end:
+        raise RuntimeError("Central evidence block: limites nao encontrados")
+    s = s[:start] + new_block + s[end:]
 
 old_diagnostic = (
     "    final version = Platform.isWindows ? '3.30.62' : '3.29.143';"
