@@ -67,7 +67,7 @@ module_block = """    _ModuleData(
       title: 'Central inteligente',
       tutorialId: 'field_center',
       subtitle: 'Busca global, prioridades, evidências, favoritos e diagnóstico ADM',
-      icon: Icons.auto_awesome_mosaic_outlined,
+      icon: Icons.auto_awesome_outlined,
       color: AuditarBrand.navy,
       page: () => const FieldIntelligenceCenterScreen(),
     ),
@@ -80,7 +80,9 @@ if "tutorialId: 'field_center'" not in home:
 # Keep the module visible on Windows navigation as well.
 main_ids_anchor = """      'companies',
       'non_conformities',"""
-if "'field_center'," not in home:
+if """      'companies',
+      'field_center',
+      'non_conformities',""" not in home:
     if main_ids_anchor not in home:
         raise RuntimeError("lista de modulos principais ausente")
     home = home.replace(
