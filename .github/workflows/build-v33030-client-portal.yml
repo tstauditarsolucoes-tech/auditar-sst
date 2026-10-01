@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.62 Central Inteligente de Campo
+name: Auditar SST Windows v3.30.63 Produtividade de Campo
 
 on:
   push:
@@ -42,6 +42,9 @@ on:
       - 'feature_sources/field_intelligence_center_v329143.dart'
       - 'tools/patch_field_intelligence_v329143_v33062.py'
       - 'tools/regression_field_intelligence_v329143_v33062.py'
+      - 'feature_sources/company_timeline_screen_v329144.dart'
+      - 'tools/patch_field_refinements_v329144_v33063.py'
+      - 'tools/regression_field_refinements_v329144_v33063.py'
       - 'tools/regression_report_busy_exclusive_v329142_v33061.py'
       - 'tools/patch_report_preview_preflight_v329124.py'
       - 'tools/regression_report_preview_preflight_v329124.py'
@@ -880,6 +883,22 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha regressao Central Inteligente' }
           if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.62+249")) { throw 'Versao Windows v3.30.62 incorreta' }
 
+      - name: Refinar busca linha do tempo e Ronda sem alterar nucleo
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python tools/patch_field_refinements_v329144_v33063.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha refinamentos de campo' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/screens/field_intelligence_center_screen.dart lib/screens/company_timeline_screen.dart lib/screens/home_screen.dart lib/screens/company_detail_screen.dart lib/screens/express_round_screen.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha formatacao refinamentos de campo' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha analise refinamentos de campo' }
+          Pop-Location
+          python tools/regression_field_refinements_v329144_v33063.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao refinamentos de campo' }
+          if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.63+250")) { throw 'Versao Windows v3.30.63 incorreta' }
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
@@ -902,8 +921,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.62-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.62-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.62-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.63-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.63-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.63-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -918,12 +937,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.62',
+            'AppVersion=3.30.63',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.62',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.63',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -940,10 +959,10 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.62.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.62.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.63.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.63.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.62-Windows-Central-Inteligente
+          name: Auditar-SST-v3.30.63-Windows-Produtividade-Campo
           path: dist/windows/*
           retention-days: 30
