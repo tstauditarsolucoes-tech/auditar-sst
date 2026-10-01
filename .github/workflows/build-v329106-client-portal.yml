@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.144 Produtividade de Campo
+name: Auditar SST Android v3.29.145 IA Foto Rapida + Produtividade
 # Rebuild v3.29.113 logo recovery
 
 on:
@@ -41,6 +41,8 @@ on:
       - 'tools/patch_ronda_text_fast_v329140_v33059.py'
       - 'tools/patch_ronda_ai_report_busy_v329141_v33060.py'
       - 'tools/patch_report_busy_exclusive_v329142_v33061.py'
+      - 'tools/patch_ai_photo_speed_v329145_v33064.py'
+      - 'tools/regression_ai_photo_speed_v329145_v33064.py'
       - 'feature_sources/field_intelligence_center_v329143.dart'
       - 'tools/patch_field_intelligence_v329143_v33062.py'
       - 'tools/regression_field_intelligence_v329143_v33062.py'
@@ -901,6 +903,17 @@ jobs:
           python3 tools/regression_field_refinements_v329144_v33063.py "$APP_DIR"
           grep -Fq "version: 3.29.144+286" "$APP_DIR/pubspec.yaml"
 
+      - name: Acelerar leitura de fotos pela IA sem alterar sincronizacao
+        run: |
+          set -euo pipefail
+          python3 tools/patch_ai_photo_speed_v329145_v33064.py "$APP_DIR" android
+          cd "$APP_DIR"
+          dart format lib/services/ai_assistant_service.dart lib/screens/express_round_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          cd "$GITHUB_WORKSPACE"
+          python3 tools/regression_ai_photo_speed_v329145_v33064.py "$APP_DIR"
+          grep -Fq "version: 3.29.145+287" "$APP_DIR/pubspec.yaml"
+
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
         env:
@@ -962,11 +975,11 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.144-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.144-Android.apk > dist/Auditar-SST-v3.29.144-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.145-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.145-Android.apk > dist/Auditar-SST-v3.29.145-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.144-Android-IA-Texto-Rapida
+          name: Auditar-SST-v3.29.145-Android-IA-Texto-Rapida
           path: dist/*
           retention-days: 30
