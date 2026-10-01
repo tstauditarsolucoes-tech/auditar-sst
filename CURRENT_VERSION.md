@@ -4,8 +4,8 @@
 
 | Plataforma | Versão |
 |---|---|
-| Android | **v3.29.149+291** |
-| Windows | **v3.30.68+255** |
+| Android | **v3.29.150+292** |
+| Windows | **v3.30.69+256** |
 
 **Branch de trabalho:** `feature/client-panel-permissions-v329106`  
 **Pull Request:** `#15`  
@@ -13,11 +13,12 @@
 
 ## Validação final
 
-- Android: workflow run `36914110132` — **success**.
-- Windows: workflow run `36914110133` — **success**.
-- APK: `Auditar-SST-v3.29.149-Android.apk`.
-- Windows instalador: `Auditar-SST-Setup-v3.30.68.exe`.
-- Windows portátil: `Auditar-SST-Windows-v3.30.68-PORTATIL.zip`.
+- Android: workflow run `36928782210` — **success**.
+- Windows: workflow run `36928782260` — **success**.
+- APK: `Auditar-SST-v3.29.150-Android.apk` — SHA-256 `36e06d78d748d4edc233cbeee0afb28c47bf4607660a222658995cff59fc91e8`.
+- Windows instalador: `Auditar-SST-Setup-v3.30.69.exe` — SHA-256 `758b81fe315494d9553be7ec3dade4b48938b727331daf7eb059ccf5bc03d0c5`.
+- Windows portátil: `Auditar-SST-Windows-v3.30.69-PORTATIL.zip` — SHA-256 `047d412551a60b76e6484aed4dfa4bf49fdc3955d9c0f8c7fa90886b520eb7dd`.
+- Revisão visual: Central de documentos sem corte do título/Histórico de envios e abas Hoje/Busca/Evidências com contraste corrigido.
 - Núcleo protegido preservado pelas regressões do pipeline.
 - A validação de CI não substitui o teste físico do APK e do executável em aparelho/PC real.
 
@@ -38,11 +39,12 @@
 
 ## Builds validados
 
-- Android: workflow run `36916466599` — **success**
-- Artefato: `Auditar-SST-v3.29.149-Android-Pacote-Operacional`
-- Windows: workflow run `36916466653` — **success**
-- Artefato: `Auditar-SST-v3.30.68-Windows-Pacote-Operacional`
-- Commit validado: `c48d66c6cadf3b8f807f939ff70d5ce4f5f94e92`
+- Android: workflow run `36928782210` — **success**
+- Artefato: `Auditar-SST-v3.29.150-Android-Pacote-Operacional`
+- Windows: workflow run `36928782260` — **success**
+- Artefato: `Auditar-SST-v3.30.69-Windows-Ajuste-Visual`
+- Commit do app validado: `513ef6dcebebd0597c01d3b2fdcc79f19487a15c`
+- Alterações posteriores a esse commit neste arquivo/README são somente documentação.
 
 ## Núcleo protegido
 
