@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.60 IA Foto + Relatorios
+name: Auditar SST Windows v3.30.61 Loading Individual Relatorios
 
 on:
   push:
@@ -38,6 +38,8 @@ on:
       - 'tools/patch_ronda_ai_restore_v329139_v33058.py'
       - 'tools/patch_ronda_text_fast_v329140_v33059.py'
       - 'tools/patch_ronda_ai_report_busy_v329141_v33060.py'
+      - 'tools/patch_report_busy_exclusive_v329142_v33061.py'
+      - 'tools/regression_report_busy_exclusive_v329142_v33061.py'
       - 'tools/patch_report_preview_preflight_v329124.py'
       - 'tools/regression_report_preview_preflight_v329124.py'
       - 'tools/regression_report_preview_windows_format_v33047.py'
@@ -841,6 +843,24 @@ jobs:
           if (-not (Select-String -Path "$env:APP_DIR/lib/screens/report_screen.dart" -SimpleMatch "busy: executivePdfBusy")) { throw 'Loading Executivo incorreto' }
           if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.60+247")) { throw 'Versao Windows incorreta' }
 
+      - name: Garantir loading exclusivo por formato de relatorio
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python tools/patch_report_busy_exclusive_v329142_v33061.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha loading exclusivo dos relatorios' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/screens/report_screen.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha formatacao loading relatorios' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha analise loading relatorios' }
+          Pop-Location
+          python tools/regression_report_busy_exclusive_v329142_v33061.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao loading exclusivo' }
+          if (-not (Select-String -Path "$env:APP_DIR/lib/screens/report_screen.dart" -SimpleMatch "busy: _activeReportFormat == 'full'")) { throw 'Loading Completo nao exclusivo' }
+          if (-not (Select-String -Path "$env:APP_DIR/lib/screens/report_screen.dart" -SimpleMatch "busy: _activeReportFormat == 'executive'")) { throw 'Loading Executivo nao exclusivo' }
+          if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.61+248")) { throw 'Versao Windows v3.30.61 incorreta' }
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
@@ -863,8 +883,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.60-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.60-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.60-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.61-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.61-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.61-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -879,12 +899,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.60',
+            'AppVersion=3.30.61',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.60',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.61',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -901,10 +921,10 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.60.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.60.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.61.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.61.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.60-Windows-IA-Texto-Rapida
+          name: Auditar-SST-v3.30.61-Windows-Loading-Individual
           path: dist/windows/*
           retention-days: 30
