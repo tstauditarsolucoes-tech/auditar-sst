@@ -36,6 +36,14 @@
 - Android com chave permanente de assinatura.
 - Windows com instalador e versão portátil.
 
+## Builds validados
+
+- Android: workflow run `36916466599` — **success**
+- Artefato: `Auditar-SST-v3.29.149-Android-Pacote-Operacional`
+- Windows: workflow run `36916466653` — **success**
+- Artefato: `Auditar-SST-v3.30.68-Windows-Pacote-Operacional`
+- Commit validado: `c48d66c6cadf3b8f807f939ff70d5ce4f5f94e92`
+
 ## Núcleo protegido
 
 Não alterar sem autorização expressa:
