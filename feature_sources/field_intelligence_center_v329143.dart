@@ -143,12 +143,12 @@ class _FieldIntelligenceCenterScreenState
       raw == null ? null : DateTime.tryParse('$raw');
 
   int get openNc => ncs.where((row) =>
-      !'\${row['status'] ?? ''}'.toLowerCase().contains('conclu')).length;
+      !'${row['status'] ?? ''}'.toLowerCase().contains('conclu')).length;
 
   int get overdueActions {
     final now = DateTime.now();
     return actions.where((row) {
-      if ('\${row['status'] ?? ''}'.toLowerCase().contains('conclu')) return false;
+      if ('${row['status'] ?? ''}'.toLowerCase().contains('conclu')) return false;
       final due = dateOf(row['due_date']);
       return due != null && due.isBefore(now);
     }).length;
@@ -350,7 +350,7 @@ class _FieldIntelligenceCenterScreenState
             'Resumo operacional',
             selectedCompany == null
                 ? 'Visão consolidada do trabalho de campo.'
-                : 'Visão rápida de \${selectedCompany!.name}.',
+                : 'Visão rápida de ${selectedCompany!.name}.',
           ),
           const SizedBox(height: 10),
           Wrap(
@@ -377,10 +377,10 @@ class _FieldIntelligenceCenterScreenState
                 quickRow('$overdueActions ação(ões) vencida(s)',
                   () => openPage(ActionPlanScreen(companyId: selectedCompanyId))),
               if ((trainingSummary['expired'] ?? 0) > 0)
-                quickRow('\${trainingSummary['expired']} treinamento(s) vencido(s)',
+                quickRow('${trainingSummary['expired']} treinamento(s) vencido(s)',
                   () => openPage(TrainingsScreen(companyId: selectedCompanyId))),
               if (structuredPending + mediaPending > 0)
-                quickRow('\${structuredPending + mediaPending} item(ns) aguardando envio',
+                quickRow('${structuredPending + mediaPending} item(ns) aguardando envio',
                   AuthService.isAdmin ? () => tabs.animateTo(3) : showQueue),
               if (overdueActions == 0 &&
                   (trainingSummary['expired'] ?? 0) == 0 &&
@@ -425,7 +425,7 @@ class _FieldIntelligenceCenterScreenState
               padding: const EdgeInsets.all(14),
               child: Text(
                 'Atuação registrada neste recorte: $recentInspections vistoria(s) nos últimos 30 dias, '
-                '$recentDds DDS e \${actions.where((row) => '\${row['status'] ?? ''}'.toLowerCase().contains('conclu')).length} '
+                '$recentDds DDS e ${actions.where((row) => '${row['status'] ?? ''}'.toLowerCase().contains('conclu')).length} '
                 'ação(ões) concluída(s).',
               ),
             ),
@@ -492,9 +492,9 @@ class _FieldIntelligenceCenterScreenState
       }
     }
     for (final row in inspections) {
-      final company = '\${row['company_name'] ?? ''}';
-      final area = '\${row['area'] ?? ''}';
-      final report = '\${row['report_number'] ?? ''}';
+      final company = '${row['company_name'] ?? ''}';
+      final area = '${row['area'] ?? ''}';
+      final report = '${row['report_number'] ?? ''}';
       if (match(company) || match(area) || match(report)) {
         list.add(_Hit('Vistoria',
           report.isEmpty ? company : report,
@@ -504,8 +504,8 @@ class _FieldIntelligenceCenterScreenState
       }
     }
     for (final row in ncs) {
-      final description = '\${row['description'] ?? ''}';
-      final company = '\${row['company_name'] ?? ''}';
+      final description = '${row['description'] ?? ''}';
+      final company = '${row['company_name'] ?? ''}';
       if (match(description) || match(company)) {
         list.add(_Hit('Não conformidade', description, company,
           Icons.warning_amber_rounded,
@@ -523,7 +523,7 @@ class _FieldIntelligenceCenterScreenState
       }
     }
     for (final record in dds) {
-      if (match(record.title) || match('\${record.payload}')) {
+      if (match(record.title) || match('${record.payload}')) {
         list.add(_Hit('DDS', record.title,
           DateFormat('dd/MM/yyyy').format(record.date),
           Icons.record_voice_over_outlined,
@@ -568,7 +568,7 @@ class _FieldIntelligenceCenterScreenState
             leading: Icon(hit.icon, color: AuditarBrand.navy),
             title: Text(hit.title,
               maxLines: 2, overflow: TextOverflow.ellipsis),
-            subtitle: Text('\${hit.category} • \${hit.subtitle}',
+            subtitle: Text('${hit.category} • ${hit.subtitle}',
               maxLines: 2, overflow: TextOverflow.ellipsis),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => openPage(hit.page()),
