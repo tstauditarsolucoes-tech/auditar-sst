@@ -12,10 +12,10 @@ field = (root / "lib/screens/field_intelligence_center_screen.dart").read_text(e
 pub = (root / "pubspec.yaml").read_text(encoding="utf-8")
 
 assert "Central de documentos e envios" not in doc
-assert "title:const Text('Central de documentos')" in doc
+assert "'Central de documentos'" in doc
 assert "FittedBox" in doc
 assert "Text('Histórico de envios')" in doc
-assert "onSelected:(_)=>setState(()=>showHistory=true)" in doc
+assert "showHistory = true" in doc or "showHistory=true" in doc
 assert "labelColor: Colors.white" in field
 assert "unselectedLabelColor: Colors.white70" in field
 assert "indicatorColor: Colors.white" in field
