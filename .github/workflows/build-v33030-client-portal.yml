@@ -1,4 +1,5 @@
 name: Auditar SST Windows v3.30.64 IA Foto Rapida + Produtividade
+# Clean rebuild v3.30.64 after protected productivity consolidation
 
 on:
   push:
