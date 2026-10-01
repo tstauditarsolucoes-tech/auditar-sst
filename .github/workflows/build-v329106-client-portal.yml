@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.147 Evidencias Antes Depois + Recorrencias
+name: Auditar SST Android v3.29.148 Busca e Filtros de Treinamentos
 # Clean rebuild v3.29.145 after protected productivity consolidation
 # Rebuild v3.29.113 logo recovery
 
@@ -51,6 +51,8 @@ on:
       - 'feature_sources/correction_evidence_center_v329147.dart'
       - 'tools/patch_correction_evidence_v329147_v33066.py'
       - 'tools/regression_correction_evidence_v329147_v33066.py'
+      - 'tools/patch_training_history_filters_v329148_v33067.py'
+      - 'tools/regression_training_history_filters_v329148_v33067.py'
       - 'feature_sources/field_intelligence_center_v329143.dart'
       - 'tools/patch_field_intelligence_v329143_v33062.py'
       - 'tools/regression_field_intelligence_v329143_v33062.py'
@@ -948,6 +950,18 @@ jobs:
           python3 tools/regression_report_progress_v329146_v33065.py "$APP_DIR"
           grep -Fq "version: 3.29.147+289" "$APP_DIR/pubspec.yaml"
 
+      - name: Refinar historico de treinamentos sem alterar nucleo
+        run: |
+          set -euo pipefail
+          python3 tools/patch_training_history_filters_v329148_v33067.py "$APP_DIR" android
+          cd "$APP_DIR"
+          dart format lib/screens/training_records_screen.dart lib/screens/field_intelligence_center_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          cd "$GITHUB_WORKSPACE"
+          python3 tools/regression_training_history_filters_v329148_v33067.py "$APP_DIR"
+          python3 tools/regression_correction_evidence_v329147_v33066.py "$APP_DIR"
+          grep -Fq "version: 3.29.148+290" "$APP_DIR/pubspec.yaml"
+
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
         env:
@@ -1009,11 +1023,11 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.147-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.147-Android.apk > dist/Auditar-SST-v3.29.147-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.148-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.148-Android.apk > dist/Auditar-SST-v3.29.148-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.147-Android-Evidencias-Recorrencias
+          name: Auditar-SST-v3.29.148-Android-Treinamentos-Filtros
           path: dist/*
           retention-days: 30
