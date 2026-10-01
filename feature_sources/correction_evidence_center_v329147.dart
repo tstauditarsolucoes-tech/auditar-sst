@@ -39,7 +39,7 @@ class _CorrectionEvidenceCenterScreenState
   ];
 
   String _value(Map<String, Object?>? row, String key) =>
-      '\${row?[key] ?? ''}'.trim();
+      '${row?[key] ?? ''}'.trim();
 
   @override
   void initState() {
@@ -460,7 +460,7 @@ class _CorrectionEvidenceCenterScreenState
                   ),
                 ),
                 Text(
-                  '\${group.count} registros',
+                  '${group.count} registros',
                   style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
               ],
