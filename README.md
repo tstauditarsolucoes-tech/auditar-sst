@@ -1,5 +1,18 @@
 # Auditar — Sistemas SST e EPI
 
+> ## 🚧 VERSÃO ATUAL DO AUDITAR SST
+> **Android:** `v3.29.149+291`  
+> **Windows:** `v3.30.68+255`  
+> **Branch:** `feature/client-panel-permissions-v329106`  
+> **PR:** `#15` — mantido em rascunho até validação final.  
+> **Status:** CI de Android e Windows em validação.
+>
+> O código final é montado pelos workflows atuais a partir da base + patches incrementais.  
+> **Não alterar sincronização, banco, autenticação, mídia/fotos ou Central sem autorização expressa.**
+>
+> Consulte [CURRENT_VERSION.md](CURRENT_VERSION.md) antes de iniciar qualquer alteração.
+
+
 Repositório de desenvolvimento dos sistemas da Auditar Soluções.
 
 ## Produtos
@@ -9,7 +22,7 @@ Aplicativo Flutter para Android e Windows, com operação offline-first e sincro
 
 Principais módulos: empresas, vistorias, não conformidades, planos de ação, trabalhadores, treinamentos, alertas, CIPA, checklists, Rotina SST, Agenda SST, melhorias e indicadores.
 
-**Versão em estabilização:** `3.22.0+80`
+**Linha histórica de estabilização:** `3.22.0+80` (não representa a versão atual)
 
 ### Gestão EPI
 Os módulos EPI permanecem isolados nas pastas `auditar-epi*` e `gestao-epi-master*`. Alterações nesses módulos não devem modificar o build do Auditar SST.
