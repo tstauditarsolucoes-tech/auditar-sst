@@ -79,11 +79,12 @@ s = once(
     "import central capacitacao",
 )
 
-attention_anchor = """              if ((trainingSummary['expired'] ?? 0) > 0)
-                quickRow('${trainingSummary['expired']} treinamento(s) vencido(s)',
-                  () => openPage(TrainingsScreen(companyId: selectedCompanyId))),
-"""
-attention_new = attention_anchor + """              quickRow(
+if "Consultar DDS, treinamentos e integrações" not in s:
+    marker = "              if (structuredPending + mediaPending > 0)"
+    pos = s.find(marker)
+    if pos < 0:
+        raise RuntimeError("ancora central capacitacao ausente")
+    block = """              quickRow(
                 'Consultar DDS, treinamentos e integrações',
                 () => openPage(
                   TrainingActivityCenterScreen(
@@ -93,29 +94,27 @@ attention_new = attention_anchor + """              quickRow(
                 ),
               ),
 """
-if "Consultar DDS, treinamentos e integrações" not in s:
-    if attention_anchor not in s:
-        raise RuntimeError("ancora central capacitacao ausente")
-    s = s.replace(attention_anchor, attention_new, 1)
+    s = s[:pos] + block + s[pos:]
 
-diag_anchor = """    return ListView(
-      padding: const EdgeInsets.all(14),
-      children: [
-        title('Diagnóstico técnico ADM',
-          'Somente leitura. Não altera fila, banco ou sincronização.'),
-        const SizedBox(height: 10),
-"""
-diag_new = """    final healthy = structuredPending == 0 &&
+if "Operação local sem alertas técnicos" not in s:
+    diag_pos = s.find("  Widget diagnosticsTab() {")
+    if diag_pos < 0:
+        raise RuntimeError("diagnostico ADM ausente")
+    return_pos = s.find("    return ListView(", diag_pos)
+    if return_pos < 0:
+        raise RuntimeError("retorno diagnostico ADM ausente")
+    healthy = """    final healthy = structuredPending == 0 &&
         mediaPending == 0 &&
         lastSyncError.isEmpty &&
         mediaSyncError.isEmpty;
-    return ListView(
-      padding: const EdgeInsets.all(14),
-      children: [
-        title('Diagnóstico técnico ADM',
-          'Somente leitura. Não altera fila, banco ou sincronização.'),
-        const SizedBox(height: 10),
-        Card(
+"""
+    s = s[:return_pos] + healthy + s[return_pos:]
+    diag_pos = s.find("  Widget diagnosticsTab() {")
+    size_pos = s.find("        const SizedBox(height: 10),", diag_pos)
+    if size_pos < 0:
+        raise RuntimeError("espacador diagnostico ADM ausente")
+    insert_pos = s.find("\n", size_pos) + 1
+    health_card = """        Card(
           color: healthy
               ? AuditarBrand.greenSoft
               : const Color(0xFFFFF4DF),
@@ -147,7 +146,7 @@ diag_new = """    final healthy = structuredPending == 0 &&
         ),
         const SizedBox(height: 10),
 """
-s = once(s, diag_anchor, diag_new, "resumo saude adm")
+    s = s[:insert_pos] + health_card + s[insert_pos:]
 s = once(
     s,
     "    final version = Platform.isWindows ? '3.30.67' : '3.29.148';",
@@ -161,15 +160,14 @@ write(rel, s)
 # ------------------------------------------------------------------
 cipa_rel = "lib/screens/cipa_management_screen.dart"
 cipa = read(cipa_rel)
-panel_anchor = """          const SizedBox(height: 14),
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Alertas importantes',
-"""
-panel_new = """          const SizedBox(height: 14),
-          Card(
+if "Acesso rápido às pendências" not in cipa:
+    alert_pos = cipa.find("'Alertas importantes'")
+    if alert_pos < 0:
+        raise RuntimeError("alertas CIPA ausentes")
+    row_pos = cipa.rfind("          Row(", 0, alert_pos)
+    if row_pos < 0:
+        raise RuntimeError("linha de alertas CIPA ausente")
+    panel = """          Card(
             child: Padding(
               padding: const EdgeInsets.all(13),
               child: Column(
@@ -224,13 +222,8 @@ panel_new = """          const SizedBox(height: 14),
             ),
           ),
           const SizedBox(height: 14),
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Alertas importantes',
 """
-cipa = once(cipa, panel_anchor, panel_new, "atalhos CIPA")
+    cipa = cipa[:row_pos] + panel + cipa[row_pos:]
 write(cipa_rel, cipa)
 
 # ------------------------------------------------------------------
