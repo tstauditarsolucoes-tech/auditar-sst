@@ -15,6 +15,7 @@ for snippet in (
     "'rondaDeferred': true",
     "const Duration(seconds: 50)",
     "const Duration(seconds: 90)",
+    "final maxAttempts = isFastPhotoRequest ? 1 : 2;",
     "aiElapsedMs",
 ):
     assert snippet in ai, 'AI speed regression missing: ' + snippet
