@@ -4,8 +4,8 @@
 > **Android:** `v3.29.149+291`  
 > **Windows:** `v3.30.68+255`  
 > **Branch:** `feature/client-panel-permissions-v329106`  
-> **PR:** `#15` — mantido em rascunho até validação final.  
-> **Status:** CI de Android e Windows em validação.
+> **PR:** `#15` — permanece em rascunho para revisão; não publicar a Central automaticamente.  
+> **Status:** ✅ CI validada — Android e Windows concluídos com sucesso em 01/10/2026.
 >
 > O código final é montado pelos workflows atuais a partir da base + patches incrementais.  
 > **Não alterar sincronização, banco, autenticação, mídia/fotos ou Central sem autorização expressa.**
