@@ -18,7 +18,7 @@ class CorrectionRecurrenceDetector {
   };
 
   static String _value(Map<String, Object?> row, String key) =>
-      '\${row[key] ?? ''}'.trim();
+      '${row[key] ?? ''}'.trim();
 
   static String _fold(String value) {
     var text = value.toLowerCase().trim();
