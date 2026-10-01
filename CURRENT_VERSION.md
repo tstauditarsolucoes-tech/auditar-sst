@@ -9,7 +9,17 @@
 
 **Branch de trabalho:** `feature/client-panel-permissions-v329106`  
 **Pull Request:** `#15`  
-**Estado:** CI final em validação em 01/10/2026.
+**Estado:** ✅ CI final validada em 01/10/2026.
+
+## Validação final
+
+- Android: workflow run `36914110132` — **success**.
+- Windows: workflow run `36914110133` — **success**.
+- APK: `Auditar-SST-v3.29.149-Android.apk`.
+- Windows instalador: `Auditar-SST-Setup-v3.30.68.exe`.
+- Windows portátil: `Auditar-SST-Windows-v3.30.68-PORTATIL.zip`.
+- Núcleo protegido preservado pelas regressões do pipeline.
+- A validação de CI não substitui o teste físico do APK e do executável em aparelho/PC real.
 
 ## Escopo acumulado da linha atual
 
