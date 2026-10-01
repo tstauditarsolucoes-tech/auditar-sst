@@ -382,26 +382,6 @@ new_timeout = """    final requestTimeout =
 if old_timeout not in ai:
     raise RuntimeError("timeout da IA foto nao localizado")
 ai = ai.replace(old_timeout, new_timeout, 1)
-
-# The fast photo route already has an explicit fallback at the caller.
-# Do not retry the same fast request internally, otherwise one unstable
-# request may double the perceived wait. Robust/deferred and non-photo
-# requests keep the existing two attempts.
-old_attempts = """    const transientHttp = <int>{404, 408, 429, 500, 502, 503, 504};
-    const maxAttempts = 2;
-
-    for (var attempt = 0; attempt < maxAttempts; attempt++) {"""
-new_attempts = """    const transientHttp = <int>{404, 408, 429, 500, 502, 503, 504};
-    final isFastPhotoRequest =
-        (aiMode == 'checklist_photo' ||
-            aiMode == 'safety_observation_photo') &&
-        !rondaDeferred;
-    final maxAttempts = isFastPhotoRequest ? 1 : 2;
-
-    for (var attempt = 0; attempt < maxAttempts; attempt++) {"""
-if old_attempts not in ai:
-    raise RuntimeError("bloco de tentativas da IA nao localizado")
-ai = ai.replace(old_attempts, new_attempts, 1)
 write(rel, ai)
 
 # ---------------------------------------------------------------------------
@@ -502,7 +482,6 @@ assert "'rondaDeferred': false" in final_ai
 assert "'rondaDeferred': true" in final_ai
 assert "const Duration(seconds: 50)" in final_ai
 assert "const Duration(seconds: 90)" in final_ai
-assert "final maxAttempts = isFastPhotoRequest ? 1 : 2;" in final_ai
 assert "IA analisando foto • ${_aiPhotoElapsedSeconds}s" in final_round
 assert "version: " + new_version in read("pubspec.yaml")
 
