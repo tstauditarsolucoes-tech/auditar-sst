@@ -399,17 +399,17 @@ if "Timer? _aiPhotoTimer;" not in screen:
         "campos timer IA",
     )
 
-screen = once(
-    screen,
-    """  void dispose() {
-    description.dispose();
-    location.dispose();""",
-    """  void dispose() {
-    _aiPhotoTimer?.cancel();
-    description.dispose();
-    location.dispose();""",
-    "dispose timer",
-)
+if "_aiPhotoTimer?.cancel();" not in screen:
+    dispose_anchor = "  void dispose() {"
+    dispose_pos = screen.find(dispose_anchor)
+    if dispose_pos < 0:
+        raise RuntimeError("dispose da Ronda nao localizado")
+    insert_pos = dispose_pos + len(dispose_anchor)
+    screen = (
+        screen[:insert_pos]
+        + "\n    _aiPhotoTimer?.cancel();"
+        + screen[insert_pos:]
+    )
 
 screen = once(
     screen,
