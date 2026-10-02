@@ -3,7 +3,7 @@ name: Gerar Windows Gestão EPI
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, feature/gestao-epi-pc-desktop-v280]
     paths:
       - 'auditar-epi-gestao/**'
       - 'auditar-epi-windows/**'
@@ -42,7 +42,6 @@ jobs:
           Copy-Item -Force 'auditar-epi-windows/pc-worker-sheet.js' 'auditar-epi-windows/app/pc-worker-sheet.js'
           Copy-Item -Force 'auditar-epi-windows/pc-worker-sheet-fiscal.js' 'auditar-epi-windows/app/pc-worker-sheet-fiscal.js'
           Copy-Item -Force 'auditar-epi-windows/pc-fichas-clean-v272.js' 'auditar-epi-windows/app/pc-fichas-clean-v272.js'
-          Copy-Item -Force 'auditar-epi-windows/pc-easy-layout-v273.js' 'auditar-epi-windows/app/pc-easy-layout-v273.js'
           Copy-Item -Force 'auditar-epi-windows/pc-batch-delivery-v274.js' 'auditar-epi-windows/app/pc-batch-delivery-v274.js'
           Copy-Item -Force 'auditar-epi-windows/pc-external-face.js' 'auditar-epi-windows/app/pc-external-face.js'
           Copy-Item -Force 'auditar-epi-windows/pc-reliability-v240.js' 'auditar-epi-windows/app/pc-reliability-v240.js'
@@ -53,7 +52,8 @@ jobs:
           Copy-Item -Force 'auditar-epi-windows/pc-professional-safety-v260.js' 'auditar-epi-windows/app/pc-professional-safety-v260.js'
           Copy-Item -Force 'auditar-epi-windows/pc-intelligence-v270.js' 'auditar-epi-windows/app/pc-intelligence-v270.js'
           Copy-Item -Force 'auditar-epi-windows/pc-brand-v279.js' 'auditar-epi-windows/app/pc-brand-v279.js'
-          Copy-Item -Force 'auditar-epi-windows/pc-version-v279.js' 'auditar-epi-windows/app/pc-version-v279.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-version-v280.js' 'auditar-epi-windows/app/pc-version-v280.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-desktop-shell-v280.js' 'auditar-epi-windows/app/pc-desktop-shell-v280.js'
 
           $indexPath = 'auditar-epi-windows/app/index.html'
           $index = Get-Content $indexPath -Raw
@@ -82,18 +82,18 @@ jobs:
             '  <script src="pc-professional-operations-v260.js"></script>',
             '  <script src="pc-professional-safety-v260.js"></script>',
             '  <script src="pc-intelligence-v270.js"></script>',
-            '  <script src="pc-easy-layout-v273.js"></script>',
             '  <script src="pc-batch-delivery-v274.js"></script>',
             '  <script src="pc-brand-v279.js"></script>',
-            '  <script src="pc-version-v279.js"></script>',
+            '  <script src="pc-version-v280.js"></script>',
             '  <script src="pc-login-safe-v277.js"></script>',
+            '  <script src="pc-desktop-shell-v280.js"></script>',
             '</body>',
             '</html>'
           )
           Set-Content -Path $indexPath -Value ($head + (($scriptLines -join "`r`n") + "`r`n")) -Encoding UTF8
           $assembled = Get-Content $indexPath -Raw
 
-          foreach ($required in @('auth-gestao.js','pc-login-session.js','pc-login-safe-v277.js','pc-easy-layout-v273.js','pc-batch-delivery-v274.js','pc-brand-v279.js','pc-version-v279.js')) {
+          foreach ($required in @('auth-gestao.js','pc-login-session.js','pc-login-safe-v277.js','pc-batch-delivery-v274.js','pc-brand-v279.js','pc-version-v280.js','pc-desktop-shell-v280.js')) {
             if ($assembled -notmatch [regex]::Escape($required)) { throw "Script obrigatório ausente: $required" }
           }
           if ($assembled -match 'pc-login-bootstrap-v276\.js|pc-login-interaction-v275\.js|login-uppercase-gestao\.js|worker-link-gestao\.js|pc-fix\.js|prepare-pc\.js') {
@@ -110,10 +110,10 @@ jobs:
           node --check 'auditar-epi-windows/app/pc-stable.js'
           node --check 'auditar-epi-windows/app/pc-modern.js'
           node --check 'auditar-epi-windows/app/pc-integrity.js'
-          node --check 'auditar-epi-windows/app/pc-easy-layout-v273.js'
           node --check 'auditar-epi-windows/app/pc-batch-delivery-v274.js'
           node --check 'auditar-epi-windows/app/pc-brand-v279.js'
-          node --check 'auditar-epi-windows/app/pc-version-v279.js'
+          node --check 'auditar-epi-windows/app/pc-version-v280.js'
+          node --check 'auditar-epi-windows/app/pc-desktop-shell-v280.js'
           node --check 'auditar-epi-windows/app/pc-intelligence-v270.js'
 
       - name: Gerar ícone do Windows
@@ -143,15 +143,15 @@ jobs:
           "APP_VERSION=$($pkg.version)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Publicar atualização do aplicativo
+        if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: gestao-epi-v${{ env.APP_VERSION }}
           name: Gestão EPI PC v${{ env.APP_VERSION }}
           body: |
-            Nova logo oficial aplicada no Gestão EPI: escudo, trabalhador com capacete e selo de conformidade.
-            A identidade visual aparece no login, menu lateral, atalho e executável.
-            Mantida integralmente a base estável v2.7.7 de login, sincronização e inicialização.
-            Mantidas fichas individuais, estoque, facial, entrega normal e entrega em grupo.
+            Interface desktop dedicada, com navegação lateral persistente, tabelas densas e melhor uso de telas grandes.
+            Mantida a base funcional estável de login, sincronização e inicialização.
+            Mantidas fichas individuais, estoque, facial, entrega normal, entrega em grupo, CA e demais módulos.
           files: auditar-epi-windows/dist/Gestao-EPI-Setup-${{ env.APP_VERSION }}.exe
           make_latest: true
           overwrite_files: true
@@ -159,7 +159,7 @@ jobs:
       - name: Disponibilizar aplicativo
         uses: actions/upload-artifact@v4
         with:
-          name: Gestao-EPI-PC-v2.7.9-LOGO-OFICIAL
+          name: Gestao-EPI-PC-v${{ env.APP_VERSION }}-DESKTOP
           path: auditar-epi-windows/dist/*.exe
           if-no-files-found: error
           retention-days: 14
