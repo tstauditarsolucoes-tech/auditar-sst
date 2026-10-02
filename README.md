@@ -5,7 +5,7 @@
 > **Windows:** `v3.30.71+258`  
 > **Branch:** `feature/client-panel-permissions-v329106`  
 > **PR:** `#15` — permanece em rascunho para revisão; não publicar a Central automaticamente.  
-> **Status:** ✅ CI validada — Android e Windows concluídos com sucesso em 02/10/2026. O **Padrão Auditar 3** é o relatório principal, fiel ao modelo técnico aprovado, com logo cadastrada da empresa à direita e sem repetir a logo Auditar.
+> **Status:** ✅ CI validada — Android e Windows concluídos com sucesso em 02/10/2026. O **Padrão Auditar 3** é o relatório principal, fiel ao modelo técnico aprovado, com a logo cadastrada da empresa somente no espaço da direita; não existe logo fixa do Vale do Leite nem repetição da logo do cliente.
 >
 > O código final é montado pelos workflows atuais a partir da base + patches incrementais.  
 > **Não alterar sincronização, banco, autenticação, mídia/fotos ou Central sem autorização expressa.**
