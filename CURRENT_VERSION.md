@@ -4,8 +4,8 @@
 
 | Plataforma | Versão |
 |---|---|
-| Android | **v3.29.151+293** |
-| Windows | **v3.30.70+257** |
+| Android | **v3.29.152+294** |
+| Windows | **v3.30.71+258** |
 
 **Branch de trabalho:** `feature/client-panel-permissions-v329106`  
 **Pull Request:** `#15`  
@@ -22,6 +22,16 @@
 - IA por foto da Ronda: em falha de comunicação com o Google, repete a mesma rota `checklist_photo` já usada pela IA da vistoria, com janela maior; a IA normal da vistoria foi preservada.
 - Núcleo protegido preservado pelas regressões do pipeline.
 - A validação de CI não substitui o teste físico do APK e do executável em aparelho/PC real.
+
+## Padrão Auditar 3 — modelo principal
+
+- Modelo principal dos relatórios de vistoria técnica.
+- Layout fiel ao PDF aprovado: logo Auditar à esquerda, empresa/título ao centro e somente a logo cadastrada do cliente à direita.
+- Se a empresa não tiver logo cadastrada, o lado direito permanece vazio; não há repetição da logo Auditar nem logo fixa de cliente.
+- Identificação com razão social, CNPJ, localidade, data e endereço completo.
+- Achados em duas colunas: evidência fotográfica à esquerda; Local, Situação, Risco, Correção e Prioridade à direita.
+- Fechamento com conclusão, referências gerais e Técnico em Segurança do Trabalho.
+- `Padrão Auditar` e `Padrão Auditar 2` permanecem disponíveis como alternativas.
 
 ## Escopo acumulado da linha atual
 
