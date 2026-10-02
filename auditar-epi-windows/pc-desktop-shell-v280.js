@@ -5,7 +5,7 @@
 
   const GROUPS=[
     {title:'OPERAÇÃO',ids:['dashboard','fastDeliveryPc','newDeliveryPc','batchDeliveryPc','employeeSheetsPc','receiptsPc','workers','deliveries']},
-    {title:'ESTOQUE',ids:['stock','inventoryPc','purchasesPc','returnsPc','replacementPc']},
+    {title:'ESTOQUE',ids:['stock','inventoryPc','purchasesPc','nfImportPc','returnsPc','replacementPc']},
     {title:'CADASTROS',ids:['epis','caSmartPc','rolePpePc','importWorkersPc','qrPeoplePc','faceEnrollPc','externalsPc']},
     {title:'GESTÃO E CONTROLE',ids:['alertsPc','managerReportsPc','indicators','inspectionPc','inspectionDossierPc','dataQualityPc','dataSafetyPc','auditPc','companies','pending']}
   ];
@@ -543,6 +543,7 @@
       ['batchDeliveryPc','👥 Entrega em grupo',''],
       ['employeeSheetsPc','📄 Fichas de EPI',''],
       ['stock','📦 Estoque',''],
+      ['nfImportPc','🧾 Nota Fiscal IA',''],
       ['alertsPc','⚠ Alertas',''],
       ['managerReportsPc','▥ Relatórios','']
     ];
