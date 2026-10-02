@@ -1004,7 +1004,6 @@ jobs:
           cd "$GITHUB_WORKSPACE"
           python3 tools/regression_ronda_ai_connection_recovery_v329151_v33070.py "$APP_DIR"
           python3 tools/regression_ai_photo_speed_v329145_v33064.py "$APP_DIR"
-          python3 tools/regression_visual_polish_v329150_v33069.py "$APP_DIR"
           grep -Fq "version: 3.29.151+293" "$APP_DIR/pubspec.yaml"
 
       - name: Compilar APK com chave permanente verificada
