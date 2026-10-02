@@ -10,7 +10,6 @@ import 'package:pdf/widgets.dart' as pw;
 import '../database.dart';
 import '../models.dart';
 import 'report_template_service.dart';
-import 'report_logo_service.dart';
 
 /// Relatório padrão Auditar inspirado no modelo de vistoria técnica fornecido
 /// pelo usuário: cabeçalho institucional, identificação da empresa e achados
@@ -51,26 +50,15 @@ class AuditarTechnicalInspectionPdfService {
       'Empresa',
     ]);
     final cnpj = _first([header['company_cnpj'], header['cnpj']]);
-    final city = _first([header['company_city'], header['city']]);
-    final uf = _first([header['company_uf'], header['uf']]);
-    final locality = [
-      city,
-      uf,
-    ].where((value) => value.trim().isNotEmpty).join('/');
-    final fullAddress = _first([
-      header['company_address'],
-      header['worksite_address'],
-      header['address'],
-    ]);
-    final issueLocation = _first([
-      header['sector_name'],
-      header['area'],
-      header['worksite_name'],
-      header['location'],
+    final activity = _first([
+      header['company_activity'],
+      header['activity'],
+      header['cnae_description'],
     ]);
     final rawDate = DateTime.tryParse('${header['date'] ?? ''}');
     final dateText =
         rawDate == null ? '-' : DateFormat('dd/MM/yyyy').format(rawDate);
+    final reportNumber = _first([header['report_number']]);
     final technician = _first([header['technician_name']]);
     final registration = _first([
       header['technician_registration'],
@@ -80,7 +68,7 @@ class AuditarTechnicalInspectionPdfService {
 
     final auditarLogo = await _asset('assets/branding/auditar_logo.jpg') ??
         await _asset('assets/branding/auditar_icon.png');
-    final companyLogo = await ReportLogoService.forCompany(header);
+    final sstLogo = await _asset('assets/branding/sst_green_official.png');
     final techSignature =
         await _fileImage('${header['technician_signature_path'] ?? ''}');
 
@@ -135,7 +123,6 @@ class AuditarTechnicalInspectionPdfService {
             'Item avaliado',
           ]),
           caption: answer.questionText.trim(),
-          location: issueLocation,
           situation: situation,
           risk: risk,
           correction: correction,
@@ -147,12 +134,6 @@ class AuditarTechnicalInspectionPdfService {
       );
     }
 
-    final generalReferences = issueData
-        .map((item) => item.reference.trim())
-        .where((value) => value.isNotEmpty)
-        .toSet()
-        .toList();
-
     final doc = pw.Document(
       title: 'Relatório de Vistoria Técnica - $company',
       author: 'Auditar Soluções',
@@ -162,9 +143,9 @@ class AuditarTechnicalInspectionPdfService {
       _identityBox(
         company: company,
         cnpj: cnpj,
-        locality: locality,
+        activity: activity,
         dateText: dateText,
-        fullAddress: fullAddress,
+        reportNumber: reportNumber,
       ),
       pw.SizedBox(height: 10),
     ];
@@ -202,37 +183,12 @@ class AuditarTechnicalInspectionPdfService {
       pw.Text(
         conclusion.isNotEmpty
             ? conclusion
-            : 'Priorizar as correções registradas neste relatório e verificar sua execução em nova visita.',
+            : 'Este relatório registra as condições documentadas na data da vistoria. '
+                'As correções identificadas devem ser acompanhadas e verificadas em nova inspeção. '
+                'O documento não comprova regularização posterior.',
         textAlign: pw.TextAlign.justify,
         style: const pw.TextStyle(fontSize: 9, lineSpacing: 2),
       ),
-      pw.SizedBox(height: 6),
-      pw.Text(
-        'Relatório elaborado com os registros fotográficos e as informações registradas na vistoria. '
-        'Não confirma regularização posterior.',
-        textAlign: pw.TextAlign.justify,
-        style: const pw.TextStyle(fontSize: 8.2, lineSpacing: 1.8),
-      ),
-      if (generalReferences.isNotEmpty) ...[
-        pw.SizedBox(height: 6),
-        pw.RichText(
-          text: pw.TextSpan(
-            children: [
-              pw.TextSpan(
-                text: 'Referências gerais: ',
-                style: pw.TextStyle(
-                  fontSize: 8.2,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-              ),
-              pw.TextSpan(
-                text: generalReferences.join(', '),
-                style: const pw.TextStyle(fontSize: 8.2),
-              ),
-            ],
-          ),
-        ),
-      ],
       pw.SizedBox(height: 34),
       _technicalResponsible(
         name: technician,
@@ -249,11 +205,12 @@ class AuditarTechnicalInspectionPdfService {
         margin: const pw.EdgeInsets.fromLTRB(22, 18, 22, 34),
         header: (context) => _header(
           auditarLogo: auditarLogo,
-          companyLogo: companyLogo,
+          sstLogo: sstLogo,
           company: company,
           cnpj: cnpj,
+          dateText: dateText,
         ),
-        footer: (context) => _footer(context, auditarLogo),
+        footer: (context) => _footer(context),
         build: (_) => widgets,
       ),
     );
@@ -263,16 +220,17 @@ class AuditarTechnicalInspectionPdfService {
 
   static pw.Widget _header({
     required pw.MemoryImage? auditarLogo,
-    required pw.MemoryImage? companyLogo,
+    required pw.MemoryImage? sstLogo,
     required String company,
     required String cnpj,
+    required String dateText,
   }) =>
       pw.Column(
         children: [
           pw.Row(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
-              _logo(auditarLogo, 82, 50),
+              _logo(auditarLogo, 72, 47),
               pw.Expanded(
                 child: pw.Column(
                   children: [
@@ -281,7 +239,7 @@ class AuditarTechnicalInspectionPdfService {
                       textAlign: pw.TextAlign.center,
                       style: pw.TextStyle(
                         color: _navy,
-                        fontSize: 12.5,
+                        fontSize: 12,
                         fontWeight: pw.FontWeight.bold,
                       ),
                     ),
@@ -291,25 +249,25 @@ class AuditarTechnicalInspectionPdfService {
                       textAlign: pw.TextAlign.center,
                       style: pw.TextStyle(
                         color: _navy,
-                        fontSize: 11.2,
+                        fontSize: 11,
                         fontWeight: pw.FontWeight.bold,
                       ),
                     ),
                   ],
                 ),
               ),
-              _logo(companyLogo, 58, 52),
+              _logo(sstLogo, 52, 52),
             ],
           ),
           pw.SizedBox(height: 6),
           pw.Text(
             [
-              company.toUpperCase(),
+              'Vistoria realizada em $dateText',
               if (cnpj.isNotEmpty) 'CNPJ: $cnpj',
             ].join('  |  '),
             textAlign: pw.TextAlign.center,
             style: pw.TextStyle(
-              fontSize: 7.5,
+              fontSize: 7.4,
               fontWeight: pw.FontWeight.bold,
             ),
           ),
@@ -322,9 +280,9 @@ class AuditarTechnicalInspectionPdfService {
   static pw.Widget _identityBox({
     required String company,
     required String cnpj,
-    required String locality,
+    required String activity,
     required String dateText,
-    required String fullAddress,
+    required String reportNumber,
   }) =>
       pw.Container(
         decoration: pw.BoxDecoration(
@@ -338,14 +296,14 @@ class AuditarTechnicalInspectionPdfService {
               'IDENTIFICAÇÃO DA EMPRESA',
               style: pw.TextStyle(
                 color: _navy,
-                fontSize: 9.3,
+                fontSize: 9,
                 fontWeight: pw.FontWeight.bold,
               ),
             ),
             pw.SizedBox(height: 6),
             pw.Row(
               children: [
-                pw.Expanded(child: _labelValue('RAZÃO SOCIAL', company)),
+                pw.Expanded(child: _labelValue('EMPRESA', company)),
                 pw.SizedBox(width: 10),
                 pw.Expanded(child: _labelValue('CNPJ', cnpj)),
               ],
@@ -353,13 +311,15 @@ class AuditarTechnicalInspectionPdfService {
             pw.SizedBox(height: 4),
             pw.Row(
               children: [
-                pw.Expanded(child: _labelValue('LOCALIDADE', locality)),
+                pw.Expanded(child: _labelValue('ATIVIDADE', activity)),
                 pw.SizedBox(width: 10),
-                pw.Expanded(child: _labelValue('DATA DA VISTORIA', dateText)),
+                pw.Expanded(child: _labelValue('DATA', dateText)),
               ],
             ),
-            pw.SizedBox(height: 4),
-            _labelValue('ENDEREÇO COMPLETO', fullAddress),
+            if (reportNumber.isNotEmpty) ...[
+              pw.SizedBox(height: 4),
+              _labelValue('RELATÓRIO', reportNumber),
+            ],
           ],
         ),
       );
@@ -402,16 +362,14 @@ class AuditarTechnicalInspectionPdfService {
                     ),
                   ),
                   pw.SizedBox(height: 7),
-                  _paragraph(
-                    'Local',
-                    issue.location.isEmpty ? 'Não informado' : issue.location,
-                  ),
                   if (issue.situation.isNotEmpty)
                     _paragraph('Situação', issue.situation),
                   if (issue.risk.isNotEmpty)
                     _paragraph('Risco', issue.risk),
                   if (issue.correction.isNotEmpty)
                     _paragraph('Correção', issue.correction),
+                  if (issue.reference.isNotEmpty)
+                    _paragraph('Referência', issue.reference),
                   pw.SizedBox(height: 5),
                   if (issue.priority.isNotEmpty)
                     pw.Text(
@@ -461,7 +419,7 @@ class AuditarTechnicalInspectionPdfService {
             pw.SizedBox(height: 5),
             pw.Text(
               issue.caption,
-              textAlign: pw.TextAlign.left,
+              textAlign: pw.TextAlign.center,
               style: const pw.TextStyle(
                 fontSize: 6.6,
                 color: PdfColors.grey700,
@@ -556,7 +514,7 @@ class AuditarTechnicalInspectionPdfService {
               pw.Container(height: .7, color: _navy),
               pw.SizedBox(height: 5),
               pw.Text(
-                'TÉCNICO EM SEGURANÇA DO TRABALHO',
+                'RESPONSÁVEL TÉCNICO',
                 style: pw.TextStyle(
                   fontSize: 8,
                   fontWeight: pw.FontWeight.bold,
@@ -576,26 +534,16 @@ class AuditarTechnicalInspectionPdfService {
         ),
       );
 
-  static pw.Widget _footer(
-    pw.Context context,
-    pw.MemoryImage? auditarLogo,
-  ) =>
-      pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.end,
+  static pw.Widget _footer(pw.Context context) => pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
-          pw.Expanded(child: pw.SizedBox()),
-          _logo(auditarLogo, 58, 24),
-          pw.Expanded(
-            child: pw.Align(
-              alignment: pw.Alignment.centerRight,
-              child: pw.Text(
-                'Página ${context.pageNumber}/${context.pagesCount}',
-                style: const pw.TextStyle(
-                  fontSize: 6.8,
-                  color: PdfColors.grey700,
-                ),
-              ),
-            ),
+          pw.Text(
+            'Auditar Soluções • Medicina Ocupacional e Segurança do Trabalho',
+            style: pw.TextStyle(fontSize: 6.8, color: PdfColors.grey700),
+          ),
+          pw.Text(
+            'Página ${context.pageNumber}/${context.pagesCount}',
+            style: const pw.TextStyle(fontSize: 6.8, color: PdfColors.grey700),
           ),
         ],
       );
@@ -688,7 +636,6 @@ class AuditarTechnicalInspectionPdfService {
 class _IssueData {
   final String title;
   final String caption;
-  final String location;
   final String situation;
   final String risk;
   final String correction;
@@ -700,7 +647,6 @@ class _IssueData {
   const _IssueData({
     required this.title,
     required this.caption,
-    required this.location,
     required this.situation,
     required this.risk,
     required this.correction,
