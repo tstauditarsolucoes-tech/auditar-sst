@@ -98,9 +98,9 @@
         #newDeliveryPc{display:none}
         #newDeliveryPc.active{display:grid!important;grid-template-columns:minmax(0,1.15fr) minmax(360px,.85fr)!important;grid-template-areas:"head head" "form items" "form confirm" "save save"!important;gap:12px!important;align-items:start!important}
         #newDeliveryPc>.pc-modern-head{grid-area:head!important;margin:0!important}
-        #newDeliveryPc>.pc-card.pc-grid{grid-area:form!important;margin:0!important;grid-template-columns:1fr 1fr!important;position:sticky!important;top:100px!important}
-        #newDeliveryPc>.pc-card:nth-of-type(2){grid-area:items!important;margin:0!important}
-        #newDeliveryPc>#pcConfirmCard,#newDeliveryPc>.pc-card:nth-of-type(3){grid-area:confirm!important;margin:0!important}
+        #newDeliveryPc>.pc-card.pc-grid{grid-area:form!important;margin:0!important;grid-template-columns:1fr 1fr!important}
+        #newDeliveryPc>.pc280-delivery-items-card{grid-area:items!important;margin:0!important}
+        #newDeliveryPc>#pcConfirmCard,#newDeliveryPc>.pc280-delivery-confirm-card{grid-area:confirm!important;margin:0!important}
         #newDeliveryPc>#pcSaveDelivery{grid-area:save!important;width:auto!important;justify-self:stretch!important;margin:0!important}
         #newDeliveryPc .pc-signature{height:135px!important}
         #newDeliveryPc .pc-delivery-item{grid-template-columns:minmax(0,1fr) 72px 38px!important}
@@ -450,6 +450,13 @@
     }
   }
 
+  function decorateDeliveryLayout(){
+    const items=$('#pcDeliveryItems')?.closest('.pc-card');
+    if(items)items.classList.add('pc280-delivery-items-card');
+    const confirm=$('#pcSignature')?.closest('.pc-card');
+    if(confirm)confirm.classList.add('pc280-delivery-confirm-card');
+  }
+
   function bindDelegation(){
     if(window.__pc280ParityBound)return;
     window.__pc280ParityBound=true;
@@ -487,7 +494,7 @@
     let n=0;
     const t=setInterval(()=>{
       n++;
-      addNav();ensureNfView();ensureCaToolbar();decorateCaRows();
+      addNav();ensureNfView();ensureCaToolbar();decorateCaRows();decorateDeliveryLayout();
       if(n>25)clearInterval(t);
     },180);
     setTimeout(resume,600);
