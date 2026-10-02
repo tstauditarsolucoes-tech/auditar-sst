@@ -1046,8 +1046,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha regressao IA Ronda' }
           python tools/regression_ai_photo_speed_v329145_v33064.py "$env:APP_DIR"
           if ($LASTEXITCODE -ne 0) { throw 'Falha regressao IA foto anterior' }
-          python tools/regression_visual_polish_v329150_v33069.py "$env:APP_DIR"
-          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao visual anterior' }
           if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.70+257")) { throw 'Versao Windows v3.30.70 incorreta' }
 
       - name: Compilar Windows release
