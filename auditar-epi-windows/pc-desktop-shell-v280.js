@@ -4,10 +4,10 @@
   const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 
   const GROUPS=[
-    {title:'OPERAÇÃO',ids:['dashboard','fastDeliveryPc','newDeliveryPc','batchDeliveryPc','employeeSheetsPc','workers','deliveries']},
+    {title:'OPERAÇÃO',ids:['dashboard','fastDeliveryPc','newDeliveryPc','batchDeliveryPc','employeeSheetsPc','receiptsPc','workers','deliveries']},
     {title:'ESTOQUE',ids:['stock','inventoryPc','purchasesPc','returnsPc','replacementPc']},
     {title:'CADASTROS',ids:['epis','caSmartPc','rolePpePc','importWorkersPc','qrPeoplePc','faceEnrollPc','externalsPc']},
-    {title:'GESTÃO E CONTROLE',ids:['alertsPc','managerReportsPc','indicators','inspectionPc','dataQualityPc','dataSafetyPc','auditPc','companies','pending']}
+    {title:'GESTÃO E CONTROLE',ids:['alertsPc','managerReportsPc','indicators','inspectionPc','inspectionDossierPc','dataQualityPc','dataSafetyPc','auditPc','companies','pending']}
   ];
 
   function installStyles(){
@@ -280,6 +280,83 @@
           background:#e7f5f2;color:#0e7468;font-size:8px;font-weight:900;
           vertical-align:middle;letter-spacing:.04em;text-transform:uppercase
         }
+        .pc280-command{
+          position:relative!important;
+          width:min(360px,28vw)!important;
+          min-width:230px!important
+        }
+        .pc280-command input{
+          width:100%!important;
+          min-height:38px!important;
+          padding:9px 36px 9px 34px!important;
+          border:1px solid #cfddda!important;
+          border-radius:10px!important;
+          background:#fff!important;
+          color:#203735!important;
+          font-size:10.5px!important;
+          box-shadow:none!important
+        }
+        .pc280-command input:focus{
+          border-color:#0f8d7e!important;
+          box-shadow:0 0 0 3px rgba(15,141,126,.10)!important
+        }
+        .pc280-command-icon{
+          position:absolute!important;left:11px!important;top:50%!important;
+          transform:translateY(-50%)!important;color:#71837f!important;
+          font-size:13px!important;pointer-events:none!important
+        }
+        .pc280-command-kbd{
+          position:absolute!important;right:8px!important;top:50%!important;
+          transform:translateY(-50%)!important;border:1px solid #d8e3e1!important;
+          background:#f5f8f7!important;color:#788985!important;border-radius:6px!important;
+          padding:2px 5px!important;font-size:7.5px!important;font-weight:800!important;
+          pointer-events:none!important
+        }
+        .pc280-command-results{
+          display:none;position:absolute;top:44px;left:0;right:0;z-index:5000;
+          max-height:390px;overflow:auto;background:#fff;border:1px solid #d9e4e2;
+          border-radius:12px;box-shadow:0 18px 45px rgba(21,52,50,.18);padding:6px
+        }
+        .pc280-command-results.open{display:block}
+        .pc280-search-item{
+          width:100%;display:grid;grid-template-columns:28px minmax(0,1fr) auto;
+          gap:9px;align-items:center;border:0;background:transparent;text-align:left;
+          padding:9px;border-radius:8px;cursor:pointer;color:#263c39
+        }
+        .pc280-search-item:hover{background:#f1f7f5}
+        .pc280-search-ico{
+          width:28px;height:28px;border-radius:8px;display:grid;place-items:center;
+          background:#edf6f4;font-size:13px
+        }
+        .pc280-search-item b{display:block;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .pc280-search-item small{display:block;font-size:8.5px;color:#71837f;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .pc280-search-kind{font-size:7.5px;font-weight:900;color:#0f766e;text-transform:uppercase;letter-spacing:.05em}
+        .pc280-search-empty{padding:16px;text-align:center;color:#70827e;font-size:9.5px}
+        .pc280-shortcuts{
+          display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:0 0 14px
+        }
+        .pc280-shortcut{
+          border:1px solid #d8e5e2;background:#fff;color:#315c57;border-radius:9px;
+          min-height:34px;padding:7px 10px;font-size:9.5px;font-weight:850;cursor:pointer
+        }
+        .pc280-shortcut:hover{border-color:#a9cbc5;background:#f5faf9}
+        .pc280-shortcut.primary{background:#0f766e;color:#fff;border-color:#0f766e}
+        .pc280-section-title{
+          display:flex;align-items:center;justify-content:space-between;gap:12px;
+          margin:0 0 10px;color:#193d39
+        }
+        .pc280-section-title b{font-size:11px}
+        .pc280-section-title small{font-size:8.5px;color:#748783}
+        .pc280-density-note{
+          display:inline-flex;align-items:center;gap:5px;padding:4px 7px;
+          border-radius:999px;background:#eef6f4;color:#55736e;font-size:8px;font-weight:800
+        }
+        .pc280-table-shell{max-height:calc(100vh - 245px)!important;overflow:auto!important}
+        #workers .table-wrap,#epis .table-wrap,#deliveries .table-wrap,#stock .table-wrap,#companies .table-wrap{
+          max-height:calc(100vh - 245px)!important;overflow:auto!important
+        }
+        .pc280-focus-view .panel,.pc280-focus-view .pc-card{box-shadow:0 4px 18px rgba(22,61,56,.05)!important}
+        .pc280-role-readonly .primary[data-save],.pc280-role-readonly [data-delete]{display:none!important}
       }
 
       @media (min-width:1000px) and (max-width:1180px){
@@ -346,8 +423,157 @@
 
   function cleanLegacyArtifacts(){
     $('#v273Welcome')?.remove();
-    $$('.v273-nav-group').forEach(x=>x.remove());
-    $$('.v273-hide-duplicate').forEach(x=>x.classList.remove('v273-hide-duplicate'));
+    $('.v273-nav-group').forEach(x=>x.remove());
+    $('.v273-hide-duplicate').forEach(x=>x.classList.remove('v273-hide-duplicate'));
+  }
+
+  function readCache(){
+    try{
+      const r=JSON.parse(localStorage.getItem('auditarEpiGestaoCacheV1')||'{}');
+      r.app=r.app&&typeof r.app==='object'?r.app:{};
+      for(const k of ['companies','workers','epis','deliveries'])r.app[k]=Array.isArray(r.app[k])?r.app[k]:[];
+      return r;
+    }catch(_){return {app:{companies:[],workers:[],epis:[],deliveries:[]}}}
+  }
+
+  function norm(v=''){
+    return String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+  }
+
+  function clickView(id){
+    const b=$('.sidebar .nav[data-view="'+id+'"]');
+    if(b){b.click();return true}
+    return false;
+  }
+
+  function openSearchTarget(kind,id,label){
+    const value=String(label||'');
+    if(kind==='worker'){
+      clickView('workers');
+      setTimeout(()=>{
+        const q=$('#workerSearch');
+        if(q){q.value=value;q.dispatchEvent(new Event('input',{bubbles:true}));q.focus()}
+      },100);
+    }else if(kind==='epi'){
+      clickView('epis');
+      setTimeout(()=>{
+        const q=$('#epiSearch');
+        if(q){q.value=value;q.dispatchEvent(new Event('input',{bubbles:true}));q.focus()}
+      },100);
+    }else if(kind==='company'){
+      const sel=$('#globalCompany');
+      if(sel){
+        sel.value=id;
+        sel.dispatchEvent(new Event('change',{bubbles:true}));
+      }
+      clickView('dashboard');
+    }else if(kind==='delivery'){
+      clickView('deliveries');
+      setTimeout(()=>{
+        const q=$('#deliverySearch');
+        if(q){q.value=value;q.dispatchEvent(new Event('input',{bubbles:true}));q.focus()}
+      },100);
+    }
+    $('#pc280SearchResults')?.classList.remove('open');
+  }
+
+  function renderGlobalSearch(){
+    const input=$('#pc280GlobalSearch'),box=$('#pc280SearchResults');
+    if(!input||!box)return;
+    const q=norm(input.value);
+    if(q.length<2){box.classList.remove('open');box.innerHTML='';return}
+    const r=readCache(),items=[];
+    const companies=new Map(r.app.companies.map(x=>[x.id,x]));
+
+    for(const w of r.app.workers){
+      const hay=norm([w.name,w.cpf,w.reg,w.role,w.sector,companies.get(w.companyId)?.name].join(' '));
+      if(hay.includes(q))items.push({kind:'worker',id:w.id,label:w.name||'Trabalhador',sub:[w.role,w.sector,companies.get(w.companyId)?.name].filter(Boolean).join(' • '),ico:'👷'});
+      if(items.length>=6)break;
+    }
+    for(const e of r.app.epis){
+      if(items.length>=10)break;
+      const hay=norm([e.name,e.ca,e.model,e.size].join(' '));
+      if(hay.includes(q))items.push({kind:'epi',id:e.id,label:e.name||'EPI',sub:[e.ca?'CA '+e.ca:'',e.model,e.size].filter(Boolean).join(' • '),ico:'🦺'});
+    }
+    for(const company of r.app.companies){
+      if(items.length>=12)break;
+      if(norm([company.name,company.cnpj].join(' ')).includes(q))items.push({kind:'company',id:company.id,label:company.name||'Empresa',sub:company.cnpj||'',ico:'🏢'});
+    }
+
+    box.innerHTML='';
+    if(!items.length){
+      const d=document.createElement('div');d.className='pc280-search-empty';d.textContent='Nenhum resultado encontrado.';box.appendChild(d);
+    }else{
+      items.forEach(item=>{
+        const b=document.createElement('button');
+        b.type='button';b.className='pc280-search-item';
+        const ico=document.createElement('span');ico.className='pc280-search-ico';ico.textContent=item.ico;
+        const txt=document.createElement('span');
+        const strong=document.createElement('b');strong.textContent=item.label;
+        const small=document.createElement('small');small.textContent=item.sub||'';
+        txt.append(strong,small);
+        const kind=document.createElement('span');kind.className='pc280-search-kind';kind.textContent=item.kind==='worker'?'Pessoa':item.kind==='epi'?'EPI':'Empresa';
+        b.append(ico,txt,kind);
+        b.addEventListener('click',()=>openSearchTarget(item.kind,item.id,item.label));
+        box.appendChild(b);
+      });
+    }
+    box.classList.add('open');
+  }
+
+  function installCommandBar(){
+    const actions=$('.top-actions');
+    if(!actions||$('#pc280Command'))return;
+    const wrap=document.createElement('div');
+    wrap.id='pc280Command';wrap.className='pc280-command';
+    wrap.innerHTML='<span class="pc280-command-icon">⌕</span><input id="pc280GlobalSearch" type="search" autocomplete="off" placeholder="Buscar trabalhador, EPI, CA ou empresa"><span class="pc280-command-kbd">Ctrl K</span><div id="pc280SearchResults" class="pc280-command-results"></div>';
+    actions.insertBefore(wrap,actions.firstChild);
+    $('#pc280GlobalSearch').addEventListener('input',renderGlobalSearch);
+    $('#pc280GlobalSearch').addEventListener('keydown',e=>{if(e.key==='Escape'){$('#pc280SearchResults')?.classList.remove('open');e.currentTarget.blur()}});
+    document.addEventListener('click',e=>{if(!e.target.closest('#pc280Command'))$('#pc280SearchResults')?.classList.remove('open')});
+  }
+
+  function installDashboardShortcuts(){
+    const dash=$('#dashboard');
+    if(!dash||$('#pc280Shortcuts'))return;
+    const bar=document.createElement('div');
+    bar.id='pc280Shortcuts';bar.className='pc280-shortcuts';
+    const defs=[
+      ['newDeliveryPc','＋ Nova entrega','primary'],
+      ['batchDeliveryPc','👥 Entrega em grupo',''],
+      ['employeeSheetsPc','📄 Fichas de EPI',''],
+      ['stock','📦 Estoque',''],
+      ['alertsPc','⚠ Alertas',''],
+      ['managerReportsPc','▥ Relatórios','']
+    ];
+    defs.forEach(([id,label,cls])=>{
+      if(!$('.sidebar .nav[data-view="'+id+'"]'))return;
+      const b=document.createElement('button');b.type='button';b.className='pc280-shortcut '+cls;b.textContent=label;b.onclick=()=>clickView(id);bar.appendChild(b);
+    });
+    const first=dash.firstElementChild;
+    if(first)dash.insertBefore(bar,first);else dash.appendChild(bar);
+  }
+
+  function decorateDataViews(){
+    for(const id of ['workers','epis','deliveries','stock','companies','employeeSheetsPc','receiptsPc']){
+      $('#'+id)?.classList.add('pc280-focus-view');
+    }
+    const user=window.GestaoEpiAuth?.user?.()||{};
+    document.body.classList.toggle('pc280-role-readonly',String(user.role||'')==='consulta');
+  }
+
+  function installKeyboard(){
+    if(window.__pc280Keyboard)return;
+    window.__pc280Keyboard=true;
+    document.addEventListener('keydown',e=>{
+      if((e.ctrlKey||e.metaKey)&&String(e.key).toLowerCase()==='k'){
+        e.preventDefault();const q=$('#pc280GlobalSearch');if(q){q.focus();q.select()}
+      }
+      if(e.altKey&&e.key==='1'){e.preventDefault();clickView('dashboard')}
+      if(e.altKey&&e.key==='2'){e.preventDefault();clickView('newDeliveryPc')}
+      if(e.altKey&&e.key==='3'){e.preventDefault();clickView('workers')}
+      if(e.altKey&&e.key==='4'){e.preventDefault();clickView('stock')}
+    });
   }
 
   function pass(){
@@ -356,6 +582,10 @@
     cleanLegacyArtifacts();
     arrangeNavigation();
     installIdentity();
+    installCommandBar();
+    installDashboardShortcuts();
+    decorateDataViews();
+    installKeyboard();
   }
 
   function boot(){
