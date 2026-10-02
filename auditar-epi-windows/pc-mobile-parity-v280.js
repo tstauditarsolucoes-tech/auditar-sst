@@ -191,7 +191,10 @@
     setNfStatus(ext==='xml'?'Lendo XML e classificando itens…':'Lendo a Nota Fiscal com IA…','busy');
     const btn=$('#pc280NfAnalyze');btn.disabled=true;
     try{
-      const document=await fileToDataUrl(file);
+      let document=await fileToDataUrl(file);
+      const rawBase64=document.includes(',')?document.slice(document.indexOf(',')+1):'';
+      if(ext==='pdf'&&!/^data:application\/pdf;base64,/i.test(document))document='data:application/pdf;base64,'+rawBase64;
+      if(ext==='xml'&&!/^data:(?:application|text)\/xml(?:;charset=[^;,]+)?;base64,/i.test(document))document='data:application/xml;base64,'+rawBase64;
       const res=await api('tenant_ai_assistant',{payload:{mode:'invoice_document_import',document}});
       if(!res?.ok)throw new Error(res?.message||'Não foi possível ler a Nota Fiscal.');
       const invoice=res?.result?.invoice;
@@ -209,13 +212,17 @@
   }
 
   async function enrichInvoiceCas(invoice){
-    const items=(invoice.items||[]).filter(i=>digits(i.ca)).slice(0,20).map(i=>({ca:digits(i.ca),name:String(i.name||''),manufacturer:String(i.manufacturer||'')}));
-    if(!items.length)return;
-    try{
-      const res=await api('tenant_ai_assistant',{payload:{mode:'ca_validate',items}});
-      if(!res?.ok)return;
-      for(const c of (res?.result?.checks||[]))caResults[digits(c.ca)]=c;
-    }catch(_){}
+    const all=(invoice.items||[]).filter(i=>digits(i.ca)).map(i=>({ca:digits(i.ca),name:String(i.name||''),manufacturer:String(i.manufacturer||'')}));
+    const unique=[...new Map(all.map(i=>[i.ca,i])).values()];
+    if(!unique.length)return;
+    for(let start=0;start<unique.length;start+=20){
+      const items=unique.slice(start,start+20);
+      try{
+        const res=await api('tenant_ai_assistant',{payload:{mode:'ca_validate',items}});
+        if(!res?.ok)continue;
+        for(const check of (res?.result?.checks||[]))caResults[digits(check.ca)]=check;
+      }catch(_){}
+    }
   }
 
   function caHtml(ca){
@@ -328,9 +335,9 @@
         }
 
         const productKey=safePart(item.code||e.id||index);
-        const movementId='sm_nf_'+safePart(companyId)+'_'+safePart(sourceKey)+'_'+productKey;
+        const movementId='sm_nf_'+safePart(companyId)+'_'+safePart(sourceKey)+'_'+productKey+'_'+index;
         if(root.stock.movements.some(m=>String(m.id)===movementId)){duplicates++;return}
-        const batchId='b_nf_'+safePart(sourceKey)+'_'+productKey;
+        const batchId='b_nf_'+safePart(sourceKey)+'_'+productKey+'_'+index;
         root.stock.movements.unshift({
           id:movementId,type:'IN',delta:Number(item.qty||0),companyId,epiId:e.id,
           purchaseId,batchId,lot:String(item.lot||''),physicalExpiry:String(item.physicalExpiry||''),
@@ -418,21 +425,26 @@
 
   async function queryAllCas(){
     if(!canOperate())return toast('Seu perfil é somente consulta.');
-    const root=read(),items=root.app.epis.filter(e=>e.active!==false&&digits(e.ca)).slice(0,20);
+    const root=read(),items=root.app.epis.filter(e=>e.active!==false&&digits(e.ca));
     if(!items.length)return toast('Nenhum CA informado para consultar.');
     const btn=$('#pc280CaAutoAll'),live=$('#pc280CaLive');
-    btn.disabled=true;if(live)live.textContent=`Consultando ${items.length} CA(s)…`;
+    btn.disabled=true;
     try{
-      const res=await api('tenant_ai_assistant',{payload:{mode:'ca_validate',items:items.map(e=>({ca:digits(e.ca),name:e.name||'',manufacturer:e.model||e.manufacturer||''}))}});
-      if(!res?.ok)throw new Error(res?.message||'Falha na consulta dos CAs.');
-      const map=new Map((res?.result?.checks||[]).map(c=>[digits(c.ca),c]));
-      let ok=0;
-      items.forEach(e=>{
-        const c=map.get(digits(e.ca));if(!c?.found)return;
-        e.caCheckedAt=now();e.caCheckedBy=String(window.GestaoEpiAuth?.user?.()?.name||window.GestaoEpiAuth?.user?.()?.username||'');
-        e.caValidationStatus=String(c.status||'');e.caValidity=String(c.validity||'');e.caEquipment=String(c.equipment||'');e.caManufacturer=String(c.manufacturer||'');e.caSourceUrl=String(c.sourceUrl||'');e.caSourceType=String(c.sourceType||'');e.updatedAt=now();ok++;
-      });
-      saveAndReload(root,`${ok} CA(s) atualizado(s) pela fonte oficial.`,'caSmartPc');
+      let ok=0,processed=0;
+      for(let start=0;start<items.length;start+=20){
+        const batch=items.slice(start,start+20);
+        if(live)live.textContent=`Consultando CAs ${start+1}–${Math.min(start+20,items.length)} de ${items.length}…`;
+        const res=await api('tenant_ai_assistant',{payload:{mode:'ca_validate',items:batch.map(e=>({ca:digits(e.ca),name:e.name||'',manufacturer:e.model||e.manufacturer||''}))}});
+        if(!res?.ok)throw new Error(res?.message||'Falha na consulta dos CAs.');
+        const map=new Map((res?.result?.checks||[]).map(check=>[digits(check.ca),check]));
+        batch.forEach(e=>{
+          processed++;
+          const check=map.get(digits(e.ca));if(!check?.found)return;
+          e.caCheckedAt=now();e.caCheckedBy=String(window.GestaoEpiAuth?.user?.()?.name||window.GestaoEpiAuth?.user?.()?.username||'');
+          e.caValidationStatus=String(check.status||'');e.caValidity=String(check.validity||'');e.caEquipment=String(check.equipment||'');e.caManufacturer=String(check.manufacturer||'');e.caSourceUrl=String(check.sourceUrl||'');e.caSourceType=String(check.sourceType||'');e.updatedAt=now();ok++;
+        });
+      }
+      saveAndReload(root,`${ok} de ${processed} CA(s) confirmado(s) pela fonte oficial.`,'caSmartPc');
     }catch(err){
       btn.disabled=false;if(live)live.textContent='';toast(err?.message||'Falha na consulta dos CAs.');
     }
