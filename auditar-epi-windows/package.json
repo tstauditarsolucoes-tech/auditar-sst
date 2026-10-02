@@ -1,6 +1,6 @@
 {
   "name": "gestao-epi",
-  "version": "2.7.9",
+  "version": "2.8.0",
   "description": "Gestão EPI para Windows",
   "main": "main.js",
   "private": true,
@@ -27,11 +27,15 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },
