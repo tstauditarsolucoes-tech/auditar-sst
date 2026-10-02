@@ -158,6 +158,15 @@ class AuditarStandard3PdfService {
       );
     }
 
+    final references = <String>[];
+    for (final issue in issueData) {
+      final value = issue.reference.trim();
+      if (value.isEmpty) continue;
+      if (!references.any((item) => item.toLowerCase() == value.toLowerCase())) {
+        references.add(value);
+      }
+    }
+
     final doc = pw.Document(
       title: 'Relatório de Vistoria Técnica - $company',
       subject: 'Padrão Auditar 3',
@@ -208,12 +217,38 @@ class AuditarStandard3PdfService {
       pw.Text(
         conclusion.isNotEmpty
             ? conclusion
-            : 'Este relatório registra as condições documentadas na data da vistoria. '
-                'As correções identificadas devem ser acompanhadas e verificadas em nova inspeção. '
-                'O documento não comprova regularização posterior.',
+            : 'Priorizar as correções descritas nos itens identificados, acompanhando a execução das medidas recomendadas. '
+                'Verificar as correções em nova visita.',
         textAlign: pw.TextAlign.justify,
         style: const pw.TextStyle(fontSize: 9, lineSpacing: 2),
       ),
+      pw.SizedBox(height: 7),
+      pw.Text(
+        'Relatório elaborado com os registros fotográficos e as informações registradas na vistoria. '
+        'Não confirma regularização posterior.',
+        textAlign: pw.TextAlign.justify,
+        style: const pw.TextStyle(fontSize: 7.7, lineSpacing: 1.6),
+      ),
+      if (references.isNotEmpty) ...[
+        pw.SizedBox(height: 6),
+        pw.RichText(
+          text: pw.TextSpan(
+            children: [
+              pw.TextSpan(
+                text: 'Referências gerais: ',
+                style: pw.TextStyle(
+                  fontSize: 7.7,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.TextSpan(
+                text: references.join('; '),
+                style: const pw.TextStyle(fontSize: 7.7),
+              ),
+            ],
+          ),
+        ),
+      ],
       pw.SizedBox(height: 34),
       _technicalResponsible(
         name: technician,
@@ -287,7 +322,7 @@ class AuditarStandard3PdfService {
           pw.SizedBox(height: 6),
           pw.Text(
             [
-              'Vistoria realizada em $dateText',
+              company.toUpperCase(),
               if (cnpj.isNotEmpty) 'CNPJ: $cnpj',
             ].join('  |  '),
             textAlign: pw.TextAlign.center,
