@@ -5,7 +5,7 @@
 > **Windows:** `v3.30.71+258`  
 > **Branch:** `feature/client-panel-permissions-v329106`  
 > **PR:** `#15` — permanece em rascunho para revisão; não publicar a Central automaticamente.  
-> **Status:** ✅ CI validada — Android e Windows concluídos com sucesso em 01/10/2026. A revisão atual torna o **Padrão Auditar 3** o relatório principal, fiel ao modelo técnico aprovado, com logo cadastrada da empresa à direita e sem repetir a logo Auditar.nexão da IA por foto da Ronda, preservando a IA normal da vistoria.
+> **Status:** ✅ CI validada — Android e Windows concluídos com sucesso em 02/10/2026. O **Padrão Auditar 3** é o relatório principal, fiel ao modelo técnico aprovado, com logo cadastrada da empresa à direita e sem repetir a logo Auditar.
 >
 > O código final é montado pelos workflows atuais a partir da base + patches incrementais.  
 > **Não alterar sincronização, banco, autenticação, mídia/fotos ou Central sem autorização expressa.**
