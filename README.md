@@ -1,11 +1,11 @@
 # Auditar — Sistemas SST e EPI
 
 > ## 🚧 VERSÃO ATUAL DO AUDITAR SST
-> **Android:** `v3.29.151+293`  
-> **Windows:** `v3.30.70+257`  
+> **Android:** `v3.29.152+294`  
+> **Windows:** `v3.30.71+258`  
 > **Branch:** `feature/client-panel-permissions-v329106`  
 > **PR:** `#15` — permanece em rascunho para revisão; não publicar a Central automaticamente.  
-> **Status:** ✅ CI validada — Android e Windows concluídos com sucesso em 01/10/2026. A revisão atual corrige de forma isolada a recuperação de conexão da IA por foto da Ronda, preservando a IA normal da vistoria.
+> **Status:** ✅ CI validada — Android e Windows concluídos com sucesso em 01/10/2026. A revisão atual torna o **Padrão Auditar 3** o relatório principal, fiel ao modelo técnico aprovado, com logo cadastrada da empresa à direita e sem repetir a logo Auditar.nexão da IA por foto da Ronda, preservando a IA normal da vistoria.
 >
 > O código final é montado pelos workflows atuais a partir da base + patches incrementais.  
 > **Não alterar sincronização, banco, autenticação, mídia/fotos ou Central sem autorização expressa.**
