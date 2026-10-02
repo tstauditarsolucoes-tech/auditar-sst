@@ -9,17 +9,18 @@
 
 **Branch de trabalho:** `feature/client-panel-permissions-v329106`  
 **Pull Request:** `#15`  
-**Estado:** ✅ CI final validada em 01/10/2026.
+**Estado:** ✅ CI final validada em 02/10/2026.
 
 ## Validação final
 
-- Android: workflow run `37049955381` — **success**.
-- Windows: workflow run `37049963066` — **success**.
-- APK: `Auditar-SST-v3.29.151-Android.apk` — SHA-256 `36e06d78d748d4edc233cbeee0afb28c47bf4607660a222658995cff59fc91e8`.
-- Windows instalador: `Auditar-SST-Setup-v3.30.70.exe` — SHA-256 `758b81fe315494d9553be7ec3dade4b48938b727331daf7eb059ccf5bc03d0c5`.
-- Windows portátil: `Auditar-SST-Windows-v3.30.70-PORTATIL.zip` — SHA-256 `047d412551a60b76e6484aed4dfa4bf49fdc3955d9c0f8c7fa90886b520eb7dd`.
-- Revisão visual: Central de documentos sem corte do título/Histórico de envios e abas Hoje/Busca/Evidências com contraste corrigido.
-- IA por foto da Ronda: em falha de comunicação com o Google, repete a mesma rota `checklist_photo` já usada pela IA da vistoria, com janela maior; a IA normal da vistoria foi preservada.
+- Android: workflow run `37060640761` — **success**.
+- Windows: workflow run `37060640747` — **success**.
+- APK: `Auditar-SST-v3.29.152-Android.apk` — SHA-256 `b6fddd69effbaae5c01e850dbf8eb087251828e4d9d9b81f260912b23c0a30d6`.
+- Windows instalador: `Auditar-SST-Setup-v3.30.71.exe` — SHA-256 `a176ddbcfbd291f5c3751dac082b234de5a70d41494a4fc520fd3cbd769899c8`.
+- Windows portátil: `Auditar-SST-Windows-v3.30.71-PORTATIL.zip` — SHA-256 `ae11d831f14f736d1aae0f2febb47528f6790118e2ec90462a074e9cf7015cad`.
+- Padrão Auditar 3 validado como modelo principal.
+- Logo direita exclusiva da empresa cadastrada; sem fallback que repita a logo Auditar e sem logo fixa de cliente.
+- `Padrão Auditar` e `Padrão Auditar 2` preservados.
 - Núcleo protegido preservado pelas regressões do pipeline.
 - A validação de CI não substitui o teste físico do APK e do executável em aparelho/PC real.
 
@@ -50,11 +51,11 @@
 
 ## Builds validados
 
-- Android: workflow run `37049955381` — **success**
-- Artefato: `Auditar-SST-v3.29.151-Android-Pacote-Operacional`
-- Windows: workflow run `37049963066` — **success**
-- Artefato: `Auditar-SST-v3.30.70-Windows-IA-Ronda`
-- Commits validados dos workflows: Android `3607275e78bc5d5c59f1c42e8ab7a820a0a82655`; Windows `ba7d49ceaa0047848cbe7ed62433104ff75d22f7`
+- Android: workflow run `37060640761` — **success**
+- Artefato: `Auditar-SST-v3.29.152-Android-Pacote-Operacional`
+- Windows: workflow run `37060640747` — **success**
+- Artefato: `Auditar-SST-v3.30.71-Windows-Padrao-Auditar-3`
+- Commit do app validado: `de94288e188ca216024e10c3bc94730be80551db`
 - Alterações posteriores a esse commit neste arquivo/README são somente documentação.
 
 ## Núcleo protegido
