@@ -22,6 +22,7 @@
   function workerById(id){return (loadRoot().workers||[]).find(w=>w.id===id);}
   function esc(v=''){return String(v??'').replace(/[&<>'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]));}
   function roundEmbedding(a){return Array.from(a||[]).map(n=>Math.round(Number(n)*1000000)/1000000);}
+  async function sha256Text(text){try{const data=new TextEncoder().encode(String(text||'')),hash=await crypto.subtle.digest('SHA-256',data);return Array.from(new Uint8Array(hash),b=>b.toString(16).padStart(2,'0')).join('');}catch(_){return '';}}
 
   async function ensureHuman(){
     if(human) return human;
@@ -121,7 +122,7 @@
 
   async function enroll(workerId,embedding){
     const root=loadRoot();const w=(root.workers||[]).find(x=>x.id===workerId);if(!w)throw new Error('Colaborador não encontrado.');
-    w.biometric={type:'face-1to1',engine:'human-faceres',version:1,embedding,enrolledAt:new Date().toISOString()};w.updatedAt=new Date().toISOString();saveRoot(root);
+    const enrolledAt=new Date().toISOString(),templateHash=await sha256Text(JSON.stringify(embedding));w.biometric={type:'face-1to1',engine:'human-faceres',version:2,embedding,templateHash,templateHashAlg:'SHA-256',enrolledAt,consentAt:enrolledAt,modelVersion:'3.3.6'};w.updatedAt=enrolledAt;saveRoot(root);
     decorateWorkers();toast('Biometria facial cadastrada.');
   }
 
@@ -178,7 +179,7 @@
   function guardSave(e){if(mode!=='face')return;if(!verified){e.preventDefault();e.stopImmediatePropagation();toast('Faça a verificação biométrica antes de finalizar.');}}
   function afterSave(){
     if(mode!=='face'||!verified)return;const sim=verifiedSimilarity,at=verifiedAt,workerId=$('#deliveryWorker')?.value;
-    setTimeout(()=>{try{const root=loadRoot();const rows=Array.isArray(root.deliveries)?root.deliveries:[];const d=rows[0];if(d&&Date.now()-new Date(d.createdAt||0).getTime()<15000){d.confirmationMethod='face-biometric';d.biometricVerified=true;d.biometricSimilarity=Math.round(sim*10000)/10000;d.biometricThreshold=THRESHOLD;d.biometricVerifiedAt=at;d.biometricWorkerId=workerId;d.biometricEngine='human-faceres';d.updatedAt=new Date().toISOString();saveRoot(root);patchReceipt(d.id);}}catch(_){} setMode('signature');},100);
+    setTimeout(()=>{try{const root=loadRoot();const rows=Array.isArray(root.deliveries)?root.deliveries:[];const d=rows[0];if(d&&Date.now()-new Date(d.createdAt||0).getTime()<15000){d.confirmationMethod='face-biometric';d.biometricVerified=true;d.biometricSimilarity=Math.round(sim*10000)/10000;d.biometricThreshold=THRESHOLD;d.biometricVerifiedAt=at;d.biometricWorkerId=workerId;d.biometricEngine='human-faceres';d.biometricVersion=2;d.biometricModelVersion='3.3.6';d.updatedAt=new Date().toISOString();saveRoot(root);patchReceipt(d.id);}}catch(_){} setMode('signature');},100);
   }
 
   function patchReceipt(id){
