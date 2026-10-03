@@ -59,7 +59,20 @@ new=r'''  List<Widget> _reviewWidgets(Map<String, dynamic> data) {
       for(var i=0;i<actions.length;i++){
         final a=Map<String,dynamic>.from(actions[i]);
         String first(List<String> keys){for(final k in keys){final v='${a[k]??''}'.trim();if(v.isNotEmpty&&v.toLowerCase()!='null')return v;}return '';}
-        final lines=<String>[first(['nonConformity','finding','description','title']),if(first(['locationDetail','location','sector'])).isNotEmpty)'Local: ${first(['locationDetail','location','sector'])}',if(first(['correctiveAction','recommendation','action','immediateAction'])).isNotEmpty)'Correção: ${first(['correctiveAction','recommendation','action','immediateAction'])}',if(first(['responsible','responsibleProfile','owner'])).isNotEmpty)'Responsável sugerido: ${first(['responsible','responsibleProfile','owner'])}',if(first(['priority'])).isNotEmpty)'Prioridade: ${first(['priority'])}',if(first(['suggestedDeadlineDays','deadlineDays'])).isNotEmpty)'Prazo sugerido: ${first(['suggestedDeadlineDays','deadlineDays'])} dia(s)'].where((e)=>e.isNotEmpty).toList();
+        final finding=first(['nonConformity','finding','description','title']);
+        final location=first(['locationDetail','location','sector']);
+        final correction=first(['correctiveAction','recommendation','action','immediateAction']);
+        final responsible=first(['responsible','responsibleProfile','owner']);
+        final priority=first(['priority']);
+        final deadline=first(['suggestedDeadlineDays','deadlineDays']);
+        final lines=<String>[
+          if(finding.isNotEmpty) finding,
+          if(location.isNotEmpty) 'Local: $location',
+          if(correction.isNotEmpty) 'Correção: $correction',
+          if(responsible.isNotEmpty) 'Responsável sugerido: $responsible',
+          if(priority.isNotEmpty) 'Prioridade: $priority',
+          if(deadline.isNotEmpty) 'Prazo sugerido: $deadline dia(s)',
+        ];
         out.add(card('Ação ${i+1}',lines.join('\n')));
       }
     }
@@ -108,8 +121,108 @@ photo=r'''
     final situation=pick([p['description'],p['nonConformity'],record.title]); final risk=conform?'':pick([p['risk'],p['riskIdentified'],p['possibleConsequence']]); final correction=pick([p['recommendation'],p['correctiveAction'],p['immediateAction']]); final priority=pick([p['priority'],record.priority]); final title=pick([p['aiTitle'],p['title'],p['category'],record.title,conform?'Boa prática observada':'Não conformidade']);
     final direct=pick([p['location'],p['locationDetail'],p['sectorName']]); final line=_locationLine(record,sectors); final location=direct.isNotEmpty?direct:line.replaceFirst(RegExp(r'\s+-\s+\d{2}/\d{2}/\d{4}.*$'),'').trim();
     pw.Widget f(String l,String v)=>pw.Padding(padding:const pw.EdgeInsets.only(bottom:5),child:pw.RichText(text:pw.TextSpan(children:[pw.TextSpan(text:'$l: ',style:pw.TextStyle(fontSize:8.1,fontWeight:pw.FontWeight.bold)),pw.TextSpan(text:v,style:const pw.TextStyle(fontSize:8.1,lineSpacing:1.7))])));
-    final evidence=image==null?pw.Container(height:145,alignment:pw.Alignment.center,decoration:pw.BoxDecoration(color:PdfColors.grey100,border:pw.Border.all(color:PdfColors.grey300)),child:const pw.Text('Sem fotografia associada',style:pw.TextStyle(fontSize:8,color:PdfColors.grey600))):image2==null?pw.SizedBox(height:150,child:pw.Image(image,fit:pw.BoxFit.contain)):pw.Row(mainAxisAlignment:pw.MainAxisAlignment.center,children:[pw.Image(image,width:108,height:145,fit:pw.BoxFit.contain),pw.SizedBox(width:5),pw.Image(image2,width:108,height:145,fit:pw.BoxFit.contain)]);
-    return [pw.Container(constraints:const pw.BoxConstraints(minHeight:205),decoration:pw.BoxDecoration(border:pw.Border.all(color:PdfColors.grey500,width:.55)),child:pw.Row(crossAxisAlignment:pw.CrossAxisAlignment.start,children:[pw.Expanded(flex:49,child:pw.Container(padding:const pw.EdgeInsets.all(8),decoration:const pw.BoxDecoration(border:pw.Border(right:pw.BorderSide(color:PdfColors.grey500,width:.55))),child:pw.Column(mainAxisAlignment:pw.MainAxisAlignment.center,children:[evidence,if(location.isNotEmpty)...[pw.SizedBox(height:5),pw.Text(location,textAlign:pw.TextAlign.center,style:const pw.TextStyle(fontSize:6.6,color:PdfColors.grey700))]]))),pw.Expanded(flex:51,child:pw.Padding(padding:const pw.EdgeInsets.all(9),child:pw.Column(crossAxisAlignment:pw.CrossAxisAlignment.start,children:[pw.Text(title.toUpperCase(),style:pw.TextStyle(color:const PdfColor(.08,.20,.29),fontSize:9.5,fontWeight:pw.FontWeight.bold)),pw.SizedBox(height:7),f('Local',location.isEmpty?'Não informado':location),if(situation.isNotEmpty)f('Situação',situation),if(risk.isNotEmpty)f('Risco',risk),if(correction.isNotEmpty)f('Correção',correction),if(priority.isNotEmpty)pw.Text('PRIORIDADE: ${priority.toUpperCase()}',style:pw.TextStyle(color:priority.toLowerCase().contains('crít')||priority.toLowerCase().contains('critic')||priority.toLowerCase().contains('imediat')?PdfColors.red800:const PdfColor(.62,.42,.05),fontSize:8.2,fontWeight:pw.FontWeight.bold))]))))]))];
+    final evidence = image == null
+        ? pw.Container(
+            height: 145,
+            alignment: pw.Alignment.center,
+            decoration: pw.BoxDecoration(
+              color: PdfColors.grey100,
+              border: pw.Border.all(color: PdfColors.grey300),
+            ),
+            child: const pw.Text(
+              'Sem fotografia associada',
+              style: pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
+            ),
+          )
+        : image2 == null
+            ? pw.SizedBox(
+                height: 150,
+                child: pw.Image(image, fit: pw.BoxFit.contain),
+              )
+            : pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.center,
+                children: [
+                  pw.Image(image, width: 108, height: 145, fit: pw.BoxFit.contain),
+                  pw.SizedBox(width: 5),
+                  pw.Image(image2, width: 108, height: 145, fit: pw.BoxFit.contain),
+                ],
+              );
+
+    final left = pw.Container(
+      padding: const pw.EdgeInsets.all(8),
+      decoration: const pw.BoxDecoration(
+        border: pw.Border(
+          right: pw.BorderSide(color: PdfColors.grey500, width: .55),
+        ),
+      ),
+      child: pw.Column(
+        mainAxisAlignment: pw.MainAxisAlignment.center,
+        children: [
+          evidence,
+          if (location.isNotEmpty) ...[
+            pw.SizedBox(height: 5),
+            pw.Text(
+              location,
+              textAlign: pw.TextAlign.center,
+              style: const pw.TextStyle(fontSize: 6.6, color: PdfColors.grey700),
+            ),
+          ],
+        ],
+      ),
+    );
+
+    final rightChildren = <pw.Widget>[
+      pw.Text(
+        title.toUpperCase(),
+        style: pw.TextStyle(
+          color: const PdfColor(.08, .20, .29),
+          fontSize: 9.5,
+          fontWeight: pw.FontWeight.bold,
+        ),
+      ),
+      pw.SizedBox(height: 7),
+      f('Local', location.isEmpty ? 'Não informado' : location),
+      if (situation.isNotEmpty) f('Situação', situation),
+      if (risk.isNotEmpty) f('Risco', risk),
+      if (correction.isNotEmpty) f('Correção', correction),
+      if (priority.isNotEmpty)
+        pw.Text(
+          'PRIORIDADE: ${priority.toUpperCase()}',
+          style: pw.TextStyle(
+            color: priority.toLowerCase().contains('crít') ||
+                    priority.toLowerCase().contains('critic') ||
+                    priority.toLowerCase().contains('imediat')
+                ? PdfColors.red800
+                : const PdfColor(.62, .42, .05),
+            fontSize: 8.2,
+            fontWeight: pw.FontWeight.bold,
+          ),
+        ),
+    ];
+
+    final right = pw.Padding(
+      padding: const pw.EdgeInsets.all(9),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: rightChildren,
+      ),
+    );
+
+    return [
+      pw.Container(
+        constraints: const pw.BoxConstraints(minHeight: 205),
+        decoration: pw.BoxDecoration(
+          border: pw.Border.all(color: PdfColors.grey500, width: .55),
+        ),
+        child: pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Expanded(flex: 49, child: left),
+            pw.Expanded(flex: 51, child: right),
+          ],
+        ),
+      ),
+    ];
   }
 
 '''
