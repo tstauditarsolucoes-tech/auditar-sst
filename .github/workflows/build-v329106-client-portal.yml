@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.154 Ronda Modelo Referencia
+name: Auditar SST Android v3.29.155 Ronda Modelo Final
 # Clean rebuild v3.29.145 after protected productivity consolidation
 # Rebuild v3.29.113 logo recovery
 
@@ -68,6 +68,9 @@ on:
       - 'feature_sources/ronda_standard3_pdf_service_v329154.dart'
       - 'tools/patch_ronda_standard3_visual_parity_v329154_v33073.py'
       - 'tools/regression_ronda_standard3_visual_parity_v329154_v33073.py'
+      - 'feature_sources/ronda_standard3_pdf_service_v329155.dart'
+      - 'tools/patch_ronda_standard3_full_review_v329155_v33074.py'
+      - 'tools/regression_ronda_standard3_full_review_v329155_v33074.py'
       - 'feature_sources/field_intelligence_center_v329143.dart'
       - 'tools/patch_field_intelligence_v329143_v33062.py'
       - 'tools/regression_field_intelligence_v329143_v33062.py'
@@ -1053,6 +1056,21 @@ jobs:
           python3 tools/regression_standard3_report_v329152_v33071.py "$APP_DIR"
           grep -Fq "version: 3.29.154+296" "$APP_DIR/pubspec.yaml"
 
+      - name: Aplicar revisao completa do modelo da Ronda
+        run: |
+          set -euo pipefail
+          python3 tools/patch_ronda_standard3_full_review_v329155_v33074.py "$APP_DIR" android
+          cd "$APP_DIR"
+          dart format lib/services/ronda_standard3_pdf_service.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          cd "$GITHUB_WORKSPACE"
+          python3 tools/regression_ronda_standard3_full_review_v329155_v33074.py "$APP_DIR"
+          python3 tools/regression_ronda_standard3_visual_parity_v329154_v33073.py "$APP_DIR"
+          python3 tools/regression_ronda_ui_report_v329153_v33072.py "$APP_DIR"
+          python3 tools/regression_ronda_ai_connection_recovery_v329151_v33070.py "$APP_DIR"
+          python3 tools/regression_standard3_report_v329152_v33071.py "$APP_DIR"
+          grep -Fq "version: 3.29.155+297" "$APP_DIR/pubspec.yaml"
+
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
         env:
@@ -1114,11 +1132,11 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.154-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.154-Android.apk > dist/Auditar-SST-v3.29.154-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.155-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.155-Android.apk > dist/Auditar-SST-v3.29.155-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.154-Android-Ronda-Modelo-Referencia
+          name: Auditar-SST-v3.29.155-Android-Ronda-Modelo-Final
           path: dist/*
           retention-days: 30
