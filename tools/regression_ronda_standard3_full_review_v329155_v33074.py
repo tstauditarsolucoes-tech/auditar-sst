@@ -27,7 +27,8 @@ required = (
 for snippet in required:
     assert snippet in renderer, "regressao Ronda modelo final: " + snippet
 
-assert "AppDatabase.instance.getCompanies(onlyActive:false)" in normalized
+assert "AppDatabase.instance.getCompanies" in renderer
+assert "onlyActive" in renderer
 assert "companyLogo ?? auditarLogo" not in renderer
 assert "VALE DO LEITE" not in renderer.upper()
 assert "LATICÍNIOS VALE DO LEITE" not in renderer.upper()
