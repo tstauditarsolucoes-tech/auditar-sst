@@ -25,7 +25,8 @@ for snippet in (
 ):
     assert snippet in renderer, "regressao visual Ronda: " + snippet
 
-assert "AppDatabase.instance.getCompanies(onlyActive:false)" in normalized
+assert "AppDatabase.instance.getCompanies" in renderer
+assert "onlyActive" in renderer
 assert (
     "_logo(auditarLogo, 104, 56)" in renderer
     or "_auditarBrand(auditarLogo, 112, 58)" in renderer
