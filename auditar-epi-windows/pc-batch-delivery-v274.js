@@ -29,7 +29,7 @@
   function company(id,r=read()){return r.app.companies.find(x=>x.id===id);}
   function worker(id,r=read()){return r.app.workers.find(x=>x.id===id);}
   function epi(id,r=read()){return r.app.epis.find(x=>x.id===id);}
-  function hasFace(w){return Array.isArray(w?.biometric?.embedding)&&w.biometric.embedding.length>0;}
+  function hasFace(w){return !!(window.GestaoEpiBiometricCrypto?.hasTemplate?.(w)||(Array.isArray(w?.biometric?.embedding)&&w.biometric.embedding.length>0));}
   function isExternal(w){return w?.workerType==='external'||w?.employmentType==='external';}
 
   function css(){if($('#v274BatchCss'))return;const s=document.createElement('style');s.id='v274BatchCss';s.textContent=`
