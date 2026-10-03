@@ -37,7 +37,8 @@ jobs:
           Copy-Item -Recurse -Force 'auditar-epi-gestao/*' 'auditar-epi-windows/app/'
           Copy-Item -Force 'auditar-epi-windows/brand-logo-v279.svg' 'auditar-epi-windows/app/brand-logo-v279.svg'
           Copy-Item -Force 'auditar-epi-windows/stable-central-config.js' 'auditar-epi-windows/app/central-config.js'
-          Copy-Item -Force 'auditar-epi-windows/pc-stable.js' 'auditar-epi-windows/app/pc-stable.js'\n          Copy-Item -Force 'auditar-epi-windows/pc-biometric-crypto-v281.js' 'auditar-epi-windows/app/pc-biometric-crypto-v281.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-stable.js' 'auditar-epi-windows/app/pc-stable.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-biometric-crypto-v281.js' 'auditar-epi-windows/app/pc-biometric-crypto-v281.js'
           Copy-Item -Force 'auditar-epi-windows/pc-modern.js' 'auditar-epi-windows/app/pc-modern.js'
           Copy-Item -Force 'auditar-epi-windows/pc-integrity.js' 'auditar-epi-windows/app/pc-integrity.js'
           Copy-Item -Force 'auditar-epi-windows/pc-login-session.js' 'auditar-epi-windows/app/pc-login-session.js'
@@ -69,7 +70,8 @@ jobs:
           $scriptLines = @(
             '  <script src="pc-login-session.js"></script>',
             '  <script src="pc-stable.js"></script>',
-            '  <script src="auth-gestao.js" data-auth-gestao="1"></script>',\n            '  <script src="pc-biometric-crypto-v281.js"></script>',
+            '  <script src="auth-gestao.js" data-auth-gestao="1"></script>',
+            '  <script src="pc-biometric-crypto-v281.js"></script>',
             '  <script src="app.js"></script>',
             '  <script src="central-config.js"></script>',
             '  <script src="indicators.js"></script>',
@@ -113,7 +115,8 @@ jobs:
           node --check 'auditar-epi-windows/app/app.js'
           node --check 'auditar-epi-windows/app/pc-login-session.js'
           node --check 'auditar-epi-windows/app/pc-login-safe-v277.js'
-          node --check 'auditar-epi-windows/app/pc-stable.js'\n          node --check 'auditar-epi-windows/app/pc-biometric-crypto-v281.js'
+          node --check 'auditar-epi-windows/app/pc-stable.js'
+          node --check 'auditar-epi-windows/app/pc-biometric-crypto-v281.js'
           node --check 'auditar-epi-windows/app/pc-external-face.js'
           node --check 'auditar-epi-windows/app/pc-modern.js'
           node --check 'auditar-epi-windows/app/pc-integrity.js'
@@ -129,7 +132,8 @@ jobs:
         run: |
           $index = Get-Content 'auditar-epi-windows/app/index.html' -Raw
           $requiredScripts = @(
-            'pc-modern.js',\n            'pc-biometric-crypto-v281.js',
+            'pc-modern.js',
+            'pc-biometric-crypto-v281.js',
             'pc-batch-delivery-v274.js',
             'pc-reliability-v240.js',
             'pc-productivity-v250.js',
