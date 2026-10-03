@@ -131,7 +131,7 @@
     const rows=root.app.workers.filter(w=>w.workerType==='external'&&(!company||w.companyId===company)&&(!q||[w.name,w.cpf,w.originCompany,w.role].some(v=>norm(v).includes(q)))).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')));
     const box=$('#pcExternalList');if(!box)return;
     if(!rows.length){box.innerHTML='<div class="empty">Nenhuma pessoa externa cadastrada. Ela será criada automaticamente na primeira entrega.</div>';return;}
-    box.innerHTML=rows.map(w=>{const count=deliveriesFor(w.id,root).length,cat=w.externalCategory==='temporary'?'Temporário / Avulso':'Terceirizado / Prestador',bio=Array.isArray(w?.biometric?.embedding)&&w.biometric.embedding.length;return `<div class="pc-external-row"><div><b>${esc(w.name||'Pessoa externa')} <span class="pc-external-badge">${esc(cat)}</span></b><small>${esc(companyName(w.companyId,root))}${w.originCompany?` • Origem: ${esc(w.originCompany)}`:''}${w.role?` • ${esc(w.role)}`:''}</small><small>${w.cpf?`CPF/Doc.: ${esc(w.cpf)} • `:''}${count} entrega(s) • ${bio?'Biometria cadastrada':'Sem biometria'}</small></div><div class="pc-external-actions">${canWrite()?`<button type="button" data-ext-delivery="${esc(w.id)}" class="primaryx">＋ Entrega</button><button type="button" data-ext-face="${esc(w.id)}">🙂 ${bio?'Atualizar rosto':'Cadastrar rosto'}</button>`:''}</div></div>`;}).join('');
+    box.innerHTML=rows.map(w=>{const count=deliveriesFor(w.id,root).length,cat=w.externalCategory==='temporary'?'Temporário / Avulso':'Terceirizado / Prestador',bio=window.GestaoEpiBiometricCrypto?.hasTemplate?.(w)||(Array.isArray(w?.biometric?.embedding)&&w.biometric.embedding.length);return `<div class="pc-external-row"><div><b>${esc(w.name||'Pessoa externa')} <span class="pc-external-badge">${esc(cat)}</span></b><small>${esc(companyName(w.companyId,root))}${w.originCompany?` • Origem: ${esc(w.originCompany)}`:''}${w.role?` • ${esc(w.role)}`:''}</small><small>${w.cpf?`CPF/Doc.: ${esc(w.cpf)} • `:''}${count} entrega(s) • ${bio?'Biometria cadastrada':'Sem biometria'}</small></div><div class="pc-external-actions">${canWrite()?`<button type="button" data-ext-delivery="${esc(w.id)}" class="primaryx">＋ Entrega</button><button type="button" data-ext-face="${esc(w.id)}">🙂 ${bio?'Atualizar rosto':'Cadastrar rosto'}</button>`:''}</div></div>`;}).join('');
   }
 
   function openExternalDelivery(workerId=''){
@@ -152,7 +152,7 @@
     sel.innerHTML='<option value="">Selecione a pessoa</option>'+rows.map(w=>`<option value="${esc(w.id)}">${esc(w.name||'Pessoa')}${w.workerType==='external'?' • EXTERNO':''}</option>`).join('');if(rows.some(w=>w.id===old))sel.value=old;renderEnrollStatus();
   }
   function renderEnrollStatus(){
-    const id=$('#pcEnrollWorker')?.value||'',box=$('#pcEnrollStatus');if(!box)return;if(!id){box.className='pc-face-enroll-status';box.textContent='Selecione uma pessoa para consultar a biometria.';return;}const w=read().app.workers.find(x=>x.id===id),ok=Array.isArray(w?.biometric?.embedding)&&w.biometric.embedding.length;box.className='pc-face-enroll-status'+(ok?' ok':'');box.innerHTML=ok?`<b>✓ Biometria cadastrada</b><br>${w.biometric.enrolledAt?`Cadastrada em ${esc(new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(new Date(w.biometric.enrolledAt)))}`:'Rosto já cadastrado.'} • Você pode atualizar quando precisar.`:'Ainda não há biometria facial cadastrada para esta pessoa.';
+    const id=$('#pcEnrollWorker')?.value||'',box=$('#pcEnrollStatus');if(!box)return;if(!id){box.className='pc-face-enroll-status';box.textContent='Selecione uma pessoa para consultar a biometria.';return;}const w=read().app.workers.find(x=>x.id===id),ok=window.GestaoEpiBiometricCrypto?.hasTemplate?.(w)||(Array.isArray(w?.biometric?.embedding)&&w.biometric.embedding.length);box.className='pc-face-enroll-status'+(ok?' ok':'');box.innerHTML=ok?`<b>✓ Biometria cadastrada</b><br>${w.biometric.enrolledAt?`Cadastrada em ${esc(new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(new Date(w.biometric.enrolledAt)))}`:'Rosto já cadastrado.'} • Você pode atualizar quando precisar.`:'Ainda não há biometria facial cadastrada para esta pessoa.';
   }
 
   async function loadHuman(){
@@ -195,8 +195,11 @@
       const root=read(),w=root.app.workers.find(x=>x.id===enrollWorkerId);if(!w)throw new Error('Pessoa não encontrada.');
       const real=Math.round(samples.reduce((s,x)=>s+x.real,0)/samples.length*10000)/10000,live=Math.round(samples.reduce((s,x)=>s+x.live,0)/samples.length*10000)/10000;
       const templateHash=await sha256Text(JSON.stringify(embedding));
-      w.biometric={type:'face-1to1',engine:'human-faceres',version:2,embedding,templateHash,templateHashAlg:'SHA-256',enrolledAt:now(),consentAt:now(),blinkRequired:false,livenessEnrollmentVerified:true,antispoofScore:real,liveScore:live,enrollmentFrames:samples.length,modelVersion:'3.3.6'};
-      w.updatedAt=now();write(root);const keep=standaloneEnrollment;closeEnrollment();toast('Biometria facial cadastrada com verificação de pessoa real.');
+      const enrolledAt=now(),meta={type:'face-1to1',engine:'human-faceres',version:3,templateHash,templateHashAlg:'SHA-256',enrolledAt,consentAt:enrolledAt,blinkRequired:false,livenessEnrollmentVerified:true,antispoofScore:real,liveScore:live,enrollmentFrames:samples.length,modelVersion:'3.3.6'};
+      w.biometric=window.GestaoEpiBiometricCrypto?.protectEmbedding
+        ? await window.GestaoEpiBiometricCrypto.protectEmbedding(w.id,embedding,meta)
+        : {...meta,version:2,embedding,encryptionPending:true};
+      w.updatedAt=enrolledAt;write(root);const keep=standaloneEnrollment;closeEnrollment();toast(w.biometric?.encryptedTemplate?'Biometria cadastrada, verificada e criptografada.':'Biometria cadastrada. Criptografia será aplicada quando a Central biométrica estiver disponível.');
       if(keep){setTimeout(()=>location.reload(),650);}else{renderExternals();}
     }catch(err){toast(err.message||'Falha ao cadastrar biometria.');}
     finally{btn.disabled=false;btn.textContent='🙂 Cadastrar rosto';}
