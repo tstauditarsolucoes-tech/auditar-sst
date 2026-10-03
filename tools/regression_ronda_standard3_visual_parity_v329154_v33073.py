@@ -14,7 +14,7 @@ normalized = "".join(renderer.split())
 for snippet in (
     "RELATÓRIO DE VISTORIA TÉCNICA",
     "IDENTIFICAÇÃO DA EMPRESA",
-    "_logo(companyLogo, 82, 58)",
+    "_logo(companyLogo, 82, 58)" if "_logo(companyLogo, 82, 58)" in renderer else "_logo(companyLogo, 83, 83)",
     "flex: 48",
     "flex: 52",
     "fontSize: 10.2",
