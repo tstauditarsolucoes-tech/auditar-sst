@@ -86,7 +86,26 @@
       signature:face.mode==='face'?'':canvas.toDataURL('image/png'),confirmationType:face.mode==='face'?'face-1to1':'signature',confirmationMethod:face.mode==='face'?'face-biometric':'signature',source:'pc',createdAt,updatedAt:createdAt
     };
     if(face.mode==='face'){
-      delivery.biometricVerified=true;delivery.biometricSimilarity=Math.round(Number(face.facialSimilarity||0)*10000)/10000;delivery.biometricThreshold=0.60;delivery.biometricVerifiedAt=face.facialVerifiedAt||createdAt;delivery.biometricWorkerId=workerId;delivery.biometricEngine=face.biometricEngine||'human-faceres';delivery.biometricVersion=face.biometricVersion||1;delivery.facialBlinkRequired=false;
+      delivery.biometricVerified=true;
+      delivery.biometricSimilarity=Math.round(Number(face.facialSimilarity||0)*10000)/10000;
+      delivery.biometricThreshold=Number(face.biometricThreshold||0.60);
+      delivery.biometricVerifiedAt=face.facialVerifiedAt||createdAt;
+      delivery.biometricWorkerId=workerId;
+      delivery.biometricEngine=face.biometricEngine||'human-faceres';
+      delivery.biometricVersion=face.biometricVersion||2;
+      delivery.facialBlinkRequired=false;
+      delivery.biometricLivenessVerified=face.biometricLivenessVerified===true;
+      delivery.biometricPassiveLiveness=face.biometricPassiveLiveness===true;
+      delivery.biometricAntispoofScore=Math.round(Number(face.biometricAntispoofScore||0)*10000)/10000;
+      delivery.biometricLiveScore=Math.round(Number(face.biometricLiveScore||0)*10000)/10000;
+      delivery.biometricCaptureFrames=Number(face.biometricCaptureFrames||0);
+      delivery.biometricRealThreshold=Number(face.biometricRealThreshold||0.45);
+      delivery.biometricLiveThreshold=Number(face.biometricLiveThreshold||0.45);
+      delivery.biometricEvidenceId=String(face.biometricEvidenceId||'');
+      delivery.biometricEvidenceHash=String(face.biometricEvidenceHash||'');
+      delivery.biometricEvidenceNonce=String(face.biometricEvidenceNonce||'');
+      delivery.biometricEvidenceHashAlg=String(face.biometricEvidenceHashAlg||'SHA-256');
+      delivery.biometricModelVersion=String(face.biometricModelVersion||'3.3.6');
     }
 
     root.app.deliveries.unshift(delivery);
@@ -104,7 +123,7 @@
   function patchFaceReceipt(id){
     setTimeout(()=>{
       const root=read(),d=root.app.deliveries.find(x=>x.id===id);if(!d||!isConfirmedFace(d))return;const paper=$('#pcReceiptPaper');if(!paper)return;const w=root.app.workers.find(x=>x.id===d.workerId)||{};const pct=Math.round(Number(d.biometricSimilarity||d.facialSimilarity||0)*100);const at=d.biometricVerifiedAt||d.facialVerifiedAt;
-      const sign=paper.querySelector('.pc-receipt-sign');if(sign)sign.innerHTML=`<div class="pc-face-proof"><b>✓ Confirmação biométrica facial</b><br>Rosto comparado com a biometria cadastrada do trabalhador${pct?` • compatibilidade ${pct}%`:''}${at?` • ${esc(new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(new Date(at)))}`:''}.<br>A foto da verificação não foi armazenada e não foi exigido piscar.</div><div class="line">${esc(w.name||'Trabalhador')}<br>Biometria facial verificada</div>`;
+      const sign=paper.querySelector('.pc-receipt-sign');if(sign)sign.innerHTML=`<div class="pc-face-proof"><b>✓ Confirmação biométrica facial</b><br>Rosto comparado com a biometria cadastrada do trabalhador${pct?` • compatibilidade ${pct}%`:''}${at?` • ${esc(new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(new Date(at)))}`:''}.<br>A foto da verificação não foi armazenada. Pessoa real validada automaticamente, sem exigir piscar.</div><div class="line">${esc(w.name||'Trabalhador')}<br>Biometria facial verificada</div>`;
     },80);
   }
 
