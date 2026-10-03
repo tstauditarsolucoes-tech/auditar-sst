@@ -269,7 +269,11 @@ class RondaStandard3PdfService {
         pw.Row(
           crossAxisAlignment: pw.CrossAxisAlignment.center,
           children: [
-            _auditarBrand(auditarLogo, 112, 58),
+            pw.Container(
+              width: 118,
+              alignment: pw.Alignment.centerLeft,
+              child: _auditarBrand(auditarLogo, 112, 58),
+            ),
             pw.Expanded(
               child: pw.Column(children: [
                 pw.Text(
@@ -293,7 +297,11 @@ class RondaStandard3PdfService {
                 ),
               ]),
             ),
-            _logo(companyLogo, 82, 58),
+            pw.Container(
+              width: 118,
+              alignment: pw.Alignment.centerRight,
+              child: _logo(companyLogo, 82, 58),
+            ),
           ],
         ),
         pw.SizedBox(height: 5),
