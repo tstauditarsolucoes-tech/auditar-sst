@@ -452,7 +452,7 @@ class RondaStandard3PdfService {
       children: [
         if (issue.photos.length == 1)
           pw.SizedBox(
-            height: 160,
+            height: 192,
             child: pw.Image(issue.photos.first, fit: pw.BoxFit.contain),
           )
         else
@@ -461,7 +461,7 @@ class RondaStandard3PdfService {
               if (i > 0) pw.SizedBox(width: 5),
               pw.Expanded(
                 child: pw.SizedBox(
-                  height: 154,
+                  height: 165,
                   child: pw.Image(issue.photos[i], fit: pw.BoxFit.contain),
                 ),
               ),
