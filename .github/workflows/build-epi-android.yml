@@ -3,7 +3,7 @@ name: Gerar APK Gestão EPI Campo
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, feature/gestao-epi-biometria-evidencia-v281]
     paths:
       - 'auditar-epi/**'
       - 'auditar-epi-mobile/**'
@@ -132,23 +132,26 @@ jobs:
           node --check holdings-replacements.js
           node --check return-epi.js
           node --check cloud-sync.js
+          node --check biometric-face.js
+          node --check liveness-face.js
 
       - name: Compilar APK
         working-directory: auditar-epi-mobile/android
         run: ./gradlew assembleDebug
 
       - name: Renomear APK
-        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Campo-v2.2.0-POSSE-TROCAS.apk
+        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Campo-v2.2.1-BIOMETRIA-EVIDENCIA.apk
 
       - name: Publicar APK
+        if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: gestao-epi-campo-v2.2.0
-          name: Gestão EPI Campo v2.2.0
+          tag_name: gestao-epi-campo-v2.2.1
+          name: Gestão EPI Campo v2.2.1
           body: |
-            Gestão EPI Campo para Android otimizado para uso em campo.
+            Gestão EPI Campo para Android otimizado para uso em campo, com evidência biométrica reforçada.
             Inclui EPIs em posse por trabalhador, controle de trocas por vencimento, desgaste, dano, perda e necessidade operacional, além da devolução com opção de retorno ao estoque.
-            Mantidas assinatura em tela, reconhecimento facial, operação offline, sincronização, estoque e histórico.
+            Mantidas assinatura em tela, reconhecimento facial, operação offline, sincronização, estoque e histórico. A verificação facial registra liveness passivo, anti-spoof e hash SHA-256 da evidência.
           files: Gestao-EPI-Campo-v2.2.0-POSSE-TROCAS.apk
           make_latest: false
           overwrite_files: true
@@ -156,7 +159,7 @@ jobs:
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
-          name: Gestao-EPI-Campo-v2.2.0-POSSE-TROCAS
-          path: Gestao-EPI-Campo-v2.2.0-POSSE-TROCAS.apk
+          name: Gestao-EPI-Campo-v2.2.1-BIOMETRIA-EVIDENCIA
+          path: Gestao-EPI-Campo-v2.2.1-BIOMETRIA-EVIDENCIA.apk
           if-no-files-found: error
           retention-days: 14
