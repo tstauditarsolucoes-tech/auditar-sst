@@ -9,10 +9,11 @@ renderer = (root / "lib/services/ronda_standard3_pdf_service.dart").read_text(
 ai = (root / "lib/services/ai_assistant_service.dart").read_text(encoding="utf-8")
 pub = (root / "pubspec.yaml").read_text(encoding="utf-8")
 
+normalized = "".join(renderer.split())
+
 for snippet in (
     "RELATÓRIO DE VISTORIA TÉCNICA",
     "IDENTIFICAÇÃO DA EMPRESA",
-    "AppDatabase.instance.getCompanies(onlyActive: false)",
     "_logo(auditarLogo, 104, 56)",
     "_logo(companyLogo, 82, 58)",
     "flex: 48",
@@ -26,6 +27,7 @@ for snippet in (
 ):
     assert snippet in renderer, "regressao visual Ronda: " + snippet
 
+assert "AppDatabase.instance.getCompanies(onlyActive:false)" in normalized
 assert "companyLogo ?? auditarLogo" not in renderer
 assert ai.count("'mode': 'checklist_photo'") >= 2
 assert "'rondaDeferred': false" in ai
