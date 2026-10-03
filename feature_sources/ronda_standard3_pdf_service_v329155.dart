@@ -551,13 +551,7 @@ class RondaStandard3PdfService {
         height: height,
         child: image == null
             ? pw.SizedBox()
-            : pw.ClipRect(
-                child: pw.Image(
-                  image,
-                  fit: pw.BoxFit.cover,
-                  alignment: pw.Alignment.center,
-                ),
-              ),
+            : pw.Image(image, fit: pw.BoxFit.cover),
       );
 
   static pw.Widget _logo(pw.MemoryImage? image, double width, double height) =>
