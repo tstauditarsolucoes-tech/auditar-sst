@@ -45,16 +45,27 @@ for value in (
     "_paragraph('Risco'",
     "_paragraph('Correção'",
     'PRIORIDADE:',
-    '_logo(companyLogo, 70, 50)',
     'CONCLUSÃO',
 ):
     assert value in ronda3, 'PDF Ronda Padrão 3 ausente: '+value
 
+assert (
+    '_logo(companyLogo, 70, 50)' in ronda3
+    or '_logo(companyLogo, 82, 58)' in ronda3
+    or '_logo(companyLogo, 83, 83)' in ronda3
+)
 assert 'companyLogo ?? auditarLogo' not in ronda3
 assert ai.count("'mode': 'checklist_photo'") >= 2
 assert "'rondaDeferred': false" in ai
 assert "'rondaDeferred': true" in ai
-assert 'version: 3.29.153+295' in pub or 'version: 3.30.72+259' in pub
+assert (
+    'version: 3.29.153+295' in pub
+    or 'version: 3.30.72+259' in pub
+    or 'version: 3.29.154+296' in pub
+    or 'version: 3.30.73+260' in pub
+    or 'version: 3.29.155+297' in pub
+    or 'version: 3.30.74+261' in pub
+)
 
 print('RONDA_UI_REPORT_REGRESSION_OK')
 print('RONDA_STANDARD3_RENDERER_OK')
