@@ -76,9 +76,9 @@ class RondaStandard3PdfService {
 
       final categories = _stringList(p['categories']);
       final title = _compactTitle(_publicText(_first([
+        p['aiTitle'],
         p['title'],
         record.title,
-        p['aiTitle'],
         categories.isNotEmpty ? categories.join(' + ') : null,
         p['description'],
         'Não conformidade',
@@ -447,10 +447,13 @@ class RondaStandard3PdfService {
           ]),
         if (issue.caption.isNotEmpty) ...[
           pw.SizedBox(height: 5),
-          pw.Text(
-            issue.caption,
-            textAlign: pw.TextAlign.center,
-            style: const pw.TextStyle(fontSize: 6.6, color: PdfColors.grey700),
+          pw.Align(
+            alignment: pw.Alignment.centerLeft,
+            child: pw.Text(
+              issue.caption,
+              textAlign: pw.TextAlign.left,
+              style: const pw.TextStyle(fontSize: 7.0, color: PdfColors.grey700),
+            ),
           ),
         ],
       ],
