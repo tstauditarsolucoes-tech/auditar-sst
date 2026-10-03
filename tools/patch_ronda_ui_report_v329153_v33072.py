@@ -48,9 +48,9 @@ screen = read(screen_rel)
 
 for old, new in [
     ("Resumo da Ronda Expressa", "Resumo da vistoria"),
-    ("_summaryChip('Não conformidades',", "_summaryChip('Não conformes',"),
-    ("_summaryChip('Conformidades',", "_summaryChip('Conformes',"),
-    ("_summaryChip('Recorrentes',", "_summaryChip('Poss. recorrências',"),
+    ("'Não conformidades'", "'Não conformes'"),
+    ("'Conformidades'", "'Conformes'"),
+    ("'Recorrentes'", "'Poss. recorrências'"),
     ("IA - revisar toda a ronda", "IA · Revisar conclusão"),
     ("IA · revisar a vistoria e conclusão", "IA · Revisar conclusão"),
     ("Relatório fotográfico - estilo Performance/Quality", "Gerar relatório de vistoria"),
