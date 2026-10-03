@@ -1,5 +1,5 @@
 (()=>{
-  const VERSION='PC v2.8.0';
+  const VERSION='PC v2.8.1';
   const $=(s,r=document)=>r.querySelector(s);
   const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 
