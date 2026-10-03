@@ -20,7 +20,7 @@ required = (
     "_compactReferences",
     "_auditarBrand",
     "registeredCompany?.logoPath ?? company.logoPath",
-    "_logo(companyLogo, 82, 58)",
+    "_logo(companyLogo, 83, 83)",
     "PRIORIDADE:",
     "TÉCNICO EM SEGURANÇA DO TRABALHO",
 )
@@ -31,7 +31,7 @@ assert "AppDatabase.instance.getCompanies(onlyActive:false)" in normalized
 assert "companyLogo ?? auditarLogo" not in renderer
 assert "VALE DO LEITE" not in renderer.upper()
 assert "LATICÍNIOS VALE DO LEITE" not in renderer.upper()
-assert renderer.count("_logo(companyLogo, 82, 58)") == 1
+assert renderer.count("_logo(companyLogo, 83, 83)") == 1
 assert ai.count("'mode': 'checklist_photo'") >= 2
 assert "'rondaDeferred': false" in ai
 assert "'rondaDeferred': true" in ai
