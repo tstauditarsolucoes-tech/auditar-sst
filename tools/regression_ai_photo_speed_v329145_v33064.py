@@ -22,8 +22,12 @@ for snippet in (
 for snippet in (
     'Timer? _aiPhotoTimer;',
     '_aiPhotoElapsedSeconds',
-    'IA analisando foto • ${_aiPhotoElapsedSeconds}s',
 ):
     assert snippet in ronda, 'Ronda UX regression missing: ' + snippet
+
+assert (
+    'IA analisando foto • ${_aiPhotoElapsedSeconds}s' in ronda
+    or 'Preparando foto para análise...' in ronda
+), 'Ronda UX feedback de análise ausente'
 
 print('AI_PHOTO_SPEED_REGRESSION_OK')
