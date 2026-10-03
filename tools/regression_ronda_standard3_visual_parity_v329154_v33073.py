@@ -43,7 +43,9 @@ assert "'rondaDeferred': false" in ai
 assert "'rondaDeferred': true" in ai
 assert (
     "version: 3.29.154+296" in pub
+    or "version: 3.29.155+297" in pub
     or "version: 3.30.73+260" in pub
+    or "version: 3.30.74+261" in pub
 )
 
 print("RONDA_VISUAL_PARITY_REGRESSION_OK")
