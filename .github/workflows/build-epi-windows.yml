@@ -9,6 +9,10 @@ on:
       - 'auditar-epi-windows/**'
       - '.github/workflows/build-epi-windows.yml'
 
+concurrency:
+  group: gestao-epi-windows-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
