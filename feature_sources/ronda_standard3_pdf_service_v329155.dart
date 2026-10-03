@@ -58,13 +58,34 @@ class RondaStandard3PdfService {
     final dateText = sorted.isEmpty
         ? DateFormat('dd/MM/yyyy').format(DateTime.now())
         : DateFormat('dd/MM/yyyy').format(sorted.first.date);
-    final fullAddress = sorted.isEmpty
+    final recordAddress = sorted.isEmpty
         ? ''
         : _first([
             sorted.first.payload['worksiteAddress'],
             sorted.first.payload['companyAddress'],
             sorted.first.payload['address'],
           ]);
+    final workSites = company.id.trim().isEmpty
+        ? <WorkSite>[]
+        : await AppDatabase.instance.getWorkSites(
+            company.id,
+            onlyActive: false,
+          );
+    final uniqueSiteAddresses = <String>[];
+    for (final site in workSites) {
+      final address = (site.address ?? '').trim();
+      if (address.isNotEmpty &&
+          !uniqueSiteAddresses.any(
+            (item) => item.toLowerCase() == address.toLowerCase(),
+          )) {
+        uniqueSiteAddresses.add(address);
+      }
+    }
+    final fullAddress = recordAddress.isNotEmpty
+        ? recordAddress
+        : uniqueSiteAddresses.length == 1
+            ? uniqueSiteAddresses.first
+            : '';
 
     final auditarLogo = await _asset('assets/branding/auditar_logo.jpg') ??
         await _asset('assets/branding/auditar_icon.png');
