@@ -667,13 +667,13 @@ class RondaStandard3PdfService {
       if (text.isEmpty) continue;
 
       for (final match in RegExp(
-        r'\\bNR[- ]?(\\d{1,2})\\b',
+        r'\bNR[- ]?(\d{1,2})\b',
         caseSensitive: false,
       ).allMatches(text)) {
         add('NR-${match.group(1)}');
       }
       for (final match in RegExp(
-        r'\\bNBR\\s*(\\d{4,5})\\b',
+        r'\bNBR\s*(\d{4,5})\b',
         caseSensitive: false,
       ).allMatches(text)) {
         add('NBR ${match.group(1)}');
@@ -687,7 +687,7 @@ class RondaStandard3PdfService {
     }
 
     int numberOf(String value) =>
-        int.tryParse(RegExp(r'\\d+').firstMatch(value)?.group(0) ?? '') ?? 99999;
+        int.tryParse(RegExp(r'\d+').firstMatch(value)?.group(0) ?? '') ?? 99999;
 
     standards.sort((a, b) {
       if (a.startsWith('NR-') && b.startsWith('NR-')) {
