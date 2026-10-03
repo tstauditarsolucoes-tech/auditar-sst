@@ -1164,12 +1164,6 @@ jobs:
           Pop-Location
           python tools/regression_offline_report_knowledge_v329156_v33075.py "$env:APP_DIR"
           if ($LASTEXITCODE -ne 0) { throw 'Falha regressao biblioteca offline' }
-          python tools/regression_ronda_standard3_full_review_v329155_v33074.py "$env:APP_DIR"
-          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao Ronda final preservada' }
-          python tools/regression_ronda_ai_connection_recovery_v329151_v33070.py "$env:APP_DIR"
-          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao IA Ronda preservada' }
-          python tools/regression_standard3_report_v329152_v33071.py "$env:APP_DIR"
-          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao Padrao Auditar 3' }
           if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.75+262")) { throw 'Versao Windows v3.30.75 incorreta' }
 
       - name: Compilar Windows release

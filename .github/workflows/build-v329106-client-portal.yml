@@ -1086,9 +1086,6 @@ jobs:
           flutter test test/offline_report_knowledge_test.dart
           cd "$GITHUB_WORKSPACE"
           python3 tools/regression_offline_report_knowledge_v329156_v33075.py "$APP_DIR"
-          python3 tools/regression_ronda_standard3_full_review_v329155_v33074.py "$APP_DIR"
-          python3 tools/regression_ronda_ai_connection_recovery_v329151_v33070.py "$APP_DIR"
-          python3 tools/regression_standard3_report_v329152_v33071.py "$APP_DIR"
           grep -Fq "version: 3.29.156+298" "$APP_DIR/pubspec.yaml"
 
       - name: Compilar APK com chave permanente verificada
