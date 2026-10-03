@@ -53,19 +53,19 @@ class RondaStandard3PdfService {
       if (conformity) continue;
 
       final categories = _stringList(p['categories']);
-      final title = _first([
+      final title = _publicText(_first([
         p['aiTitle'],
         p['title'],
         categories.isNotEmpty ? categories.join(' + ') : null,
         p['description'],
         'Não conformidade',
-      ]);
-      final situation = _first([
+      ]));
+      final situation = _publicText(_first([
         p['description'],
         p['aiDescription'],
         p['observation'],
         p['nonConformity'],
-      ]);
+      ]));
       final risk = _first([
         p['risk'],
         p['riskIdentified'],
@@ -166,7 +166,7 @@ class RondaStandard3PdfService {
       pw.SizedBox(height: 6),
       pw.Text(
         conclusion.trim().isNotEmpty
-            ? conclusion.trim()
+            ? _publicText(conclusion.trim())
             : 'Priorizar as correções descritas nos itens identificados e verificar sua execução em acompanhamento posterior.',
         textAlign: pw.TextAlign.justify,
         style: const pw.TextStyle(fontSize: 9, lineSpacing: 2),
@@ -515,6 +515,13 @@ class RondaStandard3PdfService {
     }
     return _green;
   }
+
+  static String _publicText(String value) => value
+      .replaceAll(
+        RegExp(r'ronda expressa', caseSensitive: false),
+        'vistoria',
+      )
+      .trim();
 
   static String _first(List<Object?> values) {
     for (final raw in values) {
