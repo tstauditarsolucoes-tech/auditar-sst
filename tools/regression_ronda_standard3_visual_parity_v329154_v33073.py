@@ -29,10 +29,12 @@ assert "AppDatabase.instance.getCompanies(onlyActive:false)" in normalized
 assert (
     "_logo(auditarLogo, 104, 56)" in renderer
     or "_auditarBrand(auditarLogo, 112, 58)" in renderer
+    or "_auditarBrand(auditarLogo, 122, 59)" in renderer
 )
 assert (
     "_logo(auditarLogo, 90, 34)" in renderer
     or "_auditarBrand(auditarLogo, 92, 42)" in renderer
+    or "_auditarBrand(auditarLogo, 95, 46)" in renderer
 )
 assert "companyLogo ?? auditarLogo" not in renderer
 assert ai.count("'mode': 'checklist_photo'") >= 2
