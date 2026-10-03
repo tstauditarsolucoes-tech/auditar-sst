@@ -242,7 +242,7 @@ class RondaStandard3PdfService {
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         maxPages: 400,
-        margin: const pw.EdgeInsets.fromLTRB(16, 16, 16, 34),
+        margin: const pw.EdgeInsets.fromLTRB(16, 10, 16, 34),
         header: (context) => _header(
           auditarLogo: auditarLogo,
           companyLogo: companyLogo,
@@ -273,9 +273,9 @@ class RondaStandard3PdfService {
           crossAxisAlignment: pw.CrossAxisAlignment.center,
           children: [
             pw.Container(
-              width: 118,
+              width: 122,
               alignment: pw.Alignment.centerLeft,
-              child: _auditarBrand(auditarLogo, 112, 58),
+              child: _auditarBrand(auditarLogo, 122, 59),
             ),
             pw.Expanded(
               child: pw.Column(children: [
@@ -301,22 +301,22 @@ class RondaStandard3PdfService {
               ]),
             ),
             pw.Container(
-              width: 118,
+              width: 122,
               alignment: pw.Alignment.centerRight,
-              child: _logo(companyLogo, 82, 58),
+              child: _logo(companyLogo, 83, 83),
             ),
           ],
         ),
-        pw.SizedBox(height: 5),
+        pw.SizedBox(height: 2),
         if (cnpj.isNotEmpty)
           pw.Text(
             '${company.toUpperCase()}  |  CNPJ: $cnpj',
             textAlign: pw.TextAlign.center,
             style: pw.TextStyle(fontSize: 8.2, fontWeight: pw.FontWeight.bold),
           ),
-        pw.SizedBox(height: cnpj.isNotEmpty ? 8 : 4),
+        pw.SizedBox(height: cnpj.isNotEmpty ? 6 : 2),
         pw.Container(height: .6, color: _line),
-        pw.SizedBox(height: 8),
+        pw.SizedBox(height: 10),
       ]);
 
   static pw.Widget _identityBox({
@@ -327,6 +327,7 @@ class RondaStandard3PdfService {
     required String dateText,
   }) =>
       pw.Container(
+        constraints: const pw.BoxConstraints(minHeight: 89),
         decoration: pw.BoxDecoration(
           border: pw.Border.all(color: _line, width: .6),
         ),
@@ -362,7 +363,7 @@ class RondaStandard3PdfService {
 
   static pw.Widget _issueBlock(_RoundIssue issue, int number) {
     return pw.Container(
-      constraints: const pw.BoxConstraints(minHeight: 218),
+      constraints: const pw.BoxConstraints(minHeight: 230),
       decoration: pw.BoxDecoration(
         border: pw.Border.all(color: _line, width: .55),
       ),
@@ -370,9 +371,9 @@ class RondaStandard3PdfService {
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Expanded(
-            flex: 48,
+            flex: 47,
             child: pw.Container(
-              padding: const pw.EdgeInsets.fromLTRB(11, 10, 11, 9),
+              padding: const pw.EdgeInsets.fromLTRB(13, 10, 13, 9),
               decoration: const pw.BoxDecoration(
                 border: pw.Border(
                   right: pw.BorderSide(color: _line, width: .55),
@@ -382,7 +383,7 @@ class RondaStandard3PdfService {
             ),
           ),
           pw.Expanded(
-            flex: 52,
+            flex: 53,
             child: pw.Padding(
               padding: const pw.EdgeInsets.fromLTRB(11, 10, 11, 9),
               child: pw.Column(
@@ -455,7 +456,7 @@ class RondaStandard3PdfService {
       children: [
         if (issue.photos.length == 1)
           pw.SizedBox(
-            height: 192,
+            height: 202,
             child: pw.Image(issue.photos.first, fit: pw.BoxFit.contain),
           )
         else
@@ -503,7 +504,7 @@ class RondaStandard3PdfService {
 
   static pw.Widget _technicalResponsible() => pw.Center(
         child: pw.SizedBox(
-          width: 220,
+          width: 231,
           child: pw.Column(children: [
             pw.SizedBox(height: 42),
             pw.Container(height: .7, color: _navy),
@@ -526,7 +527,7 @@ class RondaStandard3PdfService {
         crossAxisAlignment: pw.CrossAxisAlignment.end,
         children: [
           pw.Expanded(child: pw.SizedBox()),
-          _auditarBrand(auditarLogo, 92, 42),
+          _auditarBrand(auditarLogo, 95, 46),
           pw.Expanded(
             child: pw.Align(
               alignment: pw.Alignment.centerRight,
