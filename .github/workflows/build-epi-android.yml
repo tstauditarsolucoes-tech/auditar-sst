@@ -132,7 +132,8 @@ jobs:
           node --check holdings-replacements.js
           node --check return-epi.js
           node --check cloud-sync.js
-          node --check biometric-crypto-v1.js\n          node --check biometric-face.js
+          node --check biometric-crypto-v1.js
+          node --check biometric-face.js
           node --check liveness-face.js
 
       - name: Validar GS biométrico
