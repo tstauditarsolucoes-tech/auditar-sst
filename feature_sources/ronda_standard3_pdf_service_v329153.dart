@@ -141,7 +141,7 @@ class RondaStandard3PdfService {
           decoration: pw.BoxDecoration(
             border: pw.Border.all(color: _line, width: .6),
           ),
-          child: const pw.Text(
+          child: pw.Text(
             'Nenhuma não conformidade com dados suficientes foi registrada para este relatório.',
             style: pw.TextStyle(fontSize: 9),
           ),
