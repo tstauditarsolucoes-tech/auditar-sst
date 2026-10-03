@@ -122,13 +122,21 @@
 
   async function enroll(workerId,embedding){
     const root=loadRoot();const w=(root.workers||[]).find(x=>x.id===workerId);if(!w)throw new Error('Colaborador não encontrado.');
-    const enrolledAt=new Date().toISOString(),templateHash=await sha256Text(JSON.stringify(embedding));w.biometric={type:'face-1to1',engine:'human-faceres',version:2,embedding,templateHash,templateHashAlg:'SHA-256',enrolledAt,consentAt:enrolledAt,modelVersion:'3.3.6'};w.updatedAt=enrolledAt;saveRoot(root);
-    decorateWorkers();toast('Biometria facial cadastrada.');
+    const enrolledAt=new Date().toISOString(),templateHash=await sha256Text(JSON.stringify(embedding));
+    const meta={type:'face-1to1',engine:'human-faceres',version:3,templateHash,templateHashAlg:'SHA-256',enrolledAt,consentAt:enrolledAt,modelVersion:'3.3.6'};
+    w.biometric=window.GestaoEpiBiometricCrypto?.protectEmbedding
+      ? await window.GestaoEpiBiometricCrypto.protectEmbedding(workerId,embedding,meta)
+      : {...meta,version:2,embedding,encryptionPending:true};
+    w.updatedAt=enrolledAt;saveRoot(root);
+    decorateWorkers();toast(w.biometric?.encryptedTemplate?'Biometria facial cadastrada e criptografada.':'Biometria cadastrada. Criptografia será aplicada quando a Central biométrica estiver disponível.');
   }
 
   async function verify(workerId,embedding){
-    const w=workerById(workerId);const ref=w?.biometric?.embedding;
-    if(!Array.isArray(ref)||!ref.length)throw new Error('Esse colaborador ainda não tem biometria cadastrada.');
+    const w=workerById(workerId);
+    const ref=window.GestaoEpiBiometricCrypto?.getEmbedding
+      ? await window.GestaoEpiBiometricCrypto.getEmbedding(w)
+      : (w?.biometric?.embedding||[]);
+    if(!Array.isArray(ref)||!ref.length)throw new Error('Esse colaborador ainda não tem biometria cadastrada ou a chave biométrica não está disponível neste aparelho.');
     const engine=await ensureHuman();
     const similarity=Number(engine.match.similarity(ref,embedding,{order:2,multiplier:25,min:0.2,max:0.8})||0);
     verifiedSimilarity=similarity;verifiedAt=new Date().toISOString();verified=similarity>=THRESHOLD;
@@ -142,7 +150,7 @@
     const list=$('#workerList');if(!list)return;
     list.querySelectorAll('.list-item').forEach(item=>{
       const del=item.querySelector('[data-del-worker]');const id=del?.dataset.delWorker;if(!id||item.querySelector('[data-bio-worker]'))return;
-      const w=workerById(id);const b=document.createElement('button');b.type='button';b.className='tiny bio-worker-btn'+(w?.biometric?.embedding?.length?' bio-worker-ok':'');b.dataset.bioWorker=id;b.textContent=w?.biometric?.embedding?.length?'✓ Rosto cadastrado':'🙂 Cadastrar rosto';
+      const w=workerById(id);const b=document.createElement('button');b.type='button';b.className='tiny bio-worker-btn'+(window.GestaoEpiBiometricCrypto?.hasTemplate?.(w)||w?.biometric?.embedding?.length?' bio-worker-ok':'');b.dataset.bioWorker=id;b.textContent=window.GestaoEpiBiometricCrypto?.hasTemplate?.(w)||w?.biometric?.embedding?.length?'✓ Rosto cadastrado':'🙂 Cadastrar rosto';
       (item.querySelector('.list-actions')||item).appendChild(b);
     });
   }
@@ -169,7 +177,7 @@
   function resetVerification(){verified=false;verifiedAt='';verifiedSimilarity=0;renderVerifyStatus();}
   function renderVerifyStatus(){const s=$('#bioVerifyStatus');if(!s)return;s.className='bio-status'+(verified?' ok':'');s.textContent=verified?`✓ Rosto confirmado • ${Math.round(verifiedSimilarity*100)}% de compatibilidade`:'Biometria ainda não verificada.';}
   function beginVerify(){
-    const id=$('#deliveryWorker')?.value;if(!id)return toast('Selecione o colaborador primeiro.');const w=workerById(id);if(!w?.biometric?.embedding?.length)return toast('Cadastre primeiro a biometria deste colaborador em Colaboradores.');openModal('verify',id);
+    const id=$('#deliveryWorker')?.value;if(!id)return toast('Selecione o colaborador primeiro.');const w=workerById(id);if(!window.GestaoEpiBiometricCrypto?.hasTemplate?.(w)||w?.biometric?.embedding?.length)return toast('Cadastre primeiro a biometria deste colaborador em Colaboradores.');openModal('verify',id);
   }
 
   function markSignatureForBiometric(){
