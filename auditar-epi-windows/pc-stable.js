@@ -2,6 +2,10 @@
   const TENANT_CODE_KEY='gestaoEpiTenantCode';
   const CACHE='auditarEpiGestaoCacheV1';
   const THRESHOLD=0.60;
+  const FACE_MIN=0.58;
+  const REAL_MIN=0.45;
+  const LIVE_MIN=0.45;
+  const REQUIRED_LIVE_FRAMES=2;
   const HUMAN_SRC='https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/dist/human.js';
   const MODEL_BASE='https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/models';
   const nativeGet=Storage.prototype.getItem;
@@ -22,12 +26,15 @@
   document.head.appendChild(style);
 
   const $=(s,r=document)=>r.querySelector(s);
-  let mode='signature',verified=false,verifiedAt='',verifiedSimilarity=0,verifiedWorkerId='',stream=null,human=null,humanLoading=null;
+  let mode='signature',verified=false,verifiedAt='',verifiedSimilarity=0,verifiedWorkerId='',verifiedReal=0,verifiedLive=0,verifiedFrames=0,verifiedEvidenceId='',verifiedEvidenceHash='',verifiedEvidenceNonce='',stream=null,human=null,humanLoading=null;
 
   function toast(msg){const el=$('#toast');if(!el)return alert(msg);el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2700);}
   function root(){try{const x=JSON.parse(localStorage.getItem(CACHE)||'{}');x.app=x.app&&typeof x.app==='object'?x.app:{};x.app.workers=Array.isArray(x.app.workers)?x.app.workers:[];return x;}catch(_){return {app:{workers:[]}};}}
   function worker(id){return root().app.workers.find(x=>x.id===id);}
   function roundEmbedding(a){return Array.from(a||[]).map(n=>Math.round(Number(n)*1000000)/1000000);}
+  function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+  function randomToken(bytes=12){try{const a=new Uint8Array(bytes);crypto.getRandomValues(a);return Array.from(a,n=>n.toString(16).padStart(2,'0')).join('');}catch(_){return Math.random().toString(36).slice(2)+Date.now().toString(36);}}
+  async function sha256Text(text){try{const data=new TextEncoder().encode(String(text||'')),hash=await crypto.subtle.digest('SHA-256',data);return Array.from(new Uint8Array(hash),b=>b.toString(16).padStart(2,'0')).join('');}catch(_){return '';}}
 
   async function loadHumanScript(){
     if(window.Human?.Human)return;
@@ -41,7 +48,7 @@
     humanLoading=(async()=>{
       await loadHumanScript();
       if(!window.Human?.Human)throw new Error('Motor biométrico não disponível.');
-      human=new window.Human.Human({backend:'webgl',modelBasePath:MODEL_BASE,cacheSensitivity:0.01,filter:{enabled:true,equalization:true},face:{enabled:true,detector:{rotation:true,return:true,maxDetected:2,minConfidence:0.6},mesh:{enabled:true},description:{enabled:true},iris:{enabled:false},emotion:{enabled:false},antispoof:{enabled:false},liveness:{enabled:false}},body:{enabled:false},hand:{enabled:false},object:{enabled:false},gesture:{enabled:false}});
+      human=new window.Human.Human({backend:'webgl',modelBasePath:MODEL_BASE,cacheSensitivity:0.01,filter:{enabled:true,equalization:true},face:{enabled:true,detector:{rotation:true,return:true,maxDetected:2,minConfidence:0.6},mesh:{enabled:true},description:{enabled:true},iris:{enabled:false},emotion:{enabled:false},antispoof:{enabled:true},liveness:{enabled:true}},body:{enabled:false},hand:{enabled:false},object:{enabled:false},gesture:{enabled:false}});
       await human.load();return human;
     })().catch(err=>{human=null;humanLoading=null;throw err;});
     return humanLoading;
@@ -49,7 +56,7 @@
 
   function ensureOverlay(){
     if($('#pcFaceOverlay'))return;
-    const d=document.createElement('div');d.id='pcFaceOverlay';d.className='pc-face-overlay';d.innerHTML=`<div class="pc-face-head"><div><h2>Verificação facial</h2><p>Olhe normalmente para a câmera. Não precisa piscar, sorrir ou virar a cabeça.</p></div><button id="pcFaceClose" class="pc-face-close" type="button">×</button></div><div class="pc-face-stage"><video id="pcFaceVideo" autoplay muted playsinline></video><div class="pc-face-frame"></div><div class="pc-face-instruction">Centralize somente o rosto do trabalhador</div></div><div class="pc-face-actions"><button id="pcFaceCapture" class="pc-face-capture" type="button">🙂 Verificar rosto</button></div><div class="pc-face-note">A foto não é salva. O sistema usa o rosto somente para comparar com a biometria cadastrada do trabalhador.</div>`;
+    const d=document.createElement('div');d.id='pcFaceOverlay';d.className='pc-face-overlay';d.innerHTML=`<div class="pc-face-head"><div><h2>Verificação facial</h2><p>Olhe normalmente para a câmera. A verificação de pessoa real é automática; não precisa piscar ou fazer gesto.</p></div><button id="pcFaceClose" class="pc-face-close" type="button">×</button></div><div class="pc-face-stage"><video id="pcFaceVideo" autoplay muted playsinline></video><div class="pc-face-frame"></div><div class="pc-face-instruction">Centralize somente o rosto do trabalhador • pessoa real será verificada automaticamente</div></div><div class="pc-face-actions"><button id="pcFaceCapture" class="pc-face-capture" type="button">🙂 Verificar rosto</button></div><div class="pc-face-note">A foto não é salva. O sistema usa o rosto somente para comparar com a biometria cadastrada do trabalhador.</div>`;
     document.body.appendChild(d);$('#pcFaceClose').onclick=closeCamera;$('#pcFaceCapture').onclick=verifyFrame;
   }
 
@@ -63,7 +70,7 @@
   }
 
   function setMode(next){mode=next;resetVerification();const card=$('#pcConfirmCard');card?.classList.toggle('pc-face-mode',mode==='face');$('#pcFacePanel')?.classList.toggle('open',mode==='face');$('#pcUseFace')?.classList.toggle('active',mode==='face');$('#pcUseSignature')?.classList.toggle('active',mode!=='face');if(mode==='face')$('#pcClearSignature')?.click();}
-  function resetVerification(){verified=false;verifiedAt='';verifiedSimilarity=0;verifiedWorkerId='';const s=$('#pcFaceStatus');if(s){s.className='pc-face-status';s.textContent='Biometria ainda não verificada.';}}
+  function resetVerification(){verified=false;verifiedAt='';verifiedSimilarity=0;verifiedWorkerId='';verifiedReal=0;verifiedLive=0;verifiedFrames=0;verifiedEvidenceId='';verifiedEvidenceHash='';verifiedEvidenceNonce='';const s=$('#pcFaceStatus');if(s){s.className='pc-face-status';s.textContent='Biometria ainda não verificada.';}}
 
   async function openCamera(){
     const workerId=$('#pcDeliveryWorker')?.value||'';if(!workerId)return toast('Selecione o trabalhador primeiro.');const w=worker(workerId);if(!Array.isArray(w?.biometric?.embedding)||!w.biometric.embedding.length)return toast('Esse trabalhador ainda não tem biometria cadastrada. Cadastre o rosto no aplicativo Campo primeiro.');
@@ -75,13 +82,37 @@
   function closeCamera(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}const v=$('#pcFaceVideo');if(v)v.srcObject=null;$('#pcFaceOverlay')?.classList.remove('open');const btn=$('#pcFaceCapture');if(btn){btn.disabled=false;btn.textContent='🙂 Verificar rosto';}}
 
   async function verifyFrame(){
-    const workerId=$('#pcDeliveryWorker')?.value||'',w=worker(workerId),ref=w?.biometric?.embedding;if(!workerId||!Array.isArray(ref)||!ref.length){closeCamera();return toast('Biometria do trabalhador não encontrada.');}
-    const video=$('#pcFaceVideo');if(!video?.videoWidth)return toast('Aguarde a câmera carregar.');const btn=$('#pcFaceCapture');btn.disabled=true;btn.textContent='Analisando rosto…';
+    const workerId=$('#pcDeliveryWorker')?.value||'',w=worker(workerId),ref=w?.biometric?.embedding;
+    if(!workerId||!Array.isArray(ref)||!ref.length){closeCamera();return toast('Biometria do trabalhador não encontrada.');}
+    const video=$('#pcFaceVideo');if(!video?.videoWidth)return toast('Aguarde a câmera carregar.');
+    const btn=$('#pcFaceCapture');btn.disabled=true;btn.textContent='Verificando pessoa real…';
     try{
-      const engine=await ensureHuman(),c=document.createElement('canvas');c.width=Math.min(640,video.videoWidth);c.height=Math.max(1,Math.round(c.width*(video.videoHeight/video.videoWidth)));c.getContext('2d').drawImage(video,0,0,c.width,c.height);
-      const result=await engine.detect(c),faces=result?.face||[];if(faces.length!==1)throw new Error(faces.length>1?'Deixe somente uma pessoa na câmera.':'Rosto não encontrado. Aproxime-se e melhore a iluminação.');const face=faces[0],score=Number(face.faceScore||face.boxScore||0);if(score<0.60)throw new Error('Não consegui ler o rosto com segurança. Tente novamente.');const embedding=roundEmbedding(face.embedding);if(!embedding.length)throw new Error('Não foi possível gerar a biometria facial.');
-      const similarity=Number(engine.match.similarity(ref,embedding,{order:2,multiplier:25,min:0.2,max:0.8})||0);verified=similarity>=THRESHOLD;verifiedAt=new Date().toISOString();verifiedSimilarity=similarity;verifiedWorkerId=workerId;const s=$('#pcFaceStatus');if(s){s.className='pc-face-status '+(verified?'ok':'fail');s.textContent=verified?`✓ Rosto confirmado • ${Math.round(similarity*100)}% de compatibilidade`:`Rosto não confirmado • ${Math.round(similarity*100)}%. Tente novamente.`;}
-      if(!verified)throw new Error(`Rosto não confirmado (${Math.round(similarity*100)}%).`);closeCamera();toast(`Rosto confirmado • ${Math.round(similarity*100)}%`);
+      const engine=await ensureHuman(),samples=[];
+      for(let i=0;i<3;i++){
+        const result=await engine.detect(video),faces=result?.face||[];
+        if(faces.length!==1){
+          if(i===0&&faces.length>1)throw new Error('Deixe somente uma pessoa na câmera.');
+          await sleep(160);continue;
+        }
+        const face=faces[0],score=Number(face.faceScore||face.boxScore||0),real=Number(face.real||0),live=Number(face.live||0),embedding=roundEmbedding(face.embedding);
+        const good=score>=FACE_MIN&&real>=REAL_MIN&&live>=LIVE_MIN&&embedding.length;
+        if(good)samples.push({score,real,live,embedding});
+        const inst=$('#pcFaceOverlay .pc-face-instruction');
+        if(inst)inst.textContent=good?'Pessoa real detectada • mantenha o rosto centralizado':'Validando presença real • melhore a iluminação e mantenha o rosto visível';
+        if(samples.length>=REQUIRED_LIVE_FRAMES)break;
+        await sleep(180);
+      }
+      if(samples.length<REQUIRED_LIVE_FRAMES)throw new Error('Não foi possível confirmar uma pessoa real. Evite foto/tela e tente novamente com boa iluminação.');
+      const best=samples.slice().sort((a,b)=>(b.score+b.real+b.live)-(a.score+a.real+a.live))[0];
+      const similarity=Number(engine.match.similarity(ref,best.embedding,{order:2,multiplier:25,min:0.2,max:0.8})||0);
+      verified=similarity>=THRESHOLD;verifiedAt=new Date().toISOString();verifiedSimilarity=similarity;verifiedWorkerId=workerId;
+      verifiedReal=Math.round(samples.reduce((s,x)=>s+x.real,0)/samples.length*10000)/10000;
+      verifiedLive=Math.round(samples.reduce((s,x)=>s+x.live,0)/samples.length*10000)/10000;
+      verifiedFrames=samples.length;verifiedEvidenceId='bio_'+Date.now().toString(36)+'_'+randomToken(5);verifiedEvidenceNonce=randomToken(12);
+      verifiedEvidenceHash=await sha256Text(JSON.stringify({v:1,id:verifiedEvidenceId,workerId,at:verifiedAt,similarity:Math.round(similarity*10000)/10000,real:verifiedReal,live:verifiedLive,frames:verifiedFrames,threshold:THRESHOLD,realMin:REAL_MIN,liveMin:LIVE_MIN,engine:'human-faceres',engineVersion:'3.3.6',nonce:verifiedEvidenceNonce}));
+      const s=$('#pcFaceStatus');if(s){s.className='pc-face-status '+(verified?'ok':'fail');s.textContent=verified?`✓ Pessoa real + rosto confirmado • ${Math.round(similarity*100)}% de compatibilidade`:`Pessoa real confirmada, mas o rosto não corresponde • ${Math.round(similarity*100)}%`;}
+      if(!verified)throw new Error(`Rosto não confirmado (${Math.round(similarity*100)}%).`);
+      closeCamera();toast(`Pessoa real e rosto confirmados • ${Math.round(similarity*100)}%`);
     }catch(err){toast(err.message||'Falha na verificação facial.');}
     finally{btn.disabled=false;btn.textContent='🙂 Verificar rosto';}
   }
@@ -89,7 +120,7 @@
   window.GestaoEpiPcFace={
     mode:()=>mode,
     reset:()=>setMode('signature'),
-    getConfirmation:()=>mode==='face'?{mode:'face',valid:verified&&verifiedWorkerId===($('#pcDeliveryWorker')?.value||''),workerId:verifiedWorkerId,confirmationType:'face-1to1',facialVerifiedAt:verifiedAt,facialSimilarity:verifiedSimilarity,facialBlinkRequired:false,biometricEngine:'human-faceres',biometricVersion:1}:{mode:'signature',valid:true,confirmationType:'signature'}
+    getConfirmation:()=>mode==='face'?{mode:'face',valid:verified&&verifiedWorkerId===($('#pcDeliveryWorker')?.value||''),workerId:verifiedWorkerId,confirmationType:'face-1to1',facialVerifiedAt:verifiedAt,facialSimilarity:verifiedSimilarity,facialBlinkRequired:false,biometricEngine:'human-faceres',biometricVersion:2,biometricLivenessVerified:verified,biometricPassiveLiveness:true,biometricAntispoofScore:verifiedReal,biometricLiveScore:verifiedLive,biometricCaptureFrames:verifiedFrames,biometricThreshold:THRESHOLD,biometricRealThreshold:REAL_MIN,biometricLiveThreshold:LIVE_MIN,biometricEvidenceId:verifiedEvidenceId,biometricEvidenceHash:verifiedEvidenceHash,biometricEvidenceNonce:verifiedEvidenceNonce,biometricEvidenceHashAlg:'SHA-256',biometricModelVersion:'3.3.6'}:{mode:'signature',valid:true,confirmationType:'signature'}
   };
 
   function boot(){let tries=0;const timer=setInterval(()=>{tries++;if(setup()||tries>80)clearInterval(timer);},100);}
