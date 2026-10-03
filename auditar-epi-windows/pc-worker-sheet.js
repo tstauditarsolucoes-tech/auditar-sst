@@ -131,7 +131,7 @@
         <div><small>Situação</small><b>${w.active===false?'Inativo':'Ativo'}</b></div>
         <div><small>Cargo</small><b>${esc(w.role||'—')}</b></div>
         <div><small>Setor</small><b>${esc(w.sector||'—')}</b></div>
-        <div><small>Biometria cadastrada</small><b>${Array.isArray(w?.biometric?.embedding)&&w.biometric.embedding.length?'Sim':'Não'}</b></div>
+        <div><small>Biometria cadastrada</small><b>${(window.GestaoEpiBiometricCrypto?.hasTemplate?.(w)||(Array.isArray(w?.biometric?.embedding)&&w.biometric.embedding.length))?'Sim':'Não'}</b></div>
         <div><small>Ficha atualizada</small><b>${fmtDate(new Date().toISOString(),true)}</b></div>
       </div>
       <div class="worker-sheet-metrics">
