@@ -187,6 +187,9 @@ class RondaStandard3PdfService {
       );
     } else {
       for (var i = 0; i < issues.length; i++) {
+        if (i > 0 && i.isEven) {
+          body.add(pw.NewPage());
+        }
         body.add(_issueBlock(issues[i], i + 1));
       }
     }
