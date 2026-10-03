@@ -1,5 +1,6 @@
 (() => {
   const CACHE='auditarEpiGestaoCacheV1';
+  const FACE_MIN=0.58,REAL_MIN=0.45,LIVE_MIN=0.45,REQUIRED_LIVE_FRAMES=2;
   const HUMAN_SRC='https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/dist/human.js';
   const MODEL_BASE='https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/models';
   const $=(s,r=document)=>r.querySelector(s);
@@ -159,12 +160,14 @@
     await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=HUMAN_SRC;s.dataset.pcEnrollHuman='1';s.onload=resolve;s.onerror=()=>reject(new Error('Falha ao carregar o motor biométrico. Verifique a internet.'));document.head.appendChild(s);});
   }
   async function ensureHuman(){
-    if(human)return human;if(humanLoading)return humanLoading;humanLoading=(async()=>{await loadHuman();if(!window.Human?.Human)throw new Error('Motor biométrico não disponível.');human=new window.Human.Human({backend:'webgl',modelBasePath:MODEL_BASE,cacheSensitivity:0.01,filter:{enabled:true,equalization:true},face:{enabled:true,detector:{rotation:true,return:true,maxDetected:2,minConfidence:0.6},mesh:{enabled:true},description:{enabled:true},iris:{enabled:false},emotion:{enabled:false},antispoof:{enabled:false},liveness:{enabled:false}},body:{enabled:false},hand:{enabled:false},object:{enabled:false},gesture:{enabled:false}});await human.load();return human;})().catch(err=>{human=null;humanLoading=null;throw err;});return humanLoading;
+    if(human)return human;if(humanLoading)return humanLoading;humanLoading=(async()=>{await loadHuman();if(!window.Human?.Human)throw new Error('Motor biométrico não disponível.');human=new window.Human.Human({backend:'webgl',modelBasePath:MODEL_BASE,cacheSensitivity:0.01,filter:{enabled:true,equalization:true},face:{enabled:true,detector:{rotation:true,return:true,maxDetected:2,minConfidence:0.6},mesh:{enabled:true},description:{enabled:true},iris:{enabled:false},emotion:{enabled:false},antispoof:{enabled:true},liveness:{enabled:true}},body:{enabled:false},hand:{enabled:false},object:{enabled:false},gesture:{enabled:false}});await human.load();return human;})().catch(err=>{human=null;humanLoading=null;throw err;});return humanLoading;
   }
   function roundEmbedding(a){return Array.from(a||[]).map(n=>Math.round(Number(n)*1000000)/1000000);}
+  function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+  async function sha256Text(text){try{const data=new TextEncoder().encode(String(text||'')),hash=await crypto.subtle.digest('SHA-256',data);return Array.from(new Uint8Array(hash),b=>b.toString(16).padStart(2,'0')).join('');}catch(_){return '';}}
 
   function ensureOverlay(){
-    if($('#pcEnrollOverlay'))return;const d=document.createElement('div');d.id='pcEnrollOverlay';d.className='pc-enroll-overlay';d.innerHTML=`<div class="pc-enroll-head"><div><h2>Cadastrar biometria facial</h2><p>Olhe normalmente para a câmera. Não precisa piscar, sorrir ou virar a cabeça.</p></div><button id="pcEnrollClose" class="pc-enroll-close" type="button">×</button></div><div class="pc-enroll-stage"><video id="pcEnrollVideo" autoplay muted playsinline></video><div class="pc-enroll-frame"></div><div class="pc-enroll-tip">Centralize somente o rosto da pessoa</div></div><label class="pc-enroll-consent"><input id="pcEnrollConsent" type="checkbox"><span>A pessoa foi informada sobre o cadastro da biometria facial para confirmação de entregas de EPI. A foto não será armazenada.</span></label><div class="pc-enroll-actions"><button id="pcEnrollCapture" class="pc-enroll-capture" type="button">🙂 Cadastrar rosto</button></div>`;document.body.appendChild(d);$('#pcEnrollClose').onclick=closeEnrollment;$('#pcEnrollCapture').onclick=captureEnrollment;
+    if($('#pcEnrollOverlay'))return;const d=document.createElement('div');d.id='pcEnrollOverlay';d.className='pc-enroll-overlay';d.innerHTML=`<div class="pc-enroll-head"><div><h2>Cadastrar biometria facial</h2><p>Olhe normalmente para a câmera. O sistema confirma automaticamente que há uma pessoa real; não precisa piscar ou fazer gesto.</p></div><button id="pcEnrollClose" class="pc-enroll-close" type="button">×</button></div><div class="pc-enroll-stage"><video id="pcEnrollVideo" autoplay muted playsinline></video><div class="pc-enroll-frame"></div><div class="pc-enroll-tip">Centralize somente o rosto da pessoa</div></div><label class="pc-enroll-consent"><input id="pcEnrollConsent" type="checkbox"><span>A pessoa foi informada sobre o cadastro da biometria facial para confirmação de entregas de EPI. A foto não será armazenada.</span></label><div class="pc-enroll-actions"><button id="pcEnrollCapture" class="pc-enroll-capture" type="button">🙂 Cadastrar rosto</button></div>`;document.body.appendChild(d);$('#pcEnrollClose').onclick=closeEnrollment;$('#pcEnrollCapture').onclick=captureEnrollment;
   }
 
   async function beginEnrollment(workerId,standalone=true){
@@ -173,9 +176,29 @@
   }
   function closeEnrollment(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}const v=$('#pcEnrollVideo');if(v)v.srcObject=null;$('#pcEnrollOverlay')?.classList.remove('open');enrollWorkerId='';}
   async function captureEnrollment(){
-    if(!$('#pcEnrollConsent')?.checked)return toast('Confirme que a pessoa foi informada sobre o cadastro facial.');const video=$('#pcEnrollVideo'),btn=$('#pcEnrollCapture');if(!video?.videoWidth)return toast('Aguarde a câmera carregar.');btn.disabled=true;btn.textContent='Analisando rosto…';
-    try{const engine=await ensureHuman(),c=document.createElement('canvas');c.width=Math.min(640,video.videoWidth);c.height=Math.max(1,Math.round(c.width*(video.videoHeight/video.videoWidth)));c.getContext('2d').drawImage(video,0,0,c.width,c.height);const result=await engine.detect(c),faces=result?.face||[];if(faces.length!==1)throw new Error(faces.length>1?'Deixe somente uma pessoa na câmera.':'Rosto não encontrado. Aproxime-se e melhore a iluminação.');const face=faces[0],score=Number(face.faceScore||face.boxScore||0);if(score<0.60)throw new Error('Não consegui ler o rosto com segurança. Tente novamente.');const embedding=roundEmbedding(face.embedding);if(!embedding.length)throw new Error('Não foi possível gerar a biometria facial.');const root=read(),w=root.app.workers.find(x=>x.id===enrollWorkerId);if(!w)throw new Error('Pessoa não encontrada.');w.biometric={type:'face-1to1',engine:'human-faceres',version:1,embedding,enrolledAt:now(),blinkRequired:false};w.updatedAt=now();write(root);const keep=standaloneEnrollment;closeEnrollment();toast('Biometria facial cadastrada. Não foi necessário piscar.');if(keep){setTimeout(()=>location.reload(),650);}else{renderExternals();}}
-    catch(err){toast(err.message||'Falha ao cadastrar biometria.');}
+    if(!$('#pcEnrollConsent')?.checked)return toast('Confirme que a pessoa foi informada sobre o cadastro facial.');
+    const video=$('#pcEnrollVideo'),btn=$('#pcEnrollCapture');if(!video?.videoWidth)return toast('Aguarde a câmera carregar.');
+    btn.disabled=true;btn.textContent='Validando pessoa real…';
+    try{
+      const engine=await ensureHuman(),samples=[];
+      for(let i=0;i<3;i++){
+        const result=await engine.detect(video),faces=result?.face||[];
+        if(faces.length!==1){if(i===0&&faces.length>1)throw new Error('Deixe somente uma pessoa na câmera.');await sleep(160);continue;}
+        const face=faces[0],score=Number(face.faceScore||face.boxScore||0),real=Number(face.real||0),live=Number(face.live||0),embedding=roundEmbedding(face.embedding);
+        if(score>=FACE_MIN&&real>=REAL_MIN&&live>=LIVE_MIN&&embedding.length)samples.push({score,real,live,embedding});
+        const tip=$('#pcEnrollOverlay .pc-enroll-tip');if(tip)tip.textContent=samples.length?'Pessoa real detectada • mantenha o rosto centralizado':'Validando presença real • melhore a iluminação';
+        if(samples.length>=REQUIRED_LIVE_FRAMES)break;
+        await sleep(180);
+      }
+      if(samples.length<REQUIRED_LIVE_FRAMES)throw new Error('Não foi possível confirmar uma pessoa real para o cadastro. Evite foto/tela e tente novamente.');
+      const best=samples.slice().sort((a,b)=>(b.score+b.real+b.live)-(a.score+a.real+a.live))[0],embedding=best.embedding;
+      const root=read(),w=root.app.workers.find(x=>x.id===enrollWorkerId);if(!w)throw new Error('Pessoa não encontrada.');
+      const real=Math.round(samples.reduce((s,x)=>s+x.real,0)/samples.length*10000)/10000,live=Math.round(samples.reduce((s,x)=>s+x.live,0)/samples.length*10000)/10000;
+      const templateHash=await sha256Text(JSON.stringify(embedding));
+      w.biometric={type:'face-1to1',engine:'human-faceres',version:2,embedding,templateHash,templateHashAlg:'SHA-256',enrolledAt:now(),consentAt:now(),blinkRequired:false,livenessEnrollmentVerified:true,antispoofScore:real,liveScore:live,enrollmentFrames:samples.length,modelVersion:'3.3.6'};
+      w.updatedAt=now();write(root);const keep=standaloneEnrollment;closeEnrollment();toast('Biometria facial cadastrada com verificação de pessoa real.');
+      if(keep){setTimeout(()=>location.reload(),650);}else{renderExternals();}
+    }catch(err){toast(err.message||'Falha ao cadastrar biometria.');}
     finally{btn.disabled=false;btn.textContent='🙂 Cadastrar rosto';}
   }
 
