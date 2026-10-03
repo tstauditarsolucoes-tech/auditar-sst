@@ -1,0 +1,4481 @@
+const GESTAO_COM_ROOT = 'Gestao EPI Comercial';
+const GESTAO_COM_SYSTEM_FOLDER = 'Sistema';
+const GESTAO_COM_CLIENTS_FOLDER = 'Clientes';
+const GESTAO_COM_SYSTEM_FILE = 'sistema.json';
+const GESTAO_COM_DATA_FILE = 'dados.json';
+const GESTAO_COM_USERS_FILE = 'usuarios.json';
+const GESTAO_COM_PURCHASE_DOCS_INDEX_FILE = 'notas_fiscais_index.json';
+const GESTAO_COM_PURCHASE_DOCS_FOLDER = 'Notas Fiscais';
+const GESTAO_COM_INVOICE_AI_CACHE_FILE = 'notas_fiscais_ai_cache.json';
+const GESTAO_COM_NF_AI_ENGINE = 'nf-ai-v2.2-fast';
+const GESTAO_COM_AUTH_SECRET_PROP = 'GESTAO_EPI_COM_AUTH_SECRET_V1';
+const GESTAO_COM_BIOMETRIC_MASTER_PROP = 'GESTAO_EPI_BIOMETRIC_MASTER_KEY_V1';
+const GESTAO_COM_TOKEN_HOURS = 12;
+const GESTAO_COM_HASH_ROUNDS = 1200;
+const GESTAO_COM_PASSWORD_CACHE_SECONDS = 21600;
+const GESTAO_COM_DEVICE_TOUCH_MS = 15 * 60 * 1000;
+const GESTAO_COM_ROOT_ID_PROP = 'GESTAO_EPI_COM_ROOT_FOLDER_ID_V1';
+const GESTAO_COM_SYSTEM_FOLDER_ID_PROP = 'GESTAO_EPI_COM_SYSTEM_FOLDER_ID_V1';
+const GESTAO_COM_SYSTEM_FILE_ID_PROP = 'GESTAO_EPI_COM_SYSTEM_FILE_ID_V1';
+
+const GESTAO_EPI_AI_WORKER_DEFAULT_URL =
+  'https://script.google.com/macros/s/AKfycbxNG-wU-jZMKMR2cb1nR9OUd31GSUpGM0FIEagZEUP7sAHxkahLDuJ6T3wZvEe9rm6WrQ/exec';
+
+/* =========================================================
+   ROTEADOR PRINCIPAL
+   ========================================================= */
+
+function doPost(e) {
+  try {
+    const request = JSON.parse((e.postData && e.postData.contents) || '{}');
+    const action = String(request.action || '');
+
+    // Painel Mestre
+    if (action === 'master_status') return jsonResponse_(masterStatus_());
+    if (action === 'master_bootstrap') return jsonResponse_(masterBootstrap_(request));
+    if (action === 'master_login') return jsonResponse_(masterLogin_(request));
+    if (action === 'master_me') return jsonResponse_(masterMe_(request));
+    if (action === 'master_list_tenants') return jsonResponse_(masterListTenants_(request));
+    if (action === 'master_create_tenant') return jsonResponse_(masterCreateTenant_(request));
+    if (action === 'master_update_tenant') return jsonResponse_(masterUpdateTenant_(request));
+    if (action === 'master_migrate_legacy') return jsonResponse_(masterMigrateLegacy_(request));
+    if (action === 'master_reset_device') return jsonResponse_(masterResetDevice_(request));
+    if (action === 'master_list_companies') return jsonResponse_(masterListCompanies_(request));
+    if (action === 'master_create_company') return jsonResponse_(masterCreateCompany_(request));
+    if (action === 'master_recover_access') return jsonResponse_(masterRecoverAccess_(request));
+
+    // Usuários da empresa
+    if (action === 'tenant_login') return jsonResponse_(tenantLogin_(request));
+    if (action === 'tenant_me') return jsonResponse_(tenantMe_(request));
+    if (action === 'tenant_list_users') return jsonResponse_(tenantListUsers_(request));
+    if (action === 'tenant_create_user') return jsonResponse_(tenantCreateUser_(request));
+    if (action === 'tenant_update_user') return jsonResponse_(tenantUpdateUser_(request));
+    if (action === 'tenant_change_password') return jsonResponse_(tenantChangeOwnPassword_(request));
+
+    // Dados e IA
+    if (action === 'epi_sync_merge') return jsonResponse_(tenantSync_(request));
+    if (action === 'tenant_store_purchase_document') return jsonResponse_(tenantStorePurchaseDocument_(request));
+    if (action === 'tenant_biometric_key') return jsonResponse_(tenantBiometricKey_(request));
+    if (action === 'tenant_store_biometric') return jsonResponse_(tenantStoreBiometric_(request));
+    // Compatibilidade: versões do app PC que ainda enviam 'ai_assistant'
+    // e versões novas que enviam 'tenant_ai_assistant' usam a mesma rota autenticada.
+    if (action === 'tenant_ai_assistant' || action === 'ai_assistant') {
+      return jsonResponse_(tenantAiAssistant_(request));
+    }
+
+    return jsonResponse_({
+      ok: false,
+      code: 'ACTION_NOT_FOUND',
+      message: 'Ação não reconhecida: ' + action
+    });
+  } catch (error) {
+    return jsonResponse_({ok:false,message:String(error)});
+  }
+}
+
+function jsonResponse_(data) {
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/* =========================================================
+   PAINEL MESTRE
+   ========================================================= */
+
+function masterStatus_() {
+  const system = commercialLoadSystem_();
+  return {
+    ok: true,
+    configured: system.masterUsers.length > 0,
+    tenantCount: system.tenants.length
+  };
+}
+
+function masterBootstrap_(request) {
+  const props = PropertiesService.getScriptProperties();
+  const setupKey = String(props.getProperty('AUDITAR_EPI_SYNC_KEY') || '').trim();
+
+  if (!setupKey || String(request.setupKey || '').trim() !== setupKey) {
+    return {ok:false,message:'Chave de instalação inválida.'};
+  }
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+
+  try {
+    const system = commercialLoadSystem_();
+
+    if (system.masterUsers.length) {
+      return {ok:false,message:'O Painel Mestre já possui administrador.'};
+    }
+
+    const username = commercialNormalizeUsername_(request.username);
+    const password = String(request.password || '');
+    const name = String(request.name || '').trim() || username;
+
+    commercialValidateUsernamePassword_(username,password);
+
+    const user = commercialNewUser_(username,name,'master',password);
+    system.masterUsers.push(user);
+    commercialSaveSystem_(system);
+
+    return {
+      ok:true,
+      message:'Administrador Mestre criado.',
+      token:commercialCreateToken_({scope:'master',user:user}),
+      user:commercialPublicUser_(user)
+    };
+  } catch (error) {
+    return {ok:false,message:String(error)};
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function masterRecoverAccess_(request) {
+  const props = PropertiesService.getScriptProperties();
+  const expected = String(props.getProperty('AUDITAR_EPI_SYNC_KEY') || '').trim();
+  const supplied = String(request.setupKey || '').trim();
+
+  if (!expected || supplied !== expected) {
+    Utilities.sleep(350);
+    return {ok:false,message:'Chave de instalação inválida.'};
+  }
+
+  const username = commercialNormalizeUsername_(request.username);
+  const password = String(request.password || '');
+  const name = String(request.name || '').trim() || username;
+
+  commercialValidateUsernamePassword_(username,password);
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(12000);
+
+  try {
+    const system = commercialLoadSystem_();
+    const user = commercialNewUser_(username,name,'master',password);
+
+    // Preserva clientes e dados. Troca apenas o acesso Mestre.
+    system.masterUsers = [user];
+
+    // Invalida sessões antigas após recuperação.
+    props.setProperty(
+      GESTAO_COM_AUTH_SECRET_PROP,
+      Utilities.getUuid().replace(/-/g,'') +
+      Utilities.getUuid().replace(/-/g,'')
+    );
+
+    commercialSaveSystem_(system);
+
+    return {
+      ok:true,
+      message:'Acesso do Painel Mestre redefinido.',
+      token:commercialCreateToken_({scope:'master',user:user}),
+      user:commercialPublicUser_(user)
+    };
+  } catch (error) {
+    return {ok:false,message:'Não foi possível redefinir o acesso: ' + String(error)};
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function masterLogin_(request) {
+  const username = commercialNormalizeUsername_(request.username);
+  const password = String(request.password || '');
+  const system = commercialLoadSystem_();
+  const user = system.masterUsers.find(function(u){return u.username === username;});
+
+  if (!user || user.active === false || !commercialVerifyPassword_(password,user)) {
+    Utilities.sleep(250);
+    return {ok:false,message:'Usuário ou senha inválidos.'};
+  }
+
+  user.lastLoginAt = new Date().toISOString();
+  commercialSaveSystem_(system);
+
+  return {
+    ok:true,
+    token:commercialCreateToken_({scope:'master',user:user}),
+    user:commercialPublicUser_(user)
+  };
+}
+
+function masterMe_(request) {
+  const session = commercialValidateToken_(request.authToken,'master');
+  if (!session.ok) return session;
+  return {ok:true,user:session.user};
+}
+
+function masterListTenants_(request) {
+  const session = commercialValidateToken_(request.authToken,'master');
+  if (!session.ok) return session;
+
+  const system = commercialLoadSystem_();
+  return {
+    ok:true,
+    tenants:system.tenants.map(commercialPublicTenant_)
+  };
+}
+
+function masterCreateTenant_(request) {
+  const session = commercialValidateToken_(request.authToken,'master');
+  if (!session.ok) return session;
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+
+  try {
+    const system = commercialLoadSystem_();
+    const code = commercialNormalizeTenantCode_(request.code || request.name);
+    const name = String(request.name || '').trim();
+
+    if (!name) return {ok:false,message:'Informe o nome do cliente.'};
+    if (code.length < 3) {
+      return {ok:false,message:'O código do cliente deve ter pelo menos 3 caracteres.'};
+    }
+    if (system.tenants.some(function(t){return t.code === code;})) {
+      return {ok:false,message:'Já existe um cliente com esse código.'};
+    }
+
+    const adminUsername =
+      commercialNormalizeUsername_(request.adminUsername || 'admin');
+    const adminPassword = String(request.adminPassword || '');
+    const adminName =
+      String(request.adminName || '').trim() || 'Administrador';
+
+    commercialValidateUsernamePassword_(adminUsername,adminPassword);
+
+    const now = new Date().toISOString();
+
+    const tenant = {
+      id:'t_' + Utilities.getUuid(),
+      code:code,
+      name:name,
+      cnpj:String(request.cnpj || '').trim(),
+      plan:commercialNormalizePlan_(request.plan),
+      status:commercialNormalizeLicenseStatus_(request.status || 'trial'),
+      validUntil:
+        commercialNormalizeDate_(request.validUntil) ||
+        commercialFutureDate_(request.status === 'active' ? 365 : 14),
+      maxUsers:Math.max(1,Number(request.maxUsers || 5)),
+      maxDevices:Math.max(1,Number(request.maxDevices || 3)),
+      devices:[],
+      createdAt:now,
+      updatedAt:now
+    };
+
+    const folder = commercialCreateTenantFolder_(tenant);
+    tenant.folderId = folder.getId();
+
+    const users = [
+      commercialNewUser_(adminUsername,adminName,'admin',adminPassword)
+    ];
+
+    commercialWriteJsonFile_(
+      folder,
+      GESTAO_COM_USERS_FILE,
+      {version:1,users:users,updatedAt:now}
+    );
+
+    // Já cria a empresa operacional principal.
+    const snapshot = blankEpiSnapshot_();
+    snapshot.app.companies = [{
+      id:'c_' + Utilities.getUuid(),
+      name:name,
+      cnpj:tenant.cnpj,
+      createdAt:now,
+      updatedAt:now,
+      source:'painel-mestre'
+    }];
+    snapshot.revision = 1;
+    snapshot.updatedAt = now;
+
+    commercialWriteJsonFile_(folder,GESTAO_COM_DATA_FILE,snapshot);
+
+    system.tenants.push(tenant);
+    commercialSaveSystem_(system);
+
+    return {
+      ok:true,
+      tenant:commercialPublicTenant_(tenant),
+      message:'Cliente, licença e empresa criados com sucesso.'
+    };
+  } catch (error) {
+    return {ok:false,message:String(error)};
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function masterUpdateTenant_(request) {
+  const session = commercialValidateToken_(request.authToken,'master');
+  if (!session.ok) return session;
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+
+  try {
+    const system = commercialLoadSystem_();
+    const tenant = system.tenants.find(function(t){
+      return t.id === String(request.tenantId || '');
+    });
+
+    if (!tenant) return {ok:false,message:'Cliente não encontrado.'};
+
+    if (request.name != null) {
+      tenant.name = String(request.name || '').trim() || tenant.name;
+    }
+    if (request.cnpj != null) {
+      tenant.cnpj = String(request.cnpj || '').trim();
+    }
+    if (request.plan != null) {
+      tenant.plan = commercialNormalizePlan_(request.plan);
+    }
+    if (request.status != null) {
+      tenant.status = commercialNormalizeLicenseStatus_(request.status);
+    }
+    if (request.validUntil != null) {
+      tenant.validUntil = commercialNormalizeDate_(request.validUntil);
+    }
+    if (request.maxUsers != null) {
+      tenant.maxUsers = Math.max(1,Number(request.maxUsers || 1));
+    }
+    if (request.maxDevices != null) {
+      tenant.maxDevices = Math.max(1,Number(request.maxDevices || 1));
+    }
+
+    tenant.updatedAt = new Date().toISOString();
+    commercialSaveSystem_(system);
+
+    return {
+      ok:true,
+      tenant:commercialPublicTenant_(tenant),
+      message:'Licença atualizada.'
+    };
+  } catch (error) {
+    return {ok:false,message:String(error)};
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function masterResetDevice_(request) {
+  const session = commercialValidateToken_(request.authToken,'master');
+  if (!session.ok) return session;
+
+  const system = commercialLoadSystem_();
+  const tenant = system.tenants.find(function(t){
+    return t.id === String(request.tenantId || '');
+  });
+
+  if (!tenant) return {ok:false,message:'Cliente não encontrado.'};
+
+  const deviceId = String(request.deviceId || '');
+  const device = (tenant.devices || []).find(function(d){
+    return d.id === deviceId;
+  });
+
+  if (!device) return {ok:false,message:'Dispositivo não encontrado.'};
+
+  device.active = request.active !== false;
+  device.updatedAt = new Date().toISOString();
+  tenant.updatedAt = device.updatedAt;
+
+  commercialSaveSystem_(system);
+
+  return {
+    ok:true,
+    tenant:commercialPublicTenant_(tenant),
+    message:device.active?'Dispositivo liberado.':'Dispositivo bloqueado.'
+  };
+}
+
+function masterMigrateLegacy_(request) {
+  const session = commercialValidateToken_(request.authToken,'master');
+  if (!session.ok) return session;
+
+  try {
+    const system = commercialLoadSystem_();
+    const tenant = system.tenants.find(function(t){
+      return t.id === String(request.tenantId || '');
+    });
+
+    if (!tenant) return {ok:false,message:'Cliente não encontrado.'};
+
+    const legacy = readEpiSnapshot_();
+    const current = commercialReadTenantSnapshot_(tenant);
+    const merged = mergeEpiSnapshots_(current,legacy);
+
+    ensureDeliveryStockMovements_(merged);
+
+    merged.revision =
+      Math.max(
+        Number(current.revision || 0),
+        Number(legacy.revision || 0)
+      ) + 1;
+
+    merged.updatedAt = new Date().toISOString();
+    commercialWriteTenantSnapshot_(tenant,merged);
+
+    return {
+      ok:true,
+      message:'Dados atuais migrados para o cliente.',
+      summary:{
+        companies:merged.app.companies.length,
+        workers:merged.app.workers.length,
+        epis:merged.app.epis.length,
+        deliveries:merged.app.deliveries.length
+      }
+    };
+  } catch (error) {
+    return {ok:false,message:'Falha na migração: ' + String(error)};
+  }
+}
+
+/* =========================================================
+   EMPRESAS OPERACIONAIS
+   ========================================================= */
+
+function masterListCompanies_(request) {
+  const session = commercialValidateToken_(request.authToken,'master');
+  if (!session.ok) return session;
+
+  const tenant = commercialTenantById_(request.tenantId);
+  if (!tenant) return {ok:false,message:'Cliente não encontrado.'};
+
+  const snapshot = commercialReadTenantSnapshot_(tenant);
+
+  return {
+    ok:true,
+    companies:snapshot.app.companies || []
+  };
+}
+
+function masterCreateCompany_(request) {
+  const session = commercialValidateToken_(request.authToken,'master');
+  if (!session.ok) return session;
+
+  const tenant = commercialTenantById_(request.tenantId);
+  if (!tenant) return {ok:false,message:'Cliente não encontrado.'};
+
+  const name = String(request.name || '').trim();
+  const cnpj = String(request.cnpj || '').trim();
+
+  if (!name) return {ok:false,message:'Informe o nome da empresa.'};
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(12000);
+
+  try {
+    const snapshot = commercialReadTenantSnapshot_(tenant);
+    const companies = snapshot.app.companies || [];
+
+    const normalizedName = companyNorm_(name);
+    const cnpjDigits = cnpj.replace(/\D/g,'');
+
+    const duplicate = companies.find(function(c) {
+      const sameCnpj =
+        cnpjDigits &&
+        String(c.cnpj || '').replace(/\D/g,'') === cnpjDigits;
+
+      const sameName =
+        companyNorm_(c.name) === normalizedName;
+
+      return sameCnpj || sameName;
+    });
+
+    if (duplicate) {
+      return {
+        ok:true,
+        company:duplicate,
+        companies:companies,
+        message:'Essa empresa já está cadastrada.'
+      };
+    }
+
+    const now = new Date().toISOString();
+
+    const company = {
+      id:'c_' + Utilities.getUuid(),
+      name:name,
+      cnpj:cnpj,
+      createdAt:now,
+      updatedAt:now,
+      source:'painel-mestre'
+    };
+
+    companies.push(company);
+    snapshot.app.companies = companies;
+    snapshot.revision = Number(snapshot.revision || 0) + 1;
+    snapshot.updatedAt = now;
+
+    commercialWriteTenantSnapshot_(tenant,snapshot);
+
+    return {
+      ok:true,
+      company:company,
+      companies:companies,
+      message:'Empresa cadastrada no Gestão EPI.'
+    };
+  } catch (error) {
+    return {
+      ok:false,
+      message:'Falha ao cadastrar empresa: ' + String(error)
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function companyNorm_(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s+/g,' ');
+}
+
+/* =========================================================
+   LOGIN / USUÁRIOS DO CLIENTE
+   ========================================================= */
+
+function tenantLogin_(request) {
+  const code = commercialNormalizeTenantCode_(request.tenantCode);
+  const username = commercialNormalizeUsername_(request.username);
+  const password = String(request.password || '');
+  const deviceId = String(request.deviceId || '').trim();
+  const deviceLabel =
+    String(request.deviceLabel || '').trim() || 'Dispositivo';
+
+  if (!deviceId) {
+    return {ok:false,message:'Não foi possível identificar este dispositivo.'};
+  }
+
+  try {
+    // Leitura e verificação de senha ficam fora do ScriptLock.
+    // Assim um sync demorado de outro dispositivo não segura o login inteiro.
+    let system = commercialLoadSystem_();
+    let tenant = system.tenants.find(function(t){return t.code === code;});
+
+    if (!tenant) {
+      return {
+        ok:false,
+        message:'Cliente não encontrado. Verifique o código da empresa.'
+      };
+    }
+
+    let license = commercialLicenseState_(tenant);
+    if (!license.ok) return license;
+
+    const users = commercialLoadTenantUsers_(tenant);
+    const user = users.find(function(u){return u.username === username;});
+
+    if (
+      !user ||
+      user.active === false ||
+      !commercialVerifyPasswordCached_(password,user)
+    ) {
+      Utilities.sleep(250);
+      return {ok:false,message:'Usuário ou senha inválidos.'};
+    }
+
+    tenant.devices = Array.isArray(tenant.devices) ? tenant.devices : [];
+    let device = tenant.devices.find(function(d){return d.id === deviceId;});
+
+    if (device && device.active === false) {
+      return {
+        ok:false,
+        message:'Este dispositivo foi bloqueado pelo administrador.',
+        code:'DEVICE_DISABLED'
+      };
+    }
+
+    const now = Date.now();
+    const nowIso = new Date(now).toISOString();
+
+    if (!device) {
+      // Primeiro acesso deste aparelho precisa de consistência forte para
+      // respeitar o limite de dispositivos. Só este caminho espera o lock.
+      const lock = LockService.getScriptLock();
+      lock.waitLock(10000);
+      try {
+        system = commercialLoadSystem_();
+        tenant = system.tenants.find(function(t){return t.code === code;});
+        if (!tenant) {
+          return {ok:false,message:'Cliente não encontrado. Verifique o código da empresa.'};
+        }
+        license = commercialLicenseState_(tenant);
+        if (!license.ok) return license;
+
+        tenant.devices = Array.isArray(tenant.devices) ? tenant.devices : [];
+        device = tenant.devices.find(function(d){return d.id === deviceId;});
+
+        if (device && device.active === false) {
+          return {
+            ok:false,
+            message:'Este dispositivo foi bloqueado pelo administrador.',
+            code:'DEVICE_DISABLED'
+          };
+        }
+
+        if (!device) {
+          const activeCount = tenant.devices.filter(function(d){
+            return d.active !== false;
+          }).length;
+
+          if (activeCount >= Number(tenant.maxDevices || 1)) {
+            return {
+              ok:false,
+              message:
+                'Limite de dispositivos atingido. ' +
+                'Peça ao administrador para liberar um aparelho.',
+              code:'DEVICE_LIMIT'
+            };
+          }
+
+          device = {
+            id:deviceId,
+            label:deviceLabel,
+            active:true,
+            createdAt:nowIso
+          };
+          tenant.devices.push(device);
+        }
+
+        device.label = deviceLabel;
+        device.lastSeenAt = nowIso;
+        device.updatedAt = nowIso;
+        tenant.updatedAt = nowIso;
+        commercialSaveSystem_(system);
+      } finally {
+        lock.releaseLock();
+      }
+    } else {
+      // Em aparelho já autorizado, lastSeen é telemetria. Atualiza no máximo
+      // a cada 15 min e nunca deixa essa gravação segurar o login por muito tempo.
+      const lastSeenMs = Date.parse(device.lastSeenAt || device.updatedAt || '') || 0;
+      if (!lastSeenMs || now - lastSeenMs >= GESTAO_COM_DEVICE_TOUCH_MS) {
+        const lock = LockService.getScriptLock();
+        if (lock.tryLock(1200)) {
+          try {
+            const freshSystem = commercialLoadSystem_();
+            const freshTenant = freshSystem.tenants.find(function(t){return t.code === code;});
+            if (freshTenant) {
+              freshTenant.devices = Array.isArray(freshTenant.devices) ? freshTenant.devices : [];
+              const freshDevice = freshTenant.devices.find(function(d){return d.id === deviceId;});
+              if (freshDevice && freshDevice.active === false) {
+                return {
+                  ok:false,
+                  message:'Este dispositivo foi bloqueado pelo administrador.',
+                  code:'DEVICE_DISABLED'
+                };
+              }
+              if (freshDevice) {
+                freshDevice.label = deviceLabel;
+                freshDevice.lastSeenAt = nowIso;
+                freshDevice.updatedAt = nowIso;
+                freshTenant.updatedAt = nowIso;
+                commercialSaveSystem_(freshSystem);
+                system = freshSystem;
+                tenant = freshTenant;
+                device = freshDevice;
+              }
+            }
+          } finally {
+            lock.releaseLock();
+          }
+        }
+      }
+    }
+
+    // lastLoginAt deixa de provocar uma segunda escrita no Drive a cada entrada.
+    // Mantemos o valor em memória para a resposta sem atrasar a autenticação.
+    user.lastLoginAt = nowIso;
+
+    return {
+      ok:true,
+      token:commercialCreateToken_({
+        scope:'tenant',
+        tenant:tenant,
+        user:user,
+        deviceId:deviceId
+      }),
+      user:commercialPublicUser_(user),
+      tenant:commercialPublicTenant_(tenant),
+      license:license.license
+    };
+  } catch (error) {
+    return {ok:false,message:'Não foi possível entrar: ' + String(error)};
+  }
+}
+
+function tenantMe_(request) {
+  const session = commercialValidateToken_(request.authToken,'tenant');
+  if (!session.ok) return session;
+
+  return {
+    ok:true,
+    user:session.user,
+    tenant:session.tenant,
+    license:session.license
+  };
+}
+
+function tenantListUsers_(request) {
+  const session =
+    commercialRequireTenantRole_(request.authToken,['admin']);
+
+  if (!session.ok) return session;
+
+  const tenant = commercialTenantById_(session.tenant.id);
+
+  return {
+    ok:true,
+    users:commercialLoadTenantUsers_(tenant).map(commercialPublicUser_),
+    tenant:commercialPublicTenant_(tenant)
+  };
+}
+
+function tenantCreateUser_(request) {
+  const session =
+    commercialRequireTenantRole_(request.authToken,['admin']);
+
+  if (!session.ok) return session;
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+
+  try {
+    const tenant = commercialTenantById_(session.tenant.id);
+    const users = commercialLoadTenantUsers_(tenant);
+
+    const activeCount = users.filter(function(u){
+      return u.active !== false;
+    }).length;
+
+    if (activeCount >= Number(tenant.maxUsers || 1)) {
+      return {ok:false,message:'Limite de usuários da licença atingido.'};
+    }
+
+    const username = commercialNormalizeUsername_(request.username);
+    const password = String(request.password || '');
+    const name = String(request.name || '').trim() || username;
+    const role = commercialNormalizeTenantRole_(request.role);
+
+    commercialValidateUsernamePassword_(username,password);
+
+    if (users.some(function(u){return u.username === username;})) {
+      return {ok:false,message:'Esse usuário já existe.'};
+    }
+
+    users.push(commercialNewUser_(username,name,role,password));
+    commercialSaveTenantUsers_(tenant,users);
+
+    return {
+      ok:true,
+      users:users.map(commercialPublicUser_),
+      message:'Usuário criado.'
+    };
+  } catch (error) {
+    return {ok:false,message:String(error)};
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function tenantUpdateUser_(request) {
+  const session =
+    commercialRequireTenantRole_(request.authToken,['admin']);
+
+  if (!session.ok) return session;
+
+  const tenant = commercialTenantById_(session.tenant.id);
+  const users = commercialLoadTenantUsers_(tenant);
+  const username = commercialNormalizeUsername_(request.username);
+
+  const user = users.find(function(u){return u.username === username;});
+  if (!user) return {ok:false,message:'Usuário não encontrado.'};
+
+  if (request.name != null) {
+    user.name = String(request.name || '').trim() || user.name;
+  }
+  if (request.role != null) {
+    user.role = commercialNormalizeTenantRole_(request.role);
+  }
+  if (request.active != null) {
+    user.active = request.active !== false;
+  }
+  if (request.password) {
+    commercialSetPassword_(user,String(request.password));
+  }
+
+  user.updatedAt = new Date().toISOString();
+
+  if (!users.some(function(u){
+    return u.role === 'admin' && u.active !== false;
+  })) {
+    return {
+      ok:false,
+      message:'É necessário manter pelo menos um administrador ativo.'
+    };
+  }
+
+  commercialSaveTenantUsers_(tenant,users);
+
+  return {
+    ok:true,
+    users:users.map(commercialPublicUser_),
+    message:'Usuário atualizado.'
+  };
+}
+
+function tenantChangeOwnPassword_(request) {
+  const session = commercialValidateToken_(request.authToken,'tenant');
+  if (!session.ok) return session;
+
+  const tenant = commercialTenantById_(session.tenant.id);
+  const users = commercialLoadTenantUsers_(tenant);
+
+  const user = users.find(function(u){
+    return u.username === session.user.username;
+  });
+
+  if (
+    !user ||
+    !commercialVerifyPassword_(String(request.currentPassword || ''),user)
+  ) {
+    return {ok:false,message:'Senha atual incorreta.'};
+  }
+
+  commercialSetPassword_(user,String(request.newPassword || ''));
+  user.updatedAt = new Date().toISOString();
+
+  commercialSaveTenantUsers_(tenant,users);
+
+  return {
+    ok:true,
+    token:commercialCreateToken_({
+      scope:'tenant',
+      tenant:tenant,
+      user:user,
+      deviceId:session.deviceId
+    }),
+    user:commercialPublicUser_(user),
+    tenant:commercialPublicTenant_(tenant),
+    message:'Senha alterada.'
+  };
+}
+
+/* =========================================================
+   SINCRONIZAÇÃO COMERCIAL
+   ========================================================= */
+
+function tenantSync_(request) {
+  const session = commercialValidateToken_(request.authToken,'tenant');
+  if (!session.ok) return session;
+
+  const tenant = commercialTenantById_(session.tenant.id);
+  if (!tenant) return {ok:false,message:'Cliente não encontrado.'};
+
+  const license = commercialLicenseState_(tenant);
+  if (!license.ok) return license;
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+
+  try {
+    const stored = commercialReadTenantSnapshot_(tenant);
+
+    if (session.user.role === 'consulta') {
+      return {
+        ok:true,
+        revision:Number(stored.revision || 0),
+        updatedAt:String(stored.updatedAt || ''),
+        payload:stored,
+        readOnly:true,
+        user:session.user,
+        tenant:commercialPublicTenant_(tenant)
+      };
+    }
+
+    const incoming = normalizeEpiSnapshot_(request.payload);
+    let merged;
+
+    if (session.user.role === 'campo') {
+      merged = normalizeEpiSnapshot_(stored);
+
+      // Campo registra entregas sem substituir o cadastro/estoque da gestão.
+      merged.app.deliveries =
+        mergeRecordsById_(
+          stored.app.deliveries,
+          incoming.app.deliveries
+        );
+
+      // Rastreabilidade criada no campo é mesclada por ID, sem substituir
+      // empresas, colaboradores ou o cadastro principal de EPI.
+      merged.app.purchases =
+        mergeRecordsById_(
+          stored.app.purchases,
+          incoming.app.purchases
+        );
+      merged.app.batches =
+        mergeRecordsById_(
+          stored.app.batches,
+          incoming.app.batches
+        );
+      merged.app.auditLog =
+        mergeRecordsById_(
+          stored.app.auditLog,
+          incoming.app.auditLog
+        );
+
+      // Recursos operacionais v3.9: kits, devoluções, recusas e inventários
+      // também podem nascer no celular e precisam sincronizar por ID.
+      merged.app.epiKits =
+        mergeRecordsById_(stored.app.epiKits,incoming.app.epiKits);
+      merged.app.returns =
+        mergeRecordsById_(stored.app.returns,incoming.app.returns);
+      merged.app.refusals =
+        mergeRecordsById_(stored.app.refusals,incoming.app.refusals);
+      merged.app.inventoryCounts =
+        mergeRecordsById_(stored.app.inventoryCounts,incoming.app.inventoryCounts);
+
+      // Mantém o estoque do servidor como autoridade. As baixas de entrega
+      // serão reconstruídas abaixo por ensureDeliveryStockMovements_.
+      merged.stock = normalizeEpiSnapshot_(stored).stock;
+
+      // Entradas de NF/lotes feitas pelo campo precisam chegar ao servidor.
+      incoming.stock.movements
+        .filter(function(m){ return String(m && m.type || '') !== 'OUT'; })
+        .forEach(function(m){
+          merged.stock.movements = mergeRecordsById_(merged.stock.movements,[m]);
+        });
+      merged.stock.minimums =
+        Object.assign({},merged.stock.minimums,incoming.stock.minimums);
+      merged.stock.warehouses =
+        mergeRecordsById_(stored.stock.warehouses,incoming.stock.warehouses);
+      merged.stock.warehouseMinimums =
+        Object.assign({},stored.stock.warehouseMinimums,incoming.stock.warehouseMinimums);
+    } else {
+      merged = mergeEpiSnapshots_(stored,incoming);
+    }
+
+    ensureDeliveryStockMovements_(merged);
+
+    merged.revision =
+      Math.max(
+        Number(stored.revision || 0),
+        Number(incoming.revision || 0)
+      ) + 1;
+
+    merged.updatedAt = new Date().toISOString();
+    merged.version = EPI_SYNC_VERSION;
+
+    commercialWriteTenantSnapshot_(tenant,merged);
+
+    return {
+      ok:true,
+      revision:merged.revision,
+      updatedAt:merged.updatedAt,
+      payload:merged,
+      user:session.user,
+      tenant:commercialPublicTenant_(tenant),
+      license:license.license
+    };
+  } catch (error) {
+    return {ok:false,message:'Falha na sincronização: ' + String(error)};
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function tenantStorePurchaseDocument_(request) {
+  const session =
+    commercialRequireTenantRole_(request.authToken,['admin','campo']);
+
+  if (!session.ok) return session;
+
+  const tenant = commercialTenantById_(session.tenant.id);
+  if (!tenant) return {ok:false,message:'Cliente não encontrado.'};
+
+  const payload =
+    request.payload && typeof request.payload === 'object'
+      ? request.payload
+      : {};
+
+  const purchaseId = String(payload.purchaseId || '').trim();
+  const companyId = String(payload.companyId || '').trim();
+  const invoiceKey = String(payload.invoiceKey || '').replace(/\D/g,'');
+  const invoiceNumber = String(payload.invoiceNumber || '').trim();
+  const originalName = String(payload.fileName || 'nota-fiscal').trim();
+  const documentData = String(payload.document || '');
+
+  if (!purchaseId) {
+    return {ok:false,code:'PURCHASE_ID_REQUIRED',message:'Identificador da compra não informado.'};
+  }
+
+  const match =
+    documentData.match(/^data:([^;,]+)(?:;charset=[^;,]+)?;base64,(.+)$/i);
+
+  if (!match) {
+    return {ok:false,code:'INVALID_DOCUMENT',message:'Documento da nota fiscal inválido.'};
+  }
+
+  const mimeType = String(match[1] || '').toLowerCase();
+  if (['application/pdf','application/xml','text/xml'].indexOf(mimeType) < 0) {
+    return {ok:false,code:'INVALID_DOCUMENT_TYPE',message:'Envie PDF, XML ou NF-e XML.'};
+  }
+
+  if (documentData.length > 23000000) {
+    return {ok:false,code:'DOCUMENT_TOO_LARGE',message:'Documento acima do limite para armazenamento automático.'};
+  }
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+
+  try {
+    const bytes = Utilities.base64Decode(match[2]);
+    const hash = commercialBytesHex_(
+      Utilities.computeDigest(
+        Utilities.DigestAlgorithm.SHA_256,
+        bytes
+      )
+    );
+
+    const root = commercialTenantFolder_(tenant);
+    const invoiceFolder =
+      commercialFindOrCreateFolder_(root,GESTAO_COM_PURCHASE_DOCS_FOLDER);
+
+    const index =
+      commercialReadJsonFile_(
+        root,
+        GESTAO_COM_PURCHASE_DOCS_INDEX_FILE,
+        {version:1,documents:[]}
+      );
+
+    index.documents =
+      Array.isArray(index.documents)
+        ? index.documents
+        : [];
+
+    const existing = index.documents.find(function(d){
+      const sameHash = String(d.hash || '') === hash;
+      const sameKey =
+        invoiceKey &&
+        String(d.invoiceKey || '').replace(/\D/g,'') === invoiceKey;
+      return sameHash || sameKey;
+    });
+
+    if (existing) {
+      return {
+        ok:true,
+        duplicate:true,
+        fileId:String(existing.fileId || ''),
+        hash:hash,
+        storedAt:String(existing.storedAt || ''),
+        message:'Documento já armazenado anteriormente.'
+      };
+    }
+
+    const safeName =
+      originalName
+        .replace(/[\\/:*?"<>|]/g,' ')
+        .replace(/\s+/g,' ')
+        .trim()
+        .slice(0,100) || 'nota-fiscal';
+
+    const prefix =
+      (invoiceKey || invoiceNumber || purchaseId)
+        .replace(/[^A-Za-z0-9._-]+/g,'-')
+        .slice(0,55);
+
+    const blob =
+      Utilities.newBlob(bytes,mimeType,(prefix ? prefix + ' - ' : '') + safeName);
+
+    const file = invoiceFolder.createFile(blob);
+    const now = new Date().toISOString();
+
+    const row = {
+      id:'doc_' + Utilities.getUuid(),
+      purchaseId:purchaseId,
+      companyId:companyId,
+      invoiceKey:invoiceKey,
+      invoiceNumber:invoiceNumber,
+      originalName:safeName,
+      fileId:file.getId(),
+      hash:hash,
+      mimeType:mimeType,
+      bytes:bytes.length,
+      storedAt:now,
+      storedBy:String(session.user && session.user.username || '')
+    };
+
+    index.documents.unshift(row);
+    index.documents = index.documents.slice(0,5000);
+    index.updatedAt = now;
+
+    commercialWriteJsonFile_(
+      root,
+      GESTAO_COM_PURCHASE_DOCS_INDEX_FILE,
+      index
+    );
+
+    return {
+      ok:true,
+      duplicate:false,
+      fileId:file.getId(),
+      hash:hash,
+      storedAt:now,
+      message:'Documento original da nota armazenado no Drive.'
+    };
+
+  } catch (error) {
+    return {
+      ok:false,
+      code:'PURCHASE_DOCUMENT_STORE_FAILED',
+      message:'Não foi possível armazenar o documento da nota: ' + String(error)
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/* =========================================================
+   IA - PDF DE FUNCIONÁRIOS / ENCAMINHAMENTO NF-IA
+   ========================================================= */
+
+function tenantAiAssistant_(request) {
+  const session =
+    commercialRequireTenantRole_(request.authToken,['admin','campo']);
+
+  if (!session.ok) return session;
+
+  const payload =
+    request.payload && typeof request.payload === 'object'
+      ? request.payload
+      : {};
+
+  const mode = String(payload.mode || '').trim();
+
+  if (!mode) {
+    return {
+      ok:false,
+      code:'AI_MODE_MISSING',
+      message:'Modo de IA não informado.'
+    };
+  }
+
+  const props = PropertiesService.getScriptProperties();
+  const geminiKey = String(
+    props.getProperty('GEMINI_API_KEY') ||
+    props.getProperty('GOOGLE_AI_API_KEY') ||
+    ''
+  ).trim();
+
+  // Cliente real para cache persistente de leitura de NF (isolado por tenant).
+  const aiTenant = commercialTenantById_(session.tenant && session.tenant.id);
+
+  /*
+   * NF-e / DANFE v2: XML estruturado quando disponível; PDF com IA estruturada.
+   * Mantém invoice_pdf_import por compatibilidade com Android/PC atuais.
+   */
+  if (mode === 'invoice_pdf_import' || mode === 'invoice_document_import') {
+    const invoiceDoc = String(payload.document || '');
+    const isPdf = /^data:application\/pdf;base64,/i.test(invoiceDoc);
+    const isXml = /^data:(?:application|text)\/xml(?:;charset=[^;,]+)?;base64,/i.test(invoiceDoc);
+
+    if (mode === 'invoice_pdf_import' && !isPdf) {
+      return {ok:false,message:'Envie um PDF válido da nota fiscal.'};
+    }
+
+    if (!isPdf && !isXml) {
+      return {ok:false,message:'Envie PDF/DANFE ou XML válido da NF-e.'};
+    }
+
+    if (invoiceDoc.length > 18000000) {
+      return {ok:false,message:'O documento é muito grande para análise automática.'};
+    }
+
+    if (isXml) {
+      return invoiceXmlImport_(invoiceDoc);
+    }
+
+    if (!geminiKey) {
+      return {
+        ok:false,
+        code:'AI_SERVER_NOT_CONFIGURED',
+        message:'Configure GEMINI_API_KEY nas Propriedades do Script para ler Nota Fiscal com IA.'
+      };
+    }
+
+    return geminiInvoicePdf_(invoiceDoc,geminiKey,props,aiTenant);
+  }
+
+  if (mode === 'invoice_xml_import') {
+    const invoiceDoc = String(payload.document || '');
+    if (!/^data:(?:application|text)\/xml(?:;charset=[^;,]+)?;base64,/i.test(invoiceDoc)) {
+      return {ok:false,message:'Envie um XML válido da NF-e.'};
+    }
+    return invoiceXmlImport_(invoiceDoc);
+  }
+
+  /*
+   * Consulta/validação de CA: também é feita diretamente
+   * na Central para não depender do tipo aceito pelo AI Worker.
+   */
+  if (mode === 'ca_validate') {
+    const items = Array.isArray(payload.items)
+      ? payload.items.slice(0,20)
+      : [];
+
+    if (!items.length) {
+      return {ok:true,result:{checks:[]},provider:'mte-caepi'};
+    }
+
+    // A consulta de CA usa primeiro o próprio CAEPI/MTE.
+    // A chave Gemini é opcional e serve apenas como contingência final.
+    return geminiCaValidate_(items,geminiKey,props);
+  }
+
+  if (mode !== 'employee_pdf_import') {
+    return {
+      ok:false,
+      code:'AI_MODE_UNSUPPORTED',
+      message:'Modo de IA não suportado: ' + mode
+    };
+  }
+
+  // Rotina existente de importação de funcionários em PDF.
+  const documentData = String(payload.document || '');
+
+  if (!/^data:application\/pdf;base64,/i.test(documentData)) {
+    return {ok:false,message:'Envie um PDF válido para a IA.'};
+  }
+
+  if (documentData.length > 18000000) {
+    return {
+      ok:false,
+      message:'O PDF é muito grande para análise por IA.'
+    };
+  }
+
+  const workerKey = String(
+    props.getProperty('GESTAO_EPI_AI_WORKER_KEY') ||
+    props.getProperty('AUDITAR_SYNC_KEY') ||
+    ''
+  ).trim();
+
+  const workerUrl = String(
+    props.getProperty('GESTAO_EPI_AI_WORKER_URL') ||
+    GESTAO_EPI_AI_WORKER_DEFAULT_URL
+  ).trim();
+
+  let workerFailure = null;
+
+  if (workerKey && workerUrl) {
+    try {
+      const proxied = proxyAiWorker_(workerUrl,workerKey,payload);
+
+      if (proxied && proxied.ok) return proxied;
+
+      workerFailure = {
+        ok:false,
+        code:String(
+          (proxied && proxied.code) ||
+          'AI_WORKER_REJECTED'
+        ),
+        workerConfigured:true,
+        message:
+          'A configuração da IA foi encontrada, mas o serviço respondeu: ' +
+          String(
+            (proxied && proxied.message) ||
+            'não foi possível concluir a análise do PDF.'
+          )
+      };
+    } catch (workerError) {
+      workerFailure = {
+        ok:false,
+        code:'AI_WORKER_UNREACHABLE',
+        workerConfigured:true,
+        message:
+          'A configuração da IA foi encontrada, mas não foi possível ' +
+          'acessar o serviço de IA: ' +
+          String(workerError)
+      };
+    }
+  }
+
+  // Fallback direto na Central.
+  if (geminiKey) {
+    const result = geminiEmployeePdf_(documentData,geminiKey,props);
+
+    if (result && result.ok) return result;
+    if (!workerFailure) return result;
+  }
+
+  if (workerFailure) return workerFailure;
+
+  return {
+    ok:false,
+    code:'AI_SERVER_NOT_CONFIGURED',
+    workerConfigured:false,
+    message:
+      'A Central não encontrou configuração de IA. ' +
+      'Configure GEMINI_API_KEY ou GESTAO_EPI_AI_WORKER_KEY.'
+  };
+}
+function proxyAiWorker_(url,key,payload) {
+  const response = UrlFetchApp.fetch(url,{
+    method:'post',
+    contentType:'text/plain;charset=utf-8',
+    payload:JSON.stringify({
+      action:'ai_assistant',
+      syncKey:key,
+      payload:payload
+    }),
+    muteHttpExceptions:true,
+    followRedirects:true
+  });
+
+  const status = Number(response.getResponseCode() || 0);
+  const text = response.getContentText('UTF-8');
+
+  let data;
+
+  try {
+    data = JSON.parse(text || '{}');
+  } catch (_) {
+    throw new Error(
+      'O serviço de IA retornou resposta inválida' +
+      (status ? ' (HTTP ' + status + ')' : '') +
+      '.'
+    );
+  }
+
+  if (status < 200 || status >= 300) {
+    return {
+      ok:false,
+      code:'AI_WORKER_HTTP_' + status,
+      message:String(
+        (data && data.message) ||
+        ('HTTP ' + status)
+      )
+    };
+  }
+
+  return data;
+}
+
+function geminiEmployeePdf_(documentData,key,props) {
+  try {
+    const base64 =
+      documentData.substring(documentData.indexOf(',') + 1);
+
+    const model = String(
+      props.getProperty('GESTAO_EPI_GEMINI_MODEL') ||
+      'gemini-3.5-flash'
+    ).trim();
+
+    const prompt = [
+      'Analise este PDF de funcionários de uma empresa.',
+      'Extraia somente pessoas/colaboradores reais da listagem.',
+      'Para cada colaborador retorne: name, cpf, reg, role e sector.',
+      'reg significa matrícula ou registro.',
+      'role significa cargo ou função.',
+      'sector significa setor.',
+      'Não invente dados.',
+      'Quando um campo não existir, use string vazia.',
+      'Ignore cabeçalhos, códigos de lotação, nomes de setores isolados e linhas que não sejam pessoas.',
+      'Retorne SOMENTE JSON válido neste formato:',
+      '{"employees":[{"name":"","cpf":"","reg":"","role":"","sector":""}]}'
+    ].join('\n');
+
+    const body = {
+      contents:[{
+        role:'user',
+        parts:[
+          {text:prompt},
+          {
+            inlineData:{
+              mimeType:'application/pdf',
+              data:base64
+            }
+          }
+        ]
+      }],
+      generationConfig:{
+        temperature:0.1,
+        responseMimeType:'application/json'
+      }
+    };
+
+    const url =
+      'https://generativelanguage.googleapis.com/v1beta/models/' +
+      encodeURIComponent(model) +
+      ':generateContent?key=' +
+      encodeURIComponent(key);
+
+    const response = UrlFetchApp.fetch(url,{
+      method:'post',
+      contentType:'application/json',
+      payload:JSON.stringify(body),
+      muteHttpExceptions:true
+    });
+
+    const status = response.getResponseCode();
+    const raw = response.getContentText('UTF-8');
+
+    if (status < 200 || status >= 300) {
+      let apiError = '';
+
+      try {
+        apiError = JSON.parse(raw).error.message || '';
+      } catch (_) {}
+
+      throw new Error(
+        apiError ||
+        ('Serviço de IA retornou HTTP ' + status)
+      );
+    }
+
+    const parsed = JSON.parse(raw || '{}');
+
+    let text = String(
+      parsed.candidates &&
+      parsed.candidates[0] &&
+      parsed.candidates[0].content &&
+      parsed.candidates[0].content.parts &&
+      parsed.candidates[0].content.parts[0] &&
+      parsed.candidates[0].content.parts[0].text ||
+      ''
+    ).trim();
+
+    text = text
+      .replace(/^```(?:json)?\s*/i,'')
+      .replace(/\s*```$/,'')
+      .trim();
+
+    const result = JSON.parse(text || '{}');
+
+    let employees =
+      Array.isArray(result.employees)
+        ? result.employees
+        : [];
+
+    employees = employees
+      .map(function(e) {
+        return {
+          name:String(e && e.name || '').trim(),
+          cpf:String(e && e.cpf || '').trim(),
+          reg:String(
+            e &&
+            (e.reg || e.registration || e.matricula) ||
+            ''
+          ).trim(),
+          role:String(
+            e &&
+            (e.role || e.cargo || e.funcao) ||
+            ''
+          ).trim(),
+          sector:String(
+            e &&
+            (e.sector || e.setor) ||
+            ''
+          ).trim()
+        };
+      })
+      .filter(function(e){return e.name;});
+
+    return {
+      ok:true,
+      result:{employees:employees},
+      provider:'gemini'
+    };
+
+  } catch (error) {
+    return {
+      ok:false,
+      message:'A IA não conseguiu ler o PDF: ' + String(error)
+    };
+  }
+}
+
+
+
+/* =========================================================
+   IA - NOTA FISCAL / CONSULTA DE CA
+   ========================================================= */
+
+function geminiModelCandidates_(props,options) {
+  options = options && typeof options === 'object' ? options : {};
+  const configured = String(
+    props.getProperty('GESTAO_EPI_GEMINI_MODEL') || ''
+  ).trim();
+
+  const requested = Array.isArray(options.models) ? options.models : [];
+  const models = [];
+
+  if (configured) models.push(configured);
+  requested.forEach(function(model){ if (model) models.push(String(model)); });
+
+  // Fila curta: menos tempo perdido em modelos indisponíveis/sobrecarregados.
+  if (!requested.length) {
+    models.push('gemini-3.5-flash');
+    models.push('gemini-2.5-flash-lite');
+  }
+
+  return models.filter(function(model,index,array){
+    return model && array.indexOf(model) === index;
+  }).slice(0,3);
+}
+
+function geminiGenerateJson_(body,key,props,options) {
+  options = options && typeof options === 'object' ? options : {};
+  const models = geminiModelCandidates_(props,options);
+  const maxAttempts = Math.max(1,Math.min(2,Number(options.maxAttempts || 1)));
+  let lastError = null;
+
+  for (let i=0;i<models.length;i++) {
+    const model = models[i];
+
+    for (let attempt=0;attempt<maxAttempts;attempt++) {
+      try {
+        const url =
+          'https://generativelanguage.googleapis.com/v1beta/models/' +
+          encodeURIComponent(model) +
+          ':generateContent?key=' +
+          encodeURIComponent(key);
+
+        const response = UrlFetchApp.fetch(url,{
+          method:'post',
+          contentType:'application/json',
+          payload:JSON.stringify(body),
+          muteHttpExceptions:true
+        });
+
+        const status = Number(response.getResponseCode() || 0);
+        const raw = response.getContentText('UTF-8');
+
+        if (status < 200 || status >= 300) {
+          let apiError = '';
+          try {
+            apiError = JSON.parse(raw).error.message || '';
+          } catch (_) {}
+
+          const message = apiError || ('Serviço de IA retornou HTTP ' + status);
+          const error = new Error(message);
+          const temporary =
+            status === 429 || status === 500 || status === 502 ||
+            status === 503 || status === 504 ||
+            /high demand|temporar|overload|resource exhausted|try again|unavailable/i.test(message);
+          const modelUnavailable =
+            status === 404 ||
+            /model.*not found|model.*not supported|unsupported model|unknown model/i.test(message);
+
+          if (temporary || modelUnavailable) {
+            lastError = error;
+            if (temporary && attempt < maxAttempts - 1) {
+              Utilities.sleep(450 * (attempt + 1));
+              continue;
+            }
+            break;
+          }
+
+          throw error;
+        }
+
+        const parsed = JSON.parse(raw || '{}');
+        let text = String(
+          parsed.candidates &&
+          parsed.candidates[0] &&
+          parsed.candidates[0].content &&
+          parsed.candidates[0].content.parts &&
+          parsed.candidates[0].content.parts[0] &&
+          parsed.candidates[0].content.parts[0].text ||
+          ''
+        ).trim();
+
+        text = text
+          .replace(/^```(?:json)?\s*/i,'')
+          .replace(/\s*```$/,'')
+          .trim();
+
+        const groundingUrls = [];
+        try {
+          const metadata = parsed.candidates && parsed.candidates[0] && parsed.candidates[0].groundingMetadata;
+          const chunks = metadata && Array.isArray(metadata.groundingChunks) ? metadata.groundingChunks : [];
+          chunks.forEach(function(chunk){
+            const uri = String(chunk && chunk.web && chunk.web.uri || '').trim();
+            if (uri && groundingUrls.indexOf(uri) < 0) groundingUrls.push(uri);
+          });
+        } catch (_) {}
+
+        return {
+          json:JSON.parse(text || '{}'),
+          model:model,
+          groundingUrls:groundingUrls
+        };
+
+      } catch (error) {
+        lastError = error;
+        if (i === models.length - 1 && attempt === maxAttempts - 1) throw error;
+        break;
+      }
+    }
+  }
+
+  throw lastError || new Error('Nenhum modelo Gemini disponível.');
+}
+
+function commercialNormalizeFlexibleDate_(value) {
+  const s = String(value || '').trim();
+  if (!s) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+  const m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+  if (!m) return '';
+
+  return (
+    m[3] + '-' +
+    ('0' + m[2]).slice(-2) + '-' +
+    ('0' + m[1]).slice(-2)
+  );
+}
+
+function invoiceClamp01_(value,defaultValue) {
+  const n = Number(value);
+  if (!isFinite(n)) return Number(defaultValue || 0);
+  return Math.max(0,Math.min(1,n));
+}
+
+function invoiceNormalizeDate_(value) {
+  const s = String(value || '').trim();
+  if (!s) return '';
+  const iso = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (iso) return iso[1];
+  return commercialNormalizeFlexibleDate_(s);
+}
+
+function invoiceDocumentHash_(documentData) {
+  try {
+    const comma = String(documentData || '').indexOf(',');
+    if (comma < 0) return '';
+    const bytes = Utilities.base64Decode(String(documentData).substring(comma + 1));
+    return commercialBytesHex_(
+      Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,bytes)
+    );
+  } catch (_) {
+    return '';
+  }
+}
+
+function invoiceAiCacheGet_(hash,tenant) {
+  if (!hash) return null;
+  const cacheKey = 'gestao_nf_ai_v3_' + hash.substring(0,48);
+
+  // 1) Memória rápida do Apps Script.
+  try {
+    const raw = CacheService.getScriptCache().get(cacheKey);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.ok) {
+        return {value:parsed,source:'memory'};
+      }
+    }
+  } catch (_) {}
+
+  // 2) Cache persistente por cliente no Drive. Assim a mesma NF não volta a
+  //    consumir IA depois que o CacheService expira ou o script reinicia.
+  if (tenant) {
+    try {
+      const root = commercialTenantFolder_(tenant);
+      const store = commercialReadJsonFile_(
+        root,
+        GESTAO_COM_INVOICE_AI_CACHE_FILE,
+        {version:1,items:[]}
+      );
+      const items = Array.isArray(store.items) ? store.items : [];
+      const row = items.find(function(x){ return String(x && x.hash || '') === hash; });
+      if (row && row.result && row.result.ok) {
+        try {
+          const text = JSON.stringify(row.result);
+          if (text.length < 95000) {
+            CacheService.getScriptCache().put(cacheKey,text,21600);
+          }
+        } catch (_) {}
+        return {value:row.result,source:'tenant-drive'};
+      }
+    } catch (_) {}
+  }
+
+  return null;
+}
+
+function invoiceAiCachePut_(hash,value,tenant) {
+  if (!hash || !value) return;
+  const cacheKey = 'gestao_nf_ai_v3_' + hash.substring(0,48);
+
+  try {
+    const text = JSON.stringify(value);
+    if (text.length < 95000) {
+      CacheService.getScriptCache().put(cacheKey,text,21600);
+    }
+  } catch (_) {}
+
+  if (!tenant) return;
+
+  // Não deixa a gravação do cache bloquear sincronizações importantes.
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(1800)) return;
+
+  try {
+    const root = commercialTenantFolder_(tenant);
+    const store = commercialReadJsonFile_(
+      root,
+      GESTAO_COM_INVOICE_AI_CACHE_FILE,
+      {version:1,items:[]}
+    );
+    store.items = Array.isArray(store.items) ? store.items : [];
+
+    const invoice = value && value.result && value.result.invoice || {};
+    const now = new Date().toISOString();
+    const cleanResult = JSON.parse(JSON.stringify(value));
+    cleanResult.cached = false;
+    delete cleanResult.cacheSource;
+
+    const row = {
+      hash:hash,
+      invoiceKey:String(invoice.key || '').replace(/\D/g,''),
+      invoiceNumber:String(invoice.number || '').trim(),
+      supplierCnpj:String(invoice.supplierCnpj || '').replace(/\D/g,''),
+      savedAt:now,
+      result:cleanResult
+    };
+
+    const idx = store.items.findIndex(function(x){
+      return String(x && x.hash || '') === hash;
+    });
+    if (idx >= 0) store.items.splice(idx,1);
+    store.items.unshift(row);
+
+    // Limita o arquivo para não crescer sem controle. Mantém as 120 leituras
+    // mais recentes por cliente, suficiente para evitar retrabalho recorrente.
+    store.items = store.items.slice(0,120);
+    store.updatedAt = now;
+    commercialWriteJsonFile_(root,GESTAO_COM_INVOICE_AI_CACHE_FILE,store);
+  } catch (_) {
+    // Cache persistente é otimização: qualquer falha não pode impedir a NF.
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function invoicePdfExtractionSchema_() {
+  const conf = {
+    type:'object',
+    properties:{
+      code:{type:'number',minimum:0,maximum:1},
+      name:{type:'number',minimum:0,maximum:1},
+      ca:{type:'number',minimum:0,maximum:1},
+      size:{type:'number',minimum:0,maximum:1},
+      unit:{type:'number',minimum:0,maximum:1},
+      qty:{type:'number',minimum:0,maximum:1},
+      unitValue:{type:'number',minimum:0,maximum:1},
+      total:{type:'number',minimum:0,maximum:1},
+      manufacturer:{type:'number',minimum:0,maximum:1},
+      lot:{type:'number',minimum:0,maximum:1},
+      physicalExpiry:{type:'number',minimum:0,maximum:1}
+    },
+    required:['code','name','ca','size','unit','qty','unitValue','total','manufacturer','lot','physicalExpiry']
+  };
+
+  return {
+    type:'object',
+    properties:{
+      invoice:{
+        type:'object',
+        properties:{
+          number:{type:'string'},
+          series:{type:'string'},
+          key:{type:'string'},
+          date:{type:'string'},
+          supplier:{type:'string'},
+          supplierCnpj:{type:'string'},
+          documentQuality:{
+            type:'object',
+            properties:{
+              readable:{type:'boolean'},
+              rotated:{type:'boolean'},
+              blurred:{type:'boolean'},
+              clipped:{type:'boolean'},
+              score:{type:'number',minimum:0,maximum:1},
+              warnings:{type:'array',items:{type:'string'},maxItems:8}
+            },
+            required:['readable','rotated','blurred','clipped','score','warnings']
+          },
+          items:{
+            type:'array',
+            maxItems:180,
+            items:{
+              type:'object',
+              properties:{
+                code:{type:'string'},
+                name:{type:'string'},
+                ca:{type:'string'},
+                size:{type:'string'},
+                unit:{type:'string'},
+                qty:{type:'number'},
+                unitValue:{type:'number'},
+                total:{type:'number'},
+                manufacturer:{type:'string'},
+                lot:{type:'string'},
+                physicalExpiry:{type:'string'},
+                fieldConfidence:conf
+              },
+              required:['code','name','ca','size','unit','qty','unitValue','total','manufacturer','lot','physicalExpiry','fieldConfidence']
+            }
+          }
+        },
+        required:['number','series','key','date','supplier','supplierCnpj','documentQuality','items']
+      }
+    },
+    required:['invoice']
+  };
+}
+
+function invoiceClassificationSchema_() {
+  return {
+    type:'object',
+    properties:{
+      classifications:{
+        type:'array',
+        maxItems:180,
+        items:{
+          type:'object',
+          properties:{
+            index:{type:'integer',minimum:0},
+            classification:{type:'string',enum:['epi','not_epi','review']},
+            confidence:{type:'number',minimum:0,maximum:1},
+            reason:{type:'string'}
+          },
+          required:['index','classification','confidence','reason']
+        }
+      }
+    },
+    required:['classifications']
+  };
+}
+
+function invoiceLocalClassification_(item) {
+  const text = String((item && item.name) || '') + ' ' + String((item && item.manufacturer) || '');
+  const normalized = text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,' ');
+  const ca = String(item && item.ca || '').replace(/\D/g,'');
+
+  if (ca) return {classification:'epi',confidence:0.99,reason:'CA impresso no item'};
+
+  const epiPattern = /\b(capacete|oculos|luva|botina|bota de seguranca|calcado de seguranca|respirador|mascara pff|pff1|pff2|pff3|protetor auricular|abafador|cinto paraquedista|talabarte|vestimenta de protecao|avental de protecao|perneira|mangote|viseira|protetor facial|creme protetor|epi)\b/i;
+  if (epiPattern.test(normalized)) {
+    return {classification:'epi',confidence:0.94,reason:'Descrição típica de EPI'};
+  }
+
+  const nonPattern = /\b(furadeira|parafuso|porca|arruela|broca|escova|pincel|disco de corte|disco de desbaste|serra|fita isolante|cola|tinta|solvente|ferramenta|cabo eletrico|eletrodo|rolamento|oleo|graxa|pneu|papel|copo|vassoura|detergente|cimento|argamassa)\b/i;
+  if (nonPattern.test(normalized)) {
+    return {classification:'not_epi',confidence:0.96,reason:'Descrição típica de material/ferramenta'};
+  }
+
+  return {classification:'review',confidence:0.45,reason:'Descrição ambígua; requer classificação adicional'};
+}
+
+function invoiceClassifyAmbiguousItems_(items,key,props) {
+  const ambiguous = [];
+  items.forEach(function(item,index){
+    const local = invoiceLocalClassification_(item);
+    item.classification = local.classification;
+    item.classificationConfidence = local.confidence;
+    item.classificationReason = local.reason;
+    if (local.classification === 'review') {
+      ambiguous.push({
+        index:index,
+        code:String(item.code || ''),
+        name:String(item.name || ''),
+        ca:String(item.ca || ''),
+        manufacturer:String(item.manufacturer || '')
+      });
+    }
+  });
+
+  if (!ambiguous.length || !key) return {model:'',count:0};
+
+  const prompt = [
+    'Classifique produtos de uma NF-e brasileira para um sistema de gestão de EPI.',
+    'Use epi somente quando o produto for Equipamento de Proteção Individual usado pelo trabalhador.',
+    'Use not_epi para ferramentas, materiais, peças, insumos e itens que claramente não são EPI.',
+    'Use review quando a descrição não for suficiente para decidir com segurança.',
+    'Não invente CA, fabricante ou características. Classifique apenas com os dados fornecidos.',
+    'Itens: ' + JSON.stringify(ambiguous)
+  ].join('\n');
+
+  const body = {
+    contents:[{role:'user',parts:[{text:prompt}]}],
+    generationConfig:{
+      temperature:0,
+      responseMimeType:'application/json',
+      responseSchema:invoiceClassificationSchema_()
+    }
+  };
+
+  try {
+    const generated = geminiGenerateJson_(body,key,props,{
+      models:['gemini-3.5-flash','gemini-2.5-flash-lite'],
+      maxAttempts:1
+    });
+    const rows = generated.json && Array.isArray(generated.json.classifications)
+      ? generated.json.classifications
+      : [];
+    rows.forEach(function(row){
+      const index = Number(row && row.index);
+      if (!isFinite(index) || index < 0 || index >= items.length) return;
+      if (['epi','not_epi','review'].indexOf(String(row.classification || '')) < 0) return;
+      items[index].classification = String(row.classification);
+      items[index].classificationConfidence = invoiceClamp01_(row.confidence,0.5);
+      items[index].classificationReason = String(row.reason || '').trim();
+    });
+    return {model:generated.model,count:rows.length};
+  } catch (_) {
+    return {model:'',count:0};
+  }
+}
+
+function invoiceValidateResult_(invoice) {
+  invoice = invoice && typeof invoice === 'object' ? invoice : {};
+  const issues = [];
+  const keyDigits = String(invoice.key || '').replace(/\D/g,'');
+  const cnpjDigits = String(invoice.supplierCnpj || '').replace(/\D/g,'');
+
+  if (keyDigits && keyDigits.length !== 44) issues.push('Chave NF-e com quantidade de dígitos diferente de 44.');
+  if (cnpjDigits && cnpjDigits.length !== 14) issues.push('CNPJ do fornecedor com quantidade de dígitos diferente de 14.');
+  if (invoice.date && !invoiceNormalizeDate_(invoice.date)) issues.push('Data de emissão não reconhecida.');
+
+  const q = invoice.documentQuality || {};
+  if (q.readable === false) issues.push('Documento com baixa legibilidade.');
+  if (Number(q.score || 1) < 0.65) issues.push('Qualidade visual baixa; confira todos os campos antes de lançar.');
+  if (q.blurred) issues.push('Documento aparenta estar desfocado.');
+  if (q.clipped) issues.push('Documento aparenta estar cortado/incompleto.');
+  if (q.rotated) issues.push('Documento aparenta estar girado.');
+  (Array.isArray(q.warnings) ? q.warnings : []).slice(0,8).forEach(function(w){
+    const s = String(w || '').trim(); if (s && issues.indexOf(s) < 0) issues.push(s);
+  });
+
+  (Array.isArray(invoice.items) ? invoice.items : []).forEach(function(item){
+    const itemIssues = [];
+    const qty = Number(item.qty || 0);
+    const unitValue = Number(item.unitValue || 0);
+    const total = Number(item.total || 0);
+
+    if (!(qty > 0)) itemIssues.push('Quantidade ausente ou inválida.');
+    if (unitValue < 0 || total < 0) itemIssues.push('Valor monetário inválido.');
+    if (qty > 0 && unitValue > 0 && total > 0) {
+      const expected = qty * unitValue;
+      const tolerance = Math.max(0.05,Math.abs(total) * 0.01);
+      if (Math.abs(expected - total) > tolerance) {
+        itemIssues.push('Quantidade × valor unitário não confere com o total do item.');
+      }
+    }
+
+    const code = String(item.code || '').replace(/^0+/,'');
+    if (code && /^\d+$/.test(code) && qty > 0 && code === String(qty).replace(/\.0+$/,'')) {
+      itemIssues.push('Código do produto pode ter sido confundido com quantidade.');
+    }
+
+    const conf = item.fieldConfidence || {};
+    ['name','qty','unit'].forEach(function(field){
+      if (invoiceClamp01_(conf[field],1) < 0.70) itemIssues.push('Baixa confiança em ' + field + '.');
+    });
+    if (item.ca && invoiceClamp01_(conf.ca,1) < 0.65) itemIssues.push('Baixa confiança na leitura do CA.');
+
+    item.validation = {ok:itemIssues.length === 0,issues:itemIssues};
+    item.reviewRequired =
+      String(item.classification || '') === 'review' ||
+      itemIssues.length > 0 ||
+      Number(item.classificationConfidence || 0) < 0.72;
+  });
+
+  invoice.validation = {
+    ok:issues.length === 0,
+    issues:issues,
+    reviewItemCount:(invoice.items || []).filter(function(i){return i.reviewRequired;}).length
+  };
+  return invoice.validation;
+}
+
+function invoiceNormalizeAiItem_(i) {
+  const conf = i && i.fieldConfidence && typeof i.fieldConfidence === 'object'
+    ? i.fieldConfidence
+    : {};
+  return {
+    code:String(i && i.code || '').trim(),
+    name:String(i && i.name || '').trim(),
+    ca:String(i && i.ca || '').replace(/\D/g,''),
+    size:String(i && i.size || '').trim(),
+    unit:String(i && i.unit || '').trim(),
+    qty:Math.max(0,Number(i && i.qty || 0)),
+    unitValue:Math.max(0,Number(i && i.unitValue || 0)),
+    total:Math.max(0,Number(i && i.total || 0)),
+    manufacturer:String(i && i.manufacturer || '').trim(),
+    lot:String(i && i.lot || '').trim(),
+    physicalExpiry:invoiceNormalizeDate_(i && (i.physicalExpiry || i.expiry || i.validity)),
+    fieldConfidence:{
+      code:invoiceClamp01_(conf.code,0.75),
+      name:invoiceClamp01_(conf.name,0.75),
+      ca:invoiceClamp01_(conf.ca,i && i.ca ? 0.65 : 1),
+      size:invoiceClamp01_(conf.size,0.75),
+      unit:invoiceClamp01_(conf.unit,0.75),
+      qty:invoiceClamp01_(conf.qty,0.75),
+      unitValue:invoiceClamp01_(conf.unitValue,0.75),
+      total:invoiceClamp01_(conf.total,0.75),
+      manufacturer:invoiceClamp01_(conf.manufacturer,0.75),
+      lot:invoiceClamp01_(conf.lot,0.75),
+      physicalExpiry:invoiceClamp01_(conf.physicalExpiry,0.75)
+    }
+  };
+}
+
+function geminiInvoicePdf_(documentData,key,props,tenant) {
+  try {
+    const hash = invoiceDocumentHash_(documentData);
+    const cached = invoiceAiCacheGet_(hash,tenant);
+    if (cached && cached.value && cached.value.ok && cached.value.result && cached.value.result.invoice) {
+      const cachedValue = JSON.parse(JSON.stringify(cached.value));
+      cachedValue.cached = true;
+      cachedValue.cacheSource = cached.source || 'memory';
+      return cachedValue;
+    }
+
+    const base64 = documentData.substring(documentData.indexOf(',') + 1);
+    const prompt = [
+      'Leia este DANFE/NF-e com máxima fidelidade.',
+      'ETAPA 1: extraia TODOS os itens da nota, inclusive itens que não sejam EPI. Não filtre produtos nesta etapa.',
+      'Transcreva código do produto, descrição, unidade, quantidade, valor unitário e total exatamente das colunas corretas.',
+      'Regra crítica: código do produto NÃO é quantidade. qty deve vir exclusivamente da coluna de quantidade.',
+      'CA, tamanho, fabricante, lote e validade física só podem ser preenchidos quando estiverem explicitamente impressos no documento. Nunca deduza nem invente.',
+      'Para CA, retorne somente os dígitos do número que estiver claramente associado ao produto.',
+      'physicalExpiry deve ser YYYY-MM-DD quando legível; caso contrário string vazia.',
+      'Extraia também número, série, chave de 44 dígitos, data, fornecedor e CNPJ.',
+      'Avalie legibilidade/rotação/desfoque/corte em documentQuality.',
+      'Para cada campo de cada item retorne fieldConfidence entre 0 e 1 refletindo apenas a confiança da leitura visual/transcrição.',
+      'Não classifique EPI nesta etapa; a classificação será feita separadamente.',
+      'Retorne SOMENTE JSON válido. Formato obrigatório:',
+      '{\"invoice\":{\"number\":\"\",\"series\":\"\",\"key\":\"\",\"date\":\"\",\"supplier\":\"\",\"supplierCnpj\":\"\",\"documentQuality\":{\"readable\":true,\"rotated\":false,\"blurred\":false,\"clipped\":false,\"score\":0.9,\"warnings\":[]},\"items\":[{\"code\":\"\",\"name\":\"\",\"ca\":\"\",\"size\":\"\",\"unit\":\"\",\"qty\":1,\"unitValue\":0,\"total\":0,\"manufacturer\":\"\",\"lot\":\"\",\"physicalExpiry\":\"\",\"fieldConfidence\":{\"code\":0.9,\"name\":0.9,\"ca\":0.9,\"size\":0.9,\"unit\":0.9,\"qty\":0.9,\"unitValue\":0.9,\"total\":0.9,\"manufacturer\":0.9,\"lot\":0.9,\"physicalExpiry\":0.9}}]}}'
+    ].join('\n');
+
+    const body = {
+      contents:[{
+        role:'user',
+        parts:[
+          {text:prompt},
+          {inlineData:{mimeType:'application/pdf',data:base64}}
+        ]
+      }],
+      generationConfig:{
+        temperature:0,
+        responseMimeType:'application/json'
+      }
+    };
+
+    let generated;
+    try {
+      generated = geminiGenerateJson_(body,key,props,{
+        // Prioriza resposta rápida: modelo principal + apenas um fallback.
+        models:['gemini-3.5-flash','gemini-2.5-flash-lite'],
+        maxAttempts:1
+      });
+    } catch (firstError) {
+      // Alguns endpoints/modelos podem rejeitar responseMimeType com
+      // "Request contains an invalid argument". Nesse caso, repete uma
+      // única vez sem essa opção. O parser já aceita JSON puro ou cercado
+      // por ```json, portanto a contingência continua segura e rápida.
+      if (!/invalid argument|invalid_argument|request contains an invalid/i.test(String(firstError))) {
+        throw firstError;
+      }
+      const fallbackBody = JSON.parse(JSON.stringify(body));
+      fallbackBody.generationConfig = {temperature:0};
+      generated = geminiGenerateJson_(fallbackBody,key,props,{
+        models:['gemini-3.5-flash','gemini-2.5-flash-lite'],
+        maxAttempts:1
+      });
+    }
+    const root = generated.json || {};
+    const rawInvoice = root.invoice && typeof root.invoice === 'object' ? root.invoice : root;
+    const quality = rawInvoice.documentQuality && typeof rawInvoice.documentQuality === 'object'
+      ? rawInvoice.documentQuality
+      : {};
+
+    const allItems = (Array.isArray(rawInvoice.items) ? rawInvoice.items : [])
+      .map(invoiceNormalizeAiItem_)
+      .filter(function(item){return item.name && item.qty > 0;});
+
+    // MODO ÁGIL: a primeira leitura da NF usa somente UMA chamada de IA.
+    // A classificação óbvia de EPI / não-EPI é feita localmente no servidor;
+    // descrições ambíguas ficam como "Revisar" para conferência humana, sem
+    // bloquear a tela com uma segunda chamada Gemini. Isso reduz bastante a
+    // latência percebida sem sacrificar a segurança da importação.
+    allItems.forEach(function(item){
+      const local = invoiceLocalClassification_(item);
+      item.classification = local.classification;
+      item.classificationConfidence = local.confidence;
+      item.classificationReason = local.reason;
+    });
+
+    const invoice = {
+      number:String(rawInvoice.number || '').trim(),
+      series:String(rawInvoice.series || '').trim(),
+      key:String(rawInvoice.key || '').replace(/\D/g,''),
+      date:invoiceNormalizeDate_(rawInvoice.date) || String(rawInvoice.date || '').trim(),
+      supplier:String(rawInvoice.supplier || '').trim(),
+      supplierCnpj:String(rawInvoice.supplierCnpj || '').replace(/\D/g,''),
+      documentQuality:{
+        readable:quality.readable !== false,
+        rotated:quality.rotated === true,
+        blurred:quality.blurred === true,
+        clipped:quality.clipped === true,
+        score:invoiceClamp01_(quality.score,0.8),
+        warnings:Array.isArray(quality.warnings) ? quality.warnings.map(String).slice(0,8) : []
+      },
+      items:allItems.filter(function(item){return item.classification !== 'not_epi';}),
+      ignoredItemsCount:allItems.filter(function(item){return item.classification === 'not_epi';}).length,
+      extractedItemsCount:allItems.length
+    };
+
+    invoice.items.forEach(function(item){
+      item.isEpi = item.classification === 'epi';
+      item.confidence = Math.min(
+        invoiceClamp01_(item.classificationConfidence,0.5),
+        invoiceClamp01_(item.fieldConfidence && item.fieldConfidence.name,0.75),
+        invoiceClamp01_(item.fieldConfidence && item.fieldConfidence.qty,0.75)
+      );
+    });
+
+    invoiceValidateResult_(invoice);
+
+    const result = {
+      ok:true,
+      result:{invoice:invoice},
+      provider:'gemini-nf-v2',
+      engineVersion:'nf-ai-v2.4-stable-fast',
+      model:generated.model,
+      classifierModel:'local-fast',
+      cached:false,
+      documentHash:hash
+    };
+    invoiceAiCachePut_(hash,result,tenant);
+    return result;
+
+  } catch (error) {
+    return {
+      ok:false,
+      code:'INVOICE_AI_FAILED',
+      message:'A IA não conseguiu organizar a nota fiscal: ' + String(error)
+    };
+  }
+}
+
+function invoiceXmlText_(element,name) {
+  if (!element) return '';
+  const children = element.getChildren ? element.getChildren() : [];
+  for (let i=0;i<children.length;i++) {
+    if (children[i].getName && children[i].getName() === name) {
+      return String(children[i].getText ? children[i].getText() : '').trim();
+    }
+  }
+  return '';
+}
+
+function invoiceXmlFirst_(element,name) {
+  if (!element) return null;
+  const children = element.getChildren ? element.getChildren() : [];
+  for (let i=0;i<children.length;i++) {
+    if (children[i].getName && children[i].getName() === name) return children[i];
+  }
+  return null;
+}
+
+function invoiceXmlFindAll_(element,name,out) {
+  out = out || [];
+  if (!element) return out;
+  if (element.getName && element.getName() === name) out.push(element);
+  const children = element.getChildren ? element.getChildren() : [];
+  children.forEach(function(child){ invoiceXmlFindAll_(child,name,out); });
+  return out;
+}
+
+function invoiceXmlImport_(documentData) {
+  try {
+    const comma = String(documentData || '').indexOf(',');
+    if (comma < 0) throw new Error('XML inválido.');
+    const xmlText = Utilities.newBlob(Utilities.base64Decode(String(documentData).substring(comma + 1))).getDataAsString('UTF-8');
+    const doc = XmlService.parse(xmlText);
+    const root = doc.getRootElement();
+    const infList = invoiceXmlFindAll_(root,'infNFe',[]);
+    if (!infList.length) throw new Error('Este XML não parece ser uma NF-e.');
+    const inf = infList[0];
+    const ide = invoiceXmlFindAll_(inf,'ide',[])[0] || null;
+    const emit = invoiceXmlFindAll_(inf,'emit',[])[0] || null;
+    const prot = invoiceXmlFindAll_(root,'protNFe',[])[0] || null;
+    const protInf = prot ? invoiceXmlFirst_(prot,'infProt') : null;
+
+    const items = invoiceXmlFindAll_(inf,'det',[]).map(function(det){
+      const prod = invoiceXmlFirst_(det,'prod');
+      if (!prod) return null;
+      const extra = invoiceXmlText_(det,'infAdProd');
+      const rawName = invoiceXmlText_(prod,'xProd');
+      const joined = rawName + ' ' + extra;
+      const rastro = invoiceXmlFindAll_(prod,'rastro',[])[0] || null;
+      const caMatch = joined.match(/(?:\bCA\b|C\.A\.)\s*[:.#º°-]*\s*(\d{3,7})\b/i);
+      let size = '';
+      let m = joined.match(/\bNR\.?\s*(\d{2})\b/i);
+      if (m) size = m[1];
+      if (!size) {
+        m = joined.match(/(?:TAM(?:ANHO)?|NUM(?:ERA[CÇ][AÃ]O)?)\s*[:.#º°-]*\s*([A-Z0-9.-]{1,10})\b/i);
+        if (m) size = m[1];
+      }
+      const item = {
+        code:invoiceXmlText_(prod,'cProd'),
+        name:rawName,
+        ca:caMatch ? caMatch[1] : '',
+        size:size,
+        unit:invoiceXmlText_(prod,'uCom'),
+        qty:Number(invoiceXmlText_(prod,'qCom') || 0),
+        unitValue:Number(invoiceXmlText_(prod,'vUnCom') || 0),
+        total:Number(invoiceXmlText_(prod,'vProd') || 0),
+        manufacturer:'',
+        lot:rastro ? invoiceXmlText_(rastro,'nLote') : '',
+        physicalExpiry:rastro ? invoiceNormalizeDate_(invoiceXmlText_(rastro,'dVal')) : '',
+        fieldConfidence:{code:1,name:1,ca:1,size:1,unit:1,qty:1,unitValue:1,total:1,manufacturer:1,lot:1,physicalExpiry:1}
+      };
+      const cls = invoiceLocalClassification_(item);
+      item.classification = cls.classification;
+      item.classificationConfidence = cls.confidence;
+      item.classificationReason = cls.reason;
+      item.isEpi = cls.classification === 'epi';
+      item.confidence = cls.confidence;
+      return item;
+    }).filter(function(item){return item && item.name && item.qty > 0;});
+
+    const keyFromProt = protInf ? invoiceXmlText_(protInf,'chNFe') : '';
+    const id = String(inf.getAttribute('Id') ? inf.getAttribute('Id').getValue() : '').replace(/^NFe/i,'');
+    const invoice = {
+      number:ide ? invoiceXmlText_(ide,'nNF') : '',
+      series:ide ? invoiceXmlText_(ide,'serie') : '',
+      key:String(keyFromProt || id || '').replace(/\D/g,''),
+      date:invoiceNormalizeDate_(ide ? (invoiceXmlText_(ide,'dhEmi') || invoiceXmlText_(ide,'dEmi')) : ''),
+      supplier:emit ? invoiceXmlText_(emit,'xNome') : '',
+      supplierCnpj:emit ? String(invoiceXmlText_(emit,'CNPJ')).replace(/\D/g,'') : '',
+      documentQuality:{readable:true,rotated:false,blurred:false,clipped:false,score:1,warnings:[]},
+      items:items.filter(function(item){return item.classification !== 'not_epi';}),
+      ignoredItemsCount:items.filter(function(item){return item.classification === 'not_epi';}).length,
+      extractedItemsCount:items.length
+    };
+    invoiceValidateResult_(invoice);
+    return {ok:true,result:{invoice:invoice},provider:'nfe-xml',model:'',cached:false,documentHash:invoiceDocumentHash_(documentData)};
+  } catch (error) {
+    return {ok:false,code:'INVOICE_XML_FAILED',message:'Não foi possível ler o XML da NF-e: ' + String(error)};
+  }
+}
+
+function geminiCaValidate_(items,key,props) {
+  try {
+    const compact = items
+      .map(function(i){
+        return {
+          ca:String(i && i.ca || '').replace(/\D/g,''),
+          name:String(i && i.name || '').trim(),
+          manufacturer:String(i && i.manufacturer || '').trim()
+        };
+      })
+      .filter(function(i){return i.ca;})
+      .slice(0,20);
+
+    if (!compact.length) {
+      return {ok:true,result:{checks:[]},provider:'mte-caepi'};
+    }
+
+    const unique = [];
+    const seen = {};
+    compact.forEach(function(item){
+      if (!seen[item.ca]) {
+        seen[item.ca] = true;
+        unique.push(item);
+      }
+    });
+
+    const checks = unique.map(function(item){
+      let check = null;
+
+      // 1) Proxy configurado. Aceita tanto o formato antigo do app quanto
+      //    os nomes originais da base CAEPI (DataValidade, Situacao etc.).
+      try {
+        check = caLookupViaProxy_(item.ca);
+      } catch (_) {
+        check = null;
+      }
+      if (check && check.found) return check;
+
+      // 2) Portal oficial CAEPI/MTE.
+      try {
+        check = mteCaLookupOfficial_(item.ca);
+      } catch (_) {
+        check = null;
+      }
+      if (check && check.found) return check;
+
+      // 3) Contingência de leitura da base CAEPI publicada pelo MTE.
+      //    É usada apenas quando o portal oficial bloqueia o acesso servidor-servidor.
+      //    O retorno é marcado como snapshot/mirror para não fingir consulta ao vivo.
+      try {
+        check = caLookupViaCaepiSnapshotMirror_(item.ca);
+      } catch (_) {
+        check = null;
+      }
+      if (check && check.found) return check;
+
+      // 4) Última contingência: Gemini com busca. Só aceita fonte oficial.
+      if (key) {
+        try {
+          const aiCheck = geminiCaValidateOne_(item,key,props);
+          if (aiCheck && aiCheck.found) return aiCheck;
+        } catch (_) {}
+      }
+
+      return {
+        ca:item.ca,
+        found:false,
+        status:'não confirmado',
+        equipment:'',
+        manufacturer:'',
+        validity:'',
+        sourceUrl:mteCaOfficialUrl_(item.ca),
+        sourceType:'unconfirmed'
+      };
+    });
+
+    return {
+      ok:true,
+      result:{checks:checks},
+      provider:'mte-caepi'
+    };
+
+  } catch (error) {
+    return {
+      ok:false,
+      code:'CA_LOOKUP_FAILED',
+      message:'Não foi possível consultar o CAEPI/MTE: ' + String(error)
+    };
+  }
+}
+
+function mteCaOfficialUrl_(ca) {
+  return 'https://caepi.trabalho.gov.br/internet/ConsultaCAInternet.aspx';
+}
+
+function caLookupViaProxy_(caNumber) {
+  const ca = String(caNumber || '').replace(/\D/g,'');
+  if (!ca) return null;
+
+  const props = PropertiesService.getScriptProperties();
+  const baseUrl = String(
+    props.getProperty('GESTAO_EPI_CA_PROXY_URL') || ''
+  ).trim();
+
+  if (!baseUrl) return null;
+
+  const url =
+    baseUrl.replace(/\/+$/,'') +
+    '/?ca=' +
+    encodeURIComponent(ca);
+
+  const response = UrlFetchApp.fetch(url,{
+    method:'get',
+    muteHttpExceptions:true,
+    followRedirects:true,
+    headers:{'Accept':'application/json,text/plain,*/*'}
+  });
+
+  const statusCode = Number(response.getResponseCode() || 0);
+  if (statusCode < 200 || statusCode >= 300) return null;
+
+  let data = null;
+  try {
+    data = JSON.parse(response.getContentText('UTF-8') || '{}');
+  } catch (_) {
+    return null;
+  }
+
+  if (!data || data.ok === false) return null;
+
+  // Compatibilidade com vários formatos de proxy/API CAEPI.
+  const row =
+    (data.result && typeof data.result === 'object' ? data.result : null) ||
+    (data.data && typeof data.data === 'object' ? data.data : null) ||
+    (data.check && typeof data.check === 'object' ? data.check : null) ||
+    data;
+
+  const returnedCa = String(
+    row.ca || row.CA || row.RegistroCA || row.NRRegistroCA || row.numeroCA || ca
+  ).replace(/\D/g,'');
+
+  const foundFlag =
+    data.found != null ? data.found :
+    row.found != null ? row.found :
+    Boolean(returnedCa && returnedCa === ca);
+
+  if (foundFlag === false || (returnedCa && returnedCa !== ca)) return null;
+
+  const validity = String(
+    row.validity || row.validUntil || row.dataValidade || row.DataValidade || ''
+  ).trim();
+  const status = String(
+    row.status || row.situacao || row.Situacao || 'confirmado'
+  ).trim();
+  const equipment = String(
+    row.equipment || row.NomeEquipamento || row.DescricaoEquipamento || ''
+  ).trim();
+  const manufacturer = String(
+    row.manufacturer || row.fabricante || row.RazaoSocial || row.razaoSocial || ''
+  ).trim();
+
+  if (!validity && !status && !equipment && !manufacturer) return null;
+
+  return {
+    ca:ca,
+    found:true,
+    status:mteNormalizeCaStatus_(status,validity),
+    equipment:equipment,
+    manufacturer:manufacturer,
+    validity:mteNormalizeDateBr_(validity),
+    sourceUrl:mteCaOfficialUrl_(ca),
+    sourceType:'caepi-proxy',
+    providerUrl:baseUrl
+  };
+}
+
+function caLookupViaCaepiSnapshotMirror_(caNumber) {
+  const ca = String(caNumber || '').replace(/\D/g,'');
+  if (!ca) return null;
+
+  const cache = CacheService.getScriptCache();
+  const cacheKey = 'gestao_epi_ca_snapshot_v422_' + ca;
+  try {
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed && parsed.found === true) return parsed;
+    }
+  } catch (_) {}
+
+  // Espelho público que declara reproduzir sem alteração a base CAEPI do MTE.
+  // Não substitui a consulta oficial ao vivo; por isso sourceType e snapshotDate
+  // seguem no retorno para a interface poder deixar isso claro.
+  const mirrorUrl = 'https://salusst.com.br/ca/' + encodeURIComponent(ca) + '/';
+  const response = UrlFetchApp.fetch(mirrorUrl,{
+    method:'get',
+    muteHttpExceptions:true,
+    followRedirects:true,
+    headers:{
+      'User-Agent':'Mozilla/5.0 (compatible; GestaoEPI/4.2.2)',
+      'Accept':'text/html,application/xhtml+xml'
+    }
+  });
+
+  const statusCode = Number(response.getResponseCode() || 0);
+  if (statusCode < 200 || statusCode >= 300) return null;
+
+  const html = response.getContentText('UTF-8');
+  const plain = mteTextFromHtml_(html);
+  if (!plain || plain.indexOf('CA ' + ca) < 0) return null;
+
+  const statusMatch = plain.match(/Situa[cç][aã]o\s+na\s+fonte\s+([^\r\n]{2,40}?)(?=\s+Validade\b)/i);
+  const validityMatch = plain.match(/\bValidade\s+(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4})\b/i);
+  const snapshotMatch = plain.match(/Sistema\s+CAEPI\s+gerado\s+pelo\s+MTE\s+em\s+(\d{1,2}\/\d{1,2}\/\d{4})/i);
+  const equipmentMatch = plain.match(new RegExp('CA\\s+' + ca + '\\s+[—-]\\s+(.{2,140}?)(?=\\s+Os dados do certificado|\\s+NR-06)', 'i'));
+  const manufacturerMatch = plain.match(/\b([A-Z0-9À-Ý][A-Z0-9À-Ý .&'\/-]{3,150})\s+[—-]\s+CNPJ\s+\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/i);
+
+  const validity = validityMatch ? mteNormalizeDateBr_(validityMatch[1]) : '';
+  const rawStatus = statusMatch ? String(statusMatch[1]).replace(/\s+/g,' ').trim() : '';
+  const status = mteNormalizeCaStatus_(rawStatus,validity);
+  const equipment = equipmentMatch ? String(equipmentMatch[1]).replace(/\s+/g,' ').trim() : '';
+  const manufacturer = manufacturerMatch ? String(manufacturerMatch[1]).replace(/\s+/g,' ').trim() : '';
+
+  if (!validity && !rawStatus && !equipment && !manufacturer) return null;
+
+  const result = {
+    ca:ca,
+    found:true,
+    status:(status || 'confirmado') + (snapshotMatch && snapshotMatch[1] ? ' • base CAEPI de ' + snapshotMatch[1] : ' • base CAEPI'),
+    equipment:equipment,
+    manufacturer:manufacturer,
+    validity:validity,
+    sourceUrl:mteCaOfficialUrl_(ca),
+    sourceType:'caepi-snapshot-mirror',
+    sourceLabel:'Base CAEPI publicada pelo MTE (espelho)',
+    dataSourceUrl:mirrorUrl,
+    snapshotDate:snapshotMatch ? snapshotMatch[1] : ''
+  };
+
+  try { cache.put(cacheKey,JSON.stringify(result),21600); } catch (_) {}
+  return result;
+}
+
+
+function mteCaLookupOfficial_(caNumber) {
+  const ca = String(caNumber || '').replace(/\D/g,'');
+  if (!ca) return null;
+
+  const cache = CacheService.getScriptCache();
+  const cacheKey = 'gestao_epi_ca_mte_v422_' + ca;
+
+  // Reaproveita somente resultado positivo. Falha temporária do portal não
+  // deve ficar presa no cache por 15 minutos como acontecia antes.
+  try {
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed && parsed.found === true && String(parsed.ca || '') === ca) {
+        return parsed;
+      }
+    }
+  } catch (_) {}
+
+  const urls = [
+    'https://caepi.trabalho.gov.br/internet/ConsultaCAInternet.aspx',
+    'https://caepi.mte.gov.br/internet/ConsultaCAInternet.aspx'
+  ];
+
+  for (let u=0; u<urls.length; u++) {
+    try {
+      const result = mteCaLookupAtUrl_(ca,urls[u]);
+      if (result && result.found) {
+        result.sourceType = 'mte-live';
+        try { cache.put(cacheKey,JSON.stringify(result),21600); } catch (_) {}
+        return result;
+      }
+    } catch (_) {
+      // Tenta o próximo endereço e depois as contingências.
+    }
+  }
+
+  return null;
+}
+
+function mteCaLookupAtUrl_(ca,url) {
+  const commonHeaders = {
+    'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125 Safari/537.36',
+    'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language':'pt-BR,pt;q=0.9,en;q=0.8',
+    'Cache-Control':'no-cache'
+  };
+
+  const initial = UrlFetchApp.fetch(url,{
+    method:'get',
+    headers:commonHeaders,
+    muteHttpExceptions:true,
+    followRedirects:true
+  });
+
+  const initialStatus = Number(initial.getResponseCode() || 0);
+  if (initialStatus < 200 || initialStatus >= 400) {
+    throw new Error('CAEPI GET HTTP ' + initialStatus);
+  }
+
+  const initialHtml = initial.getContentText('UTF-8');
+  let viewState = mteExtractHiddenField_(initialHtml,'__VIEWSTATE');
+  let eventValidation = mteExtractHiddenField_(initialHtml,'__EVENTVALIDATION');
+  let viewStateGenerator = mteExtractHiddenField_(initialHtml,'__VIEWSTATEGENERATOR');
+
+  if (!viewState || !eventValidation) {
+    throw new Error('CAEPI não forneceu os tokens do formulário.');
+  }
+
+  const equipDefault = mteExtractFirstOptionValue_(initialHtml,'cboEquipamento');
+  const fabDefault = mteExtractFirstOptionValue_(initialHtml,'cboFabricante');
+  const tipoDefault = mteExtractFirstOptionValue_(initialHtml,'cboTipoProtecao');
+
+  let cookies = mteCookiesFromResponse_(initial);
+
+  function makeSearchForm_() {
+    const form = {
+      'ctl00$ScriptManager1':'ctl00$PlaceHolderConteudo$panel|ctl00$PlaceHolderConteudo$btnConsultar',
+      '__EVENTTARGET':'',
+      '__EVENTARGUMENT':'',
+      '__VIEWSTATE':viewState,
+      '__VIEWSTATEGENERATOR':viewStateGenerator || '',
+      '__EVENTVALIDATION':eventValidation,
+      'ctl00$PlaceHolderConteudo$txtNumeroCA':ca,
+      'ctl00$PlaceHolderConteudo$btnConsultar':'Consultar',
+      '__ASYNCPOST':'true'
+    };
+
+    if (equipDefault) form['ctl00$PlaceHolderConteudo$cboEquipamento'] = equipDefault;
+    if (fabDefault) form['ctl00$PlaceHolderConteudo$cboFabricante'] = fabDefault;
+    if (tipoDefault) form['ctl00$PlaceHolderConteudo$cboTipoProtecao'] = tipoDefault;
+
+    return form;
+  }
+
+  let response = mtePostWebForms_(url,makeSearchForm_(),cookies,commonHeaders,true);
+  cookies = mteMergeCookies_(cookies,mteCookiesFromResponse_(response));
+  let html = response.getContentText('UTF-8');
+
+  for (let step=0; step<4; step++) {
+    const direct = mteParseCaDetails_(ca,html);
+    if (direct && direct.found) {
+      direct.sourceUrl = url;
+      return direct;
+    }
+
+    const delta = mteExtractDeltaTokens_(html);
+
+    if (delta.viewState) viewState = delta.viewState;
+    else {
+      const v = mteExtractHiddenField_(html,'__VIEWSTATE');
+      if (v) viewState = v;
+    }
+
+    if (delta.eventValidation) eventValidation = delta.eventValidation;
+    else {
+      const v = mteExtractHiddenField_(html,'__EVENTVALIDATION');
+      if (v) eventValidation = v;
+    }
+
+    if (delta.viewStateGenerator) viewStateGenerator = delta.viewStateGenerator;
+    else {
+      const v = mteExtractHiddenField_(html,'__VIEWSTATEGENERATOR');
+      if (v) viewStateGenerator = v;
+    }
+
+    const hasGrid = /grdListaResultado|btnDetalhar/i.test(html);
+    const hasInconclusive =
+      /pnlDadosInconclusivos/i.test(html) ||
+      /PlaceHolderConteudo.*btnConsultar/i.test(html);
+
+    if (hasGrid) {
+      const detailName = mteFindDetailButtonName_(html) ||
+        'ctl00$PlaceHolderConteudo$grdListaResultado$ctl02$btnDetalhar';
+
+      const detailForm = {
+        'ctl00$ScriptManager1':'ctl00$PlaceHolderConteudo$panel|' + detailName,
+        '__EVENTTARGET':'',
+        '__EVENTARGUMENT':'',
+        '__VIEWSTATE':viewState,
+        '__VIEWSTATEGENERATOR':viewStateGenerator || '',
+        '__EVENTVALIDATION':eventValidation,
+        '__ASYNCPOST':'true'
+      };
+
+      detailForm[detailName + '.x'] = '15';
+      detailForm[detailName + '.y'] = '15';
+
+      response = mtePostWebForms_(url,detailForm,cookies,commonHeaders,true);
+      cookies = mteMergeCookies_(cookies,mteCookiesFromResponse_(response));
+      html = response.getContentText('UTF-8');
+      continue;
+    }
+
+    if (hasInconclusive && step < 2) {
+      response = mtePostWebForms_(url,makeSearchForm_(),cookies,commonHeaders,true);
+      cookies = mteMergeCookies_(cookies,mteCookiesFromResponse_(response));
+      html = response.getContentText('UTF-8');
+      continue;
+    }
+
+    break;
+  }
+
+  const normalForm = makeSearchForm_();
+  delete normalForm['ctl00$ScriptManager1'];
+  delete normalForm['__ASYNCPOST'];
+
+  response = mtePostWebForms_(url,normalForm,cookies,commonHeaders,false);
+  cookies = mteMergeCookies_(cookies,mteCookiesFromResponse_(response));
+  html = response.getContentText('UTF-8');
+
+  let result = mteParseCaDetails_(ca,html);
+  if (result && result.found) {
+    result.sourceUrl = url;
+    return result;
+  }
+
+  if (/grdListaResultado|btnDetalhar/i.test(html)) {
+    const freshViewState =
+      mteExtractHiddenField_(html,'__VIEWSTATE') || viewState;
+    const freshValidation =
+      mteExtractHiddenField_(html,'__EVENTVALIDATION') || eventValidation;
+    const freshGenerator =
+      mteExtractHiddenField_(html,'__VIEWSTATEGENERATOR') || viewStateGenerator;
+
+    const detailName = mteFindDetailButtonName_(html) ||
+      'ctl00$PlaceHolderConteudo$grdListaResultado$ctl02$btnDetalhar';
+
+    const detailForm = {
+      '__EVENTTARGET':'',
+      '__EVENTARGUMENT':'',
+      '__VIEWSTATE':freshViewState,
+      '__VIEWSTATEGENERATOR':freshGenerator || '',
+      '__EVENTVALIDATION':freshValidation
+    };
+    detailForm[detailName + '.x'] = '15';
+    detailForm[detailName + '.y'] = '15';
+
+    response = mtePostWebForms_(url,detailForm,cookies,commonHeaders,false);
+    html = response.getContentText('UTF-8');
+
+    result = mteParseCaDetails_(ca,html);
+    if (result && result.found) {
+      result.sourceUrl = url;
+      return result;
+    }
+  }
+
+  return null;
+}
+
+function mtePostWebForms_(url,form,cookies,baseHeaders,asyncMode) {
+  const isAsync = asyncMode !== false;
+  const headers = Object.assign({},baseHeaders,{
+    'Referer':url,
+    'Origin':url.replace(/\/internet\/.*$/i,'')
+  });
+
+  if (isAsync) {
+    headers['X-MicrosoftAjax'] = 'Delta=true';
+    headers['X-Requested-With'] = 'XMLHttpRequest';
+  }
+
+  if (cookies) headers.Cookie = cookies;
+
+  const response = UrlFetchApp.fetch(url,{
+    method:'post',
+    contentType:'application/x-www-form-urlencoded; charset=UTF-8',
+    payload:mteFormEncode_(form),
+    headers:headers,
+    muteHttpExceptions:true,
+    followRedirects:true
+  });
+
+  const status = Number(response.getResponseCode() || 0);
+  if (status < 200 || status >= 400) {
+    throw new Error('CAEPI POST HTTP ' + status);
+  }
+
+  return response;
+}
+
+function mteFormEncode_(obj) {
+  return Object.keys(obj || {}).map(function(k){
+    return encodeURIComponent(k) + '=' + encodeURIComponent(String(obj[k] == null ? '' : obj[k]));
+  }).join('&');
+}
+
+function mteExtractHiddenField_(html,name) {
+  html = String(html || '');
+  const escaped = String(name).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const patterns = [
+    new RegExp('name=["\\\']' + escaped + '["\\\'][^>]*value=["\\\']([^"\\\']*)','i'),
+    new RegExp('id=["\\\']' + escaped + '["\\\'][^>]*value=["\\\']([^"\\\']*)','i'),
+    new RegExp('value=["\\\']([^"\\\']*)["\\\'][^>]*(?:name|id)=["\\\']' + escaped + '["\\\']','i')
+  ];
+
+  for (let i=0;i<patterns.length;i++) {
+    const m = html.match(patterns[i]);
+    if (m && m[1] != null) return mteDecodeHtml_(m[1]);
+  }
+  return '';
+}
+
+function mteExtractFirstOptionValue_(html,partialId) {
+  html = String(html || '');
+  const escaped = String(partialId).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const selectRe = new RegExp('<select[^>]*(?:id|name)=["\\\'][^"\\\']*' + escaped + '["\\\'][^>]*>([\\s\\S]*?)<\\/select>','i');
+  const select = html.match(selectRe);
+  if (!select) return '';
+  const option = select[1].match(/<option[^>]*value=["']([^"']*)["'][^>]*>/i);
+  return option ? mteDecodeHtml_(option[1]) : '';
+}
+
+function mteCookiesFromResponse_(response) {
+  try {
+    const headers = response.getAllHeaders();
+    let raw = headers['Set-Cookie'] || headers['set-cookie'] || '';
+    if (!Array.isArray(raw)) raw = raw ? [raw] : [];
+
+    const cookies = [];
+    raw.forEach(function(headerValue){
+      // Alguns servidores/Apps Script juntam vários Set-Cookie em uma string.
+      // Separa apenas vírgulas que iniciam outro nome=valor, sem quebrar Expires=...
+      String(headerValue || '')
+        .split(/,(?=\s*[^;,=\s]+=[^;,]*)/)
+        .forEach(function(v){
+          const pair = String(v).split(';')[0].trim();
+          if (pair && pair.indexOf('=') > 0) cookies.push(pair);
+        });
+    });
+
+    return cookies.join('; ');
+  } catch (_) {
+    return '';
+  }
+}
+
+function mteMergeCookies_(a,b) {
+  const out = {};
+  [a,b].forEach(function(raw){
+    String(raw || '').split(/;\s*/).forEach(function(pair){
+      const idx = pair.indexOf('=');
+      if (idx > 0) out[pair.substring(0,idx)] = pair.substring(idx+1);
+    });
+  });
+  return Object.keys(out).map(function(k){return k + '=' + out[k];}).join('; ');
+}
+
+function mteExtractDeltaTokens_(text) {
+  const parts = String(text || '').split('|');
+  const out = {viewState:'',viewStateGenerator:'',eventValidation:''};
+  for (let i=0;i<parts.length-1;i++) {
+    if (parts[i] === '__VIEWSTATE') out.viewState = parts[i+1] || '';
+    if (parts[i] === '__VIEWSTATEGENERATOR') out.viewStateGenerator = parts[i+1] || '';
+    if (parts[i] === '__EVENTVALIDATION') out.eventValidation = parts[i+1] || '';
+  }
+  return out;
+}
+
+function mteFindDetailButtonName_(html) {
+  html = String(html || '');
+  let m = html.match(/name=["']([^"']*grdListaResultado[^"']*btnDetalhar)["']/i);
+  if (m) return mteDecodeHtml_(m[1]);
+  m = html.match(/id=["']([^"']*grdListaResultado[^"']*btnDetalhar)["']/i);
+  if (m) return mteDecodeHtml_(m[1]).replace(/_/g,'$');
+  return '';
+}
+
+function mteParseCaDetails_(ca,html) {
+  html = String(html || '');
+
+  function byId_(names) {
+    for (let i=0;i<names.length;i++) {
+      const name = names[i];
+      const re = new RegExp('id=["\\\'][^"\\\']*' + name + '["\\\'][^>]*>([\\s\\S]*?)<\\/[^>]+>','i');
+      const m = html.match(re);
+      if (m) {
+        const value = mteTextFromHtml_(m[1]);
+        if (value && value !== '-' && value !== '...') return value;
+      }
+    }
+    return '';
+  }
+
+  const plain = mteTextFromHtml_(html);
+
+  function byLabel_(labels) {
+    for (let i=0;i<labels.length;i++) {
+      const label = labels[i];
+      const re = new RegExp(label + '\\s*[:\\-]?\\s*([^|\\r\\n]{2,160})','i');
+      const m = plain.match(re);
+      if (m && m[1]) {
+        const value = String(m[1]).trim();
+        if (value && value !== '-' && value !== '...') return value;
+      }
+    }
+    return '';
+  }
+
+  let status =
+    byId_(['lblSituacao','lblSituacaoCA']) ||
+    byLabel_(['Situa[çc][ãa]o']);
+
+  let validity =
+    byId_(['lblDTValidade','lblDataValidade','lblValidade']) ||
+    byLabel_(['Data\\s+de\\s+Validade','Validade']);
+
+  let equipment =
+    byId_(['lblNOEquipamento','lblEquipamento','lblEquipamentoDescricao','lblDescricaoEquipamento']) ||
+    byLabel_(['Equipamento']);
+
+  let manufacturer =
+    byId_(['lblNORazaoSocial','lblRazaoSocial','lblFabricante','lblEmpresa']) ||
+    byLabel_(['Raz[ãa]o\\s+Social','Fabricante']);
+
+  let returnedCa =
+    byId_(['lblNRRegistroCA','lblNumeroCA','lblCA']) ||
+    byLabel_(['N[º°o]\\s*do\\s*CA','N[º°o]\\s*CA','CA']);
+
+  if (!status) {
+    if (/\bV[ÁA]LIDO\b/i.test(plain)) status = 'VÁLIDO';
+    else if (/\bVENCIDO\b/i.test(plain)) status = 'VENCIDO';
+    else if (/\bCANCELADO\b/i.test(plain)) status = 'CANCELADO';
+    else if (/\bSUSPENSO\b/i.test(plain)) status = 'SUSPENSO';
+  }
+
+  if (validity) {
+    const dm = String(validity).match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
+    validity = dm
+      ? ('0'+dm[1]).slice(-2) + '/' + ('0'+dm[2]).slice(-2) + '/' + dm[3]
+      : '';
+  }
+
+  const returnedDigits = String(returnedCa || '').replace(/\D/g,'');
+  const hasDetails = Boolean(validity || equipment || manufacturer || (returnedDigits && status));
+  const matchesCa = !returnedDigits || returnedDigits === String(ca);
+
+  if (!hasDetails || !matchesCa) return null;
+
+  return {
+    ca:String(ca),
+    found:true,
+    status:mteNormalizeCaStatus_(status,validity),
+    equipment:equipment,
+    manufacturer:manufacturer,
+    validity:validity,
+    sourceUrl:mteCaOfficialUrl_(ca)
+  };
+}
+
+function mteNormalizeCaStatus_(status,validity) {
+  let s = String(status || '').trim();
+  if (s) return s.toLowerCase();
+
+  const date = mteParseBrDate_(validity);
+  if (date) return date.getTime() < Date.now() ? 'vencido' : 'válido';
+  return 'confirmado';
+}
+
+function mteNormalizeDateBr_(value) {
+  const s = mteTextFromHtml_(value);
+  const m = s.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
+  if (!m) return s;
+  return ('0'+m[1]).slice(-2) + '/' + ('0'+m[2]).slice(-2) + '/' + m[3];
+}
+
+function mteParseBrDate_(value) {
+  const m = String(value || '').match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
+  if (!m) return null;
+  return new Date(Number(m[3]),Number(m[2])-1,Number(m[1]),23,59,59);
+}
+
+function mteDecodeHtml_(value) {
+  return String(value || '')
+    .replace(/&nbsp;/gi,' ')
+    .replace(/&amp;/gi,'&')
+    .replace(/&quot;/gi,'"')
+    .replace(/&#39;|&apos;/gi,"'")
+    .replace(/&lt;/gi,'<')
+    .replace(/&gt;/gi,'>')
+    .replace(/&#(\d+);/g,function(_,n){return String.fromCharCode(Number(n));});
+}
+
+function mteTextFromHtml_(value) {
+  return mteDecodeHtml_(String(value || '').replace(/<[^>]*>/g,' '))
+    .replace(/\s+/g,' ')
+    .trim();
+}
+
+function geminiCaValidateOne_(item,key,props) {
+  const ca = String(item && item.ca || '').replace(/\D/g,'');
+  const officialQueryUrl =
+    'https://caepi.trabalho.gov.br/internet/ConsultaCAInternet.aspx?txtNumeroCA=' +
+    encodeURIComponent(ca);
+
+  const prompt = [
+    'Confirme UM Certificado de Aprovação (CA) de EPI brasileiro.',
+    'Número do CA: ' + ca + '.',
+    item.name ? 'Produto informado: ' + item.name + '.' : '',
+    item.manufacturer ? 'Fabricante informado: ' + item.manufacturer + '.' : '',
+    'Pesquise na web. Para marcar found=true, a confirmação deve estar amparada por fonte oficial do MTE/gov.br ou pelo próprio portal CAEPI.',
+    'Informe a DATA DE VALIDADE do CA exatamente como consta na fonte, preferencialmente DD/MM/AAAA.',
+    'Informe situação, equipamento e fabricante quando confirmados.',
+    'Nunca invente validade. Se não puder confirmar, use found=false e validity="".',
+    'Retorne SOMENTE JSON válido neste formato:',
+    '{"check":{"ca":"' + ca + '","found":true,"status":"válido","equipment":"","manufacturer":"","validity":"DD/MM/AAAA","sourceUrl":"https://caepi.trabalho.gov.br/..."}}'
+  ].filter(Boolean).join('\n');
+
+  const body = {
+    contents:[{role:'user',parts:[{text:prompt}]}],
+    tools:[{google_search:{}}],
+    generationConfig:{temperature:0}
+  };
+
+  const generated = geminiGenerateJson_(body,key,props,{
+    models:['gemini-3.5-flash','gemini-2.5-flash'],
+    maxAttempts:1
+  });
+
+  const root = generated.json && typeof generated.json === 'object'
+    ? generated.json
+    : {};
+  const c = root.check && typeof root.check === 'object' ? root.check : root;
+
+  let source = String(c && c.sourceUrl || '').trim();
+  const groundingUrls = Array.isArray(generated.groundingUrls)
+    ? generated.groundingUrls
+    : [];
+
+  function isOfficial_(url) {
+    const host = String(url || '')
+      .replace(/^https?:\/\//i,'')
+      .split('/')[0]
+      .split(':')[0];
+    return /(^|\.)caepi\.(trabalho|mte)\.gov\.br$/i.test(host) ||
+      /(^|\.)gov\.br$/i.test(host);
+  }
+
+  if (!isOfficial_(source)) {
+    source = groundingUrls.filter(isOfficial_)[0] || '';
+  }
+
+  const official = isOfficial_(source);
+  const validity = official
+    ? mteNormalizeDateBr_(String(c && (c.validity || c.validUntil || c.dataValidade) || '').trim())
+    : '';
+  let status = official
+    ? String(c && c.status || 'confirmado').trim()
+    : 'não confirmado';
+
+  if (official && validity && /^(confirmado|desconhecido)?$/i.test(status)) {
+    const d = mteParseBrDate_(validity);
+    if (d) status = d.getTime() < Date.now() ? 'vencido' : 'válido';
+  }
+
+  return {
+    ca:ca,
+    found:Boolean(c && c.found) && official,
+    status:official ? status : 'não confirmado',
+    equipment:official ? String(c && c.equipment || '').trim() : '',
+    manufacturer:official ? String(c && c.manufacturer || '').trim() : '',
+    validity:validity,
+    sourceUrl:official ? source : officialQueryUrl,
+    sourceType:official ? 'gemini-official-grounding' : 'unconfirmed'
+  };
+}
+
+/* =========================================================
+   LICENÇA / SESSÃO / SEGURANÇA
+   ========================================================= */
+
+function commercialLicenseState_(tenant) {
+  const status = commercialNormalizeLicenseStatus_(tenant.status);
+
+  const today = Utilities.formatDate(
+    new Date(),
+    Session.getScriptTimeZone() || 'America/Sao_Paulo',
+    'yyyy-MM-dd'
+  );
+
+  const validUntil = commercialNormalizeDate_(tenant.validUntil);
+
+  if (status === 'suspended') {
+    return {
+      ok:false,
+      message:'Licença suspensa. Entre em contato com o fornecedor.',
+      code:'LICENSE_SUSPENDED'
+    };
+  }
+
+  if (validUntil && validUntil < today) {
+    return {
+      ok:false,
+      message:
+        'Licença vencida em ' +
+        validUntil.split('-').reverse().join('/') +
+        '.',
+      code:'LICENSE_EXPIRED'
+    };
+  }
+
+  return {
+    ok:true,
+    license:{
+      status:status,
+      validUntil:validUntil,
+      plan:commercialNormalizePlan_(tenant.plan)
+    }
+  };
+}
+
+function commercialValidateToken_(token,expectedScope) {
+  try {
+    token = String(token || '');
+    const parts = token.split('.');
+
+    if (parts.length !== 2) {
+      return {
+        ok:false,
+        message:'Sessão inválida. Entre novamente.',
+        code:'SESSION_INVALID'
+      };
+    }
+
+    const payloadEncoded = parts[0];
+
+    if (
+      !commercialSafeEqual_(
+        parts[1],
+        commercialSign_(payloadEncoded)
+      )
+    ) {
+      return {
+        ok:false,
+        message:'Sessão inválida. Entre novamente.',
+        code:'SESSION_INVALID'
+      };
+    }
+
+    const bytes =
+      Utilities.base64DecodeWebSafe(
+        commercialPadBase64_(payloadEncoded)
+      );
+
+    const payload =
+      JSON.parse(
+        Utilities.newBlob(bytes).getDataAsString('UTF-8')
+      );
+
+    if (payload.scope !== expectedScope) {
+      return {
+        ok:false,
+        message:'Sessão inválida.',
+        code:'SESSION_INVALID'
+      };
+    }
+
+    if (!payload.exp || Date.now() > Number(payload.exp)) {
+      return {
+        ok:false,
+        message:'Sua sessão expirou. Entre novamente.',
+        code:'SESSION_EXPIRED'
+      };
+    }
+
+    if (expectedScope === 'master') {
+      const system = commercialLoadSystem_();
+
+      const user = system.masterUsers.find(function(u){
+        return u.username === payload.sub;
+      });
+
+      if (!user || user.active === false) {
+        return {
+          ok:false,
+          message:'Usuário Mestre bloqueado.',
+          code:'USER_DISABLED'
+        };
+      }
+
+      return {
+        ok:true,
+        user:commercialPublicUser_(user)
+      };
+    }
+
+    const system = commercialLoadSystem_();
+
+    const tenant = system.tenants.find(function(t){
+      return t.id === payload.tenantId;
+    });
+
+    if (!tenant) {
+      return {
+        ok:false,
+        message:'Cliente não encontrado.',
+        code:'TENANT_NOT_FOUND'
+      };
+    }
+
+    const license = commercialLicenseState_(tenant);
+    if (!license.ok) return license;
+
+    const users = commercialLoadTenantUsers_(tenant);
+
+    const user = users.find(function(u){
+      return u.username === payload.sub;
+    });
+
+    if (!user || user.active === false) {
+      return {
+        ok:false,
+        message:'Usuário bloqueado ou removido.',
+        code:'USER_DISABLED'
+      };
+    }
+
+    const device = (tenant.devices || []).find(function(d){
+      return d.id === payload.deviceId;
+    });
+
+    if (!device || device.active === false) {
+      return {
+        ok:false,
+        message:'Este dispositivo não está autorizado.',
+        code:'DEVICE_DISABLED'
+      };
+    }
+
+    return {
+      ok:true,
+      user:commercialPublicUser_(user),
+      tenant:commercialPublicTenant_(tenant),
+      license:license.license,
+      deviceId:payload.deviceId
+    };
+
+  } catch (_) {
+    return {
+      ok:false,
+      message:'Sessão inválida. Entre novamente.',
+      code:'SESSION_INVALID'
+    };
+  }
+}
+
+function commercialRequireTenantRole_(token,roles) {
+  const session = commercialValidateToken_(token,'tenant');
+  if (!session.ok) return session;
+
+  if (roles.indexOf(session.user.role) < 0) {
+    return {
+      ok:false,
+      message:'Seu usuário não tem permissão para esta ação.',
+      code:'FORBIDDEN'
+    };
+  }
+
+  return session;
+}
+
+function commercialCreateToken_(ctx) {
+  const now = Date.now();
+
+  const payload = {
+    scope:ctx.scope,
+    sub:ctx.user.username,
+    role:ctx.user.role,
+    iat:now,
+    exp:now + GESTAO_COM_TOKEN_HOURS * 60 * 60 * 1000,
+    nonce:Utilities.getUuid()
+  };
+
+  if (ctx.scope === 'tenant') {
+    payload.tenantId = ctx.tenant.id;
+    payload.deviceId = String(ctx.deviceId || '');
+  }
+
+  const encoded =
+    Utilities
+      .base64EncodeWebSafe(JSON.stringify(payload))
+      .replace(/=+$/,'');
+
+  return encoded + '.' + commercialSign_(encoded);
+}
+
+function commercialSign_(value) {
+  return Utilities
+    .base64EncodeWebSafe(
+      Utilities.computeHmacSha256Signature(
+        String(value),
+        commercialAuthSecret_()
+      )
+    )
+    .replace(/=+$/,'');
+}
+
+function commercialAuthSecret_() {
+  const props = PropertiesService.getScriptProperties();
+
+  let secret =
+    String(props.getProperty(GESTAO_COM_AUTH_SECRET_PROP) || '');
+
+  if (!secret) {
+    secret =
+      Utilities.getUuid().replace(/-/g,'') +
+      Utilities.getUuid().replace(/-/g,'');
+
+    props.setProperty(GESTAO_COM_AUTH_SECRET_PROP,secret);
+  }
+
+  return secret;
+}
+
+function commercialNewUser_(username,name,role,password) {
+  const user = {
+    id:'u_' + Utilities.getUuid(),
+    username:commercialNormalizeUsername_(username),
+    name:String(name || username),
+    role:role,
+    active:true,
+    createdAt:new Date().toISOString(),
+    updatedAt:new Date().toISOString()
+  };
+
+  commercialSetPassword_(user,password);
+  return user;
+}
+
+function commercialSetPassword_(user,password) {
+  if (String(password || '').length < 6) {
+    throw new Error('A senha deve ter pelo menos 6 caracteres.');
+  }
+
+  user.passwordSalt = Utilities.getUuid().replace(/-/g,'');
+  user.passwordHash =
+    commercialHashPassword_(password,user.passwordSalt);
+}
+
+function commercialVerifyPassword_(password,user) {
+  return !!(
+    user &&
+    user.passwordSalt &&
+    user.passwordHash &&
+    commercialSafeEqual_(
+      commercialHashPassword_(password,user.passwordSalt),
+      user.passwordHash
+    )
+  );
+}
+
+function commercialVerifyPasswordCached_(password,user) {
+  if (!user || !user.passwordSalt || !user.passwordHash) return false;
+
+  let cache = null;
+  let key = '';
+  try {
+    const material =
+      String(user.id || user.username || '') + '|' +
+      String(user.passwordHash || '') + '|' +
+      String(password || '');
+    const digest = Utilities.computeDigest(
+      Utilities.DigestAlgorithm.SHA_256,
+      material,
+      Utilities.Charset.UTF_8
+    );
+    key = 'GESTAO_EPI_PWD_V1_' + commercialBytesHex_(digest);
+    cache = CacheService.getScriptCache();
+    if (cache.get(key) === '1') return true;
+  } catch (_) {}
+
+  const ok = commercialVerifyPassword_(password,user);
+  if (ok && cache && key) {
+    try { cache.put(key,'1',GESTAO_COM_PASSWORD_CACHE_SECONDS); } catch (_) {}
+  }
+  return ok;
+}
+
+function commercialHashPassword_(password,salt) {
+  let value = String(salt) + ':' + String(password);
+
+  for (let i=0;i<GESTAO_COM_HASH_ROUNDS;i++) {
+    const bytes =
+      Utilities.computeDigest(
+        Utilities.DigestAlgorithm.SHA_256,
+        value,
+        Utilities.Charset.UTF_8
+      );
+
+    value = commercialBytesHex_(bytes) + ':' + salt;
+  }
+
+  return value.split(':')[0];
+}
+
+function commercialBytesHex_(bytes) {
+  return bytes.map(function(b){
+    const n=b<0?b+256:b;
+    return ('0'+n.toString(16)).slice(-2);
+  }).join('');
+}
+
+function commercialSafeEqual_(a,b) {
+  a=String(a||'');
+  b=String(b||'');
+
+  if(a.length!==b.length)return false;
+
+  let diff=0;
+
+  for(let i=0;i<a.length;i++){
+    diff|=a.charCodeAt(i)^b.charCodeAt(i);
+  }
+
+  return diff===0;
+}
+
+function commercialPadBase64_(value) {
+  let s=String(value||'');
+  while(s.length%4)s+='=';
+  return s;
+}
+
+function commercialNormalizeUsername_(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s+/g,'.')
+    .replace(/[^a-z0-9._-]/g,'');
+}
+
+function commercialNormalizeTenantCode_(value) {
+  return String(value || '')
+    .trim()
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^A-Z0-9]+/g,'-')
+    .replace(/^-+|-+$/g,'')
+    .slice(0,24);
+}
+
+function commercialNormalizeTenantRole_(value) {
+  const role=String(value||'consulta').toLowerCase();
+  return ['admin','campo','consulta'].indexOf(role)>=0
+    ? role
+    : 'consulta';
+}
+
+function commercialNormalizePlan_(value) {
+  const plan=String(value||'profissional').toLowerCase();
+  return ['basico','profissional','premium'].indexOf(plan)>=0
+    ? plan
+    : 'profissional';
+}
+
+function commercialNormalizeLicenseStatus_(value) {
+  const status=String(value||'trial').toLowerCase();
+  return ['trial','active','suspended'].indexOf(status)>=0
+    ? status
+    : 'trial';
+}
+
+function commercialValidateUsernamePassword_(username,password) {
+  if (String(username||'').length<3) {
+    throw new Error('O usuário deve ter pelo menos 3 caracteres.');
+  }
+
+  if (String(password||'').length<6) {
+    throw new Error('A senha deve ter pelo menos 6 caracteres.');
+  }
+}
+
+function commercialNormalizeDate_(value) {
+  const s=String(value||'').trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:'';
+}
+
+function commercialFutureDate_(days) {
+  const d=new Date();
+  d.setDate(d.getDate()+Number(days||0));
+
+  return Utilities.formatDate(
+    d,
+    Session.getScriptTimeZone()||'America/Sao_Paulo',
+    'yyyy-MM-dd'
+  );
+}
+
+function commercialPublicUser_(user) {
+  return {
+    id:String(user.id||''),
+    username:String(user.username||''),
+    name:String(user.name||user.username||''),
+    role:String(user.role||''),
+    active:user.active!==false,
+    createdAt:String(user.createdAt||''),
+    updatedAt:String(user.updatedAt||''),
+    lastLoginAt:String(user.lastLoginAt||'')
+  };
+}
+
+function commercialPublicTenant_(tenant) {
+  const lic=commercialLicenseState_(tenant);
+
+  return {
+    id:String(tenant.id||''),
+    code:String(tenant.code||''),
+    name:String(tenant.name||''),
+    cnpj:String(tenant.cnpj||''),
+    plan:commercialNormalizePlan_(tenant.plan),
+    status:
+      lic.ok
+        ? commercialNormalizeLicenseStatus_(tenant.status)
+        : (
+            lic.code==='LICENSE_EXPIRED'
+              ? 'expired'
+              : commercialNormalizeLicenseStatus_(tenant.status)
+          ),
+    validUntil:String(tenant.validUntil||''),
+    maxUsers:Number(tenant.maxUsers||1),
+    maxDevices:Number(tenant.maxDevices||1),
+    devices:(tenant.devices||[]).map(function(d){
+      return {
+        id:String(d.id||''),
+        label:String(d.label||''),
+        active:d.active!==false,
+        createdAt:String(d.createdAt||''),
+        lastSeenAt:String(d.lastSeenAt||''),
+        updatedAt:String(d.updatedAt||'')
+      };
+    }),
+    createdAt:String(tenant.createdAt||''),
+    updatedAt:String(tenant.updatedAt||'')
+  };
+}
+
+/* =========================================================
+   DRIVE COMERCIAL
+   ========================================================= */
+
+function commercialRootFolder_() {
+  const props = PropertiesService.getScriptProperties();
+  const cachedId = String(props.getProperty(GESTAO_COM_ROOT_ID_PROP) || '');
+  if (cachedId) {
+    try { return DriveApp.getFolderById(cachedId); } catch (_) {
+      props.deleteProperty(GESTAO_COM_ROOT_ID_PROP);
+    }
+  }
+
+  const folder = commercialFindOrCreateFolder_(
+    DriveApp.getRootFolder(),
+    GESTAO_COM_ROOT
+  );
+  try { props.setProperty(GESTAO_COM_ROOT_ID_PROP,folder.getId()); } catch (_) {}
+  return folder;
+}
+
+function commercialSystemFolder_() {
+  const props = PropertiesService.getScriptProperties();
+  const cachedId = String(props.getProperty(GESTAO_COM_SYSTEM_FOLDER_ID_PROP) || '');
+  if (cachedId) {
+    try { return DriveApp.getFolderById(cachedId); } catch (_) {
+      props.deleteProperty(GESTAO_COM_SYSTEM_FOLDER_ID_PROP);
+    }
+  }
+
+  const folder = commercialFindOrCreateFolder_(
+    commercialRootFolder_(),
+    GESTAO_COM_SYSTEM_FOLDER
+  );
+  try { props.setProperty(GESTAO_COM_SYSTEM_FOLDER_ID_PROP,folder.getId()); } catch (_) {}
+  return folder;
+}
+
+function commercialClientsFolder_() {
+  return commercialFindOrCreateFolder_(
+    commercialRootFolder_(),
+    GESTAO_COM_CLIENTS_FOLDER
+  );
+}
+
+function commercialFindOrCreateFolder_(parent,name) {
+  const it=parent.getFoldersByName(name);
+  return it.hasNext()?it.next():parent.createFolder(name);
+}
+
+function commercialSystemFile_() {
+  const props = PropertiesService.getScriptProperties();
+  const cachedId = String(props.getProperty(GESTAO_COM_SYSTEM_FILE_ID_PROP) || '');
+  if (cachedId) {
+    try { return DriveApp.getFileById(cachedId); } catch (_) {
+      props.deleteProperty(GESTAO_COM_SYSTEM_FILE_ID_PROP);
+    }
+  }
+
+  const folder = commercialSystemFolder_();
+  const files = folder.getFilesByName(GESTAO_COM_SYSTEM_FILE);
+  let file = null;
+
+  if (files.hasNext()) {
+    file = files.next();
+  } else {
+    file = folder.createFile(
+      GESTAO_COM_SYSTEM_FILE,
+      JSON.stringify({
+        version:1,
+        masterUsers:[],
+        tenants:[],
+        updatedAt:new Date().toISOString()
+      }),
+      MimeType.PLAIN_TEXT
+    );
+  }
+
+  try { props.setProperty(GESTAO_COM_SYSTEM_FILE_ID_PROP,file.getId()); } catch (_) {}
+  return file;
+}
+
+function commercialLoadSystem_() {
+  try {
+    const raw =
+      JSON.parse(
+        commercialSystemFile_()
+          .getBlob()
+          .getDataAsString('UTF-8') ||
+        '{}'
+      );
+
+    return {
+      version:1,
+      masterUsers:
+        Array.isArray(raw.masterUsers)
+          ? raw.masterUsers
+          : [],
+      tenants:
+        Array.isArray(raw.tenants)
+          ? raw.tenants
+          : [],
+      updatedAt:String(raw.updatedAt||'')
+    };
+  } catch (_) {
+    return {
+      version:1,
+      masterUsers:[],
+      tenants:[],
+      updatedAt:''
+    };
+  }
+}
+
+function commercialSaveSystem_(system) {
+  system.version=1;
+  system.updatedAt=new Date().toISOString();
+
+  commercialSystemFile_()
+    .setContent(JSON.stringify(system));
+}
+
+function commercialCreateTenantFolder_(tenant) {
+  const safeName =
+    String(tenant.name||'Cliente')
+      .replace(/[\\/:*?"<>|]/g,' ')
+      .replace(/\s+/g,' ')
+      .trim()
+      .slice(0,70);
+
+  return commercialClientsFolder_()
+    .createFolder(tenant.code+' - '+safeName);
+}
+
+function commercialTenantFolder_(tenant) {
+  try {
+    if(tenant.folderId) {
+      return DriveApp.getFolderById(tenant.folderId);
+    }
+  } catch (_) {}
+
+  const folder=commercialCreateTenantFolder_(tenant);
+  tenant.folderId=folder.getId();
+
+  const system=commercialLoadSystem_();
+
+  const found=system.tenants.find(function(t){
+    return t.id===tenant.id;
+  });
+
+  if(found){
+    found.folderId=tenant.folderId;
+    commercialSaveSystem_(system);
+  }
+
+  return folder;
+}
+
+function commercialTenantById_(tenantId) {
+  return (
+    commercialLoadSystem_()
+      .tenants
+      .find(function(t){
+        return t.id===String(tenantId||'');
+      }) ||
+    null
+  );
+}
+
+function commercialReadJsonFile_(folder,name,fallback) {
+  const files=folder.getFilesByName(name);
+
+  if(!files.hasNext())return fallback;
+
+  try {
+    return JSON.parse(
+      files.next()
+        .getBlob()
+        .getDataAsString('UTF-8') ||
+      '{}'
+    );
+  } catch(_) {
+    return fallback;
+  }
+}
+
+function commercialWriteJsonFile_(folder,name,data) {
+  const files=folder.getFilesByName(name);
+  const text=JSON.stringify(data);
+
+  if(files.hasNext()) {
+    files.next().setContent(text);
+  } else {
+    folder.createFile(name,text,MimeType.PLAIN_TEXT);
+  }
+}
+
+function commercialLoadTenantUsers_(tenant) {
+  const root =
+    commercialReadJsonFile_(
+      commercialTenantFolder_(tenant),
+      GESTAO_COM_USERS_FILE,
+      {version:1,users:[]}
+    );
+
+  return Array.isArray(root.users)?root.users:[];
+}
+
+function commercialSaveTenantUsers_(tenant,users) {
+  commercialWriteJsonFile_(
+    commercialTenantFolder_(tenant),
+    GESTAO_COM_USERS_FILE,
+    {
+      version:1,
+      users:users||[],
+      updatedAt:new Date().toISOString()
+    }
+  );
+}
+
+function commercialReadTenantSnapshot_(tenant) {
+  const root =
+    commercialReadJsonFile_(
+      commercialTenantFolder_(tenant),
+      GESTAO_COM_DATA_FILE,
+      blankEpiSnapshot_()
+    );
+
+  return normalizeEpiSnapshot_(root);
+}
+
+function commercialWriteTenantSnapshot_(tenant,data) {
+  commercialWriteJsonFile_(
+    commercialTenantFolder_(tenant),
+    GESTAO_COM_DATA_FILE,
+    normalizeEpiSnapshot_(data)
+  );
+}
+
+/* =========================================================
+   BIOMETRIA CRIPTOGRAFADA POR TENANT
+   ========================================================= */
+
+function tenantBiometricKey_(request) {
+  const session =
+    commercialRequireTenantRole_(request.authToken,['admin','campo']);
+
+  if (!session.ok) return session;
+
+  const tenant = commercialTenantById_(session.tenant.id);
+  if (!tenant) return {ok:false,message:'Cliente não encontrado.'};
+
+  const license = commercialLicenseState_(tenant);
+  if (!license.ok) return license;
+
+  const raw =
+    Utilities.computeHmacSha256Signature(
+      'gestao-epi-biometria-v1|' + String(tenant.id || ''),
+      commercialBiometricMasterSecret_()
+    );
+
+  return {
+    ok:true,
+    keyId:'tenant-bio-v1',
+    algorithm:'AES-GCM-256',
+    key:Utilities.base64EncodeWebSafe(raw).replace(/=+$/,''),
+    tenantId:String(tenant.id || '')
+  };
+}
+
+function tenantStoreBiometric_(request) {
+  const session =
+    commercialRequireTenantRole_(request.authToken,['admin','campo']);
+
+  if (!session.ok) return session;
+
+  const tenant = commercialTenantById_(session.tenant.id);
+  if (!tenant) return {ok:false,message:'Cliente não encontrado.'};
+
+  const license = commercialLicenseState_(tenant);
+  if (!license.ok) return license;
+
+  const payload =
+    request.payload && typeof request.payload === 'object'
+      ? request.payload
+      : {};
+
+  const workerId = String(payload.workerId || '').trim();
+  const biometric =
+    payload.biometric && typeof payload.biometric === 'object'
+      ? JSON.parse(JSON.stringify(payload.biometric))
+      : null;
+
+  if (!workerId || !biometric) {
+    return {ok:false,message:'Dados biométricos incompletos.'};
+  }
+
+  if (biometric.embedding != null) {
+    return {ok:false,message:'Template biométrico em texto aberto não é aceito nesta rota.'};
+  }
+
+  const enc = biometric.encryptedTemplate;
+  if (!enc || typeof enc !== 'object') {
+    return {ok:false,message:'Template biométrico criptografado ausente.'};
+  }
+
+  if (String(enc.alg || '') !== 'AES-GCM' ||
+      String(enc.keyId || '') !== 'tenant-bio-v1' ||
+      !String(enc.iv || '') ||
+      !String(enc.ciphertext || '')) {
+    return {ok:false,message:'Formato de template biométrico inválido.'};
+  }
+
+  if (String(enc.iv).length > 128 || String(enc.ciphertext).length > 120000) {
+    return {ok:false,message:'Template biométrico fora do limite permitido.'};
+  }
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+
+  try {
+    const snapshot = commercialReadTenantSnapshot_(tenant);
+    const worker = snapshot.app.workers.find(function(w){
+      return String(w && w.id || '') === workerId;
+    });
+
+    if (!worker) return {ok:false,message:'Trabalhador não encontrado.'};
+
+    biometric.type = 'face-1to1';
+    biometric.encryption = 'AES-GCM-256';
+    biometric.keyId = 'tenant-bio-v1';
+    biometric.updatedAt = new Date().toISOString();
+
+    worker.biometric = biometric;
+    worker.updatedAt = biometric.updatedAt;
+
+    snapshot.revision = Number(snapshot.revision || 0) + 1;
+    snapshot.updatedAt = biometric.updatedAt;
+    commercialWriteTenantSnapshot_(tenant,snapshot);
+
+    return {
+      ok:true,
+      workerId:workerId,
+      revision:snapshot.revision,
+      updatedAt:snapshot.updatedAt
+    };
+  } catch (error) {
+    return {ok:false,message:'Falha ao armazenar biometria: ' + String(error)};
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function commercialBiometricMasterSecret_() {
+  const props = PropertiesService.getScriptProperties();
+  let secret =
+    String(props.getProperty(GESTAO_COM_BIOMETRIC_MASTER_PROP) || '');
+
+  if (!secret) {
+    secret =
+      Utilities.getUuid().replace(/-/g,'') +
+      Utilities.getUuid().replace(/-/g,'');
+    props.setProperty(GESTAO_COM_BIOMETRIC_MASTER_PROP,secret);
+  }
+
+  return secret;
+}
+
+/* =========================================================
+   MOTOR DE SINCRONIZAÇÃO EPI
+   ========================================================= */
+
+const EPI_SYNC_FOLDER = 'Auditar EPI';
+const EPI_SYNC_DATA_FOLDER = 'Dados';
+const EPI_SYNC_FILE = 'auditar_epi_sync.json';
+const EPI_SYNC_VERSION = 1;
+
+function epiSyncMerge_(request) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+
+  try {
+    const incoming =
+      normalizeEpiSnapshot_(request && request.payload);
+
+    const stored = readEpiSnapshot_();
+    const merged = mergeEpiSnapshots_(stored,incoming);
+
+    ensureDeliveryStockMovements_(merged);
+
+    merged.revision =
+      Math.max(
+        Number(stored.revision || 0),
+        Number(incoming.revision || 0)
+      ) + 1;
+
+    merged.updatedAt = new Date().toISOString();
+    merged.version = EPI_SYNC_VERSION;
+
+    writeEpiSnapshot_(merged);
+
+    return {
+      ok:true,
+      revision:merged.revision,
+      updatedAt:merged.updatedAt,
+      payload:merged,
+      message:'Gestão EPI sincronizado.'
+    };
+  } catch(error) {
+    return {
+      ok:false,
+      message:'Falha na sincronização do Gestão EPI: ' + String(error)
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function epiSyncStatus_() {
+  const data=readEpiSnapshot_();
+
+  return {
+    ok:true,
+    revision:Number(data.revision||0),
+    updatedAt:String(data.updatedAt||''),
+    companies:data.app.companies.length,
+    workers:data.app.workers.length,
+    epis:data.app.epis.length,
+    deliveries:data.app.deliveries.length,
+    purchases:data.app.purchases.length,
+    batches:data.app.batches.length,
+    auditEvents:data.app.auditLog.length,
+    stockMovements:data.stock.movements.length
+  };
+}
+
+function normalizeEpiSnapshot_(value) {
+  const root =
+    value && typeof value === 'object'
+      ? value
+      : {};
+
+  const app =
+    root.app && typeof root.app === 'object'
+      ? root.app
+      : {};
+
+  const stock =
+    root.stock && typeof root.stock === 'object'
+      ? root.stock
+      : {};
+
+  return {
+    version:Number(root.version || EPI_SYNC_VERSION),
+    revision:Number(root.revision || 0),
+    updatedAt:String(root.updatedAt || ''),
+    app:{
+      companies:normalizeArray_(app.companies),
+      workers:normalizeArray_(app.workers),
+      epis:normalizeArray_(app.epis),
+      deliveries:normalizeArray_(app.deliveries),
+      purchases:normalizeArray_(app.purchases),
+      batches:normalizeArray_(app.batches),
+      epiKits:normalizeArray_(app.epiKits),
+      returns:normalizeArray_(app.returns),
+      refusals:normalizeArray_(app.refusals),
+      inventoryCounts:normalizeArray_(app.inventoryCounts),
+      auditLog:normalizeArray_(app.auditLog).slice(0,1000)
+    },
+    stock:{
+      startedAt:String(stock.startedAt || ''),
+      processedDeliveryIds:
+        uniqueStrings_(stock.processedDeliveryIds),
+      movements:normalizeArray_(stock.movements),
+      minimums:normalizeMap_(stock.minimums),
+      warehouses:normalizeArray_(stock.warehouses),
+      warehouseMinimums:normalizeMap_(stock.warehouseMinimums)
+    }
+  };
+}
+
+function blankEpiSnapshot_() {
+  return normalizeEpiSnapshot_({});
+}
+
+function mergeEpiSnapshots_(server,client) {
+  server=normalizeEpiSnapshot_(server);
+  client=normalizeEpiSnapshot_(client);
+
+  return {
+    version:EPI_SYNC_VERSION,
+    revision:Math.max(server.revision,client.revision),
+    updatedAt:
+      server.updatedAt ||
+      client.updatedAt ||
+      '',
+    app:{
+      companies:
+        mergeRecordsById_(
+          server.app.companies,
+          client.app.companies
+        ),
+      workers:
+        mergeRecordsById_(
+          server.app.workers,
+          client.app.workers
+        ),
+      epis:
+        mergeRecordsById_(
+          server.app.epis,
+          client.app.epis
+        ),
+      deliveries:
+        mergeRecordsById_(
+          server.app.deliveries,
+          client.app.deliveries
+        ),
+      purchases:
+        mergeRecordsById_(
+          server.app.purchases,
+          client.app.purchases
+        ),
+      batches:
+        mergeRecordsById_(
+          server.app.batches,
+          client.app.batches
+        ),
+      epiKits:
+        mergeRecordsById_(server.app.epiKits,client.app.epiKits),
+      returns:
+        mergeRecordsById_(server.app.returns,client.app.returns),
+      refusals:
+        mergeRecordsById_(server.app.refusals,client.app.refusals),
+      inventoryCounts:
+        mergeRecordsById_(server.app.inventoryCounts,client.app.inventoryCounts),
+      auditLog:
+        mergeRecordsById_(
+          server.app.auditLog,
+          client.app.auditLog
+        ).slice(0,1000)
+    },
+    stock:{
+      startedAt:
+        earliestIso_(
+          server.stock.startedAt,
+          client.stock.startedAt
+        ),
+      processedDeliveryIds:
+        uniqueStrings_(
+          server.stock.processedDeliveryIds.concat(
+            client.stock.processedDeliveryIds
+          )
+        ),
+      movements:
+        mergeRecordsById_(
+          server.stock.movements,
+          client.stock.movements
+        ),
+      minimums:
+        Object.assign(
+          {},
+          server.stock.minimums,
+          client.stock.minimums
+        ),
+      warehouses:
+        mergeRecordsById_(server.stock.warehouses,client.stock.warehouses),
+      warehouseMinimums:
+        Object.assign(
+          {},
+          server.stock.warehouseMinimums,
+          client.stock.warehouseMinimums
+        )
+    }
+  };
+}
+
+function ensureDeliveryStockMovements_(snapshot) {
+  const data=normalizeEpiSnapshot_(snapshot);
+  const existing={};
+
+  data.stock.movements.forEach(function(m){
+    const deliveryId = String(m && m.deliveryId || '').trim();
+    const epiId = String(m && m.epiId || '').trim();
+    const batchId = String(m && m.batchId || '').trim();
+
+    if(deliveryId && epiId && String(m.type || '') === 'OUT'){
+      existing[deliveryId+'::'+epiId+'::'+batchId]=true;
+    }
+  });
+
+  data.app.deliveries.forEach(function(d){
+    const deliveryId = String(d && d.id || '').trim();
+    const companyId = String(d && d.companyId || '').trim();
+
+    if(!deliveryId || !companyId)return;
+
+    const totals={};
+
+    (Array.isArray(d.items) ? d.items : []).forEach(function(item){
+      const epiId = String(item && item.epiId || '').trim();
+      const batchId = String(item && item.batchId || '').trim();
+      const qty = Math.max(0,Number(item && item.qty || 0));
+
+      if(!epiId || !qty)return;
+
+      const key=epiId+'::'+batchId;
+      if(!totals[key]){
+        totals[key]={
+          epiId:epiId,
+          batchId:batchId,
+          purchaseId:String(item && item.purchaseId || ''),
+          lot:String(item && item.lot || ''),
+          physicalExpiry:String(item && item.physicalExpiry || ''),
+          invoiceNumber:String(item && item.invoiceNumber || ''),
+          qty:0
+        };
+      }
+      totals[key].qty+=qty;
+    });
+
+    Object.keys(totals).forEach(function(totalKey){
+      const row=totals[totalKey];
+      const key=deliveryId+'::'+row.epiId+'::'+row.batchId;
+
+      if(existing[key])return;
+
+      data.stock.movements.push({
+        id:'sm_delivery_'+deliveryId+'_'+row.epiId+'_'+(row.batchId || 'legacy'),
+        type:'OUT',
+        delta:-row.qty,
+        companyId:companyId,
+        epiId:row.epiId,
+        batchId:row.batchId,
+        purchaseId:row.purchaseId,
+        lot:row.lot,
+        physicalExpiry:row.physicalExpiry,
+        invoiceNumber:row.invoiceNumber,
+        deliveryId:deliveryId,
+        workerId:String(d.workerId || ''),
+        note:'Baixa automática da entrega' + (row.lot ? ' • lote ' + row.lot : ''),
+        createdAt:String(d.createdAt || new Date().toISOString()),
+        updatedAt:String(d.createdAt || new Date().toISOString())
+      });
+
+      const minKey=companyId+'::'+row.epiId;
+      if(data.stock.minimums[minKey]==null){
+        data.stock.minimums[minKey]=5;
+      }
+
+      existing[key]=true;
+    });
+
+    data.stock.processedDeliveryIds.push(deliveryId);
+  });
+
+  data.stock.processedDeliveryIds =
+    uniqueStrings_(data.stock.processedDeliveryIds);
+
+  snapshot.stock=data.stock;
+}
+
+function mergeRecordsById_(a,b) {
+  const map={};
+
+  normalizeArray_(a)
+    .concat(normalizeArray_(b))
+    .forEach(function(item){
+      const id =
+        String(item && item.id || '').trim();
+
+      if(!id)return;
+
+      const current=map[id];
+
+      if(!current){
+        map[id]=item;
+        return;
+      }
+
+      const currentTime=recordTime_(current);
+      const incomingTime=recordTime_(item);
+
+      if(
+        incomingTime>currentTime ||
+        (
+          incomingTime===currentTime &&
+          JSON.stringify(item).length >
+          JSON.stringify(current).length
+        )
+      ){
+        map[id]=item;
+      }
+    });
+
+  return Object.keys(map)
+    .map(function(id){return map[id];});
+}
+
+function recordTime_(item) {
+  const raw =
+    String(
+      item &&
+      (item.updatedAt || item.createdAt) ||
+      ''
+    );
+
+  const t=Date.parse(raw);
+  return isNaN(t)?0:t;
+}
+
+function normalizeArray_(value) {
+  return Array.isArray(value)
+    ? value.filter(function(x){
+        return x && typeof x === 'object';
+      })
+    : [];
+}
+
+function normalizeMap_(value) {
+  if(
+    !value ||
+    typeof value !== 'object' ||
+    Array.isArray(value)
+  ){
+    return {};
+  }
+
+  const out={};
+
+  Object.keys(value).forEach(function(k){
+    out[String(k)]=value[k];
+  });
+
+  return out;
+}
+
+function uniqueStrings_(value) {
+  const seen={};
+  const out=[];
+
+  (
+    Array.isArray(value)
+      ? value
+      : []
+  ).forEach(function(v){
+    const s=String(v || '').trim();
+
+    if(!s || seen[s])return;
+
+    seen[s]=true;
+    out.push(s);
+  });
+
+  return out;
+}
+
+function earliestIso_(a,b) {
+  if(!a)return b||'';
+  if(!b)return a||'';
+
+  const ta=Date.parse(a);
+  const tb=Date.parse(b);
+
+  if(isNaN(ta))return b;
+  if(isNaN(tb))return a;
+
+  return ta<=tb?a:b;
+}
+
+function findOrCreateDriveFolder_(parent,name) {
+  const folders=parent.getFoldersByName(name);
+
+  if(folders.hasNext())return folders.next();
+
+  return parent.createFolder(name);
+}
+
+function getEpiDataFolder_() {
+  const root =
+    findOrCreateDriveFolder_(
+      DriveApp.getRootFolder(),
+      EPI_SYNC_FOLDER
+    );
+
+  return findOrCreateDriveFolder_(
+    root,
+    EPI_SYNC_DATA_FOLDER
+  );
+}
+
+function getEpiSyncFile_() {
+  const folder=getEpiDataFolder_();
+  const files=folder.getFilesByName(EPI_SYNC_FILE);
+
+  if(files.hasNext())return files.next();
+
+  return folder.createFile(
+    EPI_SYNC_FILE,
+    JSON.stringify(blankEpiSnapshot_()),
+    MimeType.PLAIN_TEXT
+  );
+}
+
+function readEpiSnapshot_() {
+  const file=getEpiSyncFile_();
+
+  try {
+    return normalizeEpiSnapshot_(
+      JSON.parse(
+        file.getBlob()
+          .getDataAsString('UTF-8') ||
+        '{}'
+      )
+    );
+  } catch(_) {
+    return blankEpiSnapshot_();
+  }
+}
+
+function writeEpiSnapshot_(data) {
+  const file=getEpiSyncFile_();
+
+  file.setContent(
+    JSON.stringify(
+      normalizeEpiSnapshot_(data)
+    )
+  );
+}
+
+function configurarAuditarEpi() {
+  const props=PropertiesService.getScriptProperties();
+
+  let key =
+    String(
+      props.getProperty('AUDITAR_EPI_SYNC_KEY') ||
+      ''
+    ).trim();
+
+  if(!key){
+    key =
+      Utilities.getUuid().replace(/-/g,'') +
+      Utilities.getUuid().replace(/-/g,'');
+
+    props.setProperty(
+      'AUDITAR_EPI_SYNC_KEY',
+      key
+    );
+  }
+
+  getEpiSyncFile_();
+
+  const status=epiSyncStatus_();
+
+  Logger.log('GESTÃO EPI CONFIGURADO');
+  Logger.log(JSON.stringify(status));
+
+  // Por segurança, não registra a chave no log.
+  return {
+    ok:true,
+    status:status
+  };
+}
+
+
+/* =========================================================
+   TESTE DO PROXY CLOUDFLARE - CAEPI/MTE
+   ========================================================= */
+
+function testarConsultaCaProxy12244() {
+  const resultado = caLookupViaProxy_('12244');
+  Logger.log(JSON.stringify(resultado, null, 2));
+  return resultado;
+}
+
+function testarConsultaCaProxy11711() {
+  const resultado = caLookupViaProxy_('11711');
+  Logger.log(JSON.stringify(resultado, null, 2));
+  return resultado;
+}
+
+function testarConsultaCaProxy45611() {
+  const resultado = caLookupViaProxy_('45611');
+  Logger.log(JSON.stringify(resultado, null, 2));
+  return resultado;
+}
+
+/* =========================================================
+   TESTE DIRETO - CONSULTA CAEPI/MTE
+   ========================================================= */
+
+function testarConsultaCaMte11711() {
+  return mteCaLookupOfficial_('11711');
+}
+
+function testarConsultaCaMte12244() {
+  return mteCaLookupOfficial_('12244');
+}
+
+function testarConsultaCaMte45611() {
+  return mteCaLookupOfficial_('45611');
+}
+
+
+/* =========================================================
+   DIAGNÓSTICO DA CONSULTA DE CA - v4.2.2
+   ========================================================= */
+
+function diagnosticarConsultaCa_(caNumber) {
+  const ca = String(caNumber || '12244').replace(/\D/g,'');
+  const props = PropertiesService.getScriptProperties();
+  const out = {
+    ca:ca,
+    proxyConfigured:!!String(props.getProperty('GESTAO_EPI_CA_PROXY_URL') || '').trim(),
+    proxy:null,
+    official:null,
+    snapshot:null
+  };
+  try { out.proxy = caLookupViaProxy_(ca); } catch (e) { out.proxyError = String(e); }
+  try { out.official = mteCaLookupOfficial_(ca); } catch (e) { out.officialError = String(e); }
+  try { out.snapshot = caLookupViaCaepiSnapshotMirror_(ca); } catch (e) { out.snapshotError = String(e); }
+  Logger.log(JSON.stringify(out,null,2));
+  return out;
+}
+
+function diagnosticarCa12244() { return diagnosticarConsultaCa_('12244'); }
+function diagnosticarCa11711() { return diagnosticarConsultaCa_('11711'); }
+function diagnosticarCa45611() { return diagnosticarConsultaCa_('45611'); }
+
+/* =========================================================
+   TESTE SIMPLES DA CENTRAL
+   ========================================================= */
+
+function testarGestaoEpiCentral() {
+  const props=PropertiesService.getScriptProperties();
+
+  return {
+    ok:true,
+    central:true,
+    aiWorkerConfigured:
+      !!String(
+        props.getProperty('GESTAO_EPI_AI_WORKER_KEY') ||
+        ''
+      ).trim(),
+    master:masterStatus_()
+  };
+}
