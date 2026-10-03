@@ -26,7 +26,7 @@
   function confirmationLabel(d){
     if(d?.biometricVerified===true||d?.confirmationType==='face-1to1'||d?.confirmationMethod==='face-biometric'){
       const pct=Math.round(Number(d.biometricSimilarity||d.facialSimilarity||0)*100);
-      return `<span class="worker-sheet-confirm face">✓ Facial${pct?` • ${pct}%`:''}</span>`;
+      return `<span class="worker-sheet-confirm face">✓ Facial${pct?` • ${pct}%`:''}${d.biometricLivenessVerified?' • pessoa real':''}</span>`;
     }
     if(String(d?.signature||'').trim())return '<span class="worker-sheet-confirm sign">✓ Assinatura</span>';
     return '<span class="worker-sheet-confirm missing">Sem confirmação</span>';
@@ -112,7 +112,7 @@
     const proofs=deliveries.filter(d=>String(d.signature||'').trim()||d.biometricVerified===true||d.confirmationType==='face-1to1'||d.confirmationMethod==='face-biometric').map(d=>{
       const face=d.biometricVerified===true||d.confirmationType==='face-1to1'||d.confirmationMethod==='face-biometric';
       const pct=Math.round(Number(d.biometricSimilarity||d.facialSimilarity||0)*100);
-      return `<div class="worker-sheet-proof"><b>${fmtDate(d.createdAt,true)}</b><br><small>${esc(d.reason||'Entrega de EPI')}</small>${face?`<div class="worker-sheet-face-proof">✓ Biometria facial verificada${pct?` • ${pct}%`:''}<br>Sem exigência de piscar</div>`:`<img src="${d.signature}" alt="Assinatura do trabalhador">`}</div>`;
+      return `<div class="worker-sheet-proof"><b>${fmtDate(d.createdAt,true)}</b><br><small>${esc(d.reason||'Entrega de EPI')}</small>${face?`<div class="worker-sheet-face-proof">✓ Biometria facial verificada${pct?` • ${pct}%`:''}<br>${d.biometricLivenessVerified?'Pessoa real verificada automaticamente • ':''}sem exigência de piscar${d.biometricEvidenceId?`<br>ID da evidência: ${esc(d.biometricEvidenceId)}`:''}${d.biometricEvidenceHash?`<br>Hash: ${esc(String(d.biometricEvidenceHash).slice(0,16))}…`:''}</div>`:`<img src="${d.signature}" alt="Assinatura do trabalhador">`}</div>`;
     }).join('');
 
     const lastByEpi=new Map();
