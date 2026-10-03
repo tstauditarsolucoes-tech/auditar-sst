@@ -37,7 +37,11 @@ assert "'rondaDeferred': true" in checklist
 
 assert (
     "version: 3.29.151+293" in pub
+    or "version: 3.29.152+294" in pub
+    or "version: 3.29.153+295" in pub
     or "version: 3.30.70+257" in pub
+    or "version: 3.30.71+258" in pub
+    or "version: 3.30.72+259" in pub
 )
 
 print("RONDA_AI_CONNECTION_RECOVERY_REGRESSION_OK")
