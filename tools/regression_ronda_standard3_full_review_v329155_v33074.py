@@ -14,6 +14,7 @@ required = (
     "RELATÓRIO DE VISTORIA TÉCNICA",
     "IDENTIFICAÇÃO DA EMPRESA",
     "seenRecordIds",
+    "pw.NewPage()",
     "_captionFromTitle",
     "_compactConclusion",
     "_compactReferences",
