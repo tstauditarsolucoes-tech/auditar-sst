@@ -1,16 +1,16 @@
 # Auditar — Sistemas SST e EPI
 
 > ## 🚧 VERSÃO ATUAL DO AUDITAR SST
-> **Android:** `v3.29.152+294`  
-> **Windows:** `v3.30.71+258`  
+> **Android:** `v3.29.155+297`  
+> **Windows:** `v3.30.74+261`  
 > **Branch:** `feature/client-panel-permissions-v329106`  
 > **PR:** `#15` — permanece em rascunho para revisão; não publicar a Central automaticamente.  
-> **Status:** ✅ CI validada — Android e Windows concluídos com sucesso em 02/10/2026. O **Padrão Auditar 3** é o relatório principal, fiel ao modelo técnico aprovado, com a logo cadastrada da empresa somente no espaço da direita; não existe logo fixa do Vale do Leite nem repetição da logo do cliente.
+> **Status:** ✅ CI validada — Android e Windows concluídos com sucesso em 03/10/2026. A **Ronda** usa o **Padrão Auditar 3** refinado para ficar o mais próximo possível do PDF técnico de referência, com logo Auditar à esquerda, título/empresa centralizados e somente a logo cadastrada da empresa vistoriada à direita. Não existe logo fixa do Vale do Leite nem repetição da logo do cliente.
 >
 > O código final é montado pelos workflows atuais a partir da base + patches incrementais.  
 > **Não alterar sincronização, banco, autenticação, mídia/fotos ou Central sem autorização expressa.**
 >
-> Consulte [CURRENT_VERSION.md](CURRENT_VERSION.md) antes de iniciar qualquer alteração.
+> Consulte [CURRENT_VERSION.md](CURRENT_VERSION.md) antes de iniciar qualquer alteração. Estado validado atual: commit `f0ae0458f961fd0506fcc303b0972dda3abde22e`, Android run `37135205634`, Windows run `37135205632`.
 
 
 Repositório de desenvolvimento dos sistemas da Auditar Soluções.
