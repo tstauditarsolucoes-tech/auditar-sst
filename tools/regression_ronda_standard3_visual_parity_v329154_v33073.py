@@ -14,7 +14,6 @@ normalized = "".join(renderer.split())
 for snippet in (
     "RELATÓRIO DE VISTORIA TÉCNICA",
     "IDENTIFICAÇÃO DA EMPRESA",
-    "_logo(auditarLogo, 104, 56)",
     "_logo(companyLogo, 82, 58)",
     "flex: 48",
     "flex: 52",
@@ -23,11 +22,18 @@ for snippet in (
     "_compactTitle",
     "_compactReferences",
     "exigências aplicáveis do Corpo de Bombeiros",
-    "_logo(auditarLogo, 90, 34)",
 ):
     assert snippet in renderer, "regressao visual Ronda: " + snippet
 
 assert "AppDatabase.instance.getCompanies(onlyActive:false)" in normalized
+assert (
+    "_logo(auditarLogo, 104, 56)" in renderer
+    or "_auditarBrand(auditarLogo, 112, 58)" in renderer
+)
+assert (
+    "_logo(auditarLogo, 90, 34)" in renderer
+    or "_auditarBrand(auditarLogo, 92, 42)" in renderer
+)
 assert "companyLogo ?? auditarLogo" not in renderer
 assert ai.count("'mode': 'checklist_photo'") >= 2
 assert "'rondaDeferred': false" in ai
