@@ -82,7 +82,7 @@ for snippet in (
     "_auditarBrand",
     "fullAddress",
     "registeredCompany?.logoPath ?? company.logoPath",
-    "_logo(companyLogo, 82, 58)",
+    "_logo(companyLogo, 83, 83)",
 ):
     assert snippet in renderer, "revisao completa ausente: " + snippet
 
