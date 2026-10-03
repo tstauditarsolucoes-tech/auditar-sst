@@ -73,7 +73,7 @@
   function resetVerification(){verified=false;verifiedAt='';verifiedSimilarity=0;verifiedWorkerId='';verifiedReal=0;verifiedLive=0;verifiedFrames=0;verifiedEvidenceId='';verifiedEvidenceHash='';verifiedEvidenceNonce='';const s=$('#pcFaceStatus');if(s){s.className='pc-face-status';s.textContent='Biometria ainda não verificada.';}}
 
   async function openCamera(){
-    const workerId=$('#pcDeliveryWorker')?.value||'';if(!workerId)return toast('Selecione o trabalhador primeiro.');const w=worker(workerId);if(!Array.isArray(w?.biometric?.embedding)||!w.biometric.embedding.length)return toast('Esse trabalhador ainda não tem biometria cadastrada. Cadastre o rosto no aplicativo Campo primeiro.');
+    const workerId=$('#pcDeliveryWorker')?.value||'';if(!workerId)return toast('Selecione o trabalhador primeiro.');const w=worker(workerId);if(!(window.GestaoEpiBiometricCrypto?.hasTemplate?.(w)||(Array.isArray(w?.biometric?.embedding)&&w.biometric.embedding.length)))return toast('Esse trabalhador ainda não tem biometria cadastrada. Cadastre o rosto primeiro.');
     ensureOverlay();$('#pcFaceOverlay').classList.add('open');const btn=$('#pcFaceCapture');if(btn){btn.disabled=true;btn.textContent='Carregando biometria…';}
     try{await ensureHuman();if(!navigator.mediaDevices?.getUserMedia)throw new Error('A câmera não está disponível neste computador.');stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{width:{ideal:720},height:{ideal:900},facingMode:'user'}});const v=$('#pcFaceVideo');v.srcObject=stream;await v.play();if(btn){btn.disabled=false;btn.textContent='🙂 Verificar rosto';}}
     catch(err){toast(err.message||'Não foi possível abrir a câmera.');closeCamera();}
@@ -82,11 +82,15 @@
   function closeCamera(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}const v=$('#pcFaceVideo');if(v)v.srcObject=null;$('#pcFaceOverlay')?.classList.remove('open');const btn=$('#pcFaceCapture');if(btn){btn.disabled=false;btn.textContent='🙂 Verificar rosto';}}
 
   async function verifyFrame(){
-    const workerId=$('#pcDeliveryWorker')?.value||'',w=worker(workerId),ref=w?.biometric?.embedding;
-    if(!workerId||!Array.isArray(ref)||!ref.length){closeCamera();return toast('Biometria do trabalhador não encontrada.');}
+    const workerId=$('#pcDeliveryWorker')?.value||'',w=worker(workerId);
+    if(!workerId){closeCamera();return toast('Biometria do trabalhador não encontrada.');}
     const video=$('#pcFaceVideo');if(!video?.videoWidth)return toast('Aguarde a câmera carregar.');
     const btn=$('#pcFaceCapture');btn.disabled=true;btn.textContent='Verificando pessoa real…';
     try{
+      const ref=window.GestaoEpiBiometricCrypto?.getEmbedding
+        ? await window.GestaoEpiBiometricCrypto.getEmbedding(w)
+        : (w?.biometric?.embedding||[]);
+      if(!Array.isArray(ref)||!ref.length)throw new Error('Não foi possível abrir o template biométrico. Conecte à internet uma vez neste computador.');
       const engine=await ensureHuman(),samples=[];
       for(let i=0;i<3;i++){
         const result=await engine.detect(video),faces=result?.face||[];
