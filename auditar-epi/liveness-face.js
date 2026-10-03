@@ -7,6 +7,8 @@
   const $=(s,r=document)=>r.querySelector(s);
   let engine=null,loading=null,stream=null,running=false,goodFrames=0;
   let livePassedAt='',liveWorkerId='',lastReal=0,lastLive=0;
+  function randomToken(bytes=12){try{const a=new Uint8Array(bytes);crypto.getRandomValues(a);return Array.from(a,n=>n.toString(16).padStart(2,'0')).join('');}catch(_){return Math.random().toString(36).slice(2)+Date.now().toString(36);}}
+  async function sha256Text(text){try{const data=new TextEncoder().encode(String(text||'')),hash=await crypto.subtle.digest('SHA-256',data);return Array.from(new Uint8Array(hash),b=>b.toString(16).padStart(2,'0')).join('');}catch(_){return '';}}
 
   function toast(msg){const el=$('#toast');if(!el)return alert(msg);el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2800);}
   function root(){try{return JSON.parse(localStorage.getItem(APP_KEY)||'{}');}catch{return {};}}
@@ -100,12 +102,23 @@
   function cancelLive(){clearPending();toast('Verificação facial cancelada.');}
 
   function patchSavedDelivery(){
-    if(!livePassedAt||!liveWorkerId)return;const at=livePassedAt,wid=liveWorkerId,real=lastReal,live=lastLive;
-    setTimeout(()=>{try{const x=root();const d=(x.deliveries||[])[0];if(!d||d.confirmationMethod!=='face-biometric'||d.biometricWorkerId!==wid)return;d.biometricLivenessVerified=true;d.biometricLivenessAt=at;d.biometricPassiveLiveness=true;d.biometricBlinkVerified=false;d.biometricAntispoofScore=Math.round(real*10000)/10000;d.biometricLiveScore=Math.round(live*10000)/10000;d.updatedAt=new Date().toISOString();saveRoot(x);patchReceipt(d.id);}catch(_){} livePassedAt='';liveWorkerId='';},320);
+    if(!livePassedAt||!liveWorkerId)return;
+    const at=livePassedAt,wid=liveWorkerId,real=lastReal,live=lastLive;
+    setTimeout(async()=>{try{
+      const x=root(),d=(x.deliveries||[])[0];
+      if(!d||d.confirmationMethod!=='face-biometric'||d.biometricWorkerId!==wid)return;
+      d.biometricLivenessVerified=true;d.biometricLivenessAt=at;d.biometricPassiveLiveness=true;d.biometricBlinkVerified=false;
+      d.biometricAntispoofScore=Math.round(real*10000)/10000;d.biometricLiveScore=Math.round(live*10000)/10000;
+      d.biometricRealThreshold=REAL_MIN;d.biometricLiveThreshold=LIVE_MIN;d.biometricCaptureFrames=Math.max(2,goodFrames||2);
+      d.biometricEvidenceId='bio_'+Date.now().toString(36)+'_'+randomToken(5);d.biometricEvidenceNonce=randomToken(12);
+      d.biometricEvidenceHashAlg='SHA-256';d.biometricEvidenceVersion=1;
+      d.biometricEvidenceHash=await sha256Text(JSON.stringify({v:1,id:d.biometricEvidenceId,deliveryId:d.id,workerId:wid,at,similarity:Math.round(Number(d.biometricSimilarity||0)*10000)/10000,real:d.biometricAntispoofScore,live:d.biometricLiveScore,frames:d.biometricCaptureFrames,threshold:Number(d.biometricThreshold||0.60),realMin:REAL_MIN,liveMin:LIVE_MIN,engine:d.biometricEngine||'human-faceres',engineVersion:d.biometricModelVersion||'3.3.6',nonce:d.biometricEvidenceNonce}));
+      d.updatedAt=new Date().toISOString();saveRoot(x);patchReceipt(d.id);
+    }catch(_){} livePassedAt='';liveWorkerId='';},320);
   }
 
   function patchReceipt(id){
-    try{const x=root();const d=(x.deliveries||[]).find(a=>a.id===id);if(!d?.biometricLivenessVerified)return;const box=$('#receiptContent .bio-proof-note');if(box&&!box.querySelector('.live-receipt'))box.insertAdjacentHTML('beforeend','<span class="live-receipt"><br><b>✓ Verificação de pessoa real:</b> validação automática no momento da entrega, sem exigir piscar ou outro gesto.</span>');}catch(_){}
+    try{const x=root();const d=(x.deliveries||[]).find(a=>a.id===id);if(!d?.biometricLivenessVerified)return;const box=$('#receiptContent .bio-proof-note');if(box&&!box.querySelector('.live-receipt'))box.insertAdjacentHTML('beforeend',`<span class="live-receipt"><br><b>✓ Verificação de pessoa real:</b> validação automática no momento da entrega, sem exigir piscar ou outro gesto.${d.biometricEvidenceId?`<br>ID da evidência: ${d.biometricEvidenceId}`:''}${d.biometricEvidenceHash?`<br>Hash: ${String(d.biometricEvidenceHash).slice(0,16)}…`:''}</span>`);}catch(_){}
   }
 
   function bind(){
