@@ -56,6 +56,7 @@ class RondaStandard3PdfService {
       final title = _publicText(_first([
         p['aiTitle'],
         p['title'],
+        record.title,
         categories.isNotEmpty ? categories.join(' + ') : null,
         p['description'],
         'Não conformidade',
