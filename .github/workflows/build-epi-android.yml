@@ -135,6 +135,11 @@ jobs:
           node --check biometric-crypto-v1.js\n          node --check biometric-face.js
           node --check liveness-face.js
 
+      - name: Validar GS biométrico
+        run: |
+          cp backend/Code-Gestao-EPI-v4.3.0-BIOMETRIA-CRIPTO.txt /tmp/gestao-epi-biometria.js
+          node --check /tmp/gestao-epi-biometria.js
+
       - name: Compilar APK
         working-directory: auditar-epi-mobile/android
         run: ./gradlew assembleDebug
@@ -155,6 +160,14 @@ jobs:
           files: Gestao-EPI-Campo-v2.2.0-POSSE-TROCAS.apk
           make_latest: false
           overwrite_files: true
+
+      - name: Disponibilizar GS biométrico
+        uses: actions/upload-artifact@v4
+        with:
+          name: Code-Gestao-EPI-v4.3.0-BIOMETRIA-CRIPTO
+          path: backend/Code-Gestao-EPI-v4.3.0-BIOMETRIA-CRIPTO.txt
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
