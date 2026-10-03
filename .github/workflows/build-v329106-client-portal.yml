@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.156 Biblioteca Offline
+name: Auditar SST Android v3.29.157 Sugestoes Offline
 # Clean rebuild v3.29.145 after protected productivity consolidation
 # Rebuild v3.29.113 logo recovery
 
@@ -76,6 +76,10 @@ on:
       - 'feature_sources/offline_report_knowledge_test_v329156.dart'
       - 'tools/patch_offline_report_knowledge_v329156_v33075.py'
       - 'tools/regression_offline_report_knowledge_v329156_v33075.py'
+      - 'feature_sources/offline_report_inline_suggestions_v329157.dart'
+      - 'feature_sources/offline_report_inline_suggestions_test_v329157.dart'
+      - 'tools/patch_offline_inline_suggestions_v329157_v33076.py'
+      - 'tools/regression_offline_inline_suggestions_v329157_v33076.py'
       - 'feature_sources/field_intelligence_center_v329143.dart'
       - 'tools/patch_field_intelligence_v329143_v33062.py'
       - 'tools/regression_field_intelligence_v329143_v33062.py'
@@ -1088,6 +1092,18 @@ jobs:
           python3 tools/regression_offline_report_knowledge_v329156_v33075.py "$APP_DIR"
           grep -Fq "version: 3.29.156+298" "$APP_DIR/pubspec.yaml"
 
+      - name: Sugerir modelos offline ao digitar o primeiro resumo
+        run: |
+          set -euo pipefail
+          python3 tools/patch_offline_inline_suggestions_v329157_v33076.py "$APP_DIR" android
+          cd "$APP_DIR"
+          dart format lib/widgets/offline_report_inline_suggestions.dart lib/screens/safety_observations_screen.dart test/offline_report_inline_suggestions_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/offline_report_inline_suggestions_test.dart test/offline_report_knowledge_test.dart
+          cd "$GITHUB_WORKSPACE"
+          python3 tools/regression_offline_inline_suggestions_v329157_v33076.py "$APP_DIR"
+          grep -Fq "version: 3.29.157+299" "$APP_DIR/pubspec.yaml"
+
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
         env:
@@ -1149,12 +1165,12 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.156-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.156-Android.apk > dist/Auditar-SST-v3.29.156-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.157-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.156-Android.apk > dist/Auditar-SST-v3.29.157-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.156-Android-Biblioteca-Offline
+          name: Auditar-SST-v3.29.157-Android-Sugestoes-Offline
           path: dist/*
           retention-days: 30
 
