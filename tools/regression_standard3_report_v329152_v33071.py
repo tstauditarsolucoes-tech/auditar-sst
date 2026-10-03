@@ -52,8 +52,12 @@ assert "vale do leite" not in service.lower()
 assert (
     "version: 3.29.152+294" in pub
     or "version: 3.29.153+295" in pub
+    or "version: 3.29.154+296" in pub
+    or "version: 3.29.155+297" in pub
     or "version: 3.30.71+258" in pub
     or "version: 3.30.72+259" in pub
+    or "version: 3.30.73+260" in pub
+    or "version: 3.30.74+261" in pub
 )
 
 print("PADRAO_AUDITAR_3_REGRESSION_OK")
