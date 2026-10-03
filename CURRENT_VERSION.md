@@ -4,22 +4,22 @@
 
 | Plataforma | Versão |
 |---|---|
-| Android | **v3.29.152+294** |
-| Windows | **v3.30.71+258** |
+| Android | **v3.29.155+297** |
+| Windows | **v3.30.74+261** |
 
 **Branch de trabalho:** `feature/client-panel-permissions-v329106`  
 **Pull Request:** `#15`  
-**Estado:** ✅ CI final validada em 02/10/2026.
+**Estado:** ✅ CI final validada em 03/10/2026.
 
 ## Validação final
 
-- Android: workflow run `37064111859` — **success**.
-- Windows: workflow run `37064111931` — **success**.
-- APK: `Auditar-SST-v3.29.152-Android.apk` — SHA-256 `0879febdd0201485ec1cd39851fc7c7f99326ca4d3026eb2fcf7d9690134f0a1`.
-- Windows instalador: `Auditar-SST-Setup-v3.30.71.exe` — SHA-256 `8a8ad1f3b6286b6ef47ecbd11feeabb111e798dd69fe61e507951172758eff24`.
-- Windows portátil: `Auditar-SST-Windows-v3.30.71-PORTATIL.zip` — SHA-256 `af00b205f75a5b5c6c916371f2acc6c91ef40ee888a1b0ea45ef4959c19f4b21`.
-- Padrão Auditar 3 validado como modelo principal.
-- Logo da direita exclusiva da empresa cadastrada; se não houver logo, o espaço fica vazio. Não existe logo fixa do Vale do Leite nem repetição da logo do cliente.
+- Android: workflow run `37135205634` — **success**.
+- Windows: workflow run `37135205632` — **success**.
+- APK: `Auditar-SST-v3.29.155-Android.apk` — contido no artefato `Auditar-SST-v3.29.155-Android-Ronda-Modelo-Final`.
+- Windows instalador: `Auditar-SST-Setup-v3.30.74.exe` — contido no artefato `Auditar-SST-v3.30.74-Windows-Ronda-Modelo-Final`.
+- Windows portátil: `Auditar-SST-Windows-v3.30.74-PORTATIL.zip` — contido no artefato `Auditar-SST-v3.30.74-Windows-Ronda-Modelo-Final`.
+- Padrão Auditar 3 validado como modelo principal; na Ronda, o renderer final foi refinado para o PDF técnico de referência, com até dois achados por página, fotos maiores, títulos compactos, conclusão e referências enxutas.
+- Logo da direita exclusiva da empresa vistoriada e carregada dinamicamente do cadastro; se não houver logo, o espaço fica vazio. Vale do Leite é apenas empresa de exemplo/referência e não está fixada no modelo.
 - `Padrão Auditar` e `Padrão Auditar 2` preservados.
 - Núcleo protegido preservado pelas regressões do pipeline.
 - A validação de CI não substitui o teste físico do APK e do executável em aparelho/PC real.
@@ -51,11 +51,11 @@
 
 ## Builds validados
 
-- Android: workflow run `37064111859` — **success**
-- Artefato: `Auditar-SST-v3.29.152-Android-Pacote-Operacional`
-- Windows: workflow run `37064111931` — **success**
-- Artefato: `Auditar-SST-v3.30.71-Windows-Padrao-Auditar-3`
-- Commit do app validado: `91b2b9e433ac1bf6d6dc5f89706585c56040cf3d`
+- Android: workflow run `37135205634` — **success**
+- Artefato: `Auditar-SST-v3.29.155-Android-Ronda-Modelo-Final` (ID `11278543385`)
+- Windows: workflow run `37135205632` — **success**
+- Artefato: `Auditar-SST-v3.30.74-Windows-Ronda-Modelo-Final` (ID `11278418899`)
+- Commit do app validado: `f0ae0458f961fd0506fcc303b0972dda3abde22e`
 - Alterações posteriores a esse commit neste arquivo/README são somente documentação.
 
 ## Núcleo protegido
