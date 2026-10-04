@@ -1,17 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Gestão EPI">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="shieldGrad" x1="92" y1="86" x2="420" y2="438" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#083B68"/>
-      <stop offset="0.48" stop-color="#0B4D78"/>
-      <stop offset="0.52" stop-color="#09B98B"/>
-      <stop offset="1" stop-color="#00A878"/>
+    <linearGradient id="g1" x1="76" y1="74" x2="430" y2="438" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0ba27f"/>
+      <stop offset=".55" stop-color="#087662"/>
+      <stop offset="1" stop-color="#123f4a"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="90" y1="95" x2="395" y2="415" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0ec19a"/>
+      <stop offset="1" stop-color="#075b55"/>
     </linearGradient>
   </defs>
-  <rect width="512" height="512" rx="112" fill="#F8FBFA"/>
-  <path d="M256 52 422 136v128c0 103-62 174-166 218C152 438 90 367 90 264V136L256 52Z" fill="none" stroke="url(#shieldGrad)" stroke-width="30" stroke-linejoin="round"/>
-  <path d="M162 231c5-44 31-76 73-89v-21h42v21c42 13 68 45 73 89H162Z" fill="#083B68"/>
-  <rect x="150" y="225" width="212" height="28" rx="14" fill="#083B68"/>
-  <circle cx="256" cy="289" r="47" fill="#083B68"/>
-  <path d="M150 415c11-61 47-96 106-96s95 35 106 96l-13 31H163l-13-31Z" fill="#083B68"/>
-  <path d="m188 379 45 45 94-100" fill="none" stroke="#08B887" stroke-width="31" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M256 38 424 121v130c0 111-64 183-168 223C152 434 88 362 88 251V121L256 38Z" fill="url(#g1)"/>
+  <path d="M256 38v436c104-40 168-112 168-223V121L256 38Z" fill="#0b4f59" opacity=".38"/>
+  <path d="M138 235c7-70 48-119 101-135v-24h34v24c53 16 94 65 101 135h11c9 0 16 7 16 16s-7 16-16 16H127c-9 0-16-7-16-16s7-16 16-16h11Z" fill="#fff"/>
+  <path d="M224 119c0-9 7-16 16-16h32c9 0 16 7 16 16v72h-64v-72Z" fill="#fff"/>
+  <path d="m132 293 83 81 165-157 30 32-195 188L102 327l30-34Z" fill="#fff"/>
 </svg>
