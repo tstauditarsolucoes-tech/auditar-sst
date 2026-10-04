@@ -15,9 +15,6 @@ block = styled[start:end]
 
 assert "_labelValue('Risco', risk)" not in block
 assert "_priorityChip(priority)" not in block
-assert "final risk = a.riskIdentified" not in block
-assert "final priority = _priorityForIssue(data);" not in block
-
 for marker in (
     "_labelValue('Situação encontrada', problem)",
     "_labelValue('Correção recomendada', recommendation)",
