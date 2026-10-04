@@ -39,7 +39,6 @@ jobs:
           Copy-Item -Recurse -Force 'auditar-epi-gestao/*' 'auditar-epi-windows/app/'
           Copy-Item -Force 'auditar-epi-windows/brand-logo-v279.svg' 'auditar-epi-windows/app/brand-logo-v279.svg'
           Copy-Item -Force 'auditar-epi-windows/brand-logo-v300.svg' 'auditar-epi-windows/app/brand-logo-v300.svg'
-          Copy-Item -Force 'auditar-epi-windows/app-icon-v300.svg' 'auditar-epi-windows/app-icon-v300.svg'
           Copy-Item -Force 'auditar-epi-windows/stable-central-config.js' 'auditar-epi-windows/app/central-config.js'
           Copy-Item -Force 'auditar-epi-windows/pc-stable.js' 'auditar-epi-windows/app/pc-stable.js'
           Copy-Item -Force 'auditar-epi-windows/pc-biometric-crypto-v281.js' 'auditar-epi-windows/app/pc-biometric-crypto-v281.js'
