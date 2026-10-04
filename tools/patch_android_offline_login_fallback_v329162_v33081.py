@@ -52,15 +52,20 @@ new = """    } catch (error) {
     }
 """
 
-if new not in auth:
-    count = auth.count(old)
-    if count != 1:
-        raise RuntimeError(
-            f"bloco de fallback do login esperado 1 vez; encontrado {count}"
-        )
-    auth = auth.replace(old, new, 1)
-
-auth_path.write_text(auth, encoding="utf-8", newline="\n")
+if platform == "android":
+    if new not in auth:
+        count = auth.count(old)
+        if count != 1:
+            raise RuntimeError(
+                f"bloco de fallback do login esperado 1 vez; encontrado {count}"
+            )
+        auth = auth.replace(old, new, 1)
+    auth_path.write_text(auth, encoding="utf-8", newline="\n")
+else:
+    # O fallback de autenticação offline é exclusivo do Android.
+    # No Windows, esta etapa apenas mantém a linha de versão compatível
+    # sem alterar o AuthService.
+    print("WINDOWS_AUTH_UNCHANGED_OK")
 
 pub_path = root / "pubspec.yaml"
 pub = pub_path.read_text(encoding="utf-8")
