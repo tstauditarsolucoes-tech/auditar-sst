@@ -312,29 +312,21 @@ if "Future<void> _openFastOfflineAssistant()" not in s:
     s = once(s, method_anchor, methods + method_anchor,
              "metodo assistente checklist")
 
-ui_anchor = """              onChanged: _fastSaving ? null : (value) {
-                if (value != null) setState(() => _fastPriority = value);
-              },
-            ),
-            const SizedBox(height: 12),
-            FilledButton.icon("""
 if "Calcular prioridade e NR sem IA" not in s:
-    s = once(
-        s, ui_anchor,
-        """              onChanged: _fastSaving ? null : (value) {
-                if (value != null) setState(() => _fastPriority = value);
-              },
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
+    priority_pos = s.find("labelText: 'Prioridade informada pelo técnico'")
+    if priority_pos < 0:
+        raise RuntimeError("campo de prioridade da captura rapida nao localizado")
+    button_pos = s.find("            FilledButton.icon(", priority_pos)
+    if button_pos < 0:
+        raise RuntimeError("botao salvar da captura rapida nao localizado")
+    button = """            OutlinedButton.icon(
               onPressed: _fastSaving ? null : _openFastOfflineAssistant,
               icon: const Icon(Icons.offline_bolt_outlined),
               label: const Text('Calcular prioridade e NR sem IA'),
             ),
             const SizedBox(height: 12),
-            FilledButton.icon(""",
-        "botao assistente checklist",
-    )
+"""
+    s = s[:button_pos] + button + s[button_pos:]
 write(rel, s)
 
 # Relatório - resumo executivo local.
