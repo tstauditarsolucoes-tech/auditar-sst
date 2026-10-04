@@ -132,16 +132,18 @@ if "'control'," not in s:
         "atalho controle operacional",
     )
 
-if "Abrir controle operacional" not in s:
-    attention_anchor = """          const SizedBox(height: 16),
-          Card(
-            child: Column(children: [
-              const ListTile(
-                leading: Icon(Icons.priority_high_rounded),
-                title: Text('O que precisa de atenção',
-"""
-    control_card = """          const SizedBox(height: 16),
-          Card(
+if "Online/Offline, pendências" not in s:
+    today_pos = s.find("  Widget todayTab() {")
+    if today_pos < 0:
+        raise RuntimeError("metodo todayTab ausente")
+    children_pos = s.find("children: [", today_pos)
+    if children_pos < 0:
+        raise RuntimeError("lista todayTab ausente")
+    insert_pos = s.find("\n", children_pos)
+    if insert_pos < 0:
+        raise RuntimeError("linha todayTab ausente")
+    insert_pos += 1
+    control_card = """          Card(
             child: ListTile(
               leading: const Icon(Icons.rule_folder_outlined),
               title: const Text(
@@ -159,24 +161,21 @@ if "Abrir controle operacional" not in s:
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          Card(
-            child: Column(children: [
-              const ListTile(
-                leading: Icon(Icons.priority_high_rounded),
-                title: Text('O que precisa de atenção',
+          const SizedBox(height: 10),
 """
-    if attention_anchor not in s:
-        raise RuntimeError("card de atenção da Central não localizado")
-    s = s.replace(attention_anchor, control_card, 1)
+    s = s[:insert_pos] + control_card + s[insert_pos:]
 
-old_diag = "final version = Platform.isWindows ? '3.30.66' : '3.29.147';"
-if old_diag in s:
-    s = s.replace(
-        old_diag,
-        "final version = Platform.isWindows ? '3.30.82' : '3.29.163';",
-        1,
-    )
+for old_diag in (
+    "final version = Platform.isWindows ? '3.30.66' : '3.29.147';",
+    "final version = Platform.isWindows ? '3.30.68' : '3.29.149';",
+):
+    if old_diag in s:
+        s = s.replace(
+            old_diag,
+            "final version = Platform.isWindows ? '3.30.82' : '3.29.163';",
+            1,
+        )
+        break
 write(rel, s)
 
 # Home: indicador discreto de conectividade, sem substituir o status de sync.
