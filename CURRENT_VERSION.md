@@ -4,26 +4,29 @@
 
 | Plataforma | Versão |
 |---|---|
-| Android | **v3.29.158+300** |
-| Windows | **v3.30.77+264** |
+| Android | **v3.29.160+302** |
+| Windows | **v3.30.79+266** |
 
 **Branch de trabalho:** `feature/client-panel-permissions-v329106`  
 **Pull Request:** `#15`  
-**Estado:** ✅ CI final validada em 03/10/2026.
+**Estado:** ✅ CI final validada em 04/10/2026.
 
 ## Validação final
 
-- Android: workflow run `37167428008` — **success**.
-- Windows: workflow run `37167429861` — **success**.
-- APK: `Auditar-SST-v3.29.158-Android.apk` — contido no artefato `Auditar-SST-v3.29.158-Android-Ronda-Sugestoes-Offline`.
-- Windows instalador: `Auditar-SST-Setup-v3.30.77.exe` — contido no artefato `Auditar-SST-v3.30.77-Windows-Ronda-Sugestoes-Offline`.
-- Windows portátil: `Auditar-SST-Windows-v3.30.77-PORTATIL.zip` — contido no artefato `Auditar-SST-v3.30.77-Windows-Ronda-Sugestoes-Offline`.
+- Android: workflow run `37192186526` — **success**.
+- Windows: workflow run `37192200170` — **success**.
+- APK: `Auditar-SST-v3.29.160-Android.apk` — contido no artefato `Auditar-SST-v3.29.160-Android-Conclusao-Offline`.
+- Windows instalador: `Auditar-SST-Setup-v3.30.79.exe` — contido no artefato `Auditar-SST-v3.30.79-Windows-Conclusao-Offline`.
+- Windows portátil: `Auditar-SST-Windows-v3.30.79-PORTATIL.zip` — contido no artefato `Auditar-SST-v3.30.79-Windows-Conclusao-Offline`.
 - Padrão Auditar 3 validado como modelo principal; na Ronda, o renderer final foi refinado para o PDF técnico de referência, com até dois achados por página, fotos maiores, títulos compactos, conclusão e referências enxutas.
 - Logo da direita exclusiva da empresa vistoriada e carregada dinamicamente do cadastro; se não houver logo, o espaço fica vazio. Vale do Leite é apenas empresa de exemplo/referência e não está fixada no modelo.
 - `Padrão Auditar` e `Padrão Auditar 2` preservados.
 - Biblioteca técnica offline adicionada de forma isolada, com modelos reutilizáveis e memória local de conteúdo aprovado.
 - Ao digitar a primeira irregularidade, o app sugere até três modelos semelhantes do histórico/base local e pode preencher os campos técnicos sem internet.
 - A mesma biblioteca local passou a funcionar também no modo Ronda: a descrição digitada pode sugerir modelos do histórico e reaproveitar título, risco, consequência, recomendação e prioridade sem depender da IA.
+- Conclusão local sem IA adicionada de forma complementar na Ronda e na Vistoria: o app monta um texto a partir dos registros já preenchidos, permite revisão/edição humana e salva para uso no relatório sem chamada de internet ou IA.
+- As rotas existentes de conclusão/revisão por IA permanecem disponíveis separadamente e não foram alteradas.
+- No resumo visual curto do checklist, Risco e Classificação/Prioridade permanecem ocultos; os campos e dados técnicos continuam preservados no registro.
 - Conteúdo manual ou vindo da IA somente vira conhecimento reutilizável quando aprovado/salvo; dados de empresa, CNPJ, fotos e localização não entram no modelo geral.
 - Núcleo protegido preservado pelas regressões do pipeline; IA, sincronização, banco, autenticação, HTTP, mídia/Drive, Apps Script e renderizadores de relatório permaneceram sem alteração nessa implementação.
 - A validação de CI não substitui o teste físico do APK e do executável em aparelho/PC real.
@@ -56,13 +59,13 @@
 
 ## Builds validados
 
-- Android: workflow run `37167428008` — **success**
-- Artefato: `Auditar-SST-v3.29.158-Android-Ronda-Sugestoes-Offline` (ID `11290067976`)
-- Windows: workflow run `37167429861` — **success**
-- Artefato: `Auditar-SST-v3.30.77-Windows-Ronda-Sugestoes-Offline` (ID `11290647213`)
+- Android: workflow run `37192186526` — **success**
+- Artefato: `Auditar-SST-v3.29.160-Android-Conclusao-Offline` (ID `11300245674`)
+- Windows: workflow run `37192200170` — **success**
+- Artefato: `Auditar-SST-v3.30.79-Windows-Conclusao-Offline` (ID `11299378465`)
 - Commit da integração da Ronda offline: `544e490d2c82342e6d839b74a1ddb5fa9bf41f1b`
-- Workflow Android validado no commit: `2059adb81a3416ffbed9c1f68945f71748836339`
-- Workflow Windows validado no commit: `1c8c507f88a1369abedf7bc9c0bf971e8f30d9cb`
+- Workflow Android v3.29.160 validado no commit: `df1007e22a47705cf0d58f169f9dea1a2b08554d`
+- Workflow Windows v3.30.79 validado no commit: `82b61f5b1b2af61cfe46e275139dd9ca23562776`
 - Alterações posteriores nesses arquivos de versão/README são somente documentação.
 
 ## Núcleo protegido
