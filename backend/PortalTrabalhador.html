@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Portal do Trabalhador • Gestão EPI</title>
+  <style>
+    :root{--ink:#173d39;--muted:#6b817d;--line:#dbe8e5;--soft:#f2f8f7;--brand:#0f766e;--brand2:#0b5f59;--ok:#17653a;--warn:#a85d00;--bad:#b42318;--white:#fff;--shadow:0 16px 42px rgba(14,61,56,.09)}
+    *{box-sizing:border-box}html{background:#edf4f3}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:linear-gradient(180deg,#e9f4f2 0,#f7faf9 260px,#f7faf9 100%);min-height:100vh}
+    button{font:inherit}.shell{width:min(1080px,100%);margin:auto;padding:18px 16px 42px}.top{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:20px}.brand{display:flex;align-items:center;gap:11px}.mark{width:48px;height:48px;border-radius:15px;background:linear-gradient(145deg,var(--brand),#13a28f);color:#fff;display:grid;place-items:center;font-size:23px;box-shadow:0 10px 24px rgba(15,118,110,.22)}.brand b{display:block;font-size:16px}.brand small{color:var(--muted);font-size:11px}.top-actions{display:flex;gap:8px}.btn{border:1px solid #cbded9;background:#fff;color:var(--ink);padding:10px 13px;border-radius:11px;font-weight:800;font-size:12px;cursor:pointer}.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}.hero{background:linear-gradient(135deg,#123f3b,#0d665e);border-radius:23px;padding:22px;color:#fff;box-shadow:0 20px 50px rgba(10,70,65,.17);display:grid;grid-template-columns:1.4fr .8fr;gap:20px}.hero h1{margin:0;font-size:26px;line-height:1.1}.hero p{margin:8px 0 0;color:#d8efeb;font-size:13px;line-height:1.5}.worker-meta{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:18px}.meta{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.07);border-radius:12px;padding:10px}.meta small{display:block;color:#bfe0db;font-size:9px;text-transform:uppercase;font-weight:900;letter-spacing:.05em}.meta b{font-size:12px}.hero-side{display:flex;flex-direction:column;justify-content:center;align-items:flex-end;text-align:right}.company{font-size:16px;font-weight:900}.expires{margin-top:8px;font-size:10px;color:#c8e4df}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}.metric{background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px;box-shadow:0 7px 20px rgba(14,61,56,.035)}.metric strong{display:block;font-size:23px;line-height:1.05}.metric span{display:block;color:var(--muted);font-size:10px;margin-top:5px}.panel{background:#fff;border:1px solid var(--line);border-radius:19px;padding:18px;box-shadow:var(--shadow);margin-top:14px}.panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}.panel h2{margin:0;font-size:17px}.panel-head p{margin:4px 0 0;color:var(--muted);font-size:11px}.list{display:grid;gap:9px}.change{border:1px solid var(--line);border-radius:14px;padding:13px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;background:#fbfdfc}.change h3{font-size:13px;margin:0}.change small{display:block;color:var(--muted);font-size:10px;margin-top:4px}.pill{display:inline-flex;align-items:center;border-radius:999px;padding:6px 9px;font-size:9px;font-weight:900;white-space:nowrap}.pill.ok{background:#eaf8ef;color:var(--ok)}.pill.soon{background:#fff5e6;color:var(--warn)}.pill.overdue{background:#fff0ee;color:var(--bad)}.history{display:grid;gap:10px}.delivery{border:1px solid var(--line);border-radius:16px;overflow:hidden}.delivery-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 14px;background:#f8fbfa}.delivery-date{font-weight:900;font-size:12px}.delivery-reason{font-size:10px;color:var(--muted);margin-top:3px}.proof{font-size:9px;font-weight:900;color:var(--ok);background:#eaf8ef;border-radius:999px;padding:6px 8px}.items{padding:2px 14px 10px}.item{padding:11px 0;border-top:1px solid #edf2f1;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px}.item:first-child{border-top:0}.item b{display:block;font-size:12px}.item small{display:block;color:var(--muted);font-size:9px;line-height:1.5;margin-top:3px}.qty{font-size:11px;font-weight:900;align-self:center}.delivery-foot{display:flex;justify-content:flex-end;padding:0 14px 13px}.receipt-btn{border:0;background:#eaf5f3;color:var(--brand2);border-radius:10px;padding:8px 10px;font-size:10px;font-weight:900;cursor:pointer}.empty{text-align:center;padding:28px 12px;color:var(--muted);font-size:12px;border:1px dashed #cbded9;border-radius:14px}.loading{min-height:60vh;display:grid;place-items:center;text-align:center;color:var(--muted)}.spinner{width:38px;height:38px;border-radius:50%;border:4px solid #dceae7;border-top-color:var(--brand);animation:spin .8s linear infinite;margin:0 auto 12px}@keyframes spin{to{transform:rotate(360deg)}}.error{width:min(560px,100%);margin:10vh auto;background:#fff;border:1px solid #f1d0cc;border-radius:20px;padding:24px;box-shadow:var(--shadow);text-align:center}.error .icon{font-size:35px}.error h2{margin:8px 0 5px}.error p{color:var(--muted);font-size:12px;line-height:1.5}.modal{position:fixed;inset:0;background:rgba(5,31,29,.72);z-index:50;display:none;align-items:center;justify-content:center;padding:18px}.modal.open{display:flex}.modal-card{width:min(640px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:20px;padding:20px;box-shadow:0 28px 80px rgba(0,0,0,.25)}.modal-head{display:flex;justify-content:space-between;gap:12px;align-items:center}.modal-head h2{margin:0;font-size:17px}.close{width:38px;height:38px;border:0;border-radius:10px;background:#edf5f4;font-size:21px;cursor:pointer}.receipt-box{margin-top:14px;border:1px solid var(--line);border-radius:14px;padding:15px}.receipt-row{display:grid;grid-template-columns:120px 1fr;gap:10px;padding:8px 0;border-top:1px solid #edf2f1;font-size:11px}.receipt-row:first-child{border-top:0}.receipt-row small{color:var(--muted);font-weight:800}.receipt-proof{background:#ecfdf3;color:#166534;border-radius:11px;padding:11px;font-size:10px;line-height:1.5;margin-top:12px}.footer{color:#718682;font-size:9px;text-align:center;margin-top:20px;line-height:1.5}
+    @media(max-width:760px){.shell{padding:13px 12px 32px}.top{align-items:flex-start}.top-actions .print{display:none}.hero{grid-template-columns:1fr;padding:18px}.hero h1{font-size:23px}.hero-side{align-items:flex-start;text-align:left}.worker-meta{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr 1fr}.metric{padding:13px}.metric strong{font-size:20px}.panel{padding:14px;border-radius:16px}.change{grid-template-columns:1fr}.pill{width:max-content}.delivery-head{align-items:flex-start}.proof{white-space:nowrap}.receipt-row{grid-template-columns:1fr;gap:2px}}
+    @media print{body{background:#fff}.shell{width:100%;padding:0}.top,.top-actions,.receipt-btn,.footer{display:none!important}.hero{box-shadow:none;border-radius:0;background:#fff;color:#000;border-bottom:2px solid #000;padding:0 0 14px}.hero p,.hero-side,.meta small{color:#555}.meta{border-color:#ccc;background:#fff}.grid{grid-template-columns:repeat(4,1fr)}.metric,.panel{box-shadow:none;border-color:#ccc;break-inside:avoid}.modal{display:none!important}}
+  </style>
+</head>
+<body>
+  <main id="app" class="shell">
+    <div class="loading"><div><div class="spinner"></div><b>Carregando seu Portal de EPI…</b><br><small>Consulta individual e segura.</small></div></div>
+  </main>
+
+  <div id="receiptModal" class="modal">
+    <div class="modal-card">
+      <div class="modal-head"><h2>Comprovante de entrega</h2><button class="close" id="closeReceipt">×</button></div>
+      <div id="receiptBody"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px"><button class="btn" id="printReceipt">🖨️ Imprimir</button></div>
+    </div>
+  </div>
+
+  <script>
+    const state={token:'',data:null};
+    const $=s=>document.querySelector(s);
+    const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const fmt=(v,withTime=false)=>{if(!v)return '—';const d=new Date(v);if(Number.isNaN(d.getTime()))return '—';return new Intl.DateTimeFormat('pt-BR',withTime?{dateStyle:'short',timeStyle:'short'}:{dateStyle:'short'}).format(d)};
+    const statusLabel=x=>x==='overdue'?'Troca vencida':x==='soon'?'Troca próxima':'Em dia';
+    const confirmationLabel=c=>c?.label||'Registro eletrônico';
+
+    function load(){
+      google.script.url.getLocation(loc=>{
+        state.token=String(loc?.parameter?.t||'');
+        if(!state.token)return fail('Link inválido','Este acesso não contém um identificador válido.');
+        refresh();
+      });
+    }
+    function refresh(){
+      $('#app').innerHTML='<div class="loading"><div><div class="spinner"></div><b>Atualizando seus registros…</b></div></div>';
+      google.script.run
+        .withSuccessHandler(r=>{if(!r?.ok)return fail('Acesso indisponível',r?.message||'Não foi possível carregar seus dados.');state.data=r;render();})
+        .withFailureHandler(()=>fail('Falha de conexão','Não foi possível consultar seus registros agora. Tente novamente.'))
+        .workerPortalPublicData(state.token);
+    }
+    function fail(title,msg){
+      $('#app').innerHTML=`<div class="error"><div class="icon">🔒</div><h2>${esc(title)}</h2><p>${esc(msg)}</p><button class="btn primary" onclick="location.reload()">Tentar novamente</button></div>`;
+    }
+    function render(){
+      const d=state.data,w=d.worker||{},s=d.summary||{},company=d.company||{},changes=d.nextChanges||[],deliveries=d.deliveries||[];
+      $('#app').innerHTML=`
+        <div class="top">
+          <div class="brand"><div class="mark">🦺</div><div><b>Gestão EPI</b><small>Portal do Trabalhador • Auditar</small></div></div>
+          <div class="top-actions"><button class="btn" onclick="refresh()">↻ Atualizar</button><button class="btn print" onclick="window.print()">🖨️ Imprimir ficha</button></div>
+        </div>
+        <section class="hero">
+          <div>
+            <h1>Olá, ${esc((w.name||'Trabalhador').split(' ')[0])}.</h1>
+            <p>Aqui você acompanha seus Equipamentos de Proteção Individual e os registros de entrega vinculados ao seu cadastro.</p>
+            <div class="worker-meta">
+              <div class="meta"><small>Nome</small><b>${esc(w.name||'—')}</b></div>
+              <div class="meta"><small>Matrícula</small><b>${esc(w.reg||'—')}</b></div>
+              <div class="meta"><small>Cargo</small><b>${esc(w.role||'—')}</b></div>
+              <div class="meta"><small>Setor</small><b>${esc(w.sector||'—')}</b></div>
+            </div>
+          </div>
+          <div class="hero-side"><div class="company">${esc(company.name||'Empresa')}</div><div>${w.cpf?esc(w.cpf):''}</div><div class="expires">Acesso válido até ${fmt(d.expiresAt,true)}</div></div>
+        </section>
+        <section class="grid">
+          <div class="metric"><strong>${Number(s.deliveries||0)}</strong><span>entregas registradas</span></div>
+          <div class="metric"><strong>${Number(s.units||0)}</strong><span>unidades recebidas</span></div>
+          <div class="metric"><strong>${Number(s.epis||0)}</strong><span>tipos de EPI</span></div>
+          <div class="metric"><strong>${fmt(s.lastDelivery)}</strong><span>última entrega</span></div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><div><h2>Próximas trocas</h2><p>Previsão baseada no ciclo cadastrado pela empresa.</p></div></div>
+          <div class="list">${changes.length?changes.map(changeCard).join(''):'<div class="empty">Nenhuma troca programada no momento.</div>'}</div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><div><h2>Histórico de entregas</h2><p>EPIs fornecidos e forma de confirmação registrada.</p></div></div>
+          <div class="history">${deliveries.length?deliveries.map(deliveryCard).join(''):'<div class="empty">Nenhuma entrega registrada.</div>'}</div>
+        </section>
+        <div class="footer">Portal individual de consulta • Gestão EPI Auditar<br>Os dados exibidos são vinculados ao cadastro e aos registros eletrônicos da empresa.</div>`;
+      bindReceiptButtons();
+    }
+    function changeCard(x){
+      const detail=x.daysLeft<0?`${Math.abs(x.daysLeft)} dia(s) em atraso`:x.daysLeft===0?'Prevista para hoje':`Faltam ${x.daysLeft} dia(s)`;
+      return `<div class="change"><div><h3>${esc(x.name)}</h3><small>${x.ca?'CA '+esc(x.ca)+' • ':''}Última entrega: ${fmt(x.lastDelivery)} • Ciclo: ${Number(x.cycle||0)} dias • Próxima: ${fmt(x.nextChange)}</small></div><span class="pill ${esc(x.status)}">${statusLabel(x.status)} • ${esc(detail)}</span></div>`;
+    }
+    function deliveryCard(d){
+      return `<article class="delivery">
+        <div class="delivery-head"><div><div class="delivery-date">${fmt(d.createdAt,true)}</div><div class="delivery-reason">${esc(d.reason||'Entrega de EPI')}</div></div><span class="proof">✓ ${esc(confirmationLabel(d.confirmation))}</span></div>
+        <div class="items">${(d.items||[]).map(i=>`<div class="item"><div><b>${esc(i.name)}</b><small>${i.ca?'CA '+esc(i.ca):'CA não informado'}${i.caValidity?' • validade CA '+esc(i.caValidity):''}${i.manufacturer?' • '+esc(i.manufacturer):''}${i.size?' • Tam. '+esc(i.size):''}</small></div><div class="qty">Qtd. ${Number(i.qty||0)}</div></div>`).join('')}</div>
+        <div class="delivery-foot"><button class="receipt-btn" data-receipt="${esc(d.id)}">Ver comprovante</button></div>
+      </article>`;
+    }
+    function bindReceiptButtons(){
+      document.querySelectorAll('[data-receipt]').forEach(b=>b.onclick=()=>openReceipt(b.dataset.receipt));
+    }
+    function openReceipt(id){
+      const d=(state.data?.deliveries||[]).find(x=>x.id===id);if(!d)return;
+      const w=state.data.worker||{},c=state.data.company||{},conf=d.confirmation||{};
+      $('#receiptBody').innerHTML=`<div class="receipt-box">
+        <div style="text-align:center;margin-bottom:12px"><b style="font-size:16px">COMPROVANTE ELETRÔNICO DE ENTREGA DE EPI</b><br><small style="color:#6b817d">${esc(c.name||'Empresa')}</small></div>
+        <div class="receipt-row"><small>Trabalhador</small><b>${esc(w.name||'—')}</b></div>
+        <div class="receipt-row"><small>Data/hora</small><b>${fmt(d.createdAt,true)}</b></div>
+        <div class="receipt-row"><small>Motivo</small><b>${esc(d.reason||'Entrega de EPI')}</b></div>
+        <div class="receipt-row"><small>Responsável</small><b>${esc(d.registeredBy||d.responsible||'—')}</b></div>
+        <div class="receipt-row"><small>EPIs</small><div>${(d.items||[]).map(i=>`<b>${esc(i.name)}</b> — ${i.ca?'CA '+esc(i.ca):'CA não informado'} — Qtd. ${Number(i.qty||0)}<br>`).join('')}</div></div>
+        <div class="receipt-proof"><b>✓ ${esc(confirmationLabel(conf))}</b>${conf.liveness?'<br>Pessoa real verificada automaticamente no momento da confirmação.':''}${conf.similarity?'<br>Compatibilidade facial: '+Number(conf.similarity)+'%':''}${conf.evidenceId?'<br>ID da evidência: '+esc(conf.evidenceId):''}${conf.evidenceHash?'<br>Hash da evidência: '+esc(conf.evidenceHash):''}</div>
+      </div>`;
+      $('#receiptModal').classList.add('open');
+    }
+    $('#closeReceipt').onclick=()=>$('#receiptModal').classList.remove('open');
+    $('#receiptModal').addEventListener('click',e=>{if(e.target.id==='receiptModal')$('#receiptModal').classList.remove('open')});
+    $('#printReceipt').onclick=()=>window.print();
+    load();
+  </script>
+</body>
+</html>
