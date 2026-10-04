@@ -1,16 +1,16 @@
 # Auditar — Sistemas SST e EPI
 
 > ## 🚧 VERSÃO ATUAL DO AUDITAR SST
-> **Android:** `v3.29.157+299`  
-> **Windows:** `v3.30.76+263`  
+> **Android:** `v3.29.158+300`  
+> **Windows:** `v3.30.77+264`  
 > **Branch:** `feature/client-panel-permissions-v329106`  
 > **PR:** `#15` — permanece em rascunho para revisão; não publicar a Central automaticamente.  
-> **Status:** ✅ CI validada — Android e Windows concluídos com sucesso em 03/10/2026. A linha atual mantém a **Ronda** no **Padrão Auditar 3** e acrescenta uma **biblioteca técnica offline** com sugestões automáticas a partir da primeira irregularidade digitada. O recurso é local e complementar: não substitui IA, preenchimento manual nem funções existentes.
+> **Status:** ✅ CI validada — Android e Windows concluídos com sucesso em 03/10/2026. A linha atual mantém a **Ronda** no **Padrão Auditar 3** e a **biblioteca técnica offline** agora também sugere modelos diretamente no modo Ronda a partir da descrição digitada. O recurso é local e complementar: não substitui IA, preenchimento manual nem funções existentes.
 >
 > O código final é montado pelos workflows atuais a partir da base + patches incrementais.  
 > **Regra permanente:** não alterar, substituir ou refatorar funcionalidades que já estejam funcionando sem autorização expressa. Toda melhoria deve ser aditiva, isolada e de mínimo impacto. Preservar especialmente sincronização, banco, autenticação, IA, mídia/fotos, Drive e Central.
 >
-> Consulte [CURRENT_VERSION.md](CURRENT_VERSION.md) antes de iniciar qualquer alteração. Estado validado atual: recurso no commit `2a7b087a295f958a09123798e88b175d3de46637`, correção isolada de empacotamento Android no commit `6d6c098c0eda23da4c5b8f2adf2da935dd884730`, Android run `37163748477`, Windows run `37162831904`.
+> Consulte [CURRENT_VERSION.md](CURRENT_VERSION.md) antes de iniciar qualquer alteração. Estado validado atual: integração da Ronda offline no commit `544e490d2c82342e6d839b74a1ddb5fa9bf41f1b`, Android run `37167428008`, Windows run `37167429861`.
 
 
 Repositório de desenvolvimento dos sistemas da Auditar Soluções.
