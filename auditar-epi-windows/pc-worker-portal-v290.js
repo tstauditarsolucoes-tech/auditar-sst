@@ -6,6 +6,7 @@
   let currentWorkerId='',currentWorkerName='',observer=null,decorateTimer=0;
 
   function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  function canOperate(){const role=String(window.GestaoEpiAuth?.user?.()?.role||'');return role==='admin'||role==='campo';}
   function toast(msg){const e=$('#toast');if(!e)return alert(msg);e.textContent=msg;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2800);}
   function fmt(v){if(!v)return '—';const d=new Date(v);if(Number.isNaN(d.getTime()))return '—';return new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(d);}
 
@@ -102,7 +103,8 @@
 
   function decorate(){
     clearTimeout(decorateTimer);decorateTimer=0;
-    $$('#workerTable [data-worker-sheet]').forEach(sheet=>{
+    if(!canOperate()){$('[data-worker-portal]').forEach(b=>b.remove());return;}
+    $('#workerTable [data-worker-sheet]').forEach(sheet=>{
       const id=sheet.dataset.workerSheet;if(!id||sheet.parentElement.querySelector('[data-worker-portal]'))return;
       const b=document.createElement('button');b.type='button';b.className='worker-portal-btn';b.dataset.workerPortal=id;b.textContent='🌐 Portal';
       b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();const root=read();const w=root?.app?.workers?.find(x=>x.id===id);open(id,w?.name||'');});
