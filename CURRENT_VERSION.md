@@ -4,8 +4,8 @@
 
 | Plataforma | Versão |
 |---|---|
-| Android | **v3.29.155+297** |
-| Windows | **v3.30.74+261** |
+| Android | **v3.29.157+299** |
+| Windows | **v3.30.76+263** |
 
 **Branch de trabalho:** `feature/client-panel-permissions-v329106`  
 **Pull Request:** `#15`  
@@ -13,15 +13,18 @@
 
 ## Validação final
 
-- Android: workflow run `37135205634` — **success**.
-- Windows: workflow run `37135205632` — **success**.
-- APK: `Auditar-SST-v3.29.155-Android.apk` — contido no artefato `Auditar-SST-v3.29.155-Android-Ronda-Modelo-Final`.
-- Windows instalador: `Auditar-SST-Setup-v3.30.74.exe` — contido no artefato `Auditar-SST-v3.30.74-Windows-Ronda-Modelo-Final`.
-- Windows portátil: `Auditar-SST-Windows-v3.30.74-PORTATIL.zip` — contido no artefato `Auditar-SST-v3.30.74-Windows-Ronda-Modelo-Final`.
+- Android: workflow run `37163748477` — **success**.
+- Windows: workflow run `37162831904` — **success**.
+- APK: `Auditar-SST-v3.29.157-Android.apk` — contido no artefato `Auditar-SST-v3.29.157-Android-Sugestoes-Offline`.
+- Windows instalador: `Auditar-SST-Setup-v3.30.76.exe` — contido no artefato `Auditar-SST-v3.30.76-Windows-Sugestoes-Offline`.
+- Windows portátil: `Auditar-SST-Windows-v3.30.76-PORTATIL.zip` — contido no artefato `Auditar-SST-v3.30.76-Windows-Sugestoes-Offline`.
 - Padrão Auditar 3 validado como modelo principal; na Ronda, o renderer final foi refinado para o PDF técnico de referência, com até dois achados por página, fotos maiores, títulos compactos, conclusão e referências enxutas.
 - Logo da direita exclusiva da empresa vistoriada e carregada dinamicamente do cadastro; se não houver logo, o espaço fica vazio. Vale do Leite é apenas empresa de exemplo/referência e não está fixada no modelo.
 - `Padrão Auditar` e `Padrão Auditar 2` preservados.
-- Núcleo protegido preservado pelas regressões do pipeline.
+- Biblioteca técnica offline adicionada de forma isolada, com modelos reutilizáveis e memória local de conteúdo aprovado.
+- Ao digitar a primeira irregularidade, o app sugere até três modelos semelhantes do histórico/base local e pode preencher os campos técnicos sem internet.
+- Conteúdo manual ou vindo da IA somente vira conhecimento reutilizável quando aprovado/salvo; dados de empresa, CNPJ, fotos e localização não entram no modelo geral.
+- Núcleo protegido preservado pelas regressões do pipeline; IA, sincronização, banco, autenticação, HTTP, mídia/Drive, Apps Script e renderizadores de relatório permaneceram sem alteração nessa implementação.
 - A validação de CI não substitui o teste físico do APK e do executável em aparelho/PC real.
 
 ## Padrão Auditar 3 — modelo principal
@@ -48,17 +51,21 @@
 - Inspeção mensal de extintores.
 - Android com chave permanente de assinatura.
 - Windows com instalador e versão portátil.
+- Biblioteca de conhecimento técnico offline e sugestões automáticas por irregularidade digitada.
 
 ## Builds validados
 
-- Android: workflow run `37135205634` — **success**
-- Artefato: `Auditar-SST-v3.29.155-Android-Ronda-Modelo-Final` (ID `11278543385`)
-- Windows: workflow run `37135205632` — **success**
-- Artefato: `Auditar-SST-v3.30.74-Windows-Ronda-Modelo-Final` (ID `11278418899`)
-- Commit do app validado: `f0ae0458f961fd0506fcc303b0972dda3abde22e`
-- Alterações posteriores a esse commit neste arquivo/README são somente documentação.
+- Android: workflow run `37163748477` — **success**
+- Artefato: `Auditar-SST-v3.29.157-Android-Sugestoes-Offline` (ID `11288857157`)
+- Windows: workflow run `37162831904` — **success**
+- Artefato: `Auditar-SST-v3.30.76-Windows-Sugestoes-Offline` (ID `11289080276`)
+- Commit do recurso validado: `2a7b087a295f958a09123798e88b175d3de46637`
+- Correção isolada de empacotamento Android: `6d6c098c0eda23da4c5b8f2adf2da935dd884730`
+- Alterações posteriores nesses arquivos de versão/README são somente documentação.
 
 ## Núcleo protegido
+
+**Regra permanente do projeto:** não alterar, substituir ou refatorar funcionalidades que já estejam funcionando sem autorização expressa. Toda melhoria nova deve ser aditiva, isolada e de mínimo impacto.
 
 Não alterar sem autorização expressa:
 
