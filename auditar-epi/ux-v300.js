@@ -177,7 +177,7 @@
       }
       updateMoreLabel();
     }
-    const op=canOperate();$('#uxQuickHome [data-ux-action="delivery"],#uxQuickHome [data-ux-action="replace"]').forEach(b=>b.style.display=op?'':'none');
+    const op=canOperate();document.querySelectorAll('#uxQuickHome [data-ux-action="delivery"],#uxQuickHome [data-ux-action="replace"]').forEach(b=>b.style.display=op?'':'none');
     renderRecentFavorites();
   }
   function updateMoreLabel(){const b=$('#uxMoreResources');if(b)b.textContent=readUx().menuExpanded?'Ocultar recursos administrativos':'Mais recursos';}
