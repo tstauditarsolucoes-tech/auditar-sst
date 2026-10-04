@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.79 Conclusao Offline
+name: Auditar SST Windows v3.30.80 Assistente Offline
 # Clean rebuild v3.30.64 after protected productivity consolidation
 
 on:
@@ -84,6 +84,11 @@ on:
       - 'tools/regression_checklist_summary_clean_v329159_v33078.py'
       - 'tools/patch_offline_conclusion_v329160_v33079.py'
       - 'tools/regression_offline_conclusion_v329160_v33079.py'
+      - 'feature_sources/offline_field_rules_service_v329161.dart'
+      - 'feature_sources/offline_field_assistant_dialog_v329161.dart'
+      - 'feature_sources/offline_field_rules_test_v329161.dart'
+      - 'tools/patch_offline_field_assistant_v329161_v33080.py'
+      - 'tools/regression_offline_field_assistant_v329161_v33080.py'
       - 'feature_sources/field_intelligence_center_v329143.dart'
       - 'tools/patch_field_intelligence_v329143_v33062.py'
       - 'tools/regression_field_intelligence_v329143_v33062.py'
@@ -1244,6 +1249,28 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha regressao conclusao offline' }
           if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.79+266")) { throw 'Versao Windows v3.30.79 incorreta' }
 
+      - name: Aplicar assistente offline de campo
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python tools/patch_offline_field_assistant_v329161_v33080.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha patch assistente offline' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/services/offline_field_rules_service.dart lib/widgets/offline_field_assistant_dialog.dart lib/screens/checklist_screen.dart lib/screens/safety_observations_screen.dart lib/screens/express_round_screen.dart lib/screens/report_screen.dart test/offline_field_rules_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha formatacao assistente offline' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha analise assistente offline' }
+          flutter test test/offline_field_rules_test.dart test/offline_report_inline_suggestions_test.dart test/offline_report_knowledge_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha testes assistente offline' }
+          Pop-Location
+          python tools/regression_offline_field_assistant_v329161_v33080.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao assistente offline' }
+          python tools/regression_offline_conclusion_v329160_v33079.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao conclusao anterior' }
+          python tools/regression_ronda_offline_suggestions_v329158_v33077.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao Ronda offline anterior' }
+          if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.80+267")) { throw 'Versao Windows v3.30.80 incorreta' }
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
@@ -1266,8 +1293,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.79-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.79-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.79-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.80-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.80-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.80-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -1282,12 +1309,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.79',
+            'AppVersion=3.30.80',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.79',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.80',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -1304,11 +1331,11 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.79.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.79.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.80.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.80.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.79-Windows-Conclusao-Offline
+          name: Auditar-SST-v3.30.80-Windows-Assistente-Offline
           path: dist/windows/*
           retention-days: 30
 
