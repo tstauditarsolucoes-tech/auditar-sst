@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 340">
+<defs>
+  <linearGradient id="s" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#17c990"/>
+    <stop offset=".55" stop-color="#0a8f71"/>
+    <stop offset="1" stop-color="#063f43"/>
+  </linearGradient>
+</defs>
+<g transform="translate(25 18)">
+  <path d="M150 10 278 73v96c0 80-49 132-128 171C71 301 22 249 22 169V73L150 10Z" fill="url(#s)"/>
+  <path d="M150 26 265 82v82c0 66-39 111-115 148V26Z" fill="#073d45" opacity=".52"/>
+  <path d="M74 139c6-46 32-75 76-87V36h37v16c44 12 70 41 76 87h-30c-6-27-21-46-46-55v43h-37V84c-25 9-40 28-46 55Z" fill="#fff"/>
+  <rect x="64" y="134" width="172" height="22" rx="11" fill="#fff"/>
+  <path d="m57 184 67 67 128-124 23 23-151 149-90-89 23-26Z" fill="#fff"/>
+</g>
+<text x="340" y="147" font-family="Arial,Helvetica,sans-serif" font-size="78" font-weight="800" fill="#15313c">Gestão</text>
+<text x="642" y="147" font-family="Arial,Helvetica,sans-serif" font-size="78" font-weight="800" fill="#078764">EPI</text>
+<line x1="355" y1="199" x2="425" y2="199" stroke="#078764" stroke-width="5" stroke-linecap="round"/>
+<text x="448" y="218" font-family="Arial,Helvetica,sans-serif" font-size="38" letter-spacing="10" fill="#1b3943">Auditar</text>
+<line x1="720" y1="199" x2="790" y2="199" stroke="#078764" stroke-width="5" stroke-linecap="round"/>
+</svg>
