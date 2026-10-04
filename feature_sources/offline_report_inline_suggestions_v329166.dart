@@ -888,7 +888,8 @@ class OfflineReportInlineSuggestionService {
           'Encaminhar para verificação do responsável técnico e regularizar identificação, inspeções e controles aplicáveis ao equipamento.',
       priority: 'Alta',
       source: 'auditar_seed',
-    )    OfflineInlineSuggestion(
+    ),
+    OfflineInlineSuggestion(
       id: 'auditar-saida-emergencia-obstruida',
       title: 'Saída de emergência obstruída',
       description: 'Foi identificada obstrução no acesso ou passagem da saída de emergência.',
