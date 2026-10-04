@@ -4033,7 +4033,7 @@ function workerPortalPublicData(token) {
     };
   });
 
-  const lastByEpi = {};
+  const holdingMap = {};
   deliveries
     .slice()
     .sort(function(a,b){
@@ -4041,40 +4041,82 @@ function workerPortalPublicData(token) {
     })
     .forEach(function(d){
       (d.items || []).forEach(function(item){
-        if (!item || !item.epiId) return;
-        lastByEpi[String(item.epiId)] = {
-          createdAt:String(d.createdAt || ''),
-          item:item
-        };
+        const epiId = String(item && item.epiId || '');
+        if (!epiId) return;
+        if (!holdingMap[epiId]) {
+          holdingMap[epiId] = {
+            delivered:0,
+            latestCreatedAt:'',
+            latestItem:null
+          };
+        }
+        holdingMap[epiId].delivered += Math.max(0,Number(item.qty || 0));
+        holdingMap[epiId].latestCreatedAt = String(d.createdAt || '');
+        holdingMap[epiId].latestItem = item;
       });
     });
 
-  const nextChanges =
-    Object.keys(lastByEpi)
+  const currentEpis =
+    Object.keys(holdingMap)
       .map(function(epiId){
+        const row = holdingMap[epiId];
         const epi = epiMap[epiId] || {};
+        const returned =
+          workerPortalReturnedQty_(
+            snapshot.stock,
+            worker.id,
+            epiId
+          );
+        const qty = Math.max(0,Number(row.delivered || 0) - returned);
+        if (!qty) return null;
+
         const cycle = Number(epi.cycle || 0);
-        const last = lastByEpi[epiId];
-        if (!cycle || !last || !last.createdAt) return null;
+        let nextChange = '';
+        let daysLeft = null;
+        let status = 'none';
 
-        const dt = new Date(last.createdAt);
-        if (isNaN(dt.getTime())) return null;
-
-        const next = new Date(dt.getTime() + cycle * 86400000);
-        const daysLeft = Math.ceil((next.getTime() - Date.now()) / 86400000);
+        if (cycle > 0 && row.latestCreatedAt) {
+          const dt = new Date(row.latestCreatedAt);
+          if (!isNaN(dt.getTime())) {
+            const next = new Date(dt.getTime() + cycle * 86400000);
+            nextChange = next.toISOString();
+            daysLeft = Math.ceil((next.getTime() - Date.now()) / 86400000);
+            status =
+              daysLeft < 0
+                ? 'overdue'
+                : (daysLeft <= 7 ? 'soon' : 'ok');
+          }
+        }
 
         return {
           epiId:epiId,
           name:String(epi.name || 'EPI'),
           ca:String(epi.ca || ''),
-          lastDelivery:last.createdAt,
+          caValidity:String(epi.caValidity || ''),
+          caStatus:String(epi.caValidationStatus || ''),
+          manufacturer:String(epi.caManufacturer || epi.model || epi.manufacturer || ''),
+          size:String(epi.size || (row.latestItem && row.latestItem.size) || ''),
+          qty:qty,
+          lastDelivery:String(row.latestCreatedAt || ''),
           cycle:cycle,
-          nextChange:next.toISOString(),
+          nextChange:nextChange,
           daysLeft:daysLeft,
-          status:daysLeft < 0 ? 'overdue' : (daysLeft <= 7 ? 'soon' : 'ok')
+          status:status
         };
       })
       .filter(function(x){return !!x;})
+      .sort(function(a,b){
+        const order = {overdue:0,soon:1,ok:2,none:3};
+        const oa = order[a.status] != null ? order[a.status] : 4;
+        const ob = order[b.status] != null ? order[b.status] : 4;
+        if (oa !== ob) return oa - ob;
+        return String(a.name || '').localeCompare(String(b.name || ''));
+      });
+
+  const nextChanges =
+    currentEpis
+      .filter(function(x){return !!x.nextChange;})
+      .slice()
       .sort(function(a,b){
         return String(a.nextChange).localeCompare(String(b.nextChange));
       });
@@ -4087,6 +4129,11 @@ function workerPortalPublicData(token) {
       totalUnits += Number(item.qty || 0);
     });
   });
+
+  const heldUnits =
+    currentEpis.reduce(function(sum,x){
+      return sum + Number(x.qty || 0);
+    },0);
 
   return {
     ok:true,
@@ -4108,8 +4155,11 @@ function workerPortalPublicData(token) {
       deliveries:safeDeliveries.length,
       units:totalUnits,
       epis:Object.keys(uniqueEpis).length,
+      heldUnits:heldUnits,
+      heldEpis:currentEpis.length,
       lastDelivery:safeDeliveries.length ? safeDeliveries[0].createdAt : ''
     },
+    currentEpis:currentEpis,
     nextChanges:nextChanges,
     deliveries:safeDeliveries
   };
@@ -4207,6 +4257,43 @@ function workerPortalSecret_() {
   }
 
   return secret;
+}
+
+function workerPortalNoteField_(note,key) {
+  const parts = String(note || '').split('|');
+  const target = String(key || '').toLowerCase() + ':';
+
+  for (let i=0;i<parts.length;i++) {
+    const part = String(parts[i] || '').trim();
+    if (part.toLowerCase().indexOf(target) === 0) {
+      return part.slice(part.indexOf(':') + 1).trim();
+    }
+  }
+
+  return '';
+}
+
+function workerPortalReturnedQty_(stock,workerId,epiId) {
+  const movements =
+    stock && Array.isArray(stock.movements)
+      ? stock.movements
+      : [];
+
+  return movements
+    .filter(function(m){
+      return (
+        String(m && m.epiId || '') === String(epiId || '') &&
+        String(m && m.note || '').trim().indexOf('DEVOLUÇÃO EPI') === 0 &&
+        workerPortalNoteField_(m.note,'workerId') === String(workerId || '')
+      );
+    })
+    .reduce(function(sum,m){
+      return sum +
+        Math.max(
+          0,
+          Number(workerPortalNoteField_(m.note,'qtd') || 0)
+        );
+    },0);
 }
 
 function workerPortalMaskCpf_(value) {
