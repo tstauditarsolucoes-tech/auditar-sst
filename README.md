@@ -1,16 +1,16 @@
 # Auditar — Sistemas SST e EPI
 
 > ## 🚧 VERSÃO ATUAL DO AUDITAR SST
-> **Android:** `v3.29.155+297`  
-> **Windows:** `v3.30.74+261`  
+> **Android:** `v3.29.157+299`  
+> **Windows:** `v3.30.76+263`  
 > **Branch:** `feature/client-panel-permissions-v329106`  
 > **PR:** `#15` — permanece em rascunho para revisão; não publicar a Central automaticamente.  
-> **Status:** ✅ CI validada — Android e Windows concluídos com sucesso em 03/10/2026. A **Ronda** usa o **Padrão Auditar 3** refinado para ficar o mais próximo possível do PDF técnico de referência, com logo Auditar à esquerda, título/empresa centralizados e somente a logo cadastrada da empresa vistoriada à direita. Não existe logo fixa do Vale do Leite nem repetição da logo do cliente.
+> **Status:** ✅ CI validada — Android e Windows concluídos com sucesso em 03/10/2026. A linha atual mantém a **Ronda** no **Padrão Auditar 3** e acrescenta uma **biblioteca técnica offline** com sugestões automáticas a partir da primeira irregularidade digitada. O recurso é local e complementar: não substitui IA, preenchimento manual nem funções existentes.
 >
 > O código final é montado pelos workflows atuais a partir da base + patches incrementais.  
-> **Não alterar sincronização, banco, autenticação, mídia/fotos ou Central sem autorização expressa.**
+> **Regra permanente:** não alterar, substituir ou refatorar funcionalidades que já estejam funcionando sem autorização expressa. Toda melhoria deve ser aditiva, isolada e de mínimo impacto. Preservar especialmente sincronização, banco, autenticação, IA, mídia/fotos, Drive e Central.
 >
-> Consulte [CURRENT_VERSION.md](CURRENT_VERSION.md) antes de iniciar qualquer alteração. Estado validado atual: commit `f0ae0458f961fd0506fcc303b0972dda3abde22e`, Android run `37135205634`, Windows run `37135205632`.
+> Consulte [CURRENT_VERSION.md](CURRENT_VERSION.md) antes de iniciar qualquer alteração. Estado validado atual: recurso no commit `2a7b087a295f958a09123798e88b175d3de46637`, correção isolada de empacotamento Android no commit `6d6c098c0eda23da4c5b8f2adf2da935dd884730`, Android run `37163748477`, Windows run `37162831904`.
 
 
 Repositório de desenvolvimento dos sistemas da Auditar Soluções.
