@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.76 Sugestoes Offline
+name: Auditar SST Windows v3.30.77 Ronda Sugestoes Offline
 # Clean rebuild v3.30.64 after protected productivity consolidation
 
 on:
@@ -78,6 +78,8 @@ on:
       - 'feature_sources/offline_report_inline_suggestions_test_v329157.dart'
       - 'tools/patch_offline_inline_suggestions_v329157_v33076.py'
       - 'tools/regression_offline_inline_suggestions_v329157_v33076.py'
+      - 'tools/patch_ronda_offline_suggestions_v329158_v33077.py'
+      - 'tools/regression_ronda_offline_suggestions_v329158_v33077.py'
       - 'feature_sources/field_intelligence_center_v329143.dart'
       - 'tools/patch_field_intelligence_v329143_v33062.py'
       - 'tools/regression_field_intelligence_v329143_v33062.py'
@@ -1188,6 +1190,26 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha regressao sugestoes offline' }
           if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.76+263")) { throw 'Versao Windows v3.30.76 incorreta' }
 
+      - name: Levar sugestoes offline para a Ronda
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python tools/patch_ronda_offline_suggestions_v329158_v33077.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha patch Ronda offline' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/screens/express_round_screen.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha formatacao Ronda offline' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha analise Ronda offline' }
+          flutter test test/offline_report_inline_suggestions_test.dart test/offline_report_knowledge_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha testes Ronda offline' }
+          Pop-Location
+          python tools/regression_ronda_offline_suggestions_v329158_v33077.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao Ronda offline' }
+          python tools/regression_ronda_ai_connection_recovery_v329151_v33070.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha preservacao IA da Ronda' }
+          if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.77+264")) { throw 'Versao Windows v3.30.77 incorreta' }
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
@@ -1210,8 +1232,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.76-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.76-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.76-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.77-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.77-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.77-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -1226,12 +1248,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.76',
+            'AppVersion=3.30.77',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.76',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.77',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -1248,11 +1270,11 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.76.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.76.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.77.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.77.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.76-Windows-Sugestoes-Offline
+          name: Auditar-SST-v3.30.77-Windows-Ronda-Sugestoes-Offline
           path: dist/windows/*
           retention-days: 30
 
