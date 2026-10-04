@@ -33,10 +33,12 @@ assert (
     or "version: 3.29.163+305" in pub
     or "version: 3.29.164+306" in pub
     or "version: 3.29.165+307" in pub
+    or "version: 3.29.166+308" in pub
     or "version: 3.30.81+268" in pub
     or "version: 3.30.82+269" in pub
     or "version: 3.30.83+270" in pub
     or "version: 3.30.84+271" in pub
+    or "version: 3.30.85+272" in pub
 ), "versao da linha offline/controle operacional incorreta"
 
 if is_android:
