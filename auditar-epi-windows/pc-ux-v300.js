@@ -26,6 +26,7 @@
   function writeUx(x){localStorage.setItem(UX_KEY,JSON.stringify(x));}
   function toast(msg){const e=$('#toast');if(!e)return alert(msg);e.textContent=msg;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2800);}
   function companyName(root,id){return root.app.companies.find(c=>c.id===id)?.name||'Empresa';}
+  function canOperate(){const role=String(window.GestaoEpiAuth?.user?.()?.role||document.body.dataset.epiRole||'');return role==='admin'||role==='campo';}
   function epi(root,id){return root.app.epis.find(e=>e.id===id)||{};}
   function roleKey(role){return norm(role).replace(/[^a-z0-9]+/g,'-');}
   function getField(note,key){const p=String(note||'').split('|').map(x=>x.trim()).find(x=>x.toLowerCase().startsWith(String(key).toLowerCase()+':'));return p?p.slice(p.indexOf(':')+1).trim():'';}
@@ -65,6 +66,7 @@
       const img=document.createElement('img');img.className='pc-v300-login-logo';img.src='gestao-epi-logo-v300.svg';img.alt='Gestão EPI Auditar';
       card.insertBefore(img,card.firstChild);
     }
+    const old=card.querySelector('.gestao-auth-mark');if(old)old.style.display='none';
     const h=card.querySelector('h1');if(h)h.textContent='Bem-vindo ao Gestão EPI';
     const p=card.querySelector('p');if(p)p.textContent='Controle de EPI com segurança, rastreabilidade e produtividade.';
     if(!card.querySelector('.pc-v300-benefit')){
@@ -96,7 +98,7 @@
     const rows=holdings(id),ds=root.app.deliveries.filter(d=>d.workerId===id&&d.cancelled!==true).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
     const d=modal(),body=$('#pcV300Body');
     body.innerHTML=`<div class="pc-v300-hero"><h2 style="margin:0">${esc(w.name||'Trabalhador')}</h2><p style="margin:5px 0 0;color:#d5ece7">${esc(companyName(root,w.companyId))}</p><div class="pc-v300-meta"><div><small>Cargo</small><b>${esc(w.role||'—')}</b></div><div><small>Setor</small><b>${esc(w.sector||'—')}</b></div><div><small>Matrícula</small><b>${esc(w.reg||'—')}</b></div><div><small>Entregas</small><b>${ds.length}</b></div></div></div>
-      <div class="pc-v300-actions"><button class="p" data-pcv-deliver="${esc(id)}">＋ Entregar EPI</button><button data-pcv-kit="${esc(id)}">🧰 Kit da função</button><button data-pcv-qr="${esc(id)}">▣ QR</button><button data-pcv-portal="${esc(id)}">🌐 Portal</button><button data-pcv-sheet="${esc(id)}">📄 Ficha</button></div>
+      <div class="pc-v300-actions">${canOperate()?`<button class="p" data-pcv-deliver="${esc(id)}">＋ Entregar EPI</button><button data-pcv-kit="${esc(id)}">🧰 Kit da função</button>`:''}<button data-pcv-qr="${esc(id)}">▣ QR</button>${canOperate()?`<button data-pcv-portal="${esc(id)}">🌐 Portal</button>`:''}<button data-pcv-sheet="${esc(id)}">📄 Ficha</button></div>
       <div class="pc-v300-section"><h3>EPIs em posse</h3><div class="pc-v300-held">${rows.length?rows.map(r=>rowHtml(id,r)).join(''):'<div class="empty">Nenhum EPI em posse.</div>'}</div></div>
       <div class="pc-v300-section"><h3>Últimas entregas</h3>${ds.length?ds.slice(0,6).map(x=>`<div class="pc-v300-row"><b>${fmt(x.createdAt)} • ${esc(x.reason||'Entrega')}</b><small>${(x.items||[]).map(i=>esc(epi(root,i.epiId).name||'EPI')+' × '+Number(i.qty||0)).join(' • ')}</small></div>`).join(''):'<div class="empty">Sem entregas.</div>'}</div>`;
     d.classList.add('open');
@@ -149,12 +151,12 @@
   function bind(){
     document.addEventListener('click',e=>{
       const b=e.target.closest('[data-pc-v300-worker]');if(b){open360(b.dataset.pcV300Worker);return;}
-      const d=e.target.closest('[data-pcv-deliver]');if(d){const root=read(),w=root.app.workers.find(x=>x.id===d.dataset.pcvDeliver);prefillDelivery(w.id,kitFor(w),kitFor(w).length?'Primeira entrega':'');return;}
-      const k=e.target.closest('[data-pcv-kit]');if(k){openKit(k.dataset.pcvKit);return;}
+      const d=e.target.closest('[data-pcv-deliver]');if(d){if(!canOperate())return toast('Seu perfil é somente consulta.');const root=read(),w=root.app.workers.find(x=>x.id===d.dataset.pcvDeliver);prefillDelivery(w.id,kitFor(w),kitFor(w).length?'Primeira entrega':'');return;}
+      const k=e.target.closest('[data-pcv-kit]');if(k){if(!canOperate())return toast('Seu perfil é somente consulta.');openKit(k.dataset.pcvKit);return;}
       const q=e.target.closest('[data-pcv-qr]');if(q){openQr(q.dataset.pcvQr);return;}
-      const p=e.target.closest('[data-pcv-portal]');if(p){portal(p.dataset.pcvPortal);return;}
+      const p=e.target.closest('[data-pcv-portal]');if(p){if(!canOperate())return toast('Seu perfil é somente consulta.');portal(p.dataset.pcvPortal);return;}
       const s=e.target.closest('[data-pcv-sheet]');if(s){$('#pcV300Modal')?.classList.remove('open');const sheet=document.querySelector('[data-worker-sheet="'+CSS.escape(s.dataset.pcvSheet)+'"]');sheet?.click();return;}
-      const sw=e.target.closest('[data-pcv-swap]');if(sw){const [wid,eid]=sw.dataset.pcvSwap.split('|');prefillDelivery(wid,[eid],'Substituição por desgaste');return;}
+      const sw=e.target.closest('[data-pcv-swap]');if(sw){if(!canOperate())return toast('Seu perfil é somente consulta.');const [wid,eid]=sw.dataset.pcvSwap.split('|');prefillDelivery(wid,[eid],'Substituição por desgaste');return;}
     },true);
     window.addEventListener('online',decorate);window.addEventListener('offline',decorate);
   }
