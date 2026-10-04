@@ -37,6 +37,7 @@
     el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2800);
   }
   function companyName(app,id){return app.companies.find(c=>c.id===id)?.name||'Empresa';}
+  function canOperate(){const role=String(window.GestaoEpiAuth?.user?.()?.role||document.body.dataset.epiRole||'');return role==='admin'||role==='campo';}
   function epi(app,id){return app.epis.find(e=>e.id===id)||{};}
   function getField(note,key){
     const p=String(note||'').split('|').map(x=>x.trim()).find(x=>x.toLowerCase().startsWith(String(key).toLowerCase()+':'));
@@ -176,6 +177,7 @@
       }
       updateMoreLabel();
     }
+    const op=canOperate();$('#uxQuickHome [data-ux-action="delivery"],#uxQuickHome [data-ux-action="replace"]').forEach(b=>b.style.display=op?'':'none');
     renderRecentFavorites();
   }
   function updateMoreLabel(){const b=$('#uxMoreResources');if(b)b.textContent=readUx().menuExpanded?'Ocultar recursos administrativos':'Mais recursos';}
@@ -222,11 +224,9 @@
         </div>
       </div>
       <div class="ux360-actions">
-        <button class="primary" data-ux-deliver="${esc(w.id)}">＋ Entregar EPI</button>
-        <button data-ux-kit="${esc(w.id)}">🧰 Kit da função</button>
-        <button data-ux-return="${esc(w.id)}">↩ Devolver</button>
+        ${canOperate()?`<button class="primary" data-ux-deliver="${esc(w.id)}">＋ Entregar EPI</button><button data-ux-kit="${esc(w.id)}">🧰 Kit da função</button><button data-ux-return="${esc(w.id)}">↩ Devolver</button>`:''}
         <button data-ux-qr="${esc(w.id)}">▣ QR do trabalhador</button>
-        <button data-ux-portal="${esc(w.id)}">🌐 Portal</button>
+        ${canOperate()?`<button data-ux-portal="${esc(w.id)}">🌐 Portal</button>`:''}
       </div>
       <div class="ux-card"><h3>EPIs em posse</h3><div class="ux-held">${rows.length?rows.map(r=>heldHtml(w,r)).join(''):'<div class="empty">Nenhum EPI em posse.</div>'}</div></div>
       <div class="ux-card"><h3>Últimas entregas</h3>${deliveries.length?deliveries.slice(0,5).map(d=>`<div class="ux-held-row"><b>${fmt(d.createdAt,true)} • ${esc(d.reason||'Entrega')}</b><small>${(d.items||[]).map(i=>{const e=epi(app,i.epiId);return esc(e.name||'EPI')+' × '+Number(i.qty||0)}).join(' • ')}</small></div>`).join(''):'<div class="empty">Sem entregas registradas.</div>'}</div>`;
@@ -378,6 +378,7 @@
       const a=e.target.closest('[data-ux-action]');
       if(a){
         const v=a.dataset.uxAction;
+        if((v==='delivery'||v==='replace')&&!canOperate())return toast('Seu perfil é somente consulta.');
         if(v==='delivery')nav('delivery');else if(v==='scan')openScanner();else if(v==='workers')nav('workers');else if(v==='replace')nav('epiReplacements');else if(v==='stock')nav('stock');
         return;
       }
@@ -387,13 +388,13 @@
       }
       const w=e.target.closest('[data-worker-360]');if(w){renderWorker360(w.dataset.worker360);return;}
       const fav=e.target.closest('[data-ux-fav]');if(fav){toggleFavorite(fav.dataset.uxFav);return;}
-      const deliver=e.target.closest('[data-ux-deliver]');if(deliver){const app=readApp(),wk=app.workers.find(x=>x.id===deliver.dataset.uxDeliver);const kit=kitForWorker(wk);prefillDelivery(wk.id,kit,kit.length?'Primeira entrega':'');return;}
-      const kit=e.target.closest('[data-ux-kit]');if(kit){openKit(kit.dataset.uxKit);return;}
-      const ret=e.target.closest('[data-ux-return]');if(ret){prefillReturn(ret.dataset.uxReturn);return;}
+      const deliver=e.target.closest('[data-ux-deliver]');if(deliver){if(!canOperate())return toast('Seu perfil é somente consulta.');const app=readApp(),wk=app.workers.find(x=>x.id===deliver.dataset.uxDeliver);const kit=kitForWorker(wk);prefillDelivery(wk.id,kit,kit.length?'Primeira entrega':'');return;}
+      const kit=e.target.closest('[data-ux-kit]');if(kit){if(!canOperate())return toast('Seu perfil é somente consulta.');openKit(kit.dataset.uxKit);return;}
+      const ret=e.target.closest('[data-ux-return]');if(ret){if(!canOperate())return toast('Seu perfil é somente consulta.');prefillReturn(ret.dataset.uxReturn);return;}
       const qr=e.target.closest('[data-ux-qr]');if(qr){openQr(qr.dataset.uxQr);return;}
-      const portal=e.target.closest('[data-ux-portal]');if(portal){sharePortal(portal.dataset.uxPortal);return;}
-      const sw=e.target.closest('[data-ux-swap]');if(sw){const [wid,eid]=sw.dataset.uxSwap.split('|');quickSwap(wid,eid);return;}
-      const re=e.target.closest('[data-ux-return-epi]');if(re){const [wid,eid]=re.dataset.uxReturnEpi.split('|');prefillReturn(wid,eid);return;}
+      const portal=e.target.closest('[data-ux-portal]');if(portal){if(!canOperate())return toast('Seu perfil é somente consulta.');sharePortal(portal.dataset.uxPortal);return;}
+      const sw=e.target.closest('[data-ux-swap]');if(sw){if(!canOperate())return toast('Seu perfil é somente consulta.');const [wid,eid]=sw.dataset.uxSwap.split('|');quickSwap(wid,eid);return;}
+      const re=e.target.closest('[data-ux-return-epi]');if(re){if(!canOperate())return toast('Seu perfil é somente consulta.');const [wid,eid]=re.dataset.uxReturnEpi.split('|');prefillReturn(wid,eid);return;}
     },true);
     document.addEventListener('click',e=>{if(!e.target.closest('#uxGlobalSearch'))$('#uxGlobalSearchResults')?.classList.remove('open');});
     window.addEventListener('online',onlinePill);window.addEventListener('offline',onlinePill);
