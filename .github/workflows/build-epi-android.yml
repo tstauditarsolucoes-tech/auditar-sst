@@ -3,10 +3,12 @@ name: Gerar APK Gestão EPI Campo
 on:
   workflow_dispatch:
   push:
-    branches: [main, feature/gestao-epi-biometria-evidencia-v281]
+    branches: [main, feature/gestao-epi-biometria-evidencia-v281, feature/gestao-epi-worker-portal-v290]
     paths:
       - 'auditar-epi/**'
       - 'auditar-epi-mobile/**'
+      - 'backend/Code-Gestao-EPI-v4.4.0-PORTAL-TRABALHADOR.txt'
+      - 'backend/PortalTrabalhador.html'
       - '.github/workflows/build-epi-android.yml'
 
 concurrency:
@@ -135,45 +137,58 @@ jobs:
           node --check biometric-crypto-v1.js
           node --check biometric-face.js
           node --check liveness-face.js
+          node --check worker-portal-share-v1.js
 
-      - name: Validar GS biométrico
+      - name: Validar Portal do Trabalhador
         run: |
-          cp backend/Code-Gestao-EPI-v4.3.0-BIOMETRIA-CRIPTO.txt /tmp/gestao-epi-biometria.js
-          node --check /tmp/gestao-epi-biometria.js
+          cp backend/Code-Gestao-EPI-v4.4.0-PORTAL-TRABALHADOR.txt /tmp/gestao-epi-portal.js
+          node --check /tmp/gestao-epi-portal.js
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          html=Path('backend/PortalTrabalhador.html').read_text(encoding='utf-8')
+          m=re.search(r'<script>([\s\S]*?)</script>',html)
+          if not m:
+              raise SystemExit('JavaScript do Portal não encontrado.')
+          Path('/tmp/portal-html.js').write_text(m.group(1),encoding='utf-8')
+          PY
+          node --check /tmp/portal-html.js
 
       - name: Compilar APK
         working-directory: auditar-epi-mobile/android
         run: ./gradlew assembleDebug
 
       - name: Renomear APK
-        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Campo-v2.2.2-BIOMETRIA-CRIPTO.apk
+        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Campo-v2.3.0-PORTAL-TRABALHADOR.apk
 
       - name: Publicar APK
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: gestao-epi-campo-v2.2.2
-          name: Gestão EPI Campo v2.2.2
+          tag_name: gestao-epi-campo-v2.3.0
+          name: Gestão EPI Campo v2.3.0
           body: |
-            Gestão EPI Campo para Android otimizado para uso em campo, com evidência biométrica reforçada e template facial criptografado.
+            Gestão EPI Campo para Android com biometria reforçada, template facial criptografado e compartilhamento do Portal do Trabalhador.
             Inclui EPIs em posse por trabalhador, controle de trocas por vencimento, desgaste, dano, perda e necessidade operacional, além da devolução com opção de retorno ao estoque.
-            Mantidas assinatura em tela, reconhecimento facial, operação offline, sincronização, estoque e histórico. A verificação facial registra liveness passivo, anti-spoof, hash SHA-256 da evidência e usa AES-GCM para proteger o template facial quando a Central biométrica v4.3 está habilitada.
-          files: Gestao-EPI-Campo-v2.2.0-POSSE-TROCAS.apk
+            Mantidas assinatura em tela, reconhecimento facial, operação offline, sincronização, estoque e histórico. O técnico pode gerar e compartilhar o Portal do Trabalhador pelo celular, sem alterar o núcleo de sincronização.
+          files: Gestao-EPI-Campo-v2.3.0-PORTAL-TRABALHADOR.apk
           make_latest: false
           overwrite_files: true
 
-      - name: Disponibilizar GS biométrico
+      - name: Disponibilizar Portal do Trabalhador
         uses: actions/upload-artifact@v4
         with:
-          name: Code-Gestao-EPI-v4.3.0-BIOMETRIA-CRIPTO
-          path: backend/Code-Gestao-EPI-v4.3.0-BIOMETRIA-CRIPTO.txt
+          name: Gestao-EPI-Portal-Trabalhador-v4.4.0
+          path: |
+            backend/Code-Gestao-EPI-v4.4.0-PORTAL-TRABALHADOR.txt
+            backend/PortalTrabalhador.html
           if-no-files-found: error
           retention-days: 14
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
-          name: Gestao-EPI-Campo-v2.2.2-BIOMETRIA-CRIPTO
-          path: Gestao-EPI-Campo-v2.2.2-BIOMETRIA-CRIPTO.apk
+          name: Gestao-EPI-Campo-v2.3.0-PORTAL-TRABALHADOR
+          path: Gestao-EPI-Campo-v2.3.0-PORTAL-TRABALHADOR.apk
           if-no-files-found: error
           retention-days: 14
