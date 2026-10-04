@@ -1225,7 +1225,7 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
           cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.161-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.160-Android.apk > dist/Auditar-SST-v3.29.161-Android.sha256.txt
+          sha256sum dist/Auditar-SST-v3.29.161-Android.apk > dist/Auditar-SST-v3.29.161-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
