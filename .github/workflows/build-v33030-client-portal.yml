@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.78 Resumo Gerencial Limpo
+name: Auditar SST Windows v3.30.79 Conclusao Offline
 # Clean rebuild v3.30.64 after protected productivity consolidation
 
 on:
@@ -82,6 +82,8 @@ on:
       - 'tools/regression_ronda_offline_suggestions_v329158_v33077.py'
       - 'tools/patch_checklist_summary_clean_v329159_v33078.py'
       - 'tools/regression_checklist_summary_clean_v329159_v33078.py'
+      - 'tools/patch_offline_conclusion_v329160_v33079.py'
+      - 'tools/regression_offline_conclusion_v329160_v33079.py'
       - 'feature_sources/field_intelligence_center_v329143.dart'
       - 'tools/patch_field_intelligence_v329143_v33062.py'
       - 'tools/regression_field_intelligence_v329143_v33062.py'
@@ -1226,6 +1228,22 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha regressao resumo gerencial' }
           if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.78+265")) { throw 'Versao Windows v3.30.78 incorreta' }
 
+      - name: Gerar conclusao local sem IA
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python tools/patch_offline_conclusion_v329160_v33079.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha patch conclusao offline' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/screens/express_round_screen.dart lib/screens/report_screen.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha formatacao conclusao offline' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha analise conclusao offline' }
+          Pop-Location
+          python tools/regression_offline_conclusion_v329160_v33079.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao conclusao offline' }
+          if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.79+266")) { throw 'Versao Windows v3.30.79 incorreta' }
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
@@ -1248,8 +1266,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.78-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.78-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.78-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.79-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.79-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.79-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -1264,12 +1282,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.78',
+            'AppVersion=3.30.79',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.78',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.79',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -1286,11 +1304,11 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.78.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.78.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.79.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.79.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.78-Windows-Resumo-Gerencial-Limpo
+          name: Auditar-SST-v3.30.79-Windows-Conclusao-Offline
           path: dist/windows/*
           retention-days: 30
 
