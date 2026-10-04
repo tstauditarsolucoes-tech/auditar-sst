@@ -135,11 +135,28 @@ if "final effectiveTechnicalTitle" not in screen:
     screen = replace_once(screen, old_title, new_title, "titulo offline Ronda")
 
 replacements = [
-    ("          'risk': aiRisk,", "          'risk': _isConformity
+    (
+        "          'risk': aiRisk,",
+        """          'risk': _isConformity
               ? aiRisk
-              : (aiRisk.isNotEmpty ? aiRisk : offlineModelRisk),"),
-    ("          'possibleConsequence': aiConsequence,", "          'possibleConsequence':\n              aiConsequence.isNotEmpty ? aiConsequence : offlineModelConsequence,"),
-    ("          'recommendation': aiRecommendation,", "          'recommendation': aiRecommendation.isNotEmpty\n              ? aiRecommendation\n              : offlineModelRecommendation,"),
+              : (aiRisk.isNotEmpty ? aiRisk : offlineModelRisk),""",
+    ),
+    (
+        "          'possibleConsequence': aiConsequence,",
+        """          'possibleConsequence': _isConformity
+              ? aiConsequence
+              : (aiConsequence.isNotEmpty
+                  ? aiConsequence
+                  : offlineModelConsequence),""",
+    ),
+    (
+        "          'recommendation': aiRecommendation,",
+        """          'recommendation': _isConformity
+              ? aiRecommendation
+              : (aiRecommendation.isNotEmpty
+                  ? aiRecommendation
+                  : offlineModelRecommendation),""",
+    ),
 ]
 for old, new in replacements:
     if new not in screen:
@@ -151,9 +168,9 @@ if "'offlineModelId': offlineModelId," not in screen:
         screen,
         payload_anchor,
         payload_anchor
-        + "          'offlineModelApplied': offlineModelId.isNotEmpty,\n"
-        + "          'offlineModelId': offlineModelId,\n"
-        + "          'offlineModelSource': offlineModelSource,\n",
+        + "          'offlineModelApplied': !_isConformity && offlineModelId.isNotEmpty,\n"
+        + "          'offlineModelId': _isConformity ? '' : offlineModelId,\n"
+        + "          'offlineModelSource': _isConformity ? '' : offlineModelSource,\n",
         "metadados offline Ronda",
     )
 
@@ -231,7 +248,8 @@ for snippet in (
     "offlineModelId",
     "offlineModelRisk",
     "offlineModelRecommendation",
-    "'offlineModelApplied': offlineModelId.isNotEmpty",
+    "'offlineModelApplied': !_isConformity && offlineModelId.isNotEmpty",
+    "'offlineModelSource': _isConformity ? '' : offlineModelSource",
     "aiRisk.isNotEmpty ? aiRisk : offlineModelRisk",
 ):
     assert snippet in final, "Ronda offline incompleta: " + snippet
