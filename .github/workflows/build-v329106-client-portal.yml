@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.161 Assistente Offline
+name: Auditar SST Android v3.29.162 Login Offline Robusto
 # Clean rebuild v3.29.145 after protected productivity consolidation
 # Rebuild v3.29.113 logo recovery
 
@@ -90,6 +90,8 @@ on:
       - 'feature_sources/offline_field_assistant_dialog_v329161.dart'
       - 'feature_sources/offline_field_rules_test_v329161.dart'
       - 'tools/patch_offline_field_assistant_v329161_v33080.py'
+      - 'tools/patch_android_offline_login_fallback_v329162_v33081.py'
+      - 'tools/regression_android_offline_login_fallback_v329162_v33081.py'
       - 'tools/regression_offline_field_assistant_v329161_v33080.py'
       - 'feature_sources/field_intelligence_center_v329143.dart'
       - 'tools/patch_field_intelligence_v329143_v33062.py'
@@ -1161,6 +1163,17 @@ jobs:
           python3 tools/regression_offline_field_assistant_v329161_v33080.py "$APP_DIR"
           grep -Fq "version: 3.29.161+303" "$APP_DIR/pubspec.yaml"
 
+      - name: Corrigir fallback do login offline Android
+        run: |
+          set -euo pipefail
+          python3 tools/patch_android_offline_login_fallback_v329162_v33081.py "$APP_DIR" android
+          cd "$APP_DIR"
+          dart format lib/services/auth_service.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          cd "$GITHUB_WORKSPACE"
+          python3 tools/regression_android_offline_login_fallback_v329162_v33081.py "$APP_DIR"
+          grep -Fq "version: 3.29.162+304" "$APP_DIR/pubspec.yaml"
+
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
         env:
@@ -1222,12 +1235,12 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.161-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.161-Android.apk > dist/Auditar-SST-v3.29.161-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.162-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.162-Android.apk > dist/Auditar-SST-v3.29.162-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.161-Android-Assistente-Offline
+          name: Auditar-SST-v3.29.162-Android-Login-Offline-Robusto
           path: dist/*
           retention-days: 30
 
