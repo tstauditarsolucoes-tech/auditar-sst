@@ -3,7 +3,7 @@ name: Gerar Windows Gestão EPI
 on:
   workflow_dispatch:
   push:
-    branches: [main, feature/gestao-epi-pc-desktop-v280, feature/gestao-epi-biometria-evidencia-v281, feature/gestao-epi-worker-portal-v290]
+    branches: [main, feature/gestao-epi-pc-desktop-v280, feature/gestao-epi-biometria-evidencia-v281, feature/gestao-epi-worker-portal-v290, feature/gestao-epi-ux-v300]
     paths:
       - 'auditar-epi-gestao/**'
       - 'auditar-epi-windows/**'
@@ -38,6 +38,9 @@ jobs:
           New-Item -ItemType Directory -Path 'auditar-epi-windows/app' | Out-Null
           Copy-Item -Recurse -Force 'auditar-epi-gestao/*' 'auditar-epi-windows/app/'
           Copy-Item -Force 'auditar-epi-windows/brand-logo-v279.svg' 'auditar-epi-windows/app/brand-logo-v279.svg'
+          Copy-Item -Force 'auditar-epi-windows/gestao-epi-icon-v300.svg' 'auditar-epi-windows/app/gestao-epi-icon-v300.svg'
+          Copy-Item -Force 'auditar-epi-windows/gestao-epi-logo-v300.svg' 'auditar-epi-windows/app/gestao-epi-logo-v300.svg'
+          Copy-Item -Force 'auditar-epi-windows/gestao-epi-icon-v300.svg' 'auditar-epi-windows/app/icon.svg'
           Copy-Item -Force 'auditar-epi-windows/stable-central-config.js' 'auditar-epi-windows/app/central-config.js'
           Copy-Item -Force 'auditar-epi-windows/pc-stable.js' 'auditar-epi-windows/app/pc-stable.js'
           Copy-Item -Force 'auditar-epi-windows/pc-biometric-crypto-v281.js' 'auditar-epi-windows/app/pc-biometric-crypto-v281.js'
@@ -63,6 +66,7 @@ jobs:
           Copy-Item -Force 'auditar-epi-windows/pc-version-v280.js' 'auditar-epi-windows/app/pc-version-v280.js'
           Copy-Item -Force 'auditar-epi-windows/pc-mobile-parity-v280.js' 'auditar-epi-windows/app/pc-mobile-parity-v280.js'
           Copy-Item -Force 'auditar-epi-windows/pc-desktop-shell-v280.js' 'auditar-epi-windows/app/pc-desktop-shell-v280.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-ux-v300.js' 'auditar-epi-windows/app/pc-ux-v300.js'
 
           $indexPath = 'auditar-epi-windows/app/index.html'
           $index = Get-Content $indexPath -Raw
@@ -99,13 +103,14 @@ jobs:
             '  <script src="pc-login-safe-v277.js"></script>',
             '  <script src="pc-mobile-parity-v280.js"></script>',
             '  <script src="pc-desktop-shell-v280.js"></script>',
+            '  <script src="pc-ux-v300.js"></script>',
             '</body>',
             '</html>'
           )
           Set-Content -Path $indexPath -Value ($head + (($scriptLines -join "`r`n") + "`r`n")) -Encoding UTF8
           $assembled = Get-Content $indexPath -Raw
 
-          foreach ($required in @('auth-gestao.js','pc-login-session.js','pc-login-safe-v277.js','pc-biometric-crypto-v281.js','pc-worker-portal-v290.js','pc-batch-delivery-v274.js','pc-brand-v279.js','pc-version-v280.js','pc-mobile-parity-v280.js','pc-desktop-shell-v280.js')) {
+          foreach ($required in @('auth-gestao.js','pc-login-session.js','pc-login-safe-v277.js','pc-biometric-crypto-v281.js','pc-worker-portal-v290.js','pc-batch-delivery-v274.js','pc-brand-v279.js','pc-version-v280.js','pc-mobile-parity-v280.js','pc-desktop-shell-v280.js','pc-ux-v300.js')) {
             if ($assembled -notmatch [regex]::Escape($required)) { throw "Script obrigatório ausente: $required" }
           }
           if ($assembled -match 'pc-login-bootstrap-v276\.js|pc-login-interaction-v275\.js|login-uppercase-gestao\.js|worker-link-gestao\.js|pc-fix\.js|prepare-pc\.js|pc-easy-layout-v273\.js') {
@@ -131,6 +136,7 @@ jobs:
           node --check 'auditar-epi-windows/app/pc-mobile-parity-v280.js'
           node --check 'auditar-epi-windows/app/pc-desktop-shell-v280.js'
           node --check 'auditar-epi-windows/app/pc-intelligence-v270.js'
+          node --check 'auditar-epi-windows/app/pc-ux-v300.js'
 
       - name: Validar paridade funcional do PC
         shell: pwsh
@@ -150,7 +156,8 @@ jobs:
             'pc-intelligence-v270.js',
             'pc-fichas-clean-v272.js',
             'pc-mobile-parity-v280.js',
-            'pc-desktop-shell-v280.js'
+            'pc-desktop-shell-v280.js',
+            'pc-ux-v300.js'
           )
           foreach ($script in $requiredScripts) {
             if ($index -notmatch [regex]::Escape($script)) { throw "Paridade PC incompleta: $script não foi carregado." }
@@ -181,7 +188,7 @@ jobs:
             choco install imagemagick.app -y --no-progress
             $env:Path += ';C:\Program Files\ImageMagick-7.1.1-Q16-HDRI'
           }
-          magick -background none 'auditar-epi-windows/app/icon.svg' -resize 512x512 'auditar-epi-windows/app-icon.png'
+          magick -background none 'auditar-epi-windows/app/gestao-epi-icon-v300.svg' -resize 512x512 'auditar-epi-windows/app-icon.png'
           if (-not (Test-Path 'auditar-epi-windows/app-icon.png')) { throw 'Não foi possível gerar o ícone do Gestão EPI.' }
 
       - name: Instalar dependências
@@ -211,6 +218,7 @@ jobs:
             Mantida a base funcional estável de login, sincronização e inicialização.
             Mantidas fichas individuais, estoque, facial, entrega normal, entrega em grupo, CA e demais módulos.
             Incluído Portal do Trabalhador com link individual, histórico, próximas trocas e comprovantes.
+            Nova identidade profissional v3, login renovado, Trabalhador 360°, kits por função, QR e atalhos operacionais.
           files: auditar-epi-windows/dist/Gestao-EPI-Setup-${{ env.APP_VERSION }}.exe
           make_latest: true
           overwrite_files: true
