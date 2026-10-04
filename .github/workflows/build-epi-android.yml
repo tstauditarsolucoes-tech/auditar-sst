@@ -3,7 +3,7 @@ name: Gerar APK Gestão EPI Campo
 on:
   workflow_dispatch:
   push:
-    branches: [main, feature/gestao-epi-biometria-evidencia-v281, feature/gestao-epi-worker-portal-v290]
+    branches: [main, feature/gestao-epi-biometria-evidencia-v281, feature/gestao-epi-worker-portal-v290, feature/gestao-epi-ux-v300]
     paths:
       - 'auditar-epi/**'
       - 'auditar-epi-mobile/**'
@@ -73,14 +73,12 @@ jobs:
           <vector xmlns:android="http://schemas.android.com/apk/res/android"
               android:width="108dp" android:height="108dp"
               android:viewportWidth="512" android:viewportHeight="512">
-              <path android:fillColor="#F8FBFA" android:pathData="M0,0H512V512H0Z"/>
-              <path android:fillColor="@android:color/transparent" android:strokeColor="#083B68" android:strokeWidth="30" android:strokeLineJoin="round" android:pathData="M256,52 L90,136 L90,264 C90,367 152,438 256,482"/>
-              <path android:fillColor="@android:color/transparent" android:strokeColor="#08B887" android:strokeWidth="30" android:strokeLineJoin="round" android:pathData="M256,52 L422,136 L422,264 C422,367 360,438 256,482"/>
-              <path android:fillColor="#083B68" android:pathData="M162,231 C167,187 193,155 235,142 L235,121 L277,121 L277,142 C319,155 345,187 350,231 Z"/>
-              <path android:fillColor="#083B68" android:pathData="M164,225 H348 A14,14 0,0 1,362 239 A14,14 0,0 1,348 253 H164 A14,14 0,0 1,150 239 A14,14 0,0 1,164 225 Z"/>
-              <path android:fillColor="#083B68" android:pathData="M303,289 A47,47 0,1 1,209,289 A47,47 0,1 1,303,289"/>
-              <path android:fillColor="#083B68" android:pathData="M150,415 C161,354 197,319 256,319 C315,319 351,354 362,415 L349,446 L163,446 Z"/>
-              <path android:fillColor="@android:color/transparent" android:strokeColor="#08B887" android:strokeWidth="31" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M188,379 L233,424 L327,324"/>
+              <path android:fillColor="#F7FBFA" android:pathData="M0,0H512V512H0Z"/>
+              <path android:fillColor="#078468" android:pathData="M256,38 L424,121 L424,251 C424,362 360,434 256,474 C152,434 88,362 88,251 L88,121 Z"/>
+              <path android:fillColor="#0B4F59" android:pathData="M256,38 L424,121 L424,251 C424,362 360,434 256,474 Z"/>
+              <path android:fillColor="#FFFFFF" android:pathData="M138,235 C145,165 186,116 239,100 L239,76 L273,76 L273,100 C326,116 367,165 374,235 L385,235 C394,235 401,242 401,251 C401,260 394,267 385,267 L127,267 C118,267 111,260 111,251 C111,242 118,235 127,235 Z"/>
+              <path android:fillColor="#FFFFFF" android:pathData="M224,119 C224,110 231,103 240,103 L272,103 C281,103 288,110 288,119 L288,191 L224,191 Z"/>
+              <path android:fillColor="#FFFFFF" android:pathData="M132,293 L215,374 L380,217 L410,249 L215,437 L102,327 Z"/>
           </vector>
           ''', encoding='utf-8')
 
@@ -138,6 +136,7 @@ jobs:
           node --check biometric-face.js
           node --check liveness-face.js
           node --check worker-portal-share-v1.js
+          node --check ux-v300.js
 
       - name: Validar Portal do Trabalhador
         run: |
@@ -159,19 +158,19 @@ jobs:
         run: ./gradlew assembleDebug
 
       - name: Renomear APK
-        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Campo-v2.3.0-PORTAL-TRABALHADOR.apk
+        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Campo-v3.0.0-PRO.apk
 
       - name: Publicar APK
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: gestao-epi-campo-v2.3.0
-          name: Gestão EPI Campo v2.3.0
+          tag_name: gestao-epi-campo-v3.0.0
+          name: Gestão EPI Campo v3.0.0
           body: |
-            Gestão EPI Campo para Android com biometria reforçada, template facial criptografado e compartilhamento do Portal do Trabalhador.
-            Inclui EPIs em posse por trabalhador, controle de trocas por vencimento, desgaste, dano, perda e necessidade operacional, além da devolução com opção de retorno ao estoque.
-            Mantidas assinatura em tela, reconhecimento facial, operação offline, sincronização, estoque e histórico. O técnico pode gerar e compartilhar o Portal do Trabalhador pelo celular, sem alterar o núcleo de sincronização.
-          files: Gestao-EPI-Campo-v2.3.0-PORTAL-TRABALHADOR.apk
+            Gestão EPI Campo v3.0 com nova identidade profissional e fluxo de uso simplificado.
+            Inclui Entrega Rápida, Trabalhador 360°, busca global, kits por função, favoritos/recentes, QR do trabalhador, troca inteligente, status online/offline e confirmação final mais clara.
+            Mantidas assinatura, biometria, estoque, CA, Portal do Trabalhador, operação offline, histórico, sincronização e demais funções já validadas.
+          files: Gestao-EPI-Campo-v3.0.0-PRO.apk
           make_latest: false
           overwrite_files: true
 
@@ -188,7 +187,7 @@ jobs:
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
-          name: Gestao-EPI-Campo-v2.3.0-PORTAL-TRABALHADOR
-          path: Gestao-EPI-Campo-v2.3.0-PORTAL-TRABALHADOR.apk
+          name: Gestao-EPI-Campo-v3.0.0-PRO
+          path: Gestao-EPI-Campo-v3.0.0-PRO.apk
           if-no-files-found: error
           retention-days: 14
