@@ -124,7 +124,9 @@ old_title = """    final title =
             ? aiTitle
             : '${categoriesToSave.join(' + ')} · $effectiveDescription';"""
 new_title = """    final effectiveTechnicalTitle =
-        aiTitle.isNotEmpty ? aiTitle : offlineModelTitle;
+        aiTitle.isNotEmpty
+            ? aiTitle
+            : (_isConformity ? '' : offlineModelTitle);
     final title =
         effectiveTechnicalTitle.isNotEmpty
             ? effectiveTechnicalTitle
@@ -133,7 +135,9 @@ if "final effectiveTechnicalTitle" not in screen:
     screen = replace_once(screen, old_title, new_title, "titulo offline Ronda")
 
 replacements = [
-    ("          'risk': aiRisk,", "          'risk': aiRisk.isNotEmpty ? aiRisk : offlineModelRisk,"),
+    ("          'risk': aiRisk,", "          'risk': _isConformity
+              ? aiRisk
+              : (aiRisk.isNotEmpty ? aiRisk : offlineModelRisk),"),
     ("          'possibleConsequence': aiConsequence,", "          'possibleConsequence':\n              aiConsequence.isNotEmpty ? aiConsequence : offlineModelConsequence,"),
     ("          'recommendation': aiRecommendation,", "          'recommendation': aiRecommendation.isNotEmpty\n              ? aiRecommendation\n              : offlineModelRecommendation,"),
 ]
@@ -165,17 +169,6 @@ if "_clearOfflineRoundModel();" not in screen:
         "limpar modelo offline apos salvar",
     )
 
-conform_anchor = """                                aiImmediateAction = '';
-                                aiResponsible = '';"""
-if "_clearOfflineRoundModel();" not in screen[screen.find("onSelectionChanged"):screen.find("onSelectionChanged")+1200]:
-    screen = replace_once(
-        screen,
-        conform_anchor,
-        """                                aiImmediateAction = '';
-                                aiResponsible = '';
-                                _clearOfflineRoundModel();""",
-        "limpar modelo ao mudar para conformidade",
-    )
 
 ui_anchor = """                      const SizedBox(height: 7),
                       SizedBox(
