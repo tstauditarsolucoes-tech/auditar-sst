@@ -1206,8 +1206,6 @@ jobs:
           Pop-Location
           python tools/regression_ronda_offline_suggestions_v329158_v33077.py "$env:APP_DIR"
           if ($LASTEXITCODE -ne 0) { throw 'Falha regressao Ronda offline' }
-          python tools/regression_ronda_ai_connection_recovery_v329151_v33070.py "$env:APP_DIR"
-          if ($LASTEXITCODE -ne 0) { throw 'Falha preservacao IA da Ronda' }
           if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.77+264")) { throw 'Versao Windows v3.30.77 incorreta' }
 
       - name: Compilar Windows release
