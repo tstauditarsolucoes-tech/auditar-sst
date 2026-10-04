@@ -3,10 +3,15 @@
   "short_name": "Gestão EPI",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#f4f7f7",
-  "theme_color": "#0f766e",
+  "background_color": "#f4f9f7",
+  "theme_color": "#087b68",
   "description": "Controle, entrega e gestão de equipamentos de proteção individual.",
   "icons": [
-    {"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+    {
+      "src": "brand-icon-v300.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
   ]
 }
