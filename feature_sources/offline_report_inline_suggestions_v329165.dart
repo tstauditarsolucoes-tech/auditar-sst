@@ -554,7 +554,6 @@ class OfflineReportInlineSuggestionService {
       priority: 'Média',
       source: 'auditar_seed',
     ),
-,
     OfflineInlineSuggestion(
       id: 'auditar-aterramento-ausente',
       title: 'Equipamento sem aterramento identificado',
