@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.158 Ronda Sugestoes Offline
+name: Auditar SST Android v3.29.159 Resumo Gerencial Limpo
 # Clean rebuild v3.29.145 after protected productivity consolidation
 # Rebuild v3.29.113 logo recovery
 
@@ -81,7 +81,7 @@ on:
       - 'tools/patch_offline_inline_suggestions_v329157_v33076.py'
       - 'tools/regression_offline_inline_suggestions_v329157_v33076.py'
       - 'tools/patch_ronda_offline_suggestions_v329158_v33077.py'
-      - 'tools/regression_ronda_offline_suggestions_v329158_v33077.py'
+      - 'tools/regression_ronda_offline_suggestions_v329158_v33077.py'\n      - 'tools/patch_checklist_summary_clean_v329159_v33078.py'\n      - 'tools/regression_checklist_summary_clean_v329159_v33078.py'
       - 'feature_sources/field_intelligence_center_v329143.dart'
       - 'tools/patch_field_intelligence_v329143_v33062.py'
       - 'tools/regression_field_intelligence_v329143_v33062.py'
@@ -1118,6 +1118,17 @@ jobs:
           python3 tools/regression_ronda_offline_suggestions_v329158_v33077.py "$APP_DIR"
           grep -Fq "version: 3.29.158+300" "$APP_DIR/pubspec.yaml"
 
+      - name: Limpar resumo gerencial sem apagar dados tecnicos
+        run: |
+          set -euo pipefail
+          python3 tools/patch_checklist_summary_clean_v329159_v33078.py "$APP_DIR" android
+          cd "$APP_DIR"
+          dart format lib/services/styled_report_pdf_service.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          cd "$GITHUB_WORKSPACE"
+          python3 tools/regression_checklist_summary_clean_v329159_v33078.py "$APP_DIR"
+          grep -Fq "version: 3.29.159+301" "$APP_DIR/pubspec.yaml"
+
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
         env:
@@ -1179,12 +1190,12 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.158-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.158-Android.apk > dist/Auditar-SST-v3.29.158-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.159-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.159-Android.apk > dist/Auditar-SST-v3.29.159-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.158-Android-Ronda-Sugestoes-Offline
+          name: Auditar-SST-v3.29.159-Android-Resumo-Gerencial-Limpo
           path: dist/*
           retention-days: 30
 
