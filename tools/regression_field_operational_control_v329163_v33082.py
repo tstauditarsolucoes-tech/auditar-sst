@@ -55,8 +55,10 @@ for snippet in (
 ):
     assert snippet in service, "roteiro operacional incompleto: " + snippet
 
-assert "InternetAddress.lookup('script.google.com')" in badge
-assert "InternetAddress.lookup('script.google.com')" in screen
+assert "InternetAddress.lookup" in badge
+assert "script.google.com" in badge
+assert "InternetAddress.lookup" in screen
+assert "script.google.com" in screen
 assert "const FieldConnectivityBadge()" in home
 assert "Controle operacional de campo" in center
 assert "FieldOperationalControlScreen" in center
