@@ -3,10 +3,12 @@ name: Gerar Windows Gestão EPI
 on:
   workflow_dispatch:
   push:
-    branches: [main, feature/gestao-epi-pc-desktop-v280, feature/gestao-epi-biometria-evidencia-v281]
+    branches: [main, feature/gestao-epi-pc-desktop-v280, feature/gestao-epi-biometria-evidencia-v281, feature/gestao-epi-worker-portal-v290]
     paths:
       - 'auditar-epi-gestao/**'
       - 'auditar-epi-windows/**'
+      - 'backend/Code-Gestao-EPI-v4.4.0-PORTAL-TRABALHADOR.txt'
+      - 'backend/PortalTrabalhador.html'
       - '.github/workflows/build-epi-windows.yml'
 
 concurrency:
@@ -45,6 +47,7 @@ jobs:
           Copy-Item -Force 'auditar-epi-windows/pc-login-safe-v277.js' 'auditar-epi-windows/app/pc-login-safe-v277.js'
           Copy-Item -Force 'auditar-epi-windows/pc-runtime-fix.js' 'auditar-epi-windows/app/pc-runtime-fix.js'
           Copy-Item -Force 'auditar-epi-windows/pc-worker-sheet.js' 'auditar-epi-windows/app/pc-worker-sheet.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-worker-portal-v290.js' 'auditar-epi-windows/app/pc-worker-portal-v290.js'
           Copy-Item -Force 'auditar-epi-windows/pc-worker-sheet-fiscal.js' 'auditar-epi-windows/app/pc-worker-sheet-fiscal.js'
           Copy-Item -Force 'auditar-epi-windows/pc-fichas-clean-v272.js' 'auditar-epi-windows/app/pc-fichas-clean-v272.js'
           Copy-Item -Force 'auditar-epi-windows/pc-batch-delivery-v274.js' 'auditar-epi-windows/app/pc-batch-delivery-v274.js'
@@ -80,6 +83,7 @@ jobs:
             '  <script src="pc-integrity.js"></script>',
             '  <script src="pc-runtime-fix.js"></script>',
             '  <script src="pc-worker-sheet.js"></script>',
+            '  <script src="pc-worker-portal-v290.js"></script>',
             '  <script src="pc-worker-sheet-fiscal.js"></script>',
             '  <script src="pc-fichas-clean-v272.js"></script>',
             '  <script src="pc-reliability-v240.js"></script>',
@@ -101,7 +105,7 @@ jobs:
           Set-Content -Path $indexPath -Value ($head + (($scriptLines -join "`r`n") + "`r`n")) -Encoding UTF8
           $assembled = Get-Content $indexPath -Raw
 
-          foreach ($required in @('auth-gestao.js','pc-login-session.js','pc-login-safe-v277.js','pc-biometric-crypto-v281.js','pc-batch-delivery-v274.js','pc-brand-v279.js','pc-version-v280.js','pc-mobile-parity-v280.js','pc-desktop-shell-v280.js')) {
+          foreach ($required in @('auth-gestao.js','pc-login-session.js','pc-login-safe-v277.js','pc-biometric-crypto-v281.js','pc-worker-portal-v290.js','pc-batch-delivery-v274.js','pc-brand-v279.js','pc-version-v280.js','pc-mobile-parity-v280.js','pc-desktop-shell-v280.js')) {
             if ($assembled -notmatch [regex]::Escape($required)) { throw "Script obrigatório ausente: $required" }
           }
           if ($assembled -match 'pc-login-bootstrap-v276\.js|pc-login-interaction-v275\.js|login-uppercase-gestao\.js|worker-link-gestao\.js|pc-fix\.js|prepare-pc\.js|pc-easy-layout-v273\.js') {
@@ -116,6 +120,7 @@ jobs:
           node --check 'auditar-epi-windows/app/pc-login-session.js'
           node --check 'auditar-epi-windows/app/pc-login-safe-v277.js'
           node --check 'auditar-epi-windows/app/pc-stable.js'
+          node --check 'auditar-epi-windows/app/pc-worker-portal-v290.js'
           node --check 'auditar-epi-windows/app/pc-biometric-crypto-v281.js'
           node --check 'auditar-epi-windows/app/pc-external-face.js'
           node --check 'auditar-epi-windows/app/pc-modern.js'
@@ -134,6 +139,7 @@ jobs:
           $requiredScripts = @(
             'pc-modern.js',
             'pc-biometric-crypto-v281.js',
+            'pc-worker-portal-v290.js',
             'pc-batch-delivery-v274.js',
             'pc-reliability-v240.js',
             'pc-productivity-v250.js',
@@ -154,6 +160,19 @@ jobs:
           foreach ($feature in @('invoice_document_import','ca_validate','tenant_store_purchase_document','nfImportPc')) {
             if ($parity -notmatch [regex]::Escape($feature)) { throw "Função obrigatória ausente no PC: $feature" }
           }
+
+      - name: Validar Portal do Trabalhador
+        shell: pwsh
+        run: |
+          Copy-Item 'backend/Code-Gestao-EPI-v4.4.0-PORTAL-TRABALHADOR.txt' 'portal-backend-check.js'
+          node --check 'portal-backend-check.js'
+          $html = Get-Content 'backend/PortalTrabalhador.html' -Raw
+          $match = [regex]::Match($html,'<script>([\s\S]*?)</script>')
+          if (-not $match.Success) { throw 'JavaScript do Portal do Trabalhador não encontrado.' }
+          Set-Content -Path 'portal-html-check.js' -Value $match.Groups[1].Value -Encoding UTF8
+          node --check 'portal-html-check.js'
+          if ($html -notmatch 'workerPortalPublicData') { throw 'Portal sem chamada segura ao backend.' }
+          if ((Get-Content 'backend/Code-Gestao-EPI-v4.4.0-PORTAL-TRABALHADOR.txt' -Raw) -notmatch 'tenant_worker_portal_link') { throw 'Rota de geração do Portal ausente.' }
 
       - name: Gerar ícone do Windows
         shell: pwsh
@@ -191,9 +210,20 @@ jobs:
             Interface desktop dedicada, com navegação lateral persistente, tabelas densas e melhor uso de telas grandes.
             Mantida a base funcional estável de login, sincronização e inicialização.
             Mantidas fichas individuais, estoque, facial, entrega normal, entrega em grupo, CA e demais módulos.
+            Incluído Portal do Trabalhador com link individual, histórico, próximas trocas e comprovantes.
           files: auditar-epi-windows/dist/Gestao-EPI-Setup-${{ env.APP_VERSION }}.exe
           make_latest: true
           overwrite_files: true
+
+      - name: Disponibilizar Portal do Trabalhador
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gestao-EPI-Portal-Trabalhador-v4.4.0
+          path: |
+            backend/Code-Gestao-EPI-v4.4.0-PORTAL-TRABALHADOR.txt
+            backend/PortalTrabalhador.html
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Disponibilizar aplicativo
         uses: actions/upload-artifact@v4
