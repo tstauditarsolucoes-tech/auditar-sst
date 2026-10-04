@@ -1,3 +1,4 @@
+// Portal do Trabalhador v2.9.0 • build final
 (()=>{
   'use strict';
   const $=(s,r=document)=>r.querySelector(s);
