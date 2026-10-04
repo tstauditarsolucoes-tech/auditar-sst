@@ -75,9 +75,8 @@ priority_ui = """              pw.SizedBox(width: 6),
 """
 risk_ui = "          _labelValue('Risco', risk),\n"
 
+# Os dois elementos visuais solicitados devem existir uma única vez no card.
 for needle, label in [
-    (priority_line, "variavel prioridade do card"),
-    (risk_block, "variavel risco do card"),
     (priority_ui, "chip prioridade do card"),
     (risk_ui, "linha risco do card"),
 ]:
@@ -85,6 +84,14 @@ for needle, label in [
     if count != 1:
         raise RuntimeError(f"{label}: esperado 1, encontrado {count}")
     block = block.replace(needle, "", 1)
+
+# As variáveis internas podem mudar entre versões do renderer. Quando ainda
+# estiverem presentes, removemos apenas para evitar warning; sua ausência não
+# é erro porque os dados continuam no registro/modelo.
+if priority_line in block:
+    block = block.replace(priority_line, "", 1)
+if risk_block in block:
+    block = block.replace(risk_block, "", 1)
 
 for required in (
     "_labelValue('Situação encontrada', problem)",
@@ -123,8 +130,6 @@ final_block = final_source[final_start:final_end]
 
 assert "_labelValue('Risco', risk)" not in final_block
 assert "_priorityChip(priority)" not in final_block
-assert "final risk = a.riskIdentified" not in final_block
-assert "final priority = _priorityForIssue(data);" not in final_block
 assert "_labelValue('Situação encontrada', problem)" in final_block
 assert "_labelValue('Correção recomendada', recommendation)" in final_block
 assert "_labelValue('Referência', reference)" in final_block
