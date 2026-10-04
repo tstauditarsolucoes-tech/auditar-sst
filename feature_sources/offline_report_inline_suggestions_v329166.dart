@@ -192,6 +192,12 @@ class OfflineReportInlineSuggestionService {
       'respirador', 'mascara', 'botina', 'perneira', 'avental',
     ])) found.add('ppe');
     if (hasAny(const [
+      'respirador', 'mascara', 'protecao respiratoria', 'proteção respiratória',
+    ])) found.add('respiratory_ppe');
+    if (hasAny(const [
+      'protetor auricular', 'abafador', 'protecao auditiva', 'proteção auditiva',
+    ])) found.add('hearing_ppe');
+    if (hasAny(const [
       'guarda corpo', 'queda de nivel', 'trabalho em altura', 'linha de vida',
       'ancoragem', 'cinto paraquedista', 'telhado',
     ])) found.add('fall');
