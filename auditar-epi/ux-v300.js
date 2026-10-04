@@ -370,7 +370,10 @@
     if(!lastDeliveryId){lastDeliveryId=rows[0]?.id||'';return;}
     const latest=rows[0];if(!latest||latest.id===lastDeliveryId)return;
     lastDeliveryId=latest.id;
-    if(Date.now()-(new Date(latest.createdAt||0).getTime())<15000)showSuccess(latest);
+    if(Date.now()-(new Date(latest.createdAt||0).getTime())<15000){
+      const receiptActive=$('#receipt')?.classList.contains('active');
+      if(!receiptActive)showSuccess(latest);
+    }
   }
 
   function bindActions(){
