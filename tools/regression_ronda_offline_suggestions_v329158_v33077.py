@@ -17,8 +17,8 @@ for snippet in (
     "offlineModelRisk",
     "offlineModelConsequence",
     "offlineModelRecommendation",
-    "'offlineModelApplied': offlineModelId.isNotEmpty",
-    "'offlineModelSource': offlineModelSource",
+    "'offlineModelApplied': !_isConformity && offlineModelId.isNotEmpty",
+    "'offlineModelSource': _isConformity ? '' : offlineModelSource",
 ):
     assert snippet in screen, 'Ronda sem biblioteca offline: ' + snippet
 
