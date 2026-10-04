@@ -1,7 +1,7 @@
 {
   "name": "gestao-epi",
-  "version": "2.9.0",
-  "description": "Gestão EPI para Windows",
+  "version": "3.0.0",
+  "description": "Gestão EPI Auditar v3 para Windows",
   "main": "main.js",
   "private": true,
   "scripts": {
