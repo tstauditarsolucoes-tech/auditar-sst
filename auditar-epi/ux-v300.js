@@ -235,7 +235,7 @@
 
   function heldHtml(w,r){
     const label=r.status==='overdue'?`Vencido há ${Math.abs(r.days)}d`:r.status==='soon'?`Troca em ${r.days}d`:r.status==='ok'?`Em dia • ${r.days}d`:'Sem prazo';
-    return `<div class="ux-held-row"><div class="ux-held-top"><div><b>${esc(r.epi.name||'EPI')} • Qtd. ${r.qty}</b><small>${r.epi.ca?'CA '+esc(r.epi.ca)+' • ':''}${r.latest?'Última entrega '+fmt(r.latest.createdAt):''}${r.due?' • Próxima '+fmt(r.due.toISOString()):''}</small></div><span class="ux-pill ${r.status}">${esc(label)}</span></div><div class="ux-held-actions"><button data-ux-swap="${esc(w.id)}|${esc(r.epi.id)}">Trocar agora</button><button data-ux-return-epi="${esc(w.id)}|${esc(r.epi.id)}">Devolver</button></div></div>`;
+    return `<div class="ux-held-row"><div class="ux-held-top"><div><b>${esc(r.epi.name||'EPI')} • Qtd. ${r.qty}</b><small>${r.epi.ca?'CA '+esc(r.epi.ca)+' • ':''}${r.latest?'Última entrega '+fmt(r.latest.createdAt):''}${r.due?' • Próxima '+fmt(r.due.toISOString()):''}</small></div><span class="ux-pill ${r.status}">${esc(label)}</span></div>${canOperate()?`<div class="ux-held-actions"><button data-ux-swap="${esc(w.id)}|${esc(r.epi.id)}">Trocar agora</button><button data-ux-return-epi="${esc(w.id)}|${esc(r.epi.id)}">Devolver</button></div>`:''}</div>`;
   }
 
   function decorateWorkers(){
