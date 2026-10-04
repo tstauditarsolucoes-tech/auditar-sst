@@ -75,15 +75,17 @@ priority_ui = """              pw.SizedBox(width: 6),
 """
 risk_ui = "          _labelValue('Risco', risk),\n"
 
-# Os dois elementos visuais solicitados devem existir uma única vez no card.
+# O renderer atual pode já vir sem um ou ambos os elementos visuais.
+# O requisito é o estado final: risco e prioridade ausentes somente neste card.
 for needle, label in [
     (priority_ui, "chip prioridade do card"),
     (risk_ui, "linha risco do card"),
 ]:
     count = block.count(needle)
-    if count != 1:
-        raise RuntimeError(f"{label}: esperado 1, encontrado {count}")
-    block = block.replace(needle, "", 1)
+    if count > 1:
+        raise RuntimeError(f"{label}: esperado no maximo 1, encontrado {count}")
+    if count == 1:
+        block = block.replace(needle, "", 1)
 
 # As variáveis internas podem mudar entre versões do renderer. Quando ainda
 # estiverem presentes, removemos apenas para evitar warning; sua ausência não
