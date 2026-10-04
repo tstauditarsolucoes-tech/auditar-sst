@@ -31,8 +31,10 @@ if is_android:
 assert (
     "version: 3.29.162+304" in pub
     or "version: 3.29.163+305" in pub
+    or "version: 3.29.164+306" in pub
     or "version: 3.30.81+268" in pub
     or "version: 3.30.82+269" in pub
+    or "version: 3.30.83+270" in pub
 ), "versao da linha offline/controle operacional incorreta"
 
 if is_android:
