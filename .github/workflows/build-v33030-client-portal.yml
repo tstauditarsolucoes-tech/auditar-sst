@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.89 Mobile 360-412
+name: Auditar SST Windows v3.30.90 Central Gestao Desktop
 # Clean rebuild v3.30.64 after protected productivity consolidation
 
 on:
@@ -120,6 +120,9 @@ on:
       - 'tools/regression_release_baseline_v329169_v33088.py'
       - 'tools/patch_mobile_360_412_v329170_v33089.py'
       - 'tools/regression_mobile_360_412_v329170_v33089.py'
+      - 'feature_sources/field_operational_control_screen_v33090.dart'
+      - 'tools/patch_windows_management_center_v33090.py'
+      - 'tools/regression_windows_management_center_v33090.py'
       - 'docs/HOMOLOGACAO_RELEASE_AUDITAR_SST.md'
       - 'feature_sources/offline_report_inline_suggestions_v329165.dart'
       - 'feature_sources/offline_report_inline_suggestions_test_v329165.dart'
@@ -1443,6 +1446,22 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha regressao responsividade 360-412' }
           if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.89+276")) { throw 'Versao Windows v3.30.89 incorreta' }
 
+      - name: Aplicar Central de gestao desktop v3.30.90
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python tools/patch_windows_management_center_v33090.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha patch Central de gestao desktop' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/screens/field_operational_control_screen.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha formatacao Central de gestao desktop' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha analise Central de gestao desktop' }
+          Pop-Location
+          python tools/regression_windows_management_center_v33090.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao Central de gestao desktop' }
+          if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.90+277")) { throw 'Versao Windows v3.30.90 incorreta' }
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
@@ -1466,8 +1485,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.89-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.89-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.89-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.90-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.90-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.90-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -1482,12 +1501,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.89',
+            'AppVersion=3.30.90',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.89',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.90',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -1504,11 +1523,11 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.89.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.89.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.90.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.90.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.89-Windows-Mobile-360-412
+          name: Auditar-SST-v3.30.90-Windows-Central-Gestao-Desktop
           path: dist/windows/*
           retention-days: 30
 
