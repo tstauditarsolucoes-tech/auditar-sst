@@ -47,6 +47,7 @@ for name in protected:
 
 copies = [
     ("feature_sources/manager_reports_module_v329168.dart", "lib/screens/manager_reports_screen.dart"),
+    ("feature_sources/manager_reports_module_test_v329168.dart", "test/manager_reports_module_test.dart"),
     ("feature_sources/training_activity_center_v329168.dart", "lib/screens/training_activity_center_screen.dart"),
     ("feature_sources/cipa_management_screen_v329168.dart", "lib/screens/cipa_management_screen.dart"),
 ]
