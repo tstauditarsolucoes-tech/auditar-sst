@@ -9,6 +9,7 @@
 """
 from pathlib import Path
 import hashlib
+import json
 import shutil
 import sys
 
@@ -217,6 +218,11 @@ after = {
 changed = [name for name in before if before[name] != after[name]]
 if changed:
     raise SystemExit("PROTECTED_CORE_MODIFIED: " + repr(changed))
+
+(root / ".auditar_v329169_protected.json").write_text(
+    json.dumps(after, indent=2, sort_keys=True),
+    encoding="utf-8",
+)
 
 widget = read("lib/widgets/offline_report_inline_suggestions.dart")
 report = read("lib/screens/report_screen.dart")
