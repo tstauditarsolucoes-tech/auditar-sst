@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.86 Polimento e Desempenho
+name: Auditar SST Windows v3.30.87 Gestão e UX
 # Clean rebuild v3.30.64 after protected productivity consolidation
 
 on:
@@ -108,6 +108,12 @@ on:
       - 'feature_sources/offline_report_inline_suggestions_test_v329167.dart'
       - 'tools/patch_polish_performance_v329167_v33086.py'
       - 'tools/regression_polish_performance_v329167_v33086.py'
+      - 'feature_sources/manager_reports_module_v329168.dart'
+      - 'feature_sources/manager_reports_module_test_v329168.dart'
+      - 'feature_sources/training_activity_center_v329168.dart'
+      - 'feature_sources/cipa_management_screen_v329168.dart'
+      - 'tools/patch_management_training_cipa_ux_v329168_v33087.py'
+      - 'tools/regression_management_training_cipa_ux_v329168_v33087.py'
       - 'feature_sources/offline_report_inline_suggestions_v329165.dart'
       - 'feature_sources/offline_report_inline_suggestions_test_v329165.dart'
       - 'feature_sources/offline_field_rules_service_v329165.dart'
@@ -240,6 +246,10 @@ on:
       - 'tools/regression_workers_manual_registration_v32994.py'
       - 'tools/patch_workers_windows_load_compat_v33021.py'
       - 'tools/patch_worker_ai_central_endpoint_v32995_v33022.py'
+
+concurrency:
+  group: auditar-windows-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -1410,6 +1420,26 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha regressao login offline preservado' }
           if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.86+273")) { throw 'Versao Windows v3.30.86 incorreta' }
 
+      - name: Reforçar gestão CIPA capacitação e UX
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python tools/patch_management_training_cipa_ux_v329168_v33087.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha patch gestão/CIPA/capacitação' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/screens/manager_reports_screen.dart lib/screens/training_activity_center_screen.dart lib/screens/cipa_management_screen.dart test/manager_reports_module_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha formatação gestão/CIPA/capacitação' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha análise gestão/CIPA/capacitação' }
+          flutter test test/manager_reports_module_test.dart test/field_operational_priority_test.dart test/offline_report_inline_suggestions_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha testes gestão/CIPA/capacitação' }
+          Pop-Location
+          python tools/regression_management_training_cipa_ux_v329168_v33087.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressão gestão/CIPA/capacitação' }
+          python tools/regression_android_offline_login_fallback_v329162_v33081.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressão login offline preservado' }
+          if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.87+274")) { throw 'Versao Windows v3.30.87 incorreta' }
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
@@ -1432,8 +1462,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.86-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.86-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.86-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.87-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.87-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.87-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -1448,12 +1478,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.86',
+            'AppVersion=3.30.87',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.86',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.87',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -1470,11 +1500,11 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.86.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.86.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.87.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.87.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.86-Windows-Polimento-Desempenho
+          name: Auditar-SST-v3.30.87-Windows-Gestao-UX
           path: dist/windows/*
           retention-days: 30
 
