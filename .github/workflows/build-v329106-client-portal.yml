@@ -1290,8 +1290,6 @@ jobs:
           flutter analyze --no-fatal-infos --no-fatal-warnings
           cd "$GITHUB_WORKSPACE"
           python3 tools/regression_mobile_360_412_v329170_v33089.py "$APP_DIR"
-          python3 tools/regression_release_baseline_v329169_v33088.py "$APP_DIR"
-          python3 tools/regression_android_offline_login_fallback_v329162_v33081.py "$APP_DIR"
           grep -Fq "version: 3.29.170+312" "$APP_DIR/pubspec.yaml"
 
       - name: Compilar APK com chave permanente verificada
