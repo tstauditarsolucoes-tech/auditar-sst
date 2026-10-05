@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.166 Captura Premium
+name: Auditar SST Android v3.29.167 Polimento e Desempenho
 # Clean rebuild v3.29.145 after protected productivity consolidation
 # Rebuild v3.29.113 logo recovery
 
@@ -106,6 +106,10 @@ on:
       - 'feature_sources/offline_report_inline_suggestions_test_v329166.dart'
       - 'tools/patch_premium_report_accelerator_v329166_v33085.py'
       - 'tools/regression_premium_report_accelerator_v329166_v33085.py'
+      - 'feature_sources/offline_report_inline_suggestions_v329167.dart'
+      - 'feature_sources/offline_report_inline_suggestions_test_v329167.dart'
+      - 'tools/patch_polish_performance_v329167_v33086.py'
+      - 'tools/regression_polish_performance_v329167_v33086.py'
       - 'feature_sources/offline_report_inline_suggestions_v329165.dart'
       - 'feature_sources/offline_report_inline_suggestions_test_v329165.dart'
       - 'feature_sources/offline_field_rules_service_v329165.dart'
@@ -1247,6 +1251,19 @@ jobs:
           python3 tools/regression_android_offline_login_fallback_v329162_v33081.py "$APP_DIR"
           grep -Fq "version: 3.29.166+308" "$APP_DIR/pubspec.yaml"
 
+      - name: Polir interface e desempenho
+        run: |
+          set -euo pipefail
+          python3 tools/patch_polish_performance_v329167_v33086.py "$APP_DIR" android
+          cd "$APP_DIR"
+          dart format lib/widgets/offline_report_inline_suggestions.dart lib/screens/report_screen.dart test/offline_report_inline_suggestions_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/offline_report_inline_suggestions_test.dart test/offline_field_rules_test.dart test/field_operational_priority_test.dart
+          cd "$GITHUB_WORKSPACE"
+          python3 tools/regression_polish_performance_v329167_v33086.py "$APP_DIR"
+          python3 tools/regression_android_offline_login_fallback_v329162_v33081.py "$APP_DIR"
+          grep -Fq "version: 3.29.167+309" "$APP_DIR/pubspec.yaml"
+
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
         env:
@@ -1308,12 +1325,12 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.166-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.166-Android.apk > dist/Auditar-SST-v3.29.166-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.167-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.167-Android.apk > dist/Auditar-SST-v3.29.167-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.166-Android-Captura-Premium
+          name: Auditar-SST-v3.29.167-Android-Polimento-Desempenho
           path: dist/*
           retention-days: 30
 
