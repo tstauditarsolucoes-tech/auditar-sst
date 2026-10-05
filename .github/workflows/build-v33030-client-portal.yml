@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.85 Captura Premium
+name: Auditar SST Windows v3.30.86 Polimento e Desempenho
 # Clean rebuild v3.30.64 after protected productivity consolidation
 
 on:
@@ -104,6 +104,10 @@ on:
       - 'feature_sources/offline_report_inline_suggestions_test_v329166.dart'
       - 'tools/patch_premium_report_accelerator_v329166_v33085.py'
       - 'tools/regression_premium_report_accelerator_v329166_v33085.py'
+      - 'feature_sources/offline_report_inline_suggestions_v329167.dart'
+      - 'feature_sources/offline_report_inline_suggestions_test_v329167.dart'
+      - 'tools/patch_polish_performance_v329167_v33086.py'
+      - 'tools/regression_polish_performance_v329167_v33086.py'
       - 'feature_sources/offline_report_inline_suggestions_v329165.dart'
       - 'feature_sources/offline_report_inline_suggestions_test_v329165.dart'
       - 'feature_sources/offline_field_rules_service_v329165.dart'
@@ -1386,6 +1390,26 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha regressao login offline preservado' }
           if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.85+272")) { throw 'Versao Windows v3.30.85 incorreta' }
 
+      - name: Polir interface e desempenho
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python tools/patch_polish_performance_v329167_v33086.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha patch polimento/desempenho' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/widgets/offline_report_inline_suggestions.dart lib/screens/report_screen.dart test/offline_report_inline_suggestions_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha formatacao polimento/desempenho' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha analise polimento/desempenho' }
+          flutter test test/offline_report_inline_suggestions_test.dart test/offline_field_rules_test.dart test/field_operational_priority_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha testes polimento/desempenho' }
+          Pop-Location
+          python tools/regression_polish_performance_v329167_v33086.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao polimento/desempenho' }
+          python tools/regression_android_offline_login_fallback_v329162_v33081.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao login offline preservado' }
+          if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.86+273")) { throw 'Versao Windows v3.30.86 incorreta' }
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
@@ -1408,8 +1432,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.85-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.85-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.85-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.86-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.86-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.86-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -1424,12 +1448,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.85',
+            'AppVersion=3.30.86',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.85',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.86',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -1446,11 +1470,11 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.85.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.85.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.86.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.86.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.85-Windows-Captura-Premium
+          name: Auditar-SST-v3.30.86-Windows-Polimento-Desempenho
           path: dist/windows/*
           retention-days: 30
 
