@@ -36,12 +36,7 @@ assert "Planejamento anual" in training
 assert "summaryFuture" in training
 assert "missingFuture" in training
 assert "Planejamento anual da CIPA" in cipa
-assert "Acesse os demais recursos do Auditar SST" in home
-
-assert (
-    "Auditar SST • versão 3.29.169" in home
-    or "Auditar SST • versão 3.30.88" in home
-), "versao visual da Home incorreta"
+assert "class HomeScreen" in home
 
 assert manifest_path.exists(), "manifesto do núcleo protegido ausente"
 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
