@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.168 Gestão e UX
+name: Auditar SST Android v3.29.169 Baseline Consolidada
 # Clean rebuild v3.29.145 after protected productivity consolidation
 # Rebuild v3.29.113 logo recovery
 
@@ -116,6 +116,11 @@ on:
       - 'feature_sources/cipa_management_screen_v329168.dart'
       - 'tools/patch_management_training_cipa_ux_v329168_v33087.py'
       - 'tools/regression_management_training_cipa_ux_v329168_v33087.py'
+      - 'feature_sources/manager_reports_module_v329169.dart'
+      - 'feature_sources/training_activity_center_v329169.dart'
+      - 'tools/patch_release_baseline_v329169_v33088.py'
+      - 'tools/regression_release_baseline_v329169_v33088.py'
+      - 'docs/HOMOLOGACAO_RELEASE_AUDITAR_SST.md'
       - 'feature_sources/offline_report_inline_suggestions_v329165.dart'
       - 'feature_sources/offline_report_inline_suggestions_test_v329165.dart'
       - 'feature_sources/offline_field_rules_service_v329165.dart'
@@ -1261,31 +1266,18 @@ jobs:
           python3 tools/regression_android_offline_login_fallback_v329162_v33081.py "$APP_DIR"
           grep -Fq "version: 3.29.166+308" "$APP_DIR/pubspec.yaml"
 
-      - name: Polir interface e desempenho
+      - name: Consolidar acabamento e estabilidade
         run: |
           set -euo pipefail
-          python3 tools/patch_polish_performance_v329167_v33086.py "$APP_DIR" android
+          python3 tools/patch_release_baseline_v329169_v33088.py "$APP_DIR" android
           cd "$APP_DIR"
-          dart format lib/widgets/offline_report_inline_suggestions.dart lib/screens/report_screen.dart test/offline_report_inline_suggestions_test.dart
+          dart format lib/widgets/offline_report_inline_suggestions.dart lib/screens/report_screen.dart lib/screens/manager_reports_screen.dart lib/screens/training_activity_center_screen.dart lib/screens/cipa_management_screen.dart lib/screens/home_screen.dart test/offline_report_inline_suggestions_test.dart test/manager_reports_module_test.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
-          flutter test test/offline_report_inline_suggestions_test.dart test/offline_field_rules_test.dart test/field_operational_priority_test.dart
+          flutter test test/manager_reports_module_test.dart test/offline_report_inline_suggestions_test.dart test/offline_field_rules_test.dart test/field_operational_priority_test.dart
           cd "$GITHUB_WORKSPACE"
-          python3 tools/regression_polish_performance_v329167_v33086.py "$APP_DIR"
+          python3 tools/regression_release_baseline_v329169_v33088.py "$APP_DIR"
           python3 tools/regression_android_offline_login_fallback_v329162_v33081.py "$APP_DIR"
-          grep -Fq "version: 3.29.167+309" "$APP_DIR/pubspec.yaml"
-
-      - name: Reforçar gestão CIPA capacitação e UX
-        run: |
-          set -euo pipefail
-          python3 tools/patch_management_training_cipa_ux_v329168_v33087.py "$APP_DIR" android
-          cd "$APP_DIR"
-          dart format lib/screens/manager_reports_screen.dart lib/screens/training_activity_center_screen.dart lib/screens/cipa_management_screen.dart test/manager_reports_module_test.dart
-          flutter analyze --no-fatal-infos --no-fatal-warnings
-          flutter test test/manager_reports_module_test.dart test/field_operational_priority_test.dart test/offline_report_inline_suggestions_test.dart
-          cd "$GITHUB_WORKSPACE"
-          python3 tools/regression_management_training_cipa_ux_v329168_v33087.py "$APP_DIR"
-          python3 tools/regression_android_offline_login_fallback_v329162_v33081.py "$APP_DIR"
-          grep -Fq "version: 3.29.168+310" "$APP_DIR/pubspec.yaml"
+          grep -Fq "version: 3.29.169+311" "$APP_DIR/pubspec.yaml"
 
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
@@ -1342,18 +1334,19 @@ jobs:
         run: |
           mkdir -p dist
           mkdir -p dist/Central-Painel-Cliente
+          cp "$GITHUB_WORKSPACE/docs/HOMOLOGACAO_RELEASE_AUDITAR_SST.md" dist/HOMOLOGACAO_RELEASE.md
           cp "$APP_DIR/painel_web_google_apps_script/Code.gs" dist/Central-Painel-Cliente/Code.gs.txt
           cp "$APP_DIR/painel_web_google_apps_script/MultiUser.gs" dist/Central-Painel-Cliente/MultiUser.gs.txt
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.gs" dist/Central-Painel-Cliente/ClientPortal.gs.txt
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.168-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.168-Android.apk > dist/Auditar-SST-v3.29.168-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.169-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.169-Android.apk > dist/Auditar-SST-v3.29.169-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.168-Android-Gestao-UX
+          name: Auditar-SST-v3.29.169-Android-Baseline-Consolidada
           path: dist/*
           retention-days: 30
 
