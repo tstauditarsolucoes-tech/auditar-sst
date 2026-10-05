@@ -5,7 +5,7 @@
 | Plataforma | Versão |
 |---|---|
 | Android | **v3.29.170+312** |
-| Windows | **v3.30.89+276** |
+| Windows | **v3.30.90+277** |
 
 **Branch de trabalho:** `feature/client-panel-permissions-v329106`  
 **Pull Request:** `#15`  
@@ -14,10 +14,10 @@
 ## Validação final
 
 - Android: workflow run `37338538591` — **success**.
-- Windows: workflow run `37338576151` — **success**.
+- Windows: workflow run `37379804638` — **success**.
 - APK: `Auditar-SST-v3.29.170-Android.apk` — contido no artefato `Auditar-SST-v3.29.170-Android-Mobile-360-412`.
-- Windows instalador: `Auditar-SST-Setup-v3.30.89.exe` — contido no artefato `Auditar-SST-v3.30.89-Windows-Mobile-360-412`.
-- Windows portátil: `Auditar-SST-Windows-v3.30.89-PORTATIL.zip` — contido no artefato `Auditar-SST-v3.30.89-Windows-Mobile-360-412`.
+- Windows instalador: `Auditar-SST-Setup-v3.30.90.exe` — contido no artefato `Auditar-SST-v3.30.90-Windows-Central-Gestao-Desktop`.
+- Windows portátil: `Auditar-SST-Windows-v3.30.90-PORTATIL.zip` — contido no artefato `Auditar-SST-v3.30.90-Windows-Central-Gestao-Desktop`.
 - Padrão Auditar 3 validado como modelo principal; na Ronda, o renderer final foi refinado para o PDF técnico de referência, com até dois achados por página, fotos maiores, títulos compactos, conclusão e referências enxutas.
 - Logo da direita exclusiva da empresa vistoriada e carregada dinamicamente do cadastro; se não houver logo, o espaço fica vazio. Vale do Leite é apenas empresa de exemplo/referência e não está fixada no modelo.
 - `Padrão Auditar` e `Padrão Auditar 2` preservados.
@@ -33,6 +33,9 @@
 - Conteúdo manual ou vindo da IA somente vira conhecimento reutilizável quando aprovado/salvo; dados de empresa, CNPJ, fotos e localização não entram no modelo geral.
 - Núcleo protegido preservado pelas regressões do pipeline; IA, sincronização, banco, autenticação, HTTP, mídia/Drive, Apps Script e renderizadores de relatório permaneceram sem alteração nessa implementação.
 - Histórico anual da inspeção mensal de extintores ajustado para telas estreitas: 3 colunas até 412 px e 4 colunas acima disso, preservando os dados e o fluxo existente.
+- Windows ganhou uma Central de Gestão desktop específica para larguras a partir de 1000 px, reaproveitando a tela de controle operacional e os dados já existentes.
+- A Central desktop reúne empresa selecionada, indicadores, tabela somente leitura de pendências com atrasos primeiro, prioridades de acompanhamento, resumo local para decisão, evidências Antes × Depois, recorrências e atalhos para plano de ação, NCs, treinamentos e nova vistoria.
+- A experiência compacta abaixo de 1000 px foi preservada; banco, sincronização, autenticação, HTTP, mídia/Drive, IA, Apps Script e renderizadores PDF não foram alterados por esta etapa.
 - A validação de CI não substitui o teste físico do APK e do executável em aparelho/PC real.
 
 ## Padrão Auditar 3 — modelo principal
@@ -65,8 +68,8 @@
 
 - Android: workflow run `37338538591` — **success**
 - Artefato: `Auditar-SST-v3.29.170-Android-Mobile-360-412` (ID `11359050056`)
-- Windows: workflow run `37338576151` — **success**
-- Artefato: `Auditar-SST-v3.30.89-Windows-Mobile-360-412` (ID `11357989310`)
+- Windows: workflow run `37379804638` — **success**
+- Artefato: `Auditar-SST-v3.30.90-Windows-Central-Gestao-Desktop` (ID `11375302019`)
 - Commit da integração da Ronda offline: `544e490d2c82342e6d839b74a1ddb5fa9bf41f1b`
 - Workflow Android v3.29.160 validado no commit: `df1007e22a47705cf0d58f169f9dea1a2b08554d`
 - Workflow Windows v3.30.79 validado no commit: `82b61f5b1b2af61cfe46e275139dd9ca23562776`
