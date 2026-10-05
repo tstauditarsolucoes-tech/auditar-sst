@@ -9,7 +9,7 @@
 
 **Branch de trabalho:** `feature/client-panel-permissions-v329106`  
 **Pull Request:** `#15`  
-**Estado:** ✅ CI final validada em 04/10/2026.
+**Estado:** ✅ CI final validada em 05/10/2026.
 
 ## Validação final
 
