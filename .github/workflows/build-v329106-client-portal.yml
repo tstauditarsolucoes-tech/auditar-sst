@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.167 Polimento e Desempenho
+name: Auditar SST Android v3.29.168 Gestão e UX
 # Clean rebuild v3.29.145 after protected productivity consolidation
 # Rebuild v3.29.113 logo recovery
 
@@ -110,6 +110,12 @@ on:
       - 'feature_sources/offline_report_inline_suggestions_test_v329167.dart'
       - 'tools/patch_polish_performance_v329167_v33086.py'
       - 'tools/regression_polish_performance_v329167_v33086.py'
+      - 'feature_sources/manager_reports_module_v329168.dart'
+      - 'feature_sources/manager_reports_module_test_v329168.dart'
+      - 'feature_sources/training_activity_center_v329168.dart'
+      - 'feature_sources/cipa_management_screen_v329168.dart'
+      - 'tools/patch_management_training_cipa_ux_v329168_v33087.py'
+      - 'tools/regression_management_training_cipa_ux_v329168_v33087.py'
       - 'feature_sources/offline_report_inline_suggestions_v329165.dart'
       - 'feature_sources/offline_report_inline_suggestions_test_v329165.dart'
       - 'feature_sources/offline_field_rules_service_v329165.dart'
@@ -254,6 +260,10 @@ on:
       - 'tools/patch_worker_pdf_local_android_v32996.py'
       - 'tools/patch_worker_simple_pdf_local_v32997.py'
       - 'build_sources/v3.29.97-simple-rh/**'
+
+concurrency:
+  group: auditar-android-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -1264,6 +1274,19 @@ jobs:
           python3 tools/regression_android_offline_login_fallback_v329162_v33081.py "$APP_DIR"
           grep -Fq "version: 3.29.167+309" "$APP_DIR/pubspec.yaml"
 
+      - name: Reforçar gestão CIPA capacitação e UX
+        run: |
+          set -euo pipefail
+          python3 tools/patch_management_training_cipa_ux_v329168_v33087.py "$APP_DIR" android
+          cd "$APP_DIR"
+          dart format lib/screens/manager_reports_screen.dart lib/screens/training_activity_center_screen.dart lib/screens/cipa_management_screen.dart test/manager_reports_module_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/manager_reports_module_test.dart test/field_operational_priority_test.dart test/offline_report_inline_suggestions_test.dart
+          cd "$GITHUB_WORKSPACE"
+          python3 tools/regression_management_training_cipa_ux_v329168_v33087.py "$APP_DIR"
+          python3 tools/regression_android_offline_login_fallback_v329162_v33081.py "$APP_DIR"
+          grep -Fq "version: 3.29.168+310" "$APP_DIR/pubspec.yaml"
+
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
         env:
@@ -1325,12 +1348,12 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.167-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.167-Android.apk > dist/Auditar-SST-v3.29.167-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.168-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.168-Android.apk > dist/Auditar-SST-v3.29.168-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.167-Android-Polimento-Desempenho
+          name: Auditar-SST-v3.29.168-Android-Gestao-UX
           path: dist/*
           retention-days: 30
 
