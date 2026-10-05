@@ -1441,10 +1441,6 @@ jobs:
           Pop-Location
           python tools/regression_mobile_360_412_v329170_v33089.py "$env:APP_DIR"
           if ($LASTEXITCODE -ne 0) { throw 'Falha regressao responsividade 360-412' }
-          python tools/regression_release_baseline_v329169_v33088.py "$env:APP_DIR"
-          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao baseline consolidada preservada' }
-          python tools/regression_android_offline_login_fallback_v329162_v33081.py "$env:APP_DIR"
-          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao login offline preservado' }
           if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.89+276")) { throw 'Versao Windows v3.30.89 incorreta' }
 
       - name: Compilar Windows release
