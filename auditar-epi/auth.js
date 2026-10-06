@@ -6,6 +6,8 @@
   const TENANT_CODE_KEY='gestaoEpiTenantCode';
   const LOCAL_TENANT_KEY='gestaoEpiLocalTenantId';
   const VALIDATED_AT_KEY='gestaoEpiAuthValidatedAt';
+  const OFFLINE_VERIFIER_KEY='gestaoEpiOfflineLoginVerifierV1';
+  const UNLOCK_KEY='gestaoEpiSessionUnlockedV1';
   const DEVICE_STORE='auditarEpiDeviceId';
   const APP_KEY='auditarEpiV1';
   const STOCK_KEY='auditarEpiStockV1';
@@ -22,12 +24,44 @@
   function roleLabel(r){return r==='admin'?'Administrador':r==='campo'?'Campo':'Consulta';}
   function escapeHtml(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   function toast(msg){const el=$('#toast');if(!el)return;el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2800);}
+  const authId=v=>String(v||'').trim().toLowerCase();
+  const bytesToB64=bytes=>btoa(String.fromCharCode(...bytes));
+  const b64ToBytes=v=>Uint8Array.from(atob(String(v||'')),c=>c.charCodeAt(0));
+  async function passwordHash(password,salt,iterations=120000){
+    if(!window.crypto?.subtle)throw new Error('Verificação segura offline não disponível neste aparelho.');
+    const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveBits']);
+    const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations,hash:'SHA-256'},key,256);
+    return bytesToB64(new Uint8Array(bits));
+  }
+  async function saveOfflineVerifier(tenantCode,username,password){
+    try{
+      const salt=crypto.getRandomValues(new Uint8Array(16)),iterations=120000,hash=await passwordHash(password,salt,iterations);
+      localStorage.setItem(OFFLINE_VERIFIER_KEY,JSON.stringify({tenantCode:authId(tenantCode),username:authId(username),salt:bytesToB64(salt),hash,iterations,createdAt:new Date().toISOString()}));
+      return true;
+    }catch(_){return false;}
+  }
+  async function verifyOfflinePassword(tenantCode,username,password){
+    try{
+      const v=JSON.parse(localStorage.getItem(OFFLINE_VERIFIER_KEY)||'null');
+      if(!v||v.tenantCode!==authId(tenantCode)||v.username!==authId(username)||!v.salt||!v.hash)return false;
+      const hash=await passwordHash(password,b64ToBytes(v.salt),Number(v.iterations)||120000);
+      return hash===v.hash;
+    }catch(_){return false;}
+  }
+  function markUnlocked(tenantCode,username){sessionStorage.setItem(UNLOCK_KEY,JSON.stringify({tenantCode:authId(tenantCode),username:authId(username)}));}
+  function clearUnlocked(){sessionStorage.removeItem(UNLOCK_KEY);}
+  function isUnlocked(){
+    try{
+      const x=JSON.parse(sessionStorage.getItem(UNLOCK_KEY)||'null'),u=savedUser(),t=savedTenant();
+      return !!x&&x.username===authId(u?.username)&&x.tenantCode===authId(t?.code);
+    }catch{return false;}
+  }
 
   function saveSession(t,u,tenant){
     prepareTenantStorage(tenant?.id||'');
     localStorage.setItem(TOKEN_KEY,t);localStorage.setItem(USER_KEY,JSON.stringify(u));localStorage.setItem(TENANT_KEY,JSON.stringify(tenant));localStorage.setItem(TENANT_CODE_KEY,tenant?.code||'');localStorage.setItem(VALIDATED_AT_KEY,String(Date.now()));currentUser=u;currentTenant=tenant;
   }
-  function clearSession(){localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(USER_KEY);localStorage.removeItem(TENANT_KEY);localStorage.removeItem(VALIDATED_AT_KEY);currentUser=null;currentTenant=null;}
+  function clearSession(){localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(USER_KEY);localStorage.removeItem(TENANT_KEY);localStorage.removeItem(VALIDATED_AT_KEY);clearUnlocked();currentUser=null;currentTenant=null;}
 
   function prepareTenantStorage(tenantId){
     if(!tenantId)return;
@@ -66,16 +100,32 @@
   }
 
   function injectOverlay(){
-    if($('#epiAuthOverlay'))return;const d=document.createElement('div');d.id='epiAuthOverlay';d.className='epi-auth-overlay';d.innerHTML=`<div class="epi-auth-card"><div class="epi-auth-mark">🦺</div><h1>Entrar no Gestão EPI</h1><p>Acesso exclusivo da empresa licenciada.</p><label>Código da empresa<input id="epiTenantCode" autocomplete="organization" autocapitalize="characters" placeholder="Ex.: EMPRESA-X"></label><label>Usuário<input id="epiAuthUser" autocomplete="username" autocapitalize="none" placeholder="Seu usuário"></label><label>Senha<input id="epiAuthPass" type="password" autocomplete="current-password" placeholder="Sua senha"></label><button id="epiAuthSubmit" type="button">Entrar</button><div id="epiAuthError" class="epi-auth-error"></div></div>`;document.body.appendChild(d);$('#epiTenantCode').value=localStorage.getItem(TENANT_CODE_KEY)||'';$('#epiAuthSubmit').addEventListener('click',submitAuth);$('#epiAuthPass').addEventListener('keydown',e=>{if(e.key==='Enter')submitAuth();});
+    if($('#epiAuthOverlay'))return;const d=document.createElement('div');d.id='epiAuthOverlay';d.className='epi-auth-overlay';d.innerHTML=`<div class="epi-auth-card"><div class="epi-auth-mark">🦺</div><h1>Entrar no Gestão EPI</h1><p>Acesso exclusivo da empresa licenciada.</p><label>Código da empresa<input id="epiTenantCode" autocomplete="organization" autocapitalize="characters" placeholder="Ex.: EMPRESA-X"></label><label>Usuário<input id="epiAuthUser" autocomplete="username" autocapitalize="none" placeholder="Seu usuário"></label><label>Senha<input id="epiAuthPass" type="password" autocomplete="current-password" placeholder="Sua senha"></label><button id="epiAuthSubmit" type="button">Entrar</button><div id="epiAuthError" class="epi-auth-error"></div></div>`;document.body.appendChild(d);$('#epiTenantCode').value=localStorage.getItem(TENANT_CODE_KEY)||'';$('#epiAuthUser').value=savedUser()?.username||'';$('#epiAuthPass').value='';$('#epiAuthSubmit').addEventListener('click',submitAuth);$('#epiAuthPass').addEventListener('keydown',e=>{if(e.key==='Enter')submitAuth();});
   }
   function showLogin(msg=''){injectStyles();injectOverlay();$('#epiAuthOverlay').classList.remove('hidden');$('#epiAuthError').textContent=msg||'';setTimeout(()=>($('#epiTenantCode').value?$('#epiAuthUser'):$('#epiTenantCode'))?.focus(),80);}
   function hideLogin(){$('#epiAuthOverlay')?.classList.add('hidden');}
 
   async function submitAuth(){
     const tenantCode=($('#epiTenantCode')?.value||'').trim(),username=($('#epiAuthUser')?.value||'').trim(),password=$('#epiAuthPass')?.value||'',btn=$('#epiAuthSubmit'),err=$('#epiAuthError');
-    if(!tenantCode||!username||!password){err.textContent='Informe código da empresa, usuário e senha.';return;}if(!navigator.onLine){err.textContent='O login precisa de internet.';return;}
+    if(!tenantCode||!username||!password){err.textContent='Informe código da empresa, usuário e senha.';return;}
     btn.disabled=true;btn.textContent='Aguarde…';err.textContent='';
-    try{const r=await api('tenant_login',{tenantCode,username,password,deviceId:deviceId(),deviceLabel:deviceLabel()});if(!r?.ok)throw new Error(r?.message||'Não foi possível entrar.');saveSession(r.token,r.user,r.tenant);hideLogin();applyUser(r.user,r.tenant);ready=true;document.dispatchEvent(new CustomEvent('gestao-epi-auth-ready',{detail:{user:r.user,tenant:r.tenant}}));}
+    try{
+      if(!navigator.onLine){
+        const u=savedUser(),t=savedTenant();
+        if(!u||!t||authId(t.code)!==authId(tenantCode)||authId(u.username)!==authId(username)||!tokenStillValid()||!offlineSessionFresh())throw new Error('Para entrar offline, faça antes um login online neste aparelho.');
+        if(!(await verifyOfflinePassword(tenantCode,username,password)))throw new Error('Senha incorreta para o acesso offline.');
+        markUnlocked(tenantCode,username);
+        if(!useCachedOffline())throw new Error('A sessão offline expirou. Conecte à internet para validar novamente.');
+        $('#epiAuthPass').value='';
+        return;
+      }
+      const r=await api('tenant_login',{tenantCode,username,password,deviceId:deviceId(),deviceLabel:deviceLabel()});if(!r?.ok)throw new Error(r?.message||'Não foi possível entrar.');
+      saveSession(r.token,r.user,r.tenant);
+      await saveOfflineVerifier(tenantCode,username,password);
+      markUnlocked(r.tenant?.code||tenantCode,r.user?.username||username);
+      $('#epiAuthPass').value='';
+      hideLogin();applyUser(r.user,r.tenant);ready=true;document.dispatchEvent(new CustomEvent('gestao-epi-auth-ready',{detail:{user:r.user,tenant:r.tenant}}));
+    }
     catch(e){err.textContent=e.message||'Falha no login.';}finally{btn.disabled=false;btn.textContent='Entrar';}
   }
 
@@ -101,12 +151,13 @@
   function useCachedOffline(){const u=savedUser(),t=savedTenant();if(!u||!t||!tokenStillValid()||!offlineSessionFresh())return false;currentUser=u;currentTenant=t;hideLogin();applyUser(u,t);ready=true;document.dispatchEvent(new CustomEvent('gestao-epi-auth-ready',{detail:{user:u,tenant:t}}));toast('Modo offline • acesso temporário');return true;}
 
   async function init(){
-    injectStyles();injectOverlay();if(!navigator.onLine&&useCachedOffline())return;
-    if(token()){
+    injectStyles();injectOverlay();
+    if(isUnlocked()&&token()){
+      if(!navigator.onLine&&useCachedOffline())return;
       try{const me=await api('tenant_me');if(me?.ok){saveSession(token(),me.user,me.tenant);hideLogin();applyUser(me.user,me.tenant);ready=true;document.dispatchEvent(new CustomEvent('gestao-epi-auth-ready',{detail:{user:me.user,tenant:me.tenant}}));return;}clearSession();}
       catch(_){if(useCachedOffline())return;}
     }
-    showLogin();
+    showLogin(savedUser()?'Digite sua senha para entrar.':'');
   }
 
   window.GestaoEpiAuth={api,token,user:()=>currentUser||savedUser(),tenant:()=>currentTenant||savedTenant(),logout,isReady:()=>ready,deviceId};
