@@ -12,7 +12,7 @@ pub = (root / "pubspec.yaml").read_text(encoding="utf-8")
 
 checks = {
     "version": "version: 3.30.92+279" in pub,
-    "desktop_breakpoint": "constraints.maxWidth >= 900" in home,
+    "desktop_layout_routed": "LayoutBuilder" in home and "_desktopBody()" in home and "_mobileBody()" in home,
     "desktop_method": "Widget _desktopBody()" in home,
     "mobile_preserved": "Widget _mobileBody()" in home,
     "hero": "CENTRAL EXECUTIVA AUDITAR SST" in home,
