@@ -3,7 +3,7 @@ name: Gerar APK Gestão EPI Campo
 on:
   workflow_dispatch:
   push:
-    branches: [main, feature/gestao-epi-biometria-evidencia-v281, feature/gestao-epi-worker-portal-v290, feature/gestao-epi-brand-login-v300, feature/gestao-epi-android-cache-hotfix-v301, feature/gestao-epi-login-refine-v302, feature/gestao-epi-quality-v310, feature/gestao-epi-legal-v320, feature/gestao-epi-android-freeze-hotfix-v321]
+    branches: [main, feature/gestao-epi-biometria-evidencia-v281, feature/gestao-epi-worker-portal-v290, feature/gestao-epi-brand-login-v300, feature/gestao-epi-android-cache-hotfix-v301, feature/gestao-epi-login-refine-v302, feature/gestao-epi-quality-v310, feature/gestao-epi-legal-v320, feature/gestao-epi-android-freeze-hotfix-v321, feature/gestao-epi-android-native-cache-fix-v322]
     paths:
       - 'auditar-epi/**'
       - 'auditar-epi-mobile/**'
@@ -69,8 +69,8 @@ jobs:
 
           gradle = Path('android/app/build.gradle')
           gradle_text = gradle.read_text(encoding='utf-8')
-          gradle_text = re.sub(r'versionCode\s+\d+', 'versionCode 321', gradle_text, count=1)
-          gradle_text = re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "3.2.1"', gradle_text, count=1)
+          gradle_text = re.sub(r'versionCode\s+\d+', 'versionCode 322', gradle_text, count=1)
+          gradle_text = re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "3.2.2"', gradle_text, count=1)
           gradle.write_text(gradle_text, encoding='utf-8')
 
           drawable = Path('android/app/src/main/res/drawable')
@@ -135,6 +135,7 @@ jobs:
       - name: Conferir módulos novos
         working-directory: auditar-epi-mobile/www
         run: |
+          node --check app.js
           node --check holdings-replacements.js
           node --check return-epi.js
           node --check cloud-sync.js
@@ -147,7 +148,9 @@ jobs:
           node --check quality-v310.js
           node --check legal-evidence-v320.js
           node --check sw.js
-          grep -q "gestao-epi-v321-shell" sw.js
+          grep -q "gestao-epi-v322-external" sw.js
+          grep -q "if(url.origin===self.location.origin)return" sw.js
+          grep -q "gestaoEpiNativeSwCleanV322" app.js
           grep -q "brand-login-v300.js" sw.js
           grep -q "ux-v300.js" sw.js
           grep -q "biometric-crypto-v1.js" sw.js
@@ -174,20 +177,34 @@ jobs:
         working-directory: auditar-epi-mobile/android
         run: ./gradlew assembleDebug
 
+      - name: Validar conteúdo real do APK
+        run: |
+          APK='auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk'
+          unzip -p "$APK" assets/public/app.js | grep -q "gestaoEpiNativeSwCleanV322"
+          unzip -p "$APK" assets/public/sw.js | grep -q "gestao-epi-v322-external"
+          unzip -p "$APK" assets/public/sw.js | grep -q "if(url.origin===self.location.origin)return"
+          unzip -p "$APK" assets/public/index.html | grep -q "ux-v300.js"
+          unzip -p "$APK" assets/public/index.html | grep -q "quality-v310.js"
+          unzip -p "$APK" assets/public/index.html | grep -q "legal-evidence-v320.js"
+          if unzip -p "$APK" assets/public/sw.js | grep -q "client.navigate"; then
+            echo "Service Worker ainda força navegação do shell local."
+            exit 1
+          fi
+
       - name: Renomear APK
-        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Campo-v3.2.1-HOTFIX-TRAVAMENTO.apk
+        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Campo-v3.2.2-CORRECAO-DEFINITIVA-INTERFACE.apk
 
       - name: Publicar APK
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: gestao-epi-campo-v3.2.1
-          name: Gestão EPI Campo v3.2.1
+          tag_name: gestao-epi-campo-v3.2.2
+          name: Gestão EPI Campo v3.2.2
           body: |
-            Gestão EPI Campo v3.2.1 com correção do cache interno que podia recarregar interface antiga após o login. Mantém nova identidade profissional, login renovado, fluxo rápido, busca global, ficha 360 e biometria reforçada.
+            Gestão EPI Campo v3.2.2 com correção da causa de substituição da interface no Android. O app nativo remove o Service Worker antigo e o novo Worker não intercepta os arquivos locais do APK, impedindo que uma Home antiga volte após a sincronização/reload. Observers globais de interface também foram removidos.
             Inclui EPIs em posse por trabalhador, controle de trocas por vencimento, desgaste, dano, perda e necessidade operacional, além da devolução com opção de retorno ao estoque.
             Mantidas assinatura em tela, reconhecimento facial, operação offline, sincronização, estoque, histórico e Portal do Trabalhador. As melhorias de interface são aditivas e não alteram o núcleo de sincronização.
-          files: Gestao-EPI-Campo-v3.2.1-HOTFIX-TRAVAMENTO.apk
+          files: Gestao-EPI-Campo-v3.2.2-CORRECAO-DEFINITIVA-INTERFACE.apk
           make_latest: false
           overwrite_files: true
 
@@ -204,7 +221,7 @@ jobs:
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
-          name: Gestao-EPI-Campo-v3.2.1-HOTFIX-TRAVAMENTO
-          path: Gestao-EPI-Campo-v3.2.1-HOTFIX-TRAVAMENTO.apk
+          name: Gestao-EPI-Campo-v3.2.2-CORRECAO-DEFINITIVA-INTERFACE
+          path: Gestao-EPI-Campo-v3.2.2-CORRECAO-DEFINITIVA-INTERFACE.apk
           if-no-files-found: error
           retention-days: 14
