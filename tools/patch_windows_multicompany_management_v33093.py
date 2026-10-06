@@ -64,45 +64,46 @@ if imp not in home:
     home = home.replace(anchor, anchor + imp, 1)
 
 # Botão principal da lateral: carteira multempresa.
-old_sidebar = """                  child: FilledButton.icon(
-                    onPressed: () => _open(
-                      const FieldOperationalControlScreen(),
-                    ),
-                    icon: const Icon(Icons.query_stats_rounded),
-                    label: const Text('Central de Gestão'),
-                  ),"""
-new_sidebar = """                  child: FilledButton.icon(
-                    onPressed: () => _open(
-                      const CompanyPortfolioManagementScreen(),
-                    ),
-                    icon: const Icon(Icons.apartment_rounded),
-                    label: const Text('Gestão Multempresa'),
-                  ),"""
-if old_sidebar in home:
-    home = home.replace(old_sidebar, new_sidebar, 1)
-elif "label: const Text('Gestão Multempresa')" not in home:
-    raise RuntimeError("botão lateral da Home Executiva não encontrado")
+if "label: const Text('Gestão Multempresa')" not in home:
+    marker = "label: const Text('Central de Gestão'),"
+    pos = home.find(marker)
+    if pos < 0:
+        raise RuntimeError("botão lateral da Home Executiva não encontrado")
+    route = "const FieldOperationalControlScreen()"
+    route_pos = home.rfind(route, max(0, pos - 500), pos)
+    if route_pos < 0:
+        raise RuntimeError("rota lateral da Central de Gestão não encontrada")
+    home = (
+        home[:route_pos]
+        + "const CompanyPortfolioManagementScreen()"
+        + home[route_pos + len(route):]
+    )
+    icon_pos = home.rfind(
+        "Icons.query_stats_rounded",
+        max(0, pos - 500),
+        pos + 200,
+    )
+    if icon_pos >= 0:
+        home = (
+            home[:icon_pos]
+            + "Icons.apartment_rounded"
+            + home[icon_pos + len("Icons.query_stats_rounded"):]
+        )
+    home = home.replace(
+        "label: const Text('Central de Gestão'),",
+        "label: const Text('Gestão Multempresa'),",
+        1,
+    )
 
 # Item gerencial logo no topo da navegação.
-nav_anchor = """                    ListTile(
-                      dense: true,
-                      leading: const Icon(
-                        Icons.space_dashboard_outlined,
-                        color: AuditarBrand.greenDark,
-                      ),
-                      title: const Text(
-                        'Painel executivo',
-                        style: TextStyle(fontWeight: FontWeight.w900),
-                      ),
-                      subtitle: const Text(
-                        'Indicadores e prioridades',
-                        style: TextStyle(fontSize: 10),
-                      ),
-                      onTap: () => _open(
-                        const FieldOperationalControlScreen(),
-                      ),
-                    ),"""
-nav_new = """                    ListTile(
+if "Todas as empresas por prioridade" not in home:
+    title_pos = home.find("'Painel executivo'")
+    if title_pos < 0:
+        raise RuntimeError("item Painel executivo da navegação não encontrado")
+    tile_pos = home.rfind("ListTile(", max(0, title_pos - 500), title_pos)
+    if tile_pos < 0:
+        raise RuntimeError("início do item Painel executivo não encontrado")
+    multempresa_tile = """ListTile(
                       dense: true,
                       leading: const Icon(
                         Icons.apartment_rounded,
@@ -120,50 +121,40 @@ nav_new = """                    ListTile(
                         const CompanyPortfolioManagementScreen(),
                       ),
                     ),
-                    ListTile(
-                      dense: true,
-                      leading: const Icon(
-                        Icons.space_dashboard_outlined,
-                        color: AuditarBrand.info,
-                      ),
-                      title: const Text(
-                        'Central por empresa',
-                        style: TextStyle(fontWeight: FontWeight.w900),
-                      ),
-                      subtitle: const Text(
-                        'Indicadores, pendências e Painel Executivo',
-                        style: TextStyle(fontSize: 10),
-                      ),
-                      onTap: () => _open(
-                        const FieldOperationalControlScreen(),
-                      ),
-                    ),"""
-if nav_anchor in home:
-    home = home.replace(nav_anchor, nav_new, 1)
-elif "Todas as empresas por prioridade" not in home:
-    raise RuntimeError("item Painel executivo da navegação não encontrado")
+                    """
+    home = home[:tile_pos] + multempresa_tile + home[tile_pos:]
 
 # CTA principal no hero passa a abrir a carteira completa.
-old_hero = """                            onPressed: () => _open(
-                              const FieldOperationalControlScreen(),
-                            ),
-                            icon: const Icon(Icons.present_to_all_rounded),
-                            label: const Text(
-                              'Abrir Central de Gestão',
-                              style: TextStyle(fontWeight: FontWeight.w900),
-                            ),"""
-new_hero = """                            onPressed: () => _open(
-                              const CompanyPortfolioManagementScreen(),
-                            ),
-                            icon: const Icon(Icons.apartment_rounded),
-                            label: const Text(
-                              'Ver todas as empresas',
-                              style: TextStyle(fontWeight: FontWeight.w900),
-                            ),"""
-if old_hero in home:
-    home = home.replace(old_hero, new_hero, 1)
-elif "label: const Text(\n                              'Ver todas as empresas'" not in home:
-    raise RuntimeError("CTA principal da Home não encontrado")
+if "'Ver todas as empresas'" not in home:
+    label_marker = "'Abrir Central de Gestão'"
+    label_pos = home.find(label_marker)
+    if label_pos < 0:
+        raise RuntimeError("CTA principal da Home não encontrado")
+    route = "const FieldOperationalControlScreen()"
+    route_pos = home.rfind(route, max(0, label_pos - 900), label_pos)
+    if route_pos < 0:
+        raise RuntimeError("rota do CTA principal não encontrada")
+    home = (
+        home[:route_pos]
+        + "const CompanyPortfolioManagementScreen()"
+        + home[route_pos + len(route):]
+    )
+    icon_pos = home.rfind(
+        "Icons.present_to_all_rounded",
+        max(0, label_pos - 900),
+        label_pos,
+    )
+    if icon_pos >= 0:
+        home = (
+            home[:icon_pos]
+            + "Icons.apartment_rounded"
+            + home[icon_pos + len("Icons.present_to_all_rounded"):]
+        )
+    home = home.replace(
+        "'Abrir Central de Gestão'",
+        "'Ver todas as empresas'",
+        1,
+    )
 
 old_hint = "Selecione a empresa para abrir o Painel Executivo"
 new_hint = "Carteira geral com prioridades de todas as empresas"
