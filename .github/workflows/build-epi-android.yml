@@ -3,7 +3,7 @@ name: Gerar APK Gestão EPI Campo
 on:
   workflow_dispatch:
   push:
-    branches: [main, feature/gestao-epi-biometria-evidencia-v281, feature/gestao-epi-worker-portal-v290, feature/gestao-epi-brand-login-v300, feature/gestao-epi-android-cache-hotfix-v301, feature/gestao-epi-login-refine-v302, feature/gestao-epi-quality-v310, feature/gestao-epi-legal-v320, feature/gestao-epi-android-freeze-hotfix-v321, feature/gestao-epi-android-freeze-hotfix-v322, feature/gestao-epi-android-more-hotfix-v324, feature/gestao-epi-android-invoice-import-v325, feature/gestao-epi-ca-validity-v326, feature/gestao-epi-ca-sheet-v327, feature/gestao-epi-fichas-completas-v328, feature/gestao-epi-fichas-resumidas-v329]
+    branches: [main, feature/gestao-epi-biometria-evidencia-v281, feature/gestao-epi-worker-portal-v290, feature/gestao-epi-brand-login-v300, feature/gestao-epi-android-cache-hotfix-v301, feature/gestao-epi-login-refine-v302, feature/gestao-epi-quality-v310, feature/gestao-epi-legal-v320, feature/gestao-epi-android-freeze-hotfix-v321, feature/gestao-epi-android-freeze-hotfix-v322, feature/gestao-epi-android-more-hotfix-v324, feature/gestao-epi-android-invoice-import-v325, feature/gestao-epi-ca-validity-v326, feature/gestao-epi-ca-sheet-v327, feature/gestao-epi-fichas-completas-v328, feature/gestao-epi-fichas-resumidas-v329, feature/gestao-epi-central-ca-v330]
     paths:
       - 'auditar-epi/**'
       - 'auditar-epi-mobile/**'
@@ -69,8 +69,8 @@ jobs:
 
           gradle = Path('android/app/build.gradle')
           gradle_text = gradle.read_text(encoding='utf-8')
-          gradle_text = re.sub(r'versionCode\s+\d+', 'versionCode 329', gradle_text, count=1)
-          gradle_text = re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "3.2.9"', gradle_text, count=1)
+          gradle_text = re.sub(r'versionCode\s+\d+', 'versionCode 330', gradle_text, count=1)
+          gradle_text = re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "3.3.0"', gradle_text, count=1)
           gradle.write_text(gradle_text, encoding='utf-8')
 
           drawable = Path('android/app/src/main/res/drawable')
@@ -169,6 +169,12 @@ jobs:
           grep -q "Próxima troca" smart-management-v350.js
           grep -q "CA consultado em" smart-management-v350.js
           grep -q "Em posse:" smart-management-v350.js
+          node --check ca-center-v330.js
+          grep -q "Central de CA" ca-center-v330.js
+          grep -q "Atualizar CAs" ca-center-v330.js
+          grep -q "Alertas de CA" ca-center-v330.js
+          grep -q "Sem validade" ca-center-v330.js
+          ! grep -q "MutationObserver" ca-center-v330.js
           ! grep -q "MutationObserver" invoice-epi-ai-v350.js
           ! grep -q "MutationObserver" mobile-general-report-v330.js
           ! grep -q "MutationObserver" smart-management-v350.js
@@ -227,21 +233,25 @@ jobs:
           unzip -p "$APK" assets/public/smart-management-v350.js | grep -q "Próxima troca"
           unzip -p "$APK" assets/public/smart-management-v350.js | grep -q "CA consultado em"
           unzip -p "$APK" assets/public/smart-management-v350.js | grep -q "Em posse:"
+          unzip -p "$APK" assets/public/index.html | grep -q "ca-center-v330.js"
+          unzip -p "$APK" assets/public/ca-center-v330.js | grep -q "Central de CA"
+          unzip -p "$APK" assets/public/ca-center-v330.js | grep -q "Atualizar CAs"
+          unzip -p "$APK" assets/public/ca-center-v330.js | grep -q "Alertas de CA"
 
       - name: Renomear APK
-        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Campo-v3.2.9-FICHAS-RESUMIDAS.apk
+        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Campo-v3.3.0-CENTRAL-CA.apk
 
       - name: Publicar APK
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: gestao-epi-campo-v3.2.9
-          name: Gestão EPI Campo v3.2.9
+          tag_name: gestao-epi-campo-v3.3.0
+          name: Gestão EPI Campo v3.3.0
           body: |
-            Gestão EPI Campo v3.2.9 baseada diretamente na v3.2.2 HOTFIX-OBSERVER validada fisicamente, adicionando somente o atalho Mais. Mantém nova identidade profissional, login renovado, fluxo rápido, busca global, ficha 360 e biometria reforçada.
+            Gestão EPI Campo v3.3.0 baseada diretamente na v3.2.2 HOTFIX-OBSERVER validada fisicamente, adicionando somente o atalho Mais. Mantém nova identidade profissional, login renovado, fluxo rápido, busca global, ficha 360 e biometria reforçada.
             Inclui EPIs em posse por trabalhador, controle de trocas por vencimento, desgaste, dano, perda e necessidade operacional, além da devolução com opção de retorno ao estoque.
             Mantidas assinatura em tela, reconhecimento facial, operação offline, sincronização, estoque, histórico e Portal do Trabalhador. As melhorias de interface são aditivas e não alteram o núcleo de sincronização.
-          files: Gestao-EPI-Campo-v3.2.9-FICHAS-RESUMIDAS.apk
+          files: Gestao-EPI-Campo-v3.3.0-CENTRAL-CA.apk
           make_latest: false
           overwrite_files: true
 
@@ -258,7 +268,7 @@ jobs:
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
-          name: Gestao-EPI-Campo-v3.2.9-FICHAS-RESUMIDAS
-          path: Gestao-EPI-Campo-v3.2.9-FICHAS-RESUMIDAS.apk
+          name: Gestao-EPI-Campo-v3.3.0-CENTRAL-CA
+          path: Gestao-EPI-Campo-v3.3.0-CENTRAL-CA.apk
           if-no-files-found: error
           retention-days: 14
