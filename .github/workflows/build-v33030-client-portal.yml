@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.92 Home Executiva
+name: Auditar SST Windows v3.30.93 Gestao Multempresa
 # Clean rebuild v3.30.64 after protected productivity consolidation
 
 on:
@@ -129,6 +129,9 @@ on:
       - 'tools/regression_windows_executive_dashboard_v33091.py'
       - 'tools/patch_windows_home_executive_v33092.py'
       - 'tools/regression_windows_home_executive_v33092.py'
+      - 'feature_sources/company_portfolio_management_screen_v33093.dart'
+      - 'tools/patch_windows_multicompany_management_v33093.py'
+      - 'tools/regression_windows_multicompany_management_v33093.py'
       - 'docs/HOMOLOGACAO_RELEASE_AUDITAR_SST.md'
       - 'feature_sources/offline_report_inline_suggestions_v329165.dart'
       - 'feature_sources/offline_report_inline_suggestions_test_v329165.dart'
@@ -1500,6 +1503,22 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha regressao Home Executiva' }
           if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.92+279")) { throw 'Versao Windows v3.30.92 incorreta' }
 
+      - name: Aplicar Gestao Multempresa Windows v3.30.93
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python tools/patch_windows_multicompany_management_v33093.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha patch Gestao Multempresa' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/screens/company_portfolio_management_screen.dart lib/screens/home_screen.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha formatacao Gestao Multempresa' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha analise Gestao Multempresa' }
+          Pop-Location
+          python tools/regression_windows_multicompany_management_v33093.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao Gestao Multempresa' }
+          if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.93+280")) { throw 'Versao Windows v3.30.93 incorreta' }
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
@@ -1523,8 +1542,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.92-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.92-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.92-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.93-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.93-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.93-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -1539,12 +1558,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.92',
+            'AppVersion=3.30.93',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.92',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.93',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -1561,11 +1580,11 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.92.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.92.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.93.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.93.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.92-Windows-Home-Executiva
+          name: Auditar-SST-v3.30.93-Windows-Gestao-Multempresa
           path: dist/windows/*
           retention-days: 30
 
