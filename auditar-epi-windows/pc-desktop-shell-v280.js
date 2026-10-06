@@ -1,5 +1,5 @@
 (()=>{
-  const VERSION='PC v3.1.0';
+  const VERSION='PC v3.2.0';
   const $=(s,r=document)=>r.querySelector(s);
   const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 
@@ -7,7 +7,7 @@
     {title:'OPERAÇÃO',ids:['dashboard','fastDeliveryPc','newDeliveryPc','batchDeliveryPc','employeeSheetsPc','receiptsPc','workers','deliveries']},
     {title:'ESTOQUE',ids:['stock','inventoryPc','purchasesPc','nfImportPc','returnsPc','replacementPc']},
     {title:'CADASTROS',ids:['epis','caSmartPc','rolePpePc','importWorkersPc','qrPeoplePc','faceEnrollPc','externalsPc']},
-    {title:'GESTÃO E CONTROLE',ids:['alertsPc','managerReportsPc','indicators','inspectionPc','inspectionDossierPc','dataQualityPc','dataSafetyPc','auditPc','companies','pending']}
+    {title:'GESTÃO E CONTROLE',ids:['alertsPc','managerReportsPc','indicators','inspectionPc','inspectionDossierPc','dataQualityPc','dataSafetyPc','auditPc','legalCompliancePc','companies','pending']}
   ];
 
   function installStyles(){
