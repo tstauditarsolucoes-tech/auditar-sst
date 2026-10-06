@@ -147,8 +147,10 @@
     if(!item.ca)return {level:'warn',text:'CA não informado',block:false};
     const c=item.caCheck;if(!c)return {level:'warn',text:`CA ${item.ca} ainda não confirmado`,block:true};
     if(c.found!==true)return {level:'bad',text:`CA ${item.ca} não confirmado em fonte oficial`,block:true};
-    const st=norm(c.status);if(/venc|expir|cancel/.test(st))return {level:'bad',text:`CA ${item.ca} • ${c.status||'situação irregular'}`,block:true};
-    return {level:'ok',text:`CA ${item.ca} • ${c.status||'confirmado'}`,block:false};
+    const validity=clean(c.validity||'');
+    const validityText=validity?` • Validade do CA: ${validity}`:'';
+    const st=norm(c.status);if(/venc|expir|cancel/.test(st))return {level:'bad',text:`CA ${item.ca} • ${c.status||'situação irregular'}${validityText}`,block:true};
+    return {level:'ok',text:`CA ${item.ca} • ${c.status||'confirmado'}${validityText}`,block:false};
   }
   function riskFor(item,epi){
     const reasons=[];const conf=confidenceInfo(item),ca=caInfo(item),mismatch=existingMismatch(epi,item);
