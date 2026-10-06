@@ -120,7 +120,7 @@ let raf=0;
 function pass(){styles();improveBiometricNotice();bind();const id=receiptIdFromDom();if(id)patchReceipt(id)}
 function boot(){
   pass();
-  new MutationObserver(()=>{if(raf)return;raf=requestAnimationFrame(()=>{raf=0;improveBiometricNotice()})}).observe(document.body,{childList:true,subtree:true});
+  document.addEventListener('click',e=>{if(e.target.closest('[data-go="delivery"]'))setTimeout(improveBiometricNotice,80)},true);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
