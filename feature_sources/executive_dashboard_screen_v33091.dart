@@ -1,8 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-
 import '../brand.dart';
 import '../database.dart';
 import '../models.dart';
@@ -199,13 +197,13 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
 
   int get healthScore {
     var penalty = 0;
-    penalty += (highCriticalOpen * 8).clamp(0, 32);
-    penalty += (overdueActions * 5).clamp(0, 20);
-    penalty += (expiredTrainings * 4).clamp(0, 16);
-    penalty += (missingRequiredTrainingCount * 4).clamp(0, 16);
-    penalty += (recurrenceGroups.length * 3).clamp(0, 12);
-    penalty += (openNc * 1).clamp(0, 10);
-    return (100 - penalty).clamp(0, 100);
+    penalty += (highCriticalOpen * 8).clamp(0, 32).toInt();
+    penalty += (overdueActions * 5).clamp(0, 20).toInt();
+    penalty += (expiredTrainings * 4).clamp(0, 16).toInt();
+    penalty += (missingRequiredTrainingCount * 4).clamp(0, 16).toInt();
+    penalty += (recurrenceGroups.length * 3).clamp(0, 12).toInt();
+    penalty += openNc.clamp(0, 10).toInt();
+    return (100 - penalty).clamp(0, 100).toInt();
   }
 
   String get healthLabel {
@@ -734,8 +732,12 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
   }
 
   Widget _comparisonRow(String label, int previous, int current, int maxValue) {
-    final monthNow = DateFormat('MMM', 'pt_BR').format(_now).toUpperCase();
-    final monthPrev = DateFormat('MMM', 'pt_BR').format(_previousMonth).toUpperCase();
+    const months = <String>[
+      'JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN',
+      'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ',
+    ];
+    final monthNow = months[_now.month - 1];
+    final monthPrev = months[_previousMonth.month - 1];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -770,7 +772,7 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
                   ),
                   Container(
                     height: 22,
-                    width: constraints.maxWidth * fraction.clamp(0.0, 1.0),
+                    width: constraints.maxWidth * fraction.clamp(0.0, 1.0).toDouble(),
                     decoration: BoxDecoration(
                       color: color.withValues(alpha: .35),
                       borderRadius: BorderRadius.circular(7),
