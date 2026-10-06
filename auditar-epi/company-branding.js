@@ -56,10 +56,47 @@
     const list=$('#companyList');if(!list)return;const root=load();
     list.querySelectorAll('.list-item').forEach(item=>{
       const del=item.querySelector('[data-del-company]');const id=del?.dataset.delCompany;if(!id)return;const c=(root.companies||[]).find(x=>x.id===id);if(!c)return;
-      let thumb=item.querySelector('.company-logo-thumb');if(!thumb){thumb=document.createElement('div');thumb.className='company-logo-thumb';item.insertBefore(thumb,item.firstChild);}thumb.innerHTML=c.logoDataUrl?`<img src="${c.logoDataUrl}" alt="Logo ${c.name||''}">`:'<span>SEM<br>LOGO</span>';
-      const actions=item.querySelector('.list-actions')||item;if(!actions.querySelector('[data-company-logo]')){const b=document.createElement('button');b.type='button';b.className='tiny';b.dataset.companyLogo=id;b.textContent=c.logoDataUrl?'Trocar logo':'Adicionar logo';actions.insertBefore(b,del||null);}
-      const b=actions.querySelector('[data-company-logo]');if(b)b.textContent=c.logoDataUrl?'Trocar logo':'Adicionar logo';
-      let rem=actions.querySelector('[data-company-logo-remove]');if(c.logoDataUrl&&!rem){rem=document.createElement('button');rem.type='button';rem.className='tiny company-logo-remove';rem.dataset.companyLogoRemove=id;rem.textContent='Remover logo';actions.insertBefore(rem,del||null);}else if(!c.logoDataUrl&&rem)rem.remove();
+      let thumb=item.querySelector('.company-logo-thumb');
+      if(!thumb){
+        thumb=document.createElement('div');
+        thumb.className='company-logo-thumb';
+        item.insertBefore(thumb,item.firstChild);
+      }
+
+      // Hotfix v3.2.2: não reescrever o subtree observado quando nada mudou.
+      // O código anterior executava thumb.innerHTML em toda chamada do observer,
+      // provocando mutação -> observer -> mutação em ciclo e congelando o Android.
+      const logoSig=c.logoDataUrl
+        ? 'logo:'+String(c.logoUpdatedAt||c.updatedAt||c.logoDataUrl.length)
+        : 'sem-logo';
+      if(thumb.dataset.logoSig!==logoSig){
+        thumb.dataset.logoSig=logoSig;
+        thumb.innerHTML=c.logoDataUrl
+          ? `<img src="${c.logoDataUrl}" alt="Logo ${c.name||''}">`
+          : '<span>SEM<br>LOGO</span>';
+      }
+
+      const actions=item.querySelector('.list-actions')||item;
+      if(!actions.querySelector('[data-company-logo]')){
+        const b=document.createElement('button');
+        b.type='button';b.className='tiny';b.dataset.companyLogo=id;
+        b.textContent=c.logoDataUrl?'Trocar logo':'Adicionar logo';
+        actions.insertBefore(b,del||null);
+      }
+
+      const b=actions.querySelector('[data-company-logo]');
+      const wantedText=c.logoDataUrl?'Trocar logo':'Adicionar logo';
+      if(b&&b.textContent!==wantedText)b.textContent=wantedText;
+
+      let rem=actions.querySelector('[data-company-logo-remove]');
+      if(c.logoDataUrl&&!rem){
+        rem=document.createElement('button');
+        rem.type='button';rem.className='tiny company-logo-remove';
+        rem.dataset.companyLogoRemove=id;rem.textContent='Remover logo';
+        actions.insertBefore(rem,del||null);
+      }else if(!c.logoDataUrl&&rem){
+        rem.remove();
+      }
     });
   }
 
