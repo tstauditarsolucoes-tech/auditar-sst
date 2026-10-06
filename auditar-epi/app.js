@@ -171,7 +171,11 @@
 
   async function configureNativeServiceWorker(){
     if(!('serviceWorker' in navigator))return;
-    const isNative=!!(window.Capacitor&&typeof window.Capacitor.isNativePlatform==='function'&&window.Capacitor.isNativePlatform());
+    const isNative=!!(
+      (window.Capacitor&&typeof window.Capacitor.isNativePlatform==='function'&&window.Capacitor.isNativePlatform()) ||
+      /^(capacitor|ionic):$/i.test(location.protocol) ||
+      (location.hostname==='localhost'&&/Android/i.test(navigator.userAgent||''))
+    );
     if(!isNative){
       navigator.serviceWorker.register('./sw.js').catch(()=>{});
       return;
