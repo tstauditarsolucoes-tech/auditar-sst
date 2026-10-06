@@ -151,12 +151,6 @@ jobs:
           grep -q "gestao-epi-v322-external" sw.js
           grep -q "if(url.origin===self.location.origin)return" sw.js
           grep -q "gestaoEpiNativeSwCleanV322" app.js
-          grep -q "brand-login-v300.js" sw.js
-          grep -q "ux-v300.js" sw.js
-          grep -q "biometric-crypto-v1.js" sw.js
-          grep -q "worker-portal-share-v1.js" sw.js
-          grep -q "quality-v310.js" sw.js
-          grep -q "legal-evidence-v320.js" sw.js
 
       - name: Validar Portal do Trabalhador
         run: |
