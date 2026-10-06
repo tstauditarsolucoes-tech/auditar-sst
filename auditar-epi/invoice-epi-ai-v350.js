@@ -53,8 +53,8 @@
     return 'ITEMS-'+(h>>>0).toString(16);
   }
   function invoiceMarker(inv){return `NF_IMPORT:${invoiceIdentity(inv)}`;}
-  function legacyInvoiceMarker(inv){return `NF_IMPORT:${inv.key||`${inv.supplierCnpj||''}|${inv.number||''}|${inv.series||''}|${inv.date||''}`}`;}
-  function alreadyImported(stock,inv){const markers=[invoiceMarker(inv),legacyInvoiceMarker(inv)];return (stock.movements||[]).some(m=>markers.some(x=>x&&String(m.note||'').includes(x)));}
+  function legacyInvoiceMarker(inv){const legacy=clean(inv.key)||[clean(inv.supplierCnpj),clean(inv.number),clean(inv.series),clean(inv.date)].join('|');return legacy.replace(/\|/g,'')?`NF_IMPORT:${legacy}`:'';}
+  function alreadyImported(stock,inv){const markers=[invoiceMarker(inv),legacyInvoiceMarker(inv)].filter(Boolean);return (stock.movements||[]).some(m=>markers.some(x=>String(m.note||'').includes(x)));}
   function stockBalance(stock,companyId,epiId){return (stock.movements||[]).filter(m=>m.companyId===companyId&&m.epiId===epiId).reduce((sum,m)=>sum+Number(m.delta||0),0);}
   function likelyEpi(v){return /capacete|oculos|óculos|luva|botina|bota|calçado|calcado|respirador|mascara|máscara|protetor|abafador|auricular|cinto|talabarte|vestimenta|avental|perneira|mangote|viseira|facial|creme protetor|epi\b/i.test(String(v||''));}
   function extractCa(v){const m=String(v||'').match(/(?:\bCA\b|C\.A\.)\s*[:.#º°-]*\s*(\d{3,6})\b/i);return m?m[1]:'';}
@@ -155,7 +155,7 @@
   }
   function caInfo(item){
     if(!item.ca)return {level:'warn',text:'CA não informado',block:false};
-    const c=item.caCheck;if(!c)return {level:'warn',text:`CA ${item.ca} ainda não confirmado`,block:true};
+    const c=item.caCheck;if(!c||digits(c.ca)!==digits(item.ca))return {level:'warn',text:`CA ${item.ca} ainda não confirmado`,block:true};
     if(c.found!==true)return {level:'bad',text:`CA ${item.ca} não confirmado em fonte oficial`,block:true};
     const validity=clean(c.validity||'');
     const validityText=validity?` • Validade do CA: ${validity}`:'';
@@ -212,12 +212,12 @@
     $('#nf350Preview')?.addEventListener('change',onPreviewInput);
   }
   function rowItem(row){
-    const src=currentInvoice?.items?.[Number(row.dataset.nf350)]||{};
-    return {...src,name:clean(row.querySelector('.nf350-name')?.value),ca:digits(row.querySelector('.nf350-ca')?.value),size:clean(row.querySelector('.nf350-size')?.value),qty:Number(row.querySelector('.nf350-qty')?.value||0)};
+    const src=currentInvoice?.items?.[Number(row.dataset.nf350)]||{},ca=digits(row.querySelector('.nf350-ca')?.value);
+    return {...src,name:clean(row.querySelector('.nf350-name')?.value),ca,size:clean(row.querySelector('.nf350-size')?.value),qty:Number(row.querySelector('.nf350-qty')?.value||0),caCheck:ca===digits(src.ca)?src.caCheck:null};
   }
   function onPreviewInput(e){
     const row=e.target.closest?.('[data-nf350]');if(!row||!currentInvoice)return;
-    const state=readState(),company=selectedCompany(),item=rowItem(row),existingId=row.querySelector('.nf350-existing')?.value||'',existing=state.app.epis.find(x=>x.id===existingId)||findExisting(state.app,item),risk=riskFor(item,existing),action=actionInfo(state,company,item,existing);
+    const state=readState(),company=selectedCompany(),item=rowItem(row),existingId=row.querySelector('.nf350-existing')?.value||'',existing=existingId?state.app.epis.find(x=>x.id===existingId)||null:null,risk=riskFor(item,existing),action=actionInfo(state,company,item,existing);
     row.classList.toggle('blocked',risk.blocked);row.classList.toggle('risk',!risk.blocked&&risk.conf.level==='warn');
     const review=row.querySelector('.nf350-review'),manual=row.querySelector('.nf350-continue'),actionBox=row.querySelector('.nf350-action');
     if(review){review.innerHTML=risk.reasons.length?'⚠ '+risk.reasons.map(esc).join(' '):'';review.style.display=risk.reasons.length?'block':'none';}
@@ -249,7 +249,7 @@
     for(const row of rows){
       const src=currentInvoice.items[Number(row.dataset.nf350)]||{},item=rowItem(row),existingId=row.querySelector('.nf350-existing')?.value||'';
       if(!item.name||item.qty<=0)continue;
-      let epi=app.epis.find(e=>e.id===existingId)||findExisting(app,item);const risk=riskFor(item,epi);const reviewed=row.querySelector('.nf350-reviewed')?.checked===true;
+      let epi=existingId?app.epis.find(e=>e.id===existingId)||null:null;const risk=riskFor(item,epi);const reviewed=row.querySelector('.nf350-reviewed')?.checked===true;
       if(risk.blocked&&!reviewed){toast('Existe item duvidoso selecionado. Marque “Conferi manualmente” antes de lançar.');row.scrollIntoView({behavior:'smooth',block:'center'});return;}
       const chk=src.caCheck||null;
       if(epi&&existingMismatch(epi,item)&&!reviewed){toast('O CA ou tamanho não corresponde ao cadastro selecionado. Confira o item.');row.scrollIntoView({behavior:'smooth',block:'center'});return;}
