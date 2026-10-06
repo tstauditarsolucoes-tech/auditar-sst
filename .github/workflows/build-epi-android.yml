@@ -148,6 +148,10 @@ jobs:
           node --check legal-evidence-v320.js
           node --check company-branding.js
           grep -q "logoSig" company-branding.js
+          node --check more-shortcut-v323.js
+          grep -q "Mais funções" more-shortcut-v323.js
+          grep -q "Devoluções" more-shortcut-v323.js
+          grep -q "Alertas" more-shortcut-v323.js
           node --check sw.js
           grep -q "gestao-epi-v322-shell" sw.js
           grep -q "brand-login-v300.js" sw.js
@@ -176,20 +180,29 @@ jobs:
         working-directory: auditar-epi-mobile/android
         run: ./gradlew assembleDebug
 
+      - name: Validar conteúdo real do APK
+        run: |
+          APK='auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk'
+          unzip -p "$APK" assets/public/company-branding.js | grep -q "logoSig"
+          unzip -p "$APK" assets/public/index.html | grep -q "more-shortcut-v323.js"
+          unzip -p "$APK" assets/public/more-shortcut-v323.js | grep -q "Mais funções"
+          unzip -p "$APK" assets/public/more-shortcut-v323.js | grep -q "Devoluções"
+          unzip -p "$APK" assets/public/more-shortcut-v323.js | grep -q "Alertas"
+
       - name: Renomear APK
-        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Campo-v3.2.2-HOTFIX-OBSERVER.apk
+        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Campo-v3.2.4-MAIS-HOTFIX-OBSERVER.apk
 
       - name: Publicar APK
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: gestao-epi-campo-v3.2.2
-          name: Gestão EPI Campo v3.2.2
+          tag_name: gestao-epi-campo-v3.2.4
+          name: Gestão EPI Campo v3.2.4
           body: |
-            Gestão EPI Campo v3.2.2 com correção do cache interno que podia recarregar interface antiga após o login. Mantém nova identidade profissional, login renovado, fluxo rápido, busca global, ficha 360 e biometria reforçada.
+            Gestão EPI Campo v3.2.4 baseada diretamente na v3.2.2 HOTFIX-OBSERVER validada fisicamente, adicionando somente o atalho Mais. Mantém nova identidade profissional, login renovado, fluxo rápido, busca global, ficha 360 e biometria reforçada.
             Inclui EPIs em posse por trabalhador, controle de trocas por vencimento, desgaste, dano, perda e necessidade operacional, além da devolução com opção de retorno ao estoque.
             Mantidas assinatura em tela, reconhecimento facial, operação offline, sincronização, estoque, histórico e Portal do Trabalhador. As melhorias de interface são aditivas e não alteram o núcleo de sincronização.
-          files: Gestao-EPI-Campo-v3.2.2-HOTFIX-OBSERVER.apk
+          files: Gestao-EPI-Campo-v3.2.4-MAIS-HOTFIX-OBSERVER.apk
           make_latest: false
           overwrite_files: true
 
@@ -206,7 +219,7 @@ jobs:
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
-          name: Gestao-EPI-Campo-v3.2.2-HOTFIX-OBSERVER
-          path: Gestao-EPI-Campo-v3.2.2-HOTFIX-OBSERVER.apk
+          name: Gestao-EPI-Campo-v3.2.4-MAIS-HOTFIX-OBSERVER
+          path: Gestao-EPI-Campo-v3.2.4-MAIS-HOTFIX-OBSERVER.apk
           if-no-files-found: error
           retention-days: 14
