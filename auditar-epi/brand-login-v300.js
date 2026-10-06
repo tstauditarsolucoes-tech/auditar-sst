@@ -210,8 +210,6 @@
   function boot(){
     style();
     decorate();
-    const o=new MutationObserver(()=>decorate());
-    o.observe(document.body,{childList:true,subtree:true});
     window.addEventListener('online',onlineState);
     window.addEventListener('offline',onlineState);
     [80,250,700,1400].forEach(ms=>setTimeout(decorate,ms));
