@@ -3,7 +3,7 @@ name: Gerar Windows Gestão EPI
 on:
   workflow_dispatch:
   push:
-    branches: [main, feature/gestao-epi-pc-desktop-v280, feature/gestao-epi-biometria-evidencia-v281, feature/gestao-epi-worker-portal-v290, feature/gestao-epi-brand-login-v300]
+    branches: [main, feature/gestao-epi-pc-desktop-v280, feature/gestao-epi-biometria-evidencia-v281, feature/gestao-epi-worker-portal-v290, feature/gestao-epi-brand-login-v300, feature/gestao-epi-quality-v310]
     paths:
       - 'auditar-epi-gestao/**'
       - 'auditar-epi-windows/**'
@@ -65,6 +65,7 @@ jobs:
           Copy-Item -Force 'auditar-epi-windows/pc-version-v280.js' 'auditar-epi-windows/app/pc-version-v280.js'
           Copy-Item -Force 'auditar-epi-windows/pc-mobile-parity-v280.js' 'auditar-epi-windows/app/pc-mobile-parity-v280.js'
           Copy-Item -Force 'auditar-epi-windows/pc-desktop-shell-v280.js' 'auditar-epi-windows/app/pc-desktop-shell-v280.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-management-v310.js' 'auditar-epi-windows/app/pc-management-v310.js'
 
           $indexPath = 'auditar-epi-windows/app/index.html'
           $index = Get-Content $indexPath -Raw
@@ -102,13 +103,14 @@ jobs:
             '  <script src="pc-login-safe-v277.js"></script>',
             '  <script src="pc-mobile-parity-v280.js"></script>',
             '  <script src="pc-desktop-shell-v280.js"></script>',
+            '  <script src="pc-management-v310.js"></script>',
             '</body>',
             '</html>'
           )
           Set-Content -Path $indexPath -Value ($head + (($scriptLines -join "`r`n") + "`r`n")) -Encoding UTF8
           $assembled = Get-Content $indexPath -Raw
 
-          foreach ($required in @('auth-gestao.js','pc-login-session.js','pc-login-safe-v277.js','pc-biometric-crypto-v281.js','pc-worker-portal-v290.js','pc-batch-delivery-v274.js','pc-brand-v279.js','pc-brand-login-v300.js','pc-version-v280.js','pc-mobile-parity-v280.js','pc-desktop-shell-v280.js')) {
+          foreach ($required in @('auth-gestao.js','pc-login-session.js','pc-login-safe-v277.js','pc-biometric-crypto-v281.js','pc-worker-portal-v290.js','pc-batch-delivery-v274.js','pc-brand-v279.js','pc-brand-login-v300.js','pc-version-v280.js','pc-mobile-parity-v280.js','pc-desktop-shell-v280.js','pc-management-v310.js')) {
             if ($assembled -notmatch [regex]::Escape($required)) { throw "Script obrigatório ausente: $required" }
           }
           if ($assembled -match 'pc-login-bootstrap-v276\.js|pc-login-interaction-v275\.js|login-uppercase-gestao\.js|worker-link-gestao\.js|pc-fix\.js|prepare-pc\.js|pc-easy-layout-v273\.js') {
@@ -134,6 +136,7 @@ jobs:
           node --check 'auditar-epi-windows/app/pc-version-v280.js'
           node --check 'auditar-epi-windows/app/pc-mobile-parity-v280.js'
           node --check 'auditar-epi-windows/app/pc-desktop-shell-v280.js'
+          node --check 'auditar-epi-windows/app/pc-management-v310.js'
           node --check 'auditar-epi-windows/app/pc-intelligence-v270.js'
 
       - name: Validar paridade funcional do PC
@@ -154,7 +157,8 @@ jobs:
             'pc-intelligence-v270.js',
             'pc-fichas-clean-v272.js',
             'pc-mobile-parity-v280.js',
-            'pc-desktop-shell-v280.js'
+            'pc-desktop-shell-v280.js',
+            'pc-management-v310.js'
           )
           foreach ($script in $requiredScripts) {
             if ($index -notmatch [regex]::Escape($script)) { throw "Paridade PC incompleta: $script não foi carregado." }
@@ -216,6 +220,7 @@ jobs:
             Mantidas fichas individuais, estoque, facial, entrega normal, entrega em grupo, CA e demais módulos.
             Incluído Portal do Trabalhador com link individual, histórico, próximas trocas e comprovantes.
             Nova identidade profissional Gestão EPI Auditar, login renovado e novo ícone do aplicativo.
+            Painel gerencial v3.1 com indicadores de 30 dias, tendência semanal, trocas previstas, estoque em atenção e qualidade dos cadastros.
           files: auditar-epi-windows/dist/Gestao-EPI-Setup-${{ env.APP_VERSION }}.exe
           make_latest: true
           overwrite_files: true
