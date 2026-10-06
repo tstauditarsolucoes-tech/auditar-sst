@@ -1,5 +1,6 @@
 (()=>{
 'use strict';
+const HOTFIX_V321_FREEZE_GUARD=true;
 const APP='auditarEpiV1',STOCK='auditarEpiStockV1';
 const LAST_COMPANY='gestaoEpiLastDeliveryCompanyV310';
 const ERRORS='gestaoEpiUiDiagnosticsV310';
