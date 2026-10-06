@@ -181,12 +181,13 @@
       return;
     }
 
-    const CLEAN_FLAG='gestaoEpiNativeSwCleanV322';
+    const CLEAN_KEY='gestaoEpiNativeSwCleanVersion';
+    const CLEAN_VERSION='324';
     try{
-      // O APK já contém index/JS/CSS localmente. Antes desta correção, um
-      // Service Worker cache-first antigo podia devolver uma Home desatualizada
-      // depois do reload feito pela sincronização inicial.
-      if(sessionStorage.getItem(CLEAN_FLAG)!=='1'){
+      // A limpeza é feita UMA VEZ por versão do APK. Antes, sessionStorage
+      // fazia este bloco repetir em novas aberturas do app, podendo disputar
+      // reload com restauração de login e sincronização inicial.
+      if(localStorage.getItem(CLEAN_KEY)!==CLEAN_VERSION){
         const regs=await navigator.serviceWorker.getRegistrations();
         const controlled=!!navigator.serviceWorker.controller;
         await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));
@@ -207,15 +208,16 @@
           }
         }
 
-        sessionStorage.setItem(CLEAN_FLAG,'1');
+        // Persistente entre fechamentos do app: evita nova limpeza/reload
+        // em cada inicialização da WebView.
+        localStorage.setItem(CLEAN_KEY,CLEAN_VERSION);
         if(controlled||regs.length){
           location.reload();
           return;
         }
       }
 
-      // Após a limpeza, o Worker v3.2.2 é permitido apenas para cache externo.
-      // Ele não controla os arquivos locais empacotados no APK.
+      // Worker seguro: somente cache externo; arquivos locais vêm do APK.
       navigator.serviceWorker.register('./sw.js').catch(()=>{});
     }catch(_){
       // Falha de limpeza nunca deve impedir o app de iniciar.
