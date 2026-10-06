@@ -170,14 +170,18 @@ function safeUiPass(){
   document.body.style.pointerEvents='';
   document.documentElement.style.pointerEvents='';
 }
-let raf=0;
-const observer=new MutationObserver(()=>{if(raf)return;raf=requestAnimationFrame(()=>{raf=0;safeUiPass()})});
 function boot(){
   safeUiPass();
-  observer.observe(document.body,{childList:true,subtree:true});
+
+  // Hotfix v3.2.1:
+  // Não observar o document.body inteiro. updateDeliveryAssistant() atualiza o
+  // próprio DOM dos atalhos; um observer global criava um ciclo contínuo de
+  // mutação -> renderização -> mutação e podia congelar a interface Android.
   document.addEventListener('click',e=>{
     if(e.target.closest('[data-go="delivery"]'))setTimeout(()=>{restoreLastCompany();$('#deliveryWorkerSearch')?.focus();updateDeliveryAssistant()},90);
   },true);
+
+  document.addEventListener('auditar-epi-data-changed',()=>setTimeout(updateDeliveryAssistant,40));
   window.addEventListener('focus',()=>setTimeout(safeUiPass,60));
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(safeUiPass,60)});
 }
