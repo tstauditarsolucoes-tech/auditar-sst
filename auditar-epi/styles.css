@@ -8,3 +8,13 @@
 .epi-auth-mark{background:url('icon.svg') center/cover no-repeat!important;font-size:0!important;box-shadow:0 8px 20px rgba(15,168,142,.18)!important}.epi-auth-card h1{color:#1F2937!important}.epi-auth-card button{background:#0FA88E!important}.epi-user-chip button{color:#0FA88E!important}
 @media(max-width:520px){.app-shell{padding:14px 12px 90px}.hero-card{padding:20px}.hero-card h1{font-size:22px}.stats-grid{grid-template-columns:1fr 1fr}.menu-card{min-height:112px}.filter-grid{grid-template-columns:1fr}.receipt-paper{padding:16px}.receipt-meta{grid-template-columns:1fr}.receipt-table{font-size:11px}.receipt-table th,.receipt-table td{padding:6px}.section-title{align-items:flex-start}.delivery-item{grid-template-columns:minmax(0,1fr) 70px 42px}.topbar>div:first-child{grid-template-columns:42px auto}.topbar>div:first-child::before{width:42px;height:42px;border-radius:12px}}
 @media print{body{background:#fff}.topbar,.no-print{display:none!important}.app-shell{padding:0;max-width:none}.view{display:none!important}#receipt.view.active{display:block!important}.receipt-paper{border:0;box-shadow:none;border-radius:0;padding:0}.receipt-table th{background:#eee!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+
+/* Android: cartão de colaboradores responsivo sem alterar os demais cartões */
+@media(max-width:520px){
+  #workerList .list-item{display:block;max-width:100%;overflow:hidden}
+  #workerList .list-main{width:100%;max-width:100%;min-width:0}
+  #workerList .list-main b{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+  #workerList .list-main small{white-space:normal;overflow-wrap:anywhere;word-break:break-word}
+  #workerList .list-actions{display:flex;flex-wrap:wrap;gap:6px;width:100%;max-width:100%;margin-top:12px;flex-shrink:1;align-items:center}
+  #workerList .list-actions .tiny{flex:0 1 auto;max-width:100%;white-space:normal}
+}
