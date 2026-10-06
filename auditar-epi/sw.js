@@ -1,4 +1,4 @@
-const EXTERNAL_CACHE='gestao-epi-v322-external';
+const EXTERNAL_CACHE='gestao-epi-v324-external';
 
 // No Android nativo, index.html, JS, CSS, SVG e demais arquivos do app
 // já estão empacotados no APK. Este Service Worker NÃO intercepta nada
