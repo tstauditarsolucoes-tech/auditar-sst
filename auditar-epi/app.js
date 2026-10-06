@@ -169,6 +169,54 @@
     const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`auditar-epi-backup-${new Date().toISOString().slice(0,10)}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); toast('Backup gerado.');
   });
 
-  if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  async function configureNativeServiceWorker(){
+    if(!('serviceWorker' in navigator))return;
+    const isNative=!!(window.Capacitor&&typeof window.Capacitor.isNativePlatform==='function'&&window.Capacitor.isNativePlatform());
+    if(!isNative){
+      navigator.serviceWorker.register('./sw.js').catch(()=>{});
+      return;
+    }
+
+    const CLEAN_FLAG='gestaoEpiNativeSwCleanV322';
+    try{
+      // O APK já contém index/JS/CSS localmente. Antes desta correção, um
+      // Service Worker cache-first antigo podia devolver uma Home desatualizada
+      // depois do reload feito pela sincronização inicial.
+      if(sessionStorage.getItem(CLEAN_FLAG)!=='1'){
+        const regs=await navigator.serviceWorker.getRegistrations();
+        const controlled=!!navigator.serviceWorker.controller;
+        await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));
+
+        if('caches' in window){
+          const keys=await caches.keys();
+          for(const key of keys){
+            if(!/^gestao-epi-/i.test(key))continue;
+            try{
+              const cache=await caches.open(key);
+              const requests=await cache.keys();
+              await Promise.all(requests.map(req=>{
+                try{
+                  return new URL(req.url).origin===location.origin?cache.delete(req):Promise.resolve(false);
+                }catch(_){return Promise.resolve(false);}
+              }));
+            }catch(_){}
+          }
+        }
+
+        sessionStorage.setItem(CLEAN_FLAG,'1');
+        if(controlled||regs.length){
+          location.reload();
+          return;
+        }
+      }
+
+      // Após a limpeza, o Worker v3.2.2 é permitido apenas para cache externo.
+      // Ele não controla os arquivos locais empacotados no APK.
+      navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    }catch(_){
+      // Falha de limpeza nunca deve impedir o app de iniciar.
+    }
+  }
+  configureNativeServiceWorker();
   refreshAll(); resizeCanvas();
 })();
