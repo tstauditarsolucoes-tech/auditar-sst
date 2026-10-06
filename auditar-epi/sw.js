@@ -1,4 +1,4 @@
-const CACHE='gestao-epi-v320-shell';
+const CACHE='gestao-epi-v321-shell';
 const ASSETS=[
   './','./index.html',
   './styles.css','./import-workers.css','./stock.css',
