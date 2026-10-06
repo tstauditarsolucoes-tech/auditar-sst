@@ -1,5 +1,5 @@
 (()=>{
-  const CURRENT='3.2.0';
+  const CURRENT='3.2.1';
   const RELEASE_API='https://api.github.com/repos/tstauditarsolucoes-tech/auditar-sst/releases/latest';
   const nativeFetch=window.fetch.bind(window);
 
@@ -25,11 +25,11 @@
   function refreshUi(){
     const el=document.getElementById('v270UpdateText');
     if(el){
-      const next=String(el.textContent||'').replace(/Versão atual: 2\.\d+\.\d+/g,'Versão atual: 3.2.0');
+      const next=String(el.textContent||'').replace(/Versão atual: 2\.\d+\.\d+/g,'Versão atual: 3.2.1');
       if(el.textContent!==next)el.textContent=next;
     }
     const v=document.querySelector('.pc-version');
-    if(v)v.textContent='PC v3.2.0';
+    if(v)v.textContent='PC v3.2.1';
   }
 
   function boot(){
