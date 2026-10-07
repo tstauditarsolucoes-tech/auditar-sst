@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.94 Exclusao ADM
+name: Auditar SST Windows v3.30.95 Grupos Locais
 # Clean rebuild v3.30.64 after protected productivity consolidation
 
 on:
@@ -1540,6 +1540,20 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha regressao autoridade ADM' }
           if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.94+281")) { throw 'Versao Windows v3.30.94 incorreta' }
 
+      - name: Organizar empresas por grupo local
+        shell: pwsh
+        run: |
+          python tools/patch_company_organization_v329172_v33095.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha grupos' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/screens/companies_screen.dart lib/widgets/company_organization.dart test/company_organization_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha formato grupos' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha analise grupos' }
+          flutter test test/company_organization_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha testes grupos' }
+          Pop-Location
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
@@ -1563,8 +1577,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.94-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.94-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.94-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.95-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.95-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.95-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -1579,12 +1593,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.94',
+            'AppVersion=3.30.95',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.94',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.95',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -1601,11 +1615,11 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.94.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.94.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.95.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.95.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.94-Windows-Exclusao-ADM
+          name: Auditar-SST-v3.30.95-Windows-Grupos-Locais
           path: dist/windows/*
           retention-days: 30
 

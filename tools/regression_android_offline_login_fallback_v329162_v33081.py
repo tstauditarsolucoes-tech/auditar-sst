@@ -37,6 +37,9 @@ assert (
     or "version: 3.29.167+309" in pub
     or "version: 3.29.168+310" in pub
     or "version: 3.29.169+311" in pub
+    or "version: 3.29.170+312" in pub
+    or "version: 3.29.171+313" in pub
+    or "version: 3.29.172+314" in pub
     or "version: 3.30.81+268" in pub
     or "version: 3.30.82+269" in pub
     or "version: 3.30.83+270" in pub
