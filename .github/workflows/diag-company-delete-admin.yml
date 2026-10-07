@@ -31,8 +31,9 @@ jobs:
           from pathlib import Path
           root=Path('app/Auditar_SST_v1_5_dashboard')
           for rel, needles in [
-              ('lib/database.dart', ['deleteCompanyIfUnused','deleteCompany','company_id']),
-              ('lib/screens/companies_screen.dart', ['deleteCompanyIfUnused','excluir','Excluir','Desative','vistorias']),
+              ('lib/database.dart', ['deleteCompanyIfUnused','deleteCompany','company_id','inspection_id','worker_id','election_id','answer_id','action_id']),
+              ('lib/screens/companies_screen.dart', ['deleteCompanyIfUnused','excluir','Excluir','Desative','vistorias','PopupMenuItem']),
+              ('lib/services/device_sync_service.dart', ['delete','deleted','tombstone','companies','company_id']),
           ]:
               p=root/rel
               print('\n###', rel)
