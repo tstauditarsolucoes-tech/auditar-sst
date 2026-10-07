@@ -83,7 +83,7 @@ function openDirectDelivery(){sessionStorage.setItem(CTX,JSON.stringify({kind:'d
 function readContext(){try{return JSON.parse(sessionStorage.getItem(CTX)||'null')}catch{return null}}
 function deliveryDraft(){return {companyId:$('#deliveryCompany')?.value||'',workerId:$('#deliveryWorker')?.value||'',reason:$('#deliveryReason')?.value||'',items:$$('#deliveryItems .delivery-item').map(r=>({epiId:r.querySelector('.item-epi')?.value||'',qty:Number(r.querySelector('.item-qty')?.value||0)})).filter(i=>i.epiId&&i.qty>0)}}
 function validateWarehouseDelivery(e){
- const btn=e.target.closest?.('#btnSaveDelivery');if(!btn||!canWarehouse())return;const ctx=readContext(),d=deliveryDraft(),a=app();
+ const btn=e.target.closest?.('#btnSaveDelivery');if(!btn)return;const ctx=readContext();if(ctx?.kind==='authorization'&&!canWarehouse())return;if(!ctx&&role()!=='almoxarifado')return;const d=deliveryDraft(),a=app();
  if(!d.companyId||!d.workerId||!d.items.length)return;
  if(ctx?.kind==='authorization'){
    const x=a.epiAuthorizations.find(v=>v.id===ctx.authorizationId);if(!x||!isOpen(x)){e.preventDefault();e.stopImmediatePropagation();return toast('A liberação não está mais disponível.')}
