@@ -220,6 +220,231 @@ function masterLogin_(request) {
   user.lastLoginAt = new Date().toISOString();
   commercialSaveSystem_(system);
 
+  const auditLog = Array.isArray(snapshot.app.auditLog) ? snapshot.app.auditLog : [];
+
+  const workerRequests =
+    auditLog
+      .filter(function(row){
+        return (
+          row &&
+          row.type === 'worker_epi_request' &&
+          String(row.workerId || '') === String(worker.id || '')
+        );
+      })
+      .map(function(row){
+        const epi = epiMap[String(row.epiId || '')] || {};
+        return {
+          id:String(row.id || ''),
+          category:String(row.category || 'exchange'),
+          reason:String(row.reason || ''),
+          note:String(row.note || ''),
+          status:String(row.status || 'submitted'),
+          createdAt:String(row.createdAt || ''),
+          updatedAt:String(row.updatedAt || ''),
+          decidedAt:String(row.decidedAt || ''),
+          decidedBy:
+            row.decidedBy && typeof row.decidedBy === 'object'
+              ? String(row.decidedBy.name || row.decidedBy.username || '')
+              : '',
+          authorizationId:String(row.authorizationId || ''),
+          epiId:String(row.epiId || ''),
+          epiName:String(epi.name || 'EPI'),
+          ca:String(epi.ca || '')
+        };
+      })
+      .sort(function(a,b){
+        return String(b.createdAt || '').localeCompare(String(a.createdAt || ''));
+      });
+
+  safeDeliveries.forEach(function(d){
+    const authorization =
+      d.authorizationId
+        ? auditLog.find(function(row){
+            return (
+              row &&
+              row.type === 'epi_authorization' &&
+              String(row.id || '') === String(d.authorizationId || '')
+            );
+          })
+        : null;
+
+    const directReview =
+      auditLog.find(function(row){
+        return (
+          row &&
+          row.type === 'epi_direct_delivery' &&
+          String(row.deliveryId || '') === String(d.id || '')
+        );
+      }) || null;
+
+    d.authorizationCode = authorization ? String(authorization.code || '') : '';
+    d.authorizedBy =
+      authorization &&
+      authorization.authorizedBy &&
+      typeof authorization.authorizedBy === 'object'
+        ? String(authorization.authorizedBy.name || authorization.authorizedBy.username || '')
+        : '';
+    d.authorizedAt = authorization
+      ? String(authorization.authorizedAt || authorization.createdAt || '')
+      : '';
+    d.reviewStatus = directReview ? String(directReview.reviewStatus || '') : '';
+    d.reviewedBy =
+      directReview &&
+      directReview.reviewedBy &&
+      typeof directReview.reviewedBy === 'object'
+        ? String(directReview.reviewedBy.name || directReview.reviewedBy.username || '')
+        : '';
+    d.reviewedAt = directReview ? String(directReview.reviewedAt || '') : '';
+  });
+
+  const flowSettings =
+    auditLog.find(function(row){
+      return (
+        row &&
+        row.type === 'epi_flow_settings' &&
+        String(row.companyId || '') === String(worker.companyId || '')
+      );
+    }) || {};
+
+  const noticeAckIds = {};
+  auditLog
+    .filter(function(row){
+      return (
+        row &&
+        row.type === 'worker_notice_ack' &&
+        String(row.workerId || '') === String(worker.id || '')
+      );
+    })
+    .forEach(function(row){
+      noticeAckIds[String(row.noticeId || '')] = String(row.acknowledgedAt || row.createdAt || '');
+    });
+
+  const notices = [];
+  if (pendingAuthorizations.length) {
+    notices.push({
+      id:'pending-withdrawal',
+      kind:'action',
+      title:'Você possui EPI liberado para retirada',
+      message:'Há ' + pendingAuthorizations.length + ' liberação(ões) aguardando retirada no almoxarifado.',
+      acknowledgedAt:''
+    });
+  }
+
+  const overdueCount =
+    currentEpis.filter(function(x){return x.status === 'overdue';}).length;
+  if (overdueCount) {
+    notices.push({
+      id:'overdue-change',
+      kind:'warning',
+      title:'Troca prevista em atraso',
+      message:'Há ' + overdueCount + ' EPI(s) com troca prevista em atraso. Procure o responsável de SST ou o almoxarifado.',
+      acknowledgedAt:''
+    });
+  }
+
+  notices.push({
+    id:'epi-responsibility-v1',
+    kind:'ack',
+    title:'Uso, guarda e conservação dos EPIs',
+    message:'Utilize os EPIs conforme as orientações recebidas, conserve os equipamentos e comunique dano, perda de eficácia ou necessidade de substituição. Esta ciência é complementar e não substitui treinamento, entrega ou orientação obrigatória.',
+    acknowledgedAt:String(noticeAckIds['epi-responsibility-v1'] || '')
+  });
+
+  const timeline = [];
+
+  auditLog
+    .filter(function(row){
+      return (
+        row &&
+        row.type === 'epi_authorization' &&
+        String(row.workerId || '') === String(worker.id || '')
+      );
+    })
+    .forEach(function(a){
+      timeline.push({
+        id:'auth:' + String(a.id || ''),
+        at:String(a.authorizedAt || a.createdAt || ''),
+        kind:'authorization',
+        title:'EPI liberado pelo TST',
+        detail:String(a.code || '') + (a.reason ? ' • ' + String(a.reason) : ''),
+        status:String(a.status || 'pending')
+      });
+      if (a.cancelledAt) {
+        timeline.push({
+          id:'auth-cancel:' + String(a.id || ''),
+          at:String(a.cancelledAt || ''),
+          kind:'cancelled',
+          title:'Liberação cancelada',
+          detail:String(a.code || ''),
+          status:'cancelled'
+        });
+      }
+    });
+
+  safeDeliveries.forEach(function(d){
+    timeline.push({
+      id:'delivery:' + String(d.id || ''),
+      at:String(d.createdAt || ''),
+      kind:d.deliveryFlow === 'direct' ? 'direct_delivery' : 'delivery',
+      title:d.deliveryFlow === 'direct'
+        ? 'Entrega direta pelo almoxarifado'
+        : 'Entrega de EPI',
+      detail:(d.items || []).map(function(i){
+        return String(i.name || 'EPI') + ' x' + Number(i.qty || 0);
+      }).join(' | '),
+      status:'done',
+      deliveryId:String(d.id || '')
+    });
+  });
+
+  workerRequests.forEach(function(req){
+    timeline.push({
+      id:'request:' + req.id,
+      at:String(req.createdAt || ''),
+      kind:'request',
+      title:req.category === 'problem'
+        ? 'Problema com EPI comunicado'
+        : 'Troca de EPI solicitada',
+      detail:req.epiName + (req.reason ? ' • ' + req.reason : ''),
+      status:req.status
+    });
+    if (req.decidedAt) {
+      timeline.push({
+        id:'request-decision:' + req.id,
+        at:String(req.decidedAt || ''),
+        kind:'request_status',
+        title:req.status === 'approved'
+          ? 'Solicitação aprovada'
+          : (req.status === 'rejected' ? 'Solicitação não aprovada' : 'Solicitação atualizada'),
+        detail:req.epiName + (req.decidedBy ? ' • por ' + req.decidedBy : ''),
+        status:req.status
+      });
+    }
+  });
+
+  const stockMovements =
+    snapshot.stock && Array.isArray(snapshot.stock.movements)
+      ? snapshot.stock.movements
+      : [];
+  stockMovements.forEach(function(m){
+    const note = String(m && m.note || '');
+    if (note.indexOf('DEVOLUÇÃO EPI') !== 0) return;
+    if (workerPortalNoteField_(note,'workerId') !== String(worker.id || '')) return;
+    const epi = epiMap[String(m.epiId || '')] || {};
+    timeline.push({
+      id:'return:' + String(m.id || Utilities.getUuid()),
+      at:String(m.createdAt || ''),
+      kind:'return',
+      title:'Devolução de EPI',
+      detail:String(epi.name || 'EPI') + ' • qtd. ' + String(workerPortalNoteField_(note,'qtd') || '0'),
+      status:'done'
+    });
+  });
+
+  timeline.sort(function(a,b){
+    return String(b.at || '').localeCompare(String(a.at || ''));
+  });
+
   return {
     ok:true,
     token:commercialCreateToken_({scope:'master',user:user}),
@@ -4003,6 +4228,13 @@ function workerPortalPublicData(token) {
         d.registeredBy && typeof d.registeredBy === 'object'
           ? String(d.registeredBy.name || d.registeredBy.username || '')
           : '',
+      deliveryFlow:String(d.deliveryFlow || ''),
+      authorizationId:String(d.authorizationId || ''),
+      deliveredBy:
+        d.warehouseDeliveredBy && typeof d.warehouseDeliveredBy === 'object'
+          ? String(d.warehouseDeliveredBy.name || d.warehouseDeliveredBy.username || '')
+          : String(d.responsible || ''),
+      deliveredAt:String(d.warehouseDeliveredAt || d.createdAt || ''),
       confirmation:{
         type:face ? 'face' : (signed ? 'signature' : 'record'),
         label:face
@@ -4101,7 +4333,13 @@ function workerPortalPublicData(token) {
           cycle:cycle,
           nextChange:nextChange,
           daysLeft:daysLeft,
-          status:status
+          status:status,
+          guidance:String(
+            epi.portalGuidance ||
+            epi.guidance ||
+            epi.instructions ||
+            'Utilize este EPI conforme a orientação recebida, mantenha-o conservado e comunique imediatamente perda de eficácia, dano, desconforto ou necessidade de substituição.'
+          )
         };
       })
       .filter(function(x){return !!x;})
@@ -4196,7 +4434,19 @@ function workerPortalPublicData(token) {
     expiresAt:String(worker.portalAccessExpiresAt || ''),
     company:{
       name:String(company.name || tenant.name || ''),
-      cnpj:String(company.cnpj || tenant.cnpj || '')
+      cnpj:String(company.cnpj || tenant.cnpj || ''),
+      contactPhone:String(
+        flowSettings.portalContactPhone ||
+        company.portalContactPhone ||
+        company.phone ||
+        ''
+      ),
+      contactEmail:String(
+        flowSettings.portalContactEmail ||
+        company.portalContactEmail ||
+        company.email ||
+        ''
+      )
     },
     worker:{
       id:String(worker.id || ''),
@@ -4213,13 +4463,214 @@ function workerPortalPublicData(token) {
       heldUnits:heldUnits,
       heldEpis:currentEpis.length,
       lastDelivery:safeDeliveries.length ? safeDeliveries[0].createdAt : '',
-      pendingAuthorizations:pendingAuthorizations.length
+      pendingAuthorizations:pendingAuthorizations.length,
+      pendingRequests:workerRequests.filter(function(x){
+        return ['submitted','reviewing'].indexOf(x.status) >= 0;
+      }).length
     },
     pendingAuthorizations:pendingAuthorizations,
+    workerRequests:workerRequests,
+    notices:notices,
+    timeline:timeline.slice(0,80),
     currentEpis:currentEpis,
     nextChanges:nextChanges,
     deliveries:safeDeliveries
   };
+}
+
+function workerPortalSubmitRequest(token,payload) {
+  const access = workerPortalValidateToken_(token);
+  if (!access.ok) return access;
+
+  payload = payload && typeof payload === 'object' ? payload : {};
+  const category =
+    String(payload.category || '') === 'problem' ? 'problem' : 'exchange';
+  const epiId = String(payload.epiId || '').trim();
+  const allowedReasons = [
+    'Desgaste',
+    'Dano',
+    'Perda',
+    'Tamanho inadequado',
+    'Desconforto',
+    'Perda de eficácia',
+    'Outro'
+  ];
+  let reason = String(payload.reason || '').trim();
+  if (allowedReasons.indexOf(reason) < 0) reason = 'Outro';
+  const note = String(payload.note || '').trim().slice(0,500);
+
+  if (!epiId) return {ok:false,message:'Selecione o EPI.'};
+
+  const tenant = commercialTenantById_(access.tenantId);
+  if (!tenant) return {ok:false,message:'Acesso não encontrado.'};
+
+  const license = commercialLicenseState_(tenant);
+  if (!license.ok) return license;
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(12000);
+
+  try {
+    const snapshot = commercialReadTenantSnapshot_(tenant);
+    const worker = (snapshot.app.workers || []).find(function(w){
+      return String(w && w.id || '') === String(access.workerId || '');
+    });
+
+    if (!worker || worker.active === false) {
+      return {ok:false,message:'Trabalhador não encontrado.'};
+    }
+
+    if (Number(worker.portalAccessVersion || 0) !== Number(access.version || 0)) {
+      return {ok:false,code:'PORTAL_REVOKED',message:'Este link foi substituído.'};
+    }
+
+    const epi = (snapshot.app.epis || []).find(function(e){
+      return String(e && e.id || '') === epiId;
+    });
+    if (!epi || epi.active === false) {
+      return {ok:false,message:'EPI não encontrado.'};
+    }
+
+    const workerHasEpi =
+      (snapshot.app.deliveries || []).some(function(d){
+        if (
+          !d ||
+          d.cancelled === true ||
+          String(d.workerId || '') !== String(worker.id || '')
+        ) return false;
+        return (d.items || []).some(function(item){
+          return String(item && item.epiId || '') === epiId;
+        });
+      });
+
+    if (!workerHasEpi) {
+      return {ok:false,message:'Este EPI não está vinculado ao seu histórico de entregas.'};
+    }
+
+    snapshot.app.auditLog = Array.isArray(snapshot.app.auditLog)
+      ? snapshot.app.auditLog
+      : [];
+
+    const duplicate = snapshot.app.auditLog.find(function(row){
+      return (
+        row &&
+        row.type === 'worker_epi_request' &&
+        String(row.workerId || '') === String(worker.id || '') &&
+        String(row.epiId || '') === epiId &&
+        String(row.category || '') === category &&
+        ['submitted','reviewing','approved'].indexOf(String(row.status || '')) >= 0
+      );
+    });
+
+    if (duplicate) {
+      return {
+        ok:true,
+        duplicate:true,
+        requestId:String(duplicate.id || ''),
+        message:'Já existe uma solicitação aberta para este EPI.'
+      };
+    }
+
+    const now = new Date().toISOString();
+    const row = {
+      id:'worker_req_' + Utilities.getUuid(),
+      type:'worker_epi_request',
+      companyId:String(worker.companyId || ''),
+      workerId:String(worker.id || ''),
+      epiId:epiId,
+      category:category,
+      reason:reason,
+      note:note,
+      status:'submitted',
+      source:'worker_portal',
+      createdAt:now,
+      updatedAt:now
+    };
+
+    snapshot.app.auditLog.unshift(row);
+    snapshot.revision = Number(snapshot.revision || 0) + 1;
+    snapshot.updatedAt = now;
+    commercialWriteTenantSnapshot_(tenant,snapshot);
+
+    return {
+      ok:true,
+      requestId:row.id,
+      message:category === 'problem'
+        ? 'Problema comunicado ao responsável.'
+        : 'Solicitação de troca enviada para análise.'
+    };
+  } catch (error) {
+    return {ok:false,message:'Não foi possível registrar a solicitação: ' + String(error)};
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function workerPortalAcknowledgeNotice(token,noticeId) {
+  const access = workerPortalValidateToken_(token);
+  if (!access.ok) return access;
+
+  noticeId = String(noticeId || '').trim();
+  if (noticeId !== 'epi-responsibility-v1') {
+    return {ok:false,message:'Aviso inválido.'};
+  }
+
+  const tenant = commercialTenantById_(access.tenantId);
+  if (!tenant) return {ok:false,message:'Acesso não encontrado.'};
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(12000);
+
+  try {
+    const snapshot = commercialReadTenantSnapshot_(tenant);
+    const worker = (snapshot.app.workers || []).find(function(w){
+      return String(w && w.id || '') === String(access.workerId || '');
+    });
+    if (!worker || worker.active === false) {
+      return {ok:false,message:'Trabalhador não encontrado.'};
+    }
+
+    snapshot.app.auditLog = Array.isArray(snapshot.app.auditLog)
+      ? snapshot.app.auditLog
+      : [];
+
+    const old = snapshot.app.auditLog.find(function(row){
+      return (
+        row &&
+        row.type === 'worker_notice_ack' &&
+        String(row.workerId || '') === String(worker.id || '') &&
+        String(row.noticeId || '') === noticeId
+      );
+    });
+
+    const now = new Date().toISOString();
+    if (old) {
+      old.acknowledgedAt = now;
+      old.updatedAt = now;
+    } else {
+      snapshot.app.auditLog.unshift({
+        id:'worker_ack_' + Utilities.getUuid(),
+        type:'worker_notice_ack',
+        companyId:String(worker.companyId || ''),
+        workerId:String(worker.id || ''),
+        noticeId:noticeId,
+        acknowledgedAt:now,
+        createdAt:now,
+        updatedAt:now,
+        source:'worker_portal'
+      });
+    }
+
+    snapshot.revision = Number(snapshot.revision || 0) + 1;
+    snapshot.updatedAt = now;
+    commercialWriteTenantSnapshot_(tenant,snapshot);
+
+    return {ok:true,acknowledgedAt:now,message:'Ciência registrada.'};
+  } catch (error) {
+    return {ok:false,message:'Não foi possível registrar a ciência: ' + String(error)};
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function workerPortalCreateToken_(ctx) {
