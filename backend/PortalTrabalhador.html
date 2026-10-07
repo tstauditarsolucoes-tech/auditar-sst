@@ -51,7 +51,7 @@
       $('#app').innerHTML=`<div class="error"><div class="icon">🔒</div><h2>${esc(title)}</h2><p>${esc(msg)}</p><button class="btn primary" onclick="location.reload()">Tentar novamente</button></div>`;
     }
     function render(){
-      const d=state.data,w=d.worker||{},s=d.summary||{},company=d.company||{},current=d.currentEpis||[],changes=d.nextChanges||[],deliveries=d.deliveries||[];
+      const d=state.data,w=d.worker||{},s=d.summary||{},company=d.company||{},current=d.currentEpis||[],changes=d.nextChanges||[],authorizations=d.pendingAuthorizations||[],deliveries=d.deliveries||[];
       $('#app').innerHTML=`
         <div class="top">
           <div class="brand"><div class="mark">🦺</div><div><b>Gestão EPI</b><small>Portal do Trabalhador • Auditar</small></div></div>
@@ -85,6 +85,10 @@
           <div class="list">${changes.length?changes.map(changeCard).join(''):'<div class="empty">Nenhuma troca programada no momento.</div>'}</div>
         </section>
         <section class="panel">
+          <div class="panel-head"><div><h2>EPIs liberados para retirada</h2><p>Autorizações ainda pendentes no almoxarifado.</p></div></div>
+          <div class="list">${authorizations.length?authorizations.map(authorizationCard).join(''):'<div class="empty">Nenhum EPI aguardando retirada.</div>'}</div>
+        </section>
+        <section class="panel">
           <div class="panel-head"><div><h2>Histórico de entregas</h2><p>EPIs fornecidos e forma de confirmação registrada.</p></div></div>
           <div class="history">${deliveries.length?deliveries.map(deliveryCard).join(''):'<div class="empty">Nenhuma entrega registrada.</div>'}</div>
         </section>
@@ -99,6 +103,10 @@
     function changeCard(x){
       const detail=x.daysLeft<0?`${Math.abs(x.daysLeft)} dia(s) em atraso`:x.daysLeft===0?'Prevista para hoje':`Faltam ${x.daysLeft} dia(s)`;
       return `<div class="change"><div><h3>${esc(x.name)}</h3><small>${x.ca?'CA '+esc(x.ca)+' • ':''}Última entrega: ${fmt(x.lastDelivery)} • Ciclo: ${Number(x.cycle||0)} dias • Próxima: ${fmt(x.nextChange)}</small></div><span class="pill ${esc(x.status)}">${statusLabel(x.status)} • ${esc(detail)}</span></div>`;
+    }
+    function authorizationCard(a){
+      const items=(a.items||[]).map(i=>`${esc(i.name)} • Qtd. ${Number(i.remaining||0)}${i.ca?' • CA '+esc(i.ca):''}${i.size?' • Tam. '+esc(i.size):''}`).join(' | ');
+      return `<div class="change"><div><h3>🧾 Liberação para retirada</h3><small>${items||'Itens não informados'}<br>${a.authorizedBy?'Liberado por '+esc(a.authorizedBy)+' • ':''}${a.reason?esc(a.reason)+' • ':''}${a.expiresAt?'Retirar até '+fmt(a.expiresAt):'Sem prazo informado'}</small></div><span class="pill soon">${a.status==='partial'?'Parcial':'Aguardando retirada'}</span></div>`;
     }
     function deliveryCard(d){
       return `<article class="delivery">
