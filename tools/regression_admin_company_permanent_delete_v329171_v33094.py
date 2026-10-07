@@ -27,7 +27,7 @@ checks = {
     "normal_ui_method": "Future<void> _deleteCompany(Company company)" in screen,
     "normal_ui_still_calls_safe_method": bool(
         re.search(
-            r"AppDatabase\.instance\s*\.\s*deleteCompanyIfUnused\s*\(\s*company\.id\s*\)",
+            r"AppDatabase\.instance\s*\.\s*deleteCompanyIfUnused\s*\(\s*company\.id\s*,?\s*\)",
             screen,
         )
     ),
