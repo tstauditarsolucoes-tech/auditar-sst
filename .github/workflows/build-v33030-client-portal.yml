@@ -6,6 +6,9 @@ on:
     branches: [feature/client-panel-permissions-v329106]
     paths:
       - '.github/workflows/build-v33030-client-portal.yml'
+      - 'feature_sources/company_organization_v329172_v33095.dart'
+      - 'feature_sources/company_organization_test_v329172_v33095.dart'
+      - 'tools/patch_company_organization_v329172_v33095.py'
       - 'feature_sources/company_client_access_section_v329133.dart'
       - 'tools/patch_company_client_access_v329133.py'
       - 'tools/regression_company_client_access_v329133.py'

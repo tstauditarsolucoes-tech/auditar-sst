@@ -5,7 +5,7 @@ import hashlib, shutil, sys
 root=Path(sys.argv[1]); platform=sys.argv[2]; repo=Path(__file__).resolve().parents[1]
 protected=[p for p in (root/'lib').rglob('*.dart') if p.name in ['database.dart','models.dart','auth_service.dart','device_sync_service.dart','apps_script_http.dart','sync_coordinator.dart','media_sync_service.dart','drive_service.dart','ai_assistant_service.dart'] or 'pdf' in p.name]+list((root/'painel_web_google_apps_script').glob('*'))
 before={p:hashlib.sha256(p.read_bytes()).hexdigest() for p in protected}
-p=root/'lib/screens/companies_screen.dart'; s=p.read_text()
+p=root/'lib/screens/companies_screen.dart'; s=p.read_text(encoding="utf-8")
 if 'CompanyOrganizationEditor' in s: raise RuntimeError('patch já aplicado')
 def replace(old,new):
  global s
@@ -166,11 +166,11 @@ s=s[:start]+'''  List<Company> get _filtered {
 replace("hintText: 'Buscar empresa, cidade ou CNPJ'", "hintText: 'Buscar empresa, grupo, tipo, cidade ou CNPJ'")
 replace('                    const SizedBox(height: 12),\n                    Row(', '                    _organizationFilters(),\n                    const SizedBox(height: 12),\n                    Row(')
 replace('...visible.map(_companyCard)', '..._organizedCards(visible)')
-p.write_text(s)
+p.write_text(s, encoding="utf-8", newline="\n")
 shutil.copyfile(repo/'feature_sources/company_organization_v329172_v33095.dart',root/'lib/widgets/company_organization.dart')
 for path,digest in before.items():
  assert hashlib.sha256(path.read_bytes()).hexdigest()==digest, str(path)
 shutil.copyfile(repo/'feature_sources/company_organization_test_v329172_v33095.dart', root/'test/company_organization_test.dart')
 pub=root/'pubspec.yaml'; old,new=('3.29.171+313','3.29.172+314') if platform=='android' else ('3.30.94+281','3.30.95+282')
-text=pub.read_text(); assert text.count('version: '+old)==1; pub.write_text(text.replace('version: '+old,'version: '+new))
+text=pub.read_text(encoding="utf-8"); assert text.count('version: '+old)==1; pub.write_text(text.replace('version: '+old,'version: '+new), encoding='utf-8', newline='\n')
 print('COMPANY_ORGANIZATION_OK; PROTECTED_CORE_BYTE_IDENTICAL', platform)
