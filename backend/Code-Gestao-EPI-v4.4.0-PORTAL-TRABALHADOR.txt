@@ -4135,6 +4135,61 @@ function workerPortalPublicData(token) {
       return sum + Number(x.qty || 0);
     },0);
 
+  const pendingAuthorizations =
+    (snapshot.app.auditLog || [])
+      .filter(function(a){
+        if (!a || a.type !== 'epi_authorization') return false;
+        if (String(a.workerId || '') !== String(worker.id || '')) return false;
+        if (a.status === 'cancelled' || a.status === 'delivered') return false;
+        if (a.expiresAt && Date.now() > Date.parse(a.expiresAt)) return false;
+        const remaining = (a.items || []).reduce(function(sum,item){
+          return sum + Math.max(0,Number(item.qty || 0) - Number(item.deliveredQty || 0));
+        },0);
+        return remaining > 0;
+      })
+      .map(function(a){
+        return {
+          id:String(a.id || ''),
+          code:String(a.code || ''),
+          reason:String(a.reason || ''),
+          note:String(a.note || ''),
+          authorizedAt:String(a.authorizedAt || a.createdAt || ''),
+          expiresAt:String(a.expiresAt || ''),
+          authorizedBy:
+            a.authorizedBy && typeof a.authorizedBy === 'object'
+              ? String(a.authorizedBy.name || a.authorizedBy.username || '')
+              : '',
+          status:String(a.status || 'pending'),
+          items:(a.items || [])
+            .map(function(item){
+              const delivered = Number(item.deliveredQty || 0);
+              const qty = Number(item.qty || 0);
+              const remaining = Math.max(0,qty - delivered);
+              if (!remaining) return null;
+              const epiId =
+                item.substitution &&
+                item.substitution.status === 'approved' &&
+                item.substitution.toEpiId
+                  ? String(item.substitution.toEpiId)
+                  : String(item.epiId || '');
+              const epi = epiMap[epiId] || {};
+              return {
+                epiId:epiId,
+                name:String(epi.name || 'EPI'),
+                ca:String(epi.ca || ''),
+                size:String(epi.size || ''),
+                qty:qty,
+                deliveredQty:delivered,
+                remaining:remaining
+              };
+            })
+            .filter(function(x){return !!x;})
+        };
+      })
+      .sort(function(a,b){
+        return String(a.expiresAt || '').localeCompare(String(b.expiresAt || ''));
+      });
+
   return {
     ok:true,
     generatedAt:new Date().toISOString(),
@@ -4157,8 +4212,10 @@ function workerPortalPublicData(token) {
       epis:Object.keys(uniqueEpis).length,
       heldUnits:heldUnits,
       heldEpis:currentEpis.length,
-      lastDelivery:safeDeliveries.length ? safeDeliveries[0].createdAt : ''
+      lastDelivery:safeDeliveries.length ? safeDeliveries[0].createdAt : '',
+      pendingAuthorizations:pendingAuthorizations.length
     },
+    pendingAuthorizations:pendingAuthorizations,
     currentEpis:currentEpis,
     nextChanges:nextChanges,
     deliveries:safeDeliveries
