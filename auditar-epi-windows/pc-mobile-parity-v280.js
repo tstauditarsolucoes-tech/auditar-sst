@@ -94,6 +94,7 @@
       .pc280-nf-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;flex-wrap:wrap}.pc280-nf-actions small{color:#70847f;font-size:9px}
       .pc280-ca-official{display:grid;gap:3px;margin-top:5px;padding:7px 8px;border-radius:8px;background:#f4f9f8;border:1px solid #e0ebe9;min-width:190px}.pc280-ca-official b{font-size:9px;color:#24514c}.pc280-ca-official small{font-size:8px;color:#6b817d;line-height:1.3}
       .pc280-ca-toolbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.pc280-ca-live{font-size:9px;color:#667e79}
+      .pc330-nf-existing{width:100%;min-width:190px;max-width:300px;min-height:32px;font-size:9.5px}.pc330-nf-action{display:block;margin-top:4px;font-size:8.5px;line-height:1.35;color:#5f7772}.pc330-nf-duplicate{color:#b42318;font-weight:900}
       @media(min-width:1000px){
         #newDeliveryPc{display:none}
         #newDeliveryPc.active{display:grid!important;grid-template-columns:minmax(0,1.15fr) minmax(360px,.85fr)!important;grid-template-areas:"head head" "form items" "form confirm" "save save"!important;gap:12px!important;align-items:start!important}
@@ -143,7 +144,7 @@
       </div>
       <div id="pc280NfResult" class="pc280-parity-card" style="display:none">
         <div id="pc280NfMeta" class="pc280-nf-meta"></div>
-        <div class="pc280-nf-table-wrap"><table class="pc280-nf-table"><thead><tr><th></th><th>Produto</th><th>CA</th><th>Qtd.</th><th>Lote / validade física</th><th>Classificação</th><th>Conferência CA</th></tr></thead><tbody id="pc280NfBody"></tbody></table></div>
+        <div class="pc280-nf-table-wrap"><table class="pc280-nf-table"><thead><tr><th></th><th>Produto</th><th>CA</th><th>Qtd.</th><th>Cadastro / estoque</th><th>Lote / validade física</th><th>Classificação</th><th>Conferência CA</th></tr></thead><tbody id="pc280NfBody"></tbody></table></div>
         <div class="pc280-nf-actions"><small id="pc280NfHint"></small><button id="pc280NfCommit" type="button" class="primary">＋ Registrar entrada no estoque</button></div>
       </div>`;
     main.appendChild(s);
@@ -233,15 +234,60 @@
     return `<div class="pc280-ca-official"><b>${ok?'✓ ':''}CA ${esc(n)} • ${esc(c.status||'não confirmado')}</b><small>${c.validity?'Validade CA: '+esc(c.validity):'Validade não localizada'}${c.manufacturer?' • '+esc(c.manufacturer):''}</small></div>`;
   }
 
+  function stockBalance(root,companyId,epiId){
+    return (root.stock.movements||[]).filter(m=>m.companyId===companyId&&m.epiId===epiId).reduce((sum,m)=>sum+Number(m.delta||0),0);
+  }
+
+  function nfIdentity(inv){
+    const key=digits(inv.key);if(key)return key;
+    if(invoiceState?.documentHash)return String(invoiceState.documentHash).replace(/[^A-Za-z0-9_-]+/g,'').slice(0,45);
+    const base=[digits(inv.supplierCnpj),String(inv.number||''),String(inv.series||''),String(inv.date||'')].join('|');
+    if(base.replace(/\|/g,''))return base;
+    const sig=(inv.items||[]).map(x=>[x.code,x.name,x.ca,x.size,x.qty].join(':')).join('|');
+    let h=2166136261;for(let i=0;i<sig.length;i++){h^=sig.charCodeAt(i);h=Math.imul(h,16777619)}
+    return 'ITEMS-'+(h>>>0).toString(16);
+  }
+
+  function nfAlreadyImported(root,companyId,sourceKey){
+    const prefix='sm_nf_'+safePart(companyId)+'_'+safePart(sourceKey)+'_';
+    return (root.stock.movements||[]).some(m=>String(m.id||'').startsWith(prefix)||String(m.invoiceIdentity||'')===String(sourceKey));
+  }
+
+  function epiOptions(root,item){
+    const guessed=epiMatch(root,item);
+    const rows=(root.app.epis||[]).filter(e=>e.active!==false).slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')));
+    return '<option value="">Cadastrar novo EPI / nova variação</option>'+rows.map(e=>`<option value="${esc(e.id)}" ${guessed?.id===e.id?'selected':''}>${esc(e.name||'EPI')}${e.ca?' • CA '+esc(e.ca):''}${e.size?' • '+esc(e.size):''}</option>`).join('');
+  }
+
+  function nfActionText(root,companyId,item,existingId){
+    const qty=Math.max(0,Number(item.qty||0));
+    if(!existingId)return `Cadastrar novo EPI • entrada de ${qty} ${esc(item.unit||'un.')}`;
+    const e=root.app.epis.find(x=>x.id===existingId);
+    if(!e)return 'Cadastro selecionado não localizado.';
+    const before=stockBalance(root,companyId,e.id),after=before+qty;
+    return `Vincular a ${esc(e.name||'EPI')} • saldo ${before} → ${after}`;
+  }
+
+  function updateNfAction(tr){
+    if(!tr||!invoiceState)return;
+    const root=read(),companyId=$('#pc280NfCompany')?.value||invoiceState.companyId||'',idx=Number(tr.dataset.nfIndex);
+    const item={...(invoiceState.invoice.items[idx]||{})};
+    item.qty=Math.max(0,Number(tr.querySelector('.pc280-nf-qty')?.value||0));
+    const existingId=tr.querySelector('.pc330-nf-existing')?.value||'';
+    const box=tr.querySelector('.pc330-nf-action');if(box)box.innerHTML=nfActionText(root,companyId,item,existingId);
+  }
+
   function renderInvoice(){
     const wrap=$('#pc280NfResult'),meta=$('#pc280NfMeta'),body=$('#pc280NfBody'),hint=$('#pc280NfHint');
     if(!wrap||!invoiceState)return;
-    const inv=invoiceState.invoice;
+    const inv=invoiceState.invoice,root=read(),companyId=$('#pc280NfCompany')?.value||invoiceState.companyId||'',sourceKey=nfIdentity(inv),duplicate=nfAlreadyImported(root,companyId,sourceKey);
+    const review=(inv.items||[]).filter(i=>String(i.classification||'')==='review').length;
+    const ready=(inv.items||[]).filter(i=>String(i.classification||'')==='epi').length;
     meta.innerHTML=`
       <div><small>NF</small><b>${esc(inv.number||'—')}</b></div>
       <div><small>Fornecedor</small><b title="${esc(inv.supplier||'')}">${esc(inv.supplier||'—')}</b></div>
       <div><small>Data</small><b>${esc(inv.date||'—')}</b></div>
-      <div><small>Itens EPI/revisão</small><b>${(inv.items||[]).length}</b></div>
+      <div><small>Prontos / revisar</small><b>${ready} / ${review}</b></div>
       <div><small>Origem</small><b>${esc(invoiceState.provider||'Central')}</b></div>`;
     body.innerHTML=(inv.items||[]).map((item,index)=>{
       const classification=String(item.classification||'review');
@@ -250,18 +296,22 @@
       const cls=classification==='epi'?'epi':classification==='review'?'review':'bad';
       const label=classification==='epi'?'EPI':classification==='review'?'REVISAR':'NÃO EPI';
       const issues=(item.validation?.issues||[]).join(' • ');
+      const guessed=epiMatch(root,item);
       return `<tr data-nf-index="${index}">
         <td><input class="pc280-nf-select" type="checkbox" ${checked} ${disabled}></td>
         <td><b>${esc(item.name||'—')}</b><br><small>${esc([item.code,item.manufacturer,item.size].filter(Boolean).join(' • ')||'')}</small>${issues?`<br><small style="color:#9a6510">${esc(issues)}</small>`:''}</td>
-        <td>${esc(item.ca||'—')}</td>
+        <td><b>${esc(item.ca||'—')}</b>${caResults[digits(item.ca)]?.validity?`<br><small>Validade: ${esc(caResults[digits(item.ca)].validity)}</small>`:''}</td>
         <td><input class="pc280-nf-qty" type="number" min="0" step="1" value="${Math.max(0,Number(item.qty||0))}"></td>
+        <td><select class="pc330-nf-existing">${epiOptions(root,item)}</select><span class="pc330-nf-action">${nfActionText(root,companyId,item,guessed?.id||'')}</span></td>
         <td>${esc(item.lot||'—')}${item.physicalExpiry?`<br><small>Val. física: ${esc(item.physicalExpiry)}</small>`:''}</td>
         <td><span class="pc280-chip ${cls}">${label}</span></td>
         <td>${caHtml(item.ca)}</td>
       </tr>`;
     }).join('');
-    const review=(inv.items||[]).filter(i=>String(i.classification||'')==='review').length;
-    hint.textContent=review?`${review} item(ns) precisam de conferência manual antes do lançamento.`:'Confira quantidades e itens antes de registrar.';
+    hint.innerHTML=duplicate?'<span class="pc330-nf-duplicate">⚠ Esta Nota Fiscal já possui lançamento no estoque e não será registrada novamente.</span>':(review?`${review} item(ns) precisam de conferência manual antes do lançamento.`:'Confira o cadastro escolhido, o CA, a quantidade e o saldo antes de registrar.');
+    $('#pc280NfCommit').disabled=duplicate;
+    body.onchange=e=>{const tr=e.target.closest('tr[data-nf-index]');if(tr)updateNfAction(tr)};
+    body.oninput=e=>{const tr=e.target.closest('tr[data-nf-index]');if(tr)updateNfAction(tr)};
     wrap.style.display='';
   }
 
@@ -286,17 +336,16 @@
     if(!companyId)return toast('Selecione a empresa.');
     const rows=$$('#pc280NfBody tr');
     const selected=rows.map(tr=>{
-      const check=tr.querySelector('.pc280-nf-select');
-      if(!check?.checked)return null;
-      const index=Number(tr.dataset.nfIndex);
-      const item={...(invoiceState.invoice.items[index]||{})};
+      const check=tr.querySelector('.pc280-nf-select');if(!check?.checked)return null;
+      const index=Number(tr.dataset.nfIndex),item={...(invoiceState.invoice.items[index]||{})};
       item.qty=Math.max(0,Number(tr.querySelector('.pc280-nf-qty')?.value||0));
-      return {index,item};
+      const existingId=tr.querySelector('.pc330-nf-existing')?.value||'';
+      return {index,item,existingId};
     }).filter(x=>x&&x.item.name&&x.item.qty>0);
     if(!selected.length)return toast('Selecione pelo menos um EPI com quantidade maior que zero.');
 
-    const inv=invoiceState.invoice;
-    const sourceKey=digits(inv.key)||safePart(inv.number||invoiceState.documentHash||Date.now());
+    const inv=invoiceState.invoice,sourceKey=nfIdentity(inv),rootBefore=read();
+    if(nfAlreadyImported(rootBefore,companyId,sourceKey))return toast('Esta Nota Fiscal já foi lançada no estoque.');
     const purchaseId='p_nf_'+safePart(companyId)+'_'+safePart(sourceKey);
     const btn=$('#pc280NfCommit');btn.disabled=true;btn.textContent='Registrando…';
     try{
@@ -305,57 +354,34 @@
       }});
       if(!stored?.ok)throw new Error(stored?.message||'Não foi possível armazenar o documento original da NF.');
 
-      const root=read();
-      let added=0,duplicates=0,newEpis=0;
-      selected.forEach(({index,item})=>{
-        let e=epiMatch(root,item);
-        const ca=digits(item.ca);
-        const c=caResults[ca]||null;
+      const root=read();let added=0,newEpis=0;
+      selected.forEach(({index,item,existingId})=>{
+        let e=existingId?root.app.epis.find(x=>x.id===existingId)||null:null;
+        const ca=digits(item.ca),checkCa=caResults[ca]||null;
         if(!e){
-          e={
-            id:uid('e'),name:String(item.name||'EPI').trim(),ca:ca,model:String(item.manufacturer||'').trim(),size:String(item.size||'').trim(),
-            active:true,createdAt:now(),updatedAt:now()
-          };
+          e={id:uid('e'),name:String(item.name||'EPI').trim(),ca,model:String(item.manufacturer||'').trim(),size:String(item.size||'').trim(),active:true,createdAt:now(),updatedAt:now()};
           root.app.epis.push(e);newEpis++;
         }else{
-          if(!e.ca&&ca)e.ca=ca;
-          if(!e.model&&item.manufacturer)e.model=String(item.manufacturer);
-          if(!e.size&&item.size)e.size=String(item.size);
-          e.updatedAt=now();
+          if(!e.ca&&ca)e.ca=ca;if(!e.model&&item.manufacturer)e.model=String(item.manufacturer);if(!e.size&&item.size)e.size=String(item.size);e.updatedAt=now();
         }
-        if(c?.found){
-          e.caCheckedAt=now();
-          e.caCheckedBy=String(window.GestaoEpiAuth?.user?.()?.name||window.GestaoEpiAuth?.user?.()?.username||'');
-          e.caValidationStatus=String(c.status||'');
-          e.caValidity=String(c.validity||'');
-          e.caEquipment=String(c.equipment||'');
-          e.caManufacturer=String(c.manufacturer||'');
-          e.caSourceUrl=String(c.sourceUrl||'');
-          e.caSourceType=String(c.sourceType||'');
+        if(checkCa){
+          e.caCheckedAt=now();e.caCheckedBy=String(window.GestaoEpiAuth?.user?.()?.name||window.GestaoEpiAuth?.user?.()?.username||'');
+          e.caValidationStatus=String(checkCa.status|| (checkCa.found===false?'Não confirmado':''));e.caValidity=String(checkCa.validity||'');e.caEquipment=String(checkCa.equipment||'');e.caManufacturer=String(checkCa.manufacturer||'');e.caSourceUrl=String(checkCa.sourceUrl||'');e.caSourceType=String(checkCa.sourceType||'');
         }
-
-        const productKey=safePart(item.code||e.id||index);
-        const movementId='sm_nf_'+safePart(companyId)+'_'+safePart(sourceKey)+'_'+productKey+'_'+index;
-        if(root.stock.movements.some(m=>String(m.id)===movementId)){duplicates++;return}
+        const productKey=safePart(item.code||e.id||index),movementId='sm_nf_'+safePart(companyId)+'_'+safePart(sourceKey)+'_'+productKey+'_'+index;
+        if(root.stock.movements.some(m=>String(m.id)===movementId))return;
         const batchId='b_nf_'+safePart(sourceKey)+'_'+productKey+'_'+index;
         root.stock.movements.unshift({
-          id:movementId,type:'IN',delta:Number(item.qty||0),companyId,epiId:e.id,
-          purchaseId,batchId,lot:String(item.lot||''),physicalExpiry:String(item.physicalExpiry||''),
-          invoiceNumber:String(inv.number||''),invoiceKey:digits(inv.key),supplier:String(inv.supplier||''),
-          supplierCnpj:digits(inv.supplierCnpj),productCode:String(item.code||''),unit:String(item.unit||''),
-          unitValue:Number(item.unitValue||0),total:Number(item.total||0),source:'pc-nf-ai-v280',
-          documentFileId:String(stored.fileId||''),note:`Entrada NF ${String(inv.number||'').trim()||'s/n'} • ${String(inv.supplier||'Fornecedor')}`,
-          createdAt:now(),updatedAt:now()
+          id:movementId,type:'IN',delta:Number(item.qty||0),companyId,epiId:e.id,purchaseId,batchId,lot:String(item.lot||''),physicalExpiry:String(item.physicalExpiry||''),
+          invoiceNumber:String(inv.number||''),invoiceKey:digits(inv.key),invoiceIdentity:sourceKey,supplier:String(inv.supplier||''),supplierCnpj:digits(inv.supplierCnpj),productCode:String(item.code||''),unit:String(item.unit||''),
+          unitValue:Number(item.unitValue||0),total:Number(item.total||0),source:'pc-nf-ai-v330',documentFileId:String(stored.fileId||''),note:`Entrada NF ${String(inv.number||'').trim()||'s/n'} • ${String(inv.supplier||'Fornecedor')}`,createdAt:now(),updatedAt:now()
         });
-        const minKey=companyId+'::'+e.id;
-        if(root.stock.minimums[minKey]==null)root.stock.minimums[minKey]=5;
-        added++;
+        const minKey=companyId+'::'+e.id;if(root.stock.minimums[minKey]==null)root.stock.minimums[minKey]=5;added++;
       });
-      const msg=`NF registrada: ${added} entrada(s)${newEpis?' • '+newEpis+' novo(s) EPI(s)':''}${duplicates?' • '+duplicates+' duplicada(s) ignorada(s)':''}.`;
+      const msg=`NF registrada: ${added} entrada(s)${newEpis?' • '+newEpis+' novo(s) EPI(s)':''}.`;
       saveAndReload(root,msg,'nfImportPc');
     }catch(err){
-      toast(err?.message||'Falha ao registrar a NF.');
-      btn.disabled=false;btn.textContent='＋ Registrar entrada no estoque';
+      toast(err?.message||'Falha ao registrar a NF.');btn.disabled=false;btn.textContent='＋ Registrar entrada no estoque';
     }
   }
 
