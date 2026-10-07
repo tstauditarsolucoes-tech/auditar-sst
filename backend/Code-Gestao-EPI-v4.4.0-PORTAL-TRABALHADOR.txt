@@ -4531,6 +4531,22 @@ function workerPortalSubmitRequest(token,payload) {
       return {ok:false,message:'EPI não encontrado.'};
     }
 
+    const workerHasEpi =
+      (snapshot.app.deliveries || []).some(function(d){
+        if (
+          !d ||
+          d.cancelled === true ||
+          String(d.workerId || '') !== String(worker.id || '')
+        ) return false;
+        return (d.items || []).some(function(item){
+          return String(item && item.epiId || '') === epiId;
+        });
+      });
+
+    if (!workerHasEpi) {
+      return {ok:false,message:'Este EPI não está vinculado ao seu histórico de entregas.'};
+    }
+
     snapshot.app.auditLog = Array.isArray(snapshot.app.auditLog)
       ? snapshot.app.auditLog
       : [];
