@@ -9,10 +9,11 @@ function field(note,key){const m=String(note||'').match(new RegExp('(?:^|\\|)\\s
 function data(){const a=read(APP,{companies:[],workers:[],epis:[],deliveries:[]}),s=read(STOCK,{movements:[]});for(const k of ['companies','workers','epis','deliveries'])a[k]=Array.isArray(a[k])?a[k]:[];s.movements=Array.isArray(s.movements)?s.movements:[];return {a,s}}
 function evidenceText(d){const x=[];if(d.signature)x.push('assinatura');if(d.biometricVerified||d.biometricEvidenceId||d.confirmationMethod==='face-biometric')x.push('biometria');if(d.biometricEvidenceHash)x.push('hash de evidência');return x.join(' + ')||'sem evidência identificada'}
 function timeline(workerId){
- const {a,s}=data(),epis=new Map(a.epis.map(e=>[e.id,e])),events=[];
+ const {a,s}=data(),epis=new Map(a.epis.map(e=>[e.id,e])),events=[];a.epiAuthorizations=Array.isArray(a.epiAuthorizations)?a.epiAuthorizations:[];
+ a.epiAuthorizations.filter(x=>x.workerId===workerId).forEach(x=>{const items=(x.items||[]).map(i=>{const e=epis.get(i.approvedSubstituteEpiId||i.epiId)||{};return (e.name||'EPI')+' • autorizado '+Number(i.qty||0)+' • entregue '+Number((x.fulfilled||{})[i.epiId]||0)}).join(' | ');events.push({at:x.createdAt,type:'Liberação TST',icon:'🧾',title:x.code||'Liberação de EPI',detail:items||'Sem itens',meta:(x.authorizedBy?.name?'Liberado por '+x.authorizedBy.name+' • ':'')+'Status: '+String(x.status||'pending')+(x.expiresAt?' • validade '+fmt(x.expiresAt):'')})});
  a.deliveries.filter(d=>d.workerId===workerId&&d.cancelled!==true).forEach(d=>{
    const items=(d.items||[]).map(i=>{const e=epis.get(i.epiId)||{};return (e.name||'EPI')+(e.ca?' • CA '+e.ca:'')+' • qtd. '+Number(i.qty||0)}).join(' | ');
-   events.push({at:d.createdAt,type:'Entrega',icon:'📦',title:(d.reason||'Entrega de EPI'),detail:items||'Sem itens identificados',meta:'Evidência: '+evidenceText(d),receipt:d.id});
+   const trace=d.authorizationCode?'Liberação '+d.authorizationCode:(d.deliveryMode==='direct-warehouse'?'Entrega direta pelo almoxarifado':'');events.push({at:d.createdAt,type:'Entrega',icon:'📦',title:(d.reason||'Entrega de EPI'),detail:items||'Sem itens identificados',meta:'Evidência: '+evidenceText(d)+(trace?' • '+trace:'')+(d.deliveredBy?.name?' • entregue por '+d.deliveredBy.name:''),receipt:d.id});
  });
  (s.movements||[]).forEach(m=>{
    const wid=m.workerId||field(m.note,'workerId');if(wid!==workerId)return;
