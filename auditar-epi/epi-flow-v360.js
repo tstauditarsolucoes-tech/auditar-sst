@@ -266,7 +266,7 @@ async function finalizeDelivery(){
  }else{
    upsert(r,{id:'direct_'+d.id,type:'epi_direct_delivery',deliveryId:d.id,companyId:d.companyId,workerId:d.workerId,items:d.items||[],reason:d.reason||'',reviewStatus:'pending',deliveredBy:u,createdAt:d.createdAt||now(),updatedAt:now()})
  }
- if(cap.claimId){const claim=r.app.auditLog.find(x=>x.id===cap.claimId);if(claim){claim.status='consumed';claim.deliveryId=d.id;claim.updatedAt=now();upsert(r,claim)}}writeRoot(r);document.dispatchEvent(new CustomEvent('epi-flow-delivery-finalized',{detail:{deliveryId:d.id}}));sessionStorage.removeItem('epiFlowDeliveryCaptureV360');sessionStorage.removeItem(CTX);await syncNow();if(PC)setTimeout(()=>location.reload(),350)
+ if(cap.claimId){const claim=r.app.auditLog.find(x=>x.id===cap.claimId);if(claim){claim.status='consumed';claim.deliveryId=d.id;claim.updatedAt=now();upsert(r,claim)}}writeRoot(r);document.dispatchEvent(new CustomEvent('epi-flow-delivery-finalized',{detail:{deliveryId:d.id}}));sessionStorage.removeItem('epiFlowDeliveryCaptureV360');sessionStorage.removeItem(CTX);await syncNow();if(cap.claimId&&cap.concurrencyCheck==='server-atomic'){try{await window.GestaoEpiAuth?.api?.('tenant_epi_authorization_claim_release',{claimId:cap.claimId,deliveryId:d.id})}catch(_){}}if(PC)setTimeout(()=>location.reload(),350)
 }
 
 function renderSettings(){
