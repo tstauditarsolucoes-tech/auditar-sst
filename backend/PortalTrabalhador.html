@@ -51,7 +51,7 @@
       $('#app').innerHTML=`<div class="error"><div class="icon">🔒</div><h2>${esc(title)}</h2><p>${esc(msg)}</p><button class="btn primary" onclick="location.reload()">Tentar novamente</button></div>`;
     }
     function render(){
-      const d=state.data,w=d.worker||{},s=d.summary||{},company=d.company||{},current=d.currentEpis||[],changes=d.nextChanges||[],deliveries=d.deliveries||[];
+      const d=state.data,w=d.worker||{},s=d.summary||{},company=d.company||{},authorizations=d.pendingAuthorizations||[],current=d.currentEpis||[],changes=d.nextChanges||[],deliveries=d.deliveries||[];
       $('#app').innerHTML=`
         <div class="top">
           <div class="brand"><div class="mark">🦺</div><div><b>Gestão EPI</b><small>Portal do Trabalhador • Auditar</small></div></div>
@@ -77,6 +77,10 @@
           <div class="metric"><strong>${fmt(s.lastDelivery)}</strong><span>última entrega</span></div>
         </section>
         <section class="panel">
+          <div class="panel-head"><div><h2>EPIs liberados para retirada</h2><p>Liberações ainda pendentes no almoxarifado.</p></div></div>
+          <div class="list">${authorizations.length?authorizations.map(authorizationCard).join(''):'<div class="empty">Nenhuma liberação pendente no momento.</div>'}</div>
+        </section>
+        <section class="panel">
           <div class="panel-head"><div><h2>Meus EPIs</h2><p>Equipamentos atualmente vinculados ao seu cadastro.</p></div></div>
           <div class="list">${current.length?current.map(heldCard).join(''):'<div class="empty">Nenhum EPI em posse no momento.</div>'}</div>
         </section>
@@ -90,6 +94,9 @@
         </section>
         <div class="footer">Portal individual de consulta • Gestão EPI Auditar<br>Os dados exibidos são vinculados ao cadastro e aos registros eletrônicos da empresa.</div>`;
       bindReceiptButtons();
+    }
+    function authorizationCard(a){
+      return `<div class="change"><div><h3>${esc(a.code||'Liberação de EPI')}</h3><small>${esc(a.reason||'Liberação')} • válida até ${fmt(a.expiresAt)}${a.authorizedBy?' • por '+esc(a.authorizedBy):''}<br>${(a.items||[]).map(i=>esc(i.name)+(i.ca?' • CA '+esc(i.ca):'')+' • retirar '+Number(i.remaining||0)).join(' | ')}</small></div><span class="pill soon">Aguardando retirada</span></div>`;
     }
     function heldCard(x){
       const status=x.status==='none'?'Sem ciclo de troca':statusLabel(x.status);
