@@ -413,7 +413,7 @@
       box.className='pc280-user';
       box.innerHTML=`<div class="pc280-user-avatar">${name.slice(0,1).toUpperCase()}</div><div><b></b><small></small></div>`;
       box.querySelector('b').textContent=name;
-      box.querySelector('small').textContent=role==='admin'?'Administrador':role==='campo'?'Operação':role==='consulta'?'Consulta':role||'Sessão ativa';
+      box.querySelector('small').textContent=role==='admin'?'Administrador':role==='campo'?'TST / Campo':role==='almoxarifado'?'Almoxarifado':role==='consulta'?'Consulta':role||'Sessão ativa';
       foot.insertAdjacentElement('beforebegin',box);
     }
 
