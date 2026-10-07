@@ -1,6 +1,6 @@
 (()=>{
 'use strict';
-const PC=!!document.querySelector('.sidebar')&&!!localStorage.getItem('auditarEpiGestaoCacheV1');
+const PC=!!document.querySelector('.sidebar')&&!!document.querySelector('#syncStatus');
 const APP='auditarEpiV1',STOCK='auditarEpiStockV1',CACHE='auditarEpiGestaoCacheV1',REV='auditarEpiServerRevision',CTX='epiFlowDeliveryCtxV350';
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=(v='')=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -176,8 +176,9 @@ function getDeliveryDraft(){
  return {companyId:$('#deliveryCompany')?.value||'',workerId:$('#deliveryWorker')?.value||'',reason:$('#deliveryReason')?.value||'',items:$$('#deliveryItems .delivery-item').map(r=>({epiId:r.querySelector('.item-epi')?.value||'',qty:Number(r.querySelector('.item-qty')?.value||0)})).filter(i=>i.epiId&&i.qty>0)}
 }
 function validateBeforeDelivery(e){
- if(!canWarehouse())return;
  const btn=e.target.closest?.(PC?'#pcSaveDelivery':'#btnSaveDelivery');if(!btn)return;
+ if(user()?.role==='campo'&&!canWarehouse()){e.preventDefault();e.stopImmediatePropagation();return toast('Seu perfil operacional é TST. A entrega deve ser concluída pelo almoxarifado.')}
+ if(!canWarehouse())return;
  const draft=getDeliveryDraft();if(!draft.companyId||!draft.workerId||!draft.items.length)return;
  let ctx;try{ctx=JSON.parse(sessionStorage.getItem(CTX)||'null')}catch{ctx=null}
  const r=readRoot(),set=settings(r,draft.companyId);
@@ -232,7 +233,7 @@ function requestSub(id){
  const term=prompt('Digite nome ou CA do EPI substituto:');if(!term)return;const matches=r.app.epis.filter(e=>e.active!==false&&[e.name,e.ca,e.model,e.size].some(v=>norm(v).includes(norm(term))));if(!matches.length)return toast('Nenhum EPI substituto encontrado.');const to=matches.length===1?matches[0]:matches[Math.max(0,Math.min(matches.length-1,Number(prompt(matches.slice(0,9).map((e,j)=>(j+1)+' - '+e.name+(e.ca?' • CA '+e.ca:'')).join('\n'))||1)-1))];if(!to)return;
  const reason=prompt('Motivo da substituição:')||'Indisponibilidade no almoxarifado';base.i.substitution={status:'pending',toEpiId:to.id,requestedAt:now(),requestedBy:who(),reason};a.updatedAt=now();upsert(r,a);writeRoot(r);syncNow().then(()=>{toast('Substituição enviada para aprovação do TST.');render()})
 }
-async function decideSub(key,approve){const [id,idxs]=String(key).split('|'),idx=Number(idxs),r=readRoot(),a=auths(r).find(x=>x.id===id),i=a?.items?.[idx];if(!i?.substitution)return;i.substitution.status=approve?'approved':'rejected';i.substitution.decidedAt=now();i.substitution.decidedBy=who();a.updatedAt=now();upsert(r,a);writeRoot(r);await syncNow();toast(approve?'Substituição aprovada.':'Substituição rejeitada.');render()}
+async function decideSub(key,approve){const [id,idxs]=String(key).split('|'),idx=Number(idxs),r=readRoot(),a=auths(r).find(x=>x.id===id),i=a?.items?.[idx];if(!i?.substitution)return;if(approve&&settings(r,a.companyId).reserveStock!==false&&remaining(i)>available(r,a.companyId,i.substitution.toEpiId,a.id))return toast('Estoque disponível insuficiente para aprovar o EPI substituto.');i.substitution.status=approve?'approved':'rejected';i.substitution.decidedAt=now();i.substitution.decidedBy=who();a.updatedAt=now();upsert(r,a);writeRoot(r);await syncNow();toast(approve?'Substituição aprovada.':'Substituição rejeitada.');render()}
 async function reviewDirect(id){const r=readRoot(),x=r.app.auditLog.find(a=>a.id===id);if(!x)return;x.reviewStatus='reviewed';x.reviewedAt=now();x.reviewedBy=who();x.updatedAt=now();upsert(r,x);writeRoot(r);await syncNow();toast('Entrega direta revisada.');render()}
 
 function bindCommonActions(){
