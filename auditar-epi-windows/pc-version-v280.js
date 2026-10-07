@@ -29,7 +29,7 @@
       if(el.textContent!==next)el.textContent=next;
     }
     const v=document.querySelector('.pc-version');
-    if(v)v.textContent='PC v3.2.1';
+    if(v)v.textContent='PC v3.3.0';
   }
 
   function boot(){
