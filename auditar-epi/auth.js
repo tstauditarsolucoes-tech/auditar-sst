@@ -21,7 +21,7 @@
   function savedTenant(){try{return JSON.parse(localStorage.getItem(TENANT_KEY)||'null');}catch{return null;}}
   function deviceId(){let id=localStorage.getItem(DEVICE_STORE);if(!id){id=`campo_${Date.now()}_${Math.random().toString(36).slice(2,10)}`;localStorage.setItem(DEVICE_STORE,id);}return id;}
   function deviceLabel(){return `Campo • ${navigator.platform||'Android'}`.slice(0,80);}
-  function roleLabel(r){return r==='admin'?'Administrador':r==='campo'?'Campo':'Consulta';}
+  function roleLabel(r){return r==='admin'?'Administrador':r==='campo'?'TST / Campo':r==='almoxarifado'?'Almoxarifado':'Consulta';}
   function escapeHtml(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   function toast(msg){const el=$('#toast');if(!el)return;el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2800);}
   const authId=v=>String(v||'').trim().toLowerCase();
@@ -136,9 +136,9 @@
   function resetHidden(){document.querySelectorAll('[data-auth-hidden="1"]').forEach(el=>{el.style.display='';delete el.dataset.authHidden;});}
 
   function applyUser(u,tenant){
-    currentUser=u;currentTenant=tenant||currentTenant;document.body.dataset.epiRole=u.role;resetHidden();injectUserChip();const admin=u.role==='admin',campo=u.role==='campo';
+    currentUser=u;currentTenant=tenant||currentTenant;document.body.dataset.epiRole=u.role;resetHidden();injectUserChip();const admin=u.role==='admin',campo=u.role==='campo',almox=u.role==='almoxarifado';
     if(!admin){document.querySelectorAll('#companyForm,#workerForm,#epiForm,#btnStockSave,#btnCommitImport,.worker-import-actions').forEach(markHidden);document.querySelectorAll('[data-bio-worker]').forEach(markHidden);}
-    if(!admin&&!campo)document.querySelectorAll('#btnSaveDelivery,[data-go="delivery"],#btnAddItem').forEach(markHidden);
+    if(!admin&&!campo&&!almox)document.querySelectorAll('#btnSaveDelivery,[data-go="delivery"],#btnAddItem').forEach(markHidden);
     if(!$('#btnSaveDelivery')?.dataset.authStampBound){const b=$('#btnSaveDelivery');if(b){b.dataset.authStampBound='1';b.addEventListener('click',()=>setTimeout(stampLatestDelivery,180));}}
     if(!window.__gestaoEpiAuthObserver){window.__gestaoEpiAuthObserver=new MutationObserver(()=>{if(currentUser?.role!=='admin')document.querySelectorAll('[data-bio-worker]').forEach(markHidden);});window.__gestaoEpiAuthObserver.observe(document.body,{childList:true,subtree:true});}
   }
