@@ -166,7 +166,7 @@ jobs:
           node 'auditar-epi-windows/pc-epi-flow-core-v360.test.js'
           node --check 'auditar-epi-windows/app/pc-epi-flow-v360.js'
           Select-String -Path 'auditar-epi-windows/app/pc-epi-flow-v360.js' -Pattern 'Liberação e Almoxarifado' -Quiet | Out-Null
-          Select-String -Path 'auditar-epi-windows/app/pc-epi-flow-v360.js' -Pattern 'Relatório TST' -Quiet | Out-Null
+          Select-String -Path 'auditar-epi-windows/app/pc-epi-flow-v360.js' -Pattern 'Indicadores TST' -Quiet | Out-Null
           Select-String -Path 'auditar-epi-windows/app/pc-epi-flow-v360.js' -Pattern 'Ler QR da liberação' -Quiet | Out-Null
           Select-String -Path 'auditar-epi-windows/app/pc-epi-flow-v360.js' -Pattern 'server-atomic' -Quiet | Out-Null
           Select-String -Path 'auditar-epi-windows/app/pc-epi-flow-v360.js' -Pattern 'client-handshake' -Quiet | Out-Null
