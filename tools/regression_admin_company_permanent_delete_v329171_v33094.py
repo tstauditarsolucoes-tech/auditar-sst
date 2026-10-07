@@ -25,8 +25,11 @@ checks = {
     "version": f"version: {expected}" in pub,
     "normal_db_method": "Future<bool> deleteCompanyIfUnused(String companyId)" in db,
     "normal_ui_method": "Future<void> _deleteCompany(Company company)" in screen,
-    "normal_ui_still_calls_safe_method": (
-        "AppDatabase.instance.deleteCompanyIfUnused(company.id)" in screen
+    "normal_ui_still_calls_safe_method": bool(
+        re.search(
+            r"AppDatabase\.instance\s*\.\s*deleteCompanyIfUnused\s*\(\s*company\.id\s*\)",
+            screen,
+        )
     ),
     "normal_block_message": (
         "A empresa possui vistorias. Desative-a em vez de excluir." in screen
