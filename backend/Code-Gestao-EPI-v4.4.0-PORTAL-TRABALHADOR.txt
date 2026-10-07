@@ -929,7 +929,7 @@ function tenantSync_(request) {
     const incoming = normalizeEpiSnapshot_(request.payload);
     let merged;
 
-    if (session.user.role === 'campo') {
+    if (session.user.role === 'campo' || session.user.role === 'almoxarifado') {
       merged = normalizeEpiSnapshot_(stored);
 
       // Campo registra entregas sem substituir o cadastro/estoque da gestão.
@@ -967,6 +967,8 @@ function tenantSync_(request) {
         mergeRecordsById_(stored.app.refusals,incoming.app.refusals);
       merged.app.inventoryCounts =
         mergeRecordsById_(stored.app.inventoryCounts,incoming.app.inventoryCounts);
+      merged.app.epiAuthorizations =
+        mergeRecordsById_(stored.app.epiAuthorizations,incoming.app.epiAuthorizations);
 
       // Mantém o estoque do servidor como autoridade. As baixas de entrega
       // serão reconstruídas abaixo por ensureDeliveryStockMovements_.
@@ -3465,7 +3467,7 @@ function commercialNormalizeTenantCode_(value) {
 
 function commercialNormalizeTenantRole_(value) {
   const role=String(value||'consulta').toLowerCase();
-  return ['admin','campo','consulta'].indexOf(role)>=0
+  return ['admin','campo','almoxarifado','consulta'].indexOf(role)>=0
     ? role
     : 'consulta';
 }
@@ -4135,6 +4137,47 @@ function workerPortalPublicData(token) {
       return sum + Number(x.qty || 0);
     },0);
 
+  const pendingAuthorizations =
+    (snapshot.app.epiAuthorizations || [])
+      .filter(function(a){
+        if (String(a && a.workerId || '') !== String(worker.id || '')) return false;
+        const status = String(a.status || 'pending');
+        if (['cancelled','completed','expired'].indexOf(status) >= 0) return false;
+        if (a.expiresAt && Date.now() > Date.parse(a.expiresAt)) return false;
+        return true;
+      })
+      .map(function(a){
+        const fulfilled = a.fulfilled && typeof a.fulfilled === 'object' ? a.fulfilled : {};
+        const items = (a.items || []).map(function(item){
+          const epi = epiMap[String(item.epiId || '')] || {};
+          const authorized = Math.max(0,Number(item.qty || 0));
+          const delivered = Math.max(0,Number(fulfilled[String(item.epiId || '')] || 0));
+          return {
+            epiId:String(item.epiId || ''),
+            name:String(epi.name || 'EPI'),
+            ca:String(epi.ca || ''),
+            size:String(epi.size || ''),
+            authorized:authorized,
+            delivered:delivered,
+            remaining:Math.max(0,authorized-delivered)
+          };
+        }).filter(function(item){return item.remaining>0;});
+        return {
+          id:String(a.id || ''),
+          status:String(a.status || 'pending'),
+          reason:String(a.reason || ''),
+          expiresAt:String(a.expiresAt || ''),
+          createdAt:String(a.createdAt || ''),
+          authorizedBy:
+            a.authorizedBy && typeof a.authorizedBy === 'object'
+              ? String(a.authorizedBy.name || a.authorizedBy.username || '')
+              : '',
+          items:items
+        };
+      })
+      .filter(function(a){return a.items.length>0;})
+      .sort(function(a,b){return String(b.createdAt||'').localeCompare(String(a.createdAt||''));});
+
   return {
     ok:true,
     generatedAt:new Date().toISOString(),
@@ -4161,6 +4204,7 @@ function workerPortalPublicData(token) {
     },
     currentEpis:currentEpis,
     nextChanges:nextChanges,
+    pendingAuthorizations:pendingAuthorizations,
     deliveries:safeDeliveries
   };
 }
@@ -4308,7 +4352,7 @@ function workerPortalMaskCpf_(value) {
 
 function tenantBiometricKey_(request) {
   const session =
-    commercialRequireTenantRole_(request.authToken,['admin','campo']);
+    commercialRequireTenantRole_(request.authToken,['admin','campo','almoxarifado']);
 
   if (!session.ok) return session;
 
@@ -4494,6 +4538,7 @@ function epiSyncStatus_() {
     deliveries:data.app.deliveries.length,
     purchases:data.app.purchases.length,
     batches:data.app.batches.length,
+    authorizations:data.app.epiAuthorizations.length,
     auditEvents:data.app.auditLog.length,
     stockMovements:data.stock.movements.length
   };
@@ -4530,6 +4575,7 @@ function normalizeEpiSnapshot_(value) {
       returns:normalizeArray_(app.returns),
       refusals:normalizeArray_(app.refusals),
       inventoryCounts:normalizeArray_(app.inventoryCounts),
+      epiAuthorizations:normalizeArray_(app.epiAuthorizations),
       auditLog:normalizeArray_(app.auditLog).slice(0,1000)
     },
     stock:{
@@ -4598,6 +4644,8 @@ function mergeEpiSnapshots_(server,client) {
         mergeRecordsById_(server.app.refusals,client.app.refusals),
       inventoryCounts:
         mergeRecordsById_(server.app.inventoryCounts,client.app.inventoryCounts),
+      epiAuthorizations:
+        mergeRecordsById_(server.app.epiAuthorizations,client.app.epiAuthorizations),
       auditLog:
         mergeRecordsById_(
           server.app.auditLog,
