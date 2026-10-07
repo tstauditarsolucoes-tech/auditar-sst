@@ -114,9 +114,13 @@ function reportData(){
   directReviewed:directs.filter(x=>x.reviewStatus==='reviewed').length
  };
 }
+function ensureReportTab(){
+ const tabs=$('#flow350Tabs');if(!tabs||tabs.querySelector('[data-flowtab="report360"]'))return;
+ const b=document.createElement('button');b.dataset.flowtab='report360';b.textContent='Relatório';tabs.appendChild(b);
+}
 function openReport(){
  const n=PC?$('.sidebar .nav[data-view="epiFlowV350"]'):$('[data-go="epiFlowV350"]');n?.click();
- setTimeout(()=>{const tabs=$('#flow350Tabs');if(tabs&&!tabs.querySelector('[data-flowtab="report360"]')){const b=document.createElement('button');b.dataset.flowtab='report360';b.textContent='Relatório';tabs.appendChild(b)}renderReport()},120);
+ setTimeout(()=>{ensureReportTab();renderReport()},120);
 }
 function renderReport(){
  const d=reportData(),box=$('#flow350Content');if(!box)return;$$('#flow350Tabs [data-flowtab]').forEach(b=>b.classList.toggle('active',b.dataset.flowtab==='report360'));
@@ -137,6 +141,6 @@ function style(){
 .flow360-trace{margin:14px 0;border:1px solid #cfe0dc;border-radius:10px;padding:10px;font-size:11px}.flow360-trace-title{font-weight:900;margin-bottom:8px;color:#173d39}.flow360-trace-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.flow360-trace-grid>div{border:1px solid #e3ecea;padding:8px;border-radius:8px}.flow360-open{display:block;margin-top:7px;border:0;border-radius:8px;padding:6px 9px;font-weight:900;background:#0f766e;color:#fff}.flow360-quick{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.flow360-quick button,.flow360-report-actions button{border:1px solid #cfe0dc;background:#fff;border-radius:9px;padding:8px 10px;font-weight:850;color:#285f58}.flow360-report-actions{display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px}.flow360-table{width:100%;border-collapse:collapse;font-size:11px}.flow360-table th,.flow360-table td{border:1px solid #dce8e5;padding:8px;text-align:center}@media(max-width:700px){.flow360-trace-grid{grid-template-columns:1fr}}@media print{.flow360-report-actions,#flow350Tabs,.view-head,.pc-modern-head,.sidebar,.topbar{display:none!important}#flow360ReportPrint,#flow360ReportPrint *{visibility:visible!important}#flow360ReportPrint{position:absolute;inset:0;padding:10mm;background:#fff}}
 `;document.head.appendChild(s)
 }
-function boot(){style();bindReceipt();bindQr();bindCentral();bindReportTab()}
+function boot(){style();bindReceipt();bindQr();bindCentral();bindReportTab();[700,1600,3000].forEach(ms=>setTimeout(ensureReportTab,ms))}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
