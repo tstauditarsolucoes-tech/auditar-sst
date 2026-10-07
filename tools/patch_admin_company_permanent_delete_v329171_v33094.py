@@ -435,12 +435,34 @@ if "delete_permanent_admin" not in screen:
         1,
     )
 
-    item_anchor = (
-        "                        const PopupMenuItem("
-        "value: 'delete', child: Text('Excluir')),"
-    )
-    if item_anchor not in screen:
+    # O item "Excluir" pode estar em uma linha ou formatado em várias.
+    # Localizamos pelo valor sem alterar o item normal.
+    marker = "value: 'delete'"
+    marker_pos = screen.find(marker)
+    if marker_pos < 0:
         raise RuntimeError("item Excluir normal ausente na tela Empresas")
+
+    item_start = screen.rfind("const PopupMenuItem", max(0, marker_pos - 500), marker_pos)
+    if item_start < 0:
+        raise RuntimeError("inicio do item Excluir normal ausente")
+
+    # Encontra o fim do PopupMenuItem por balanceamento de parênteses.
+    paren = screen.find("(", item_start)
+    depth = 0
+    item_end = None
+    for i in range(paren, len(screen)):
+        if screen[i] == "(":
+            depth += 1
+        elif screen[i] == ")":
+            depth -= 1
+            if depth == 0:
+                item_end = i + 1
+                if item_end < len(screen) and screen[item_end] == ",":
+                    item_end += 1
+                break
+    if item_end is None:
+        raise RuntimeError("fim do item Excluir normal ausente")
+
     admin_item = r'''
                         if (AuthService.isAdmin)
                           const PopupMenuItem(
@@ -463,7 +485,7 @@ if "delete_permanent_admin" not in screen:
                               ],
                             ),
                           ),'''
-    screen = screen.replace(item_anchor, item_anchor + admin_item, 1)
+    screen = screen[:item_end] + admin_item + screen[item_end:]
 
 write(screen_rel, screen)
 
