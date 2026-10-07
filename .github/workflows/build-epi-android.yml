@@ -196,7 +196,7 @@ jobs:
           grep -q "Entrega direta" epi-flow-v360.js
           grep -q "Substituição" epi-flow-v360.js
           grep -q "tenant_list_users" epi-flow-v360.js
-          grep -q "Relatório TST" epi-flow-v360.js
+          grep -q "Indicadores TST" epi-flow-v360.js
           grep -q "Ler QR da liberação" epi-flow-v360.js
           grep -q "server-atomic" epi-flow-v360.js
           grep -q "client-handshake" epi-flow-v360.js
@@ -289,7 +289,7 @@ jobs:
           unzip -p "$APK" assets/public/index.html | grep -q "jsQR.js"
           unzip -p "$APK" assets/public/index.html | grep -q "epi-flow-v360.js"
           unzip -p "$APK" assets/public/epi-flow-v360.js | grep -q "Liberação e Almoxarifado"
-          unzip -p "$APK" assets/public/epi-flow-v360.js | grep -q "Relatório TST"
+          unzip -p "$APK" assets/public/epi-flow-v360.js | grep -q "Indicadores TST"
           unzip -p "$APK" assets/public/epi-flow-v360.js | grep -q "Ler QR da liberação"
           unzip -p "$APK" assets/public/epi-flow-v360.js | grep -q "server-atomic"
           unzip -p "$APK" assets/public/epi-flow-v360.js | grep -q "client-handshake"
