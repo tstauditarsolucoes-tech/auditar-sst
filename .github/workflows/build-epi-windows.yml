@@ -3,7 +3,7 @@ name: Gerar Windows Gestão EPI
 on:
   workflow_dispatch:
   push:
-    branches: [main, feature/gestao-epi-pc-desktop-v280, feature/gestao-epi-biometria-evidencia-v281, feature/gestao-epi-worker-portal-v290, feature/gestao-epi-brand-login-v300, feature/gestao-epi-quality-v310, feature/gestao-epi-legal-v320, feature/gestao-epi-pc-legibility-v321, feature/gestao-epi-pc-parity-v330, feature/gestao-epi-pc-operational-v340, feature/gestao-epi-pc-tst-warehouse-v350]
+    branches: [main, feature/gestao-epi-pc-desktop-v280, feature/gestao-epi-biometria-evidencia-v281, feature/gestao-epi-worker-portal-v290, feature/gestao-epi-brand-login-v300, feature/gestao-epi-quality-v310, feature/gestao-epi-legal-v320, feature/gestao-epi-pc-legibility-v321, feature/gestao-epi-pc-parity-v330, feature/gestao-epi-pc-operational-v340, feature/gestao-epi-pc-tst-warehouse-v350, feature/gestao-epi-pc-flow-enhancements-v360]
     paths:
       - 'auditar-epi-gestao/**'
       - 'auditar-epi-windows/**'
@@ -73,6 +73,7 @@ jobs:
           Copy-Item -Force 'auditar-epi-windows/pc-operational-center-v340.js' 'auditar-epi-windows/app/pc-operational-center-v340.js'
           Copy-Item -Force 'auditar-epi-windows/pc-worker-history-v340.js' 'auditar-epi-windows/app/pc-worker-history-v340.js'
           Copy-Item -Force 'auditar-epi-windows/pc-epi-flow-v350.js' 'auditar-epi-windows/app/pc-epi-flow-v350.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-epi-flow-enhancements-v360.js' 'auditar-epi-windows/app/pc-epi-flow-enhancements-v360.js'
 
           $indexPath = 'auditar-epi-windows/app/index.html'
           $index = Get-Content $indexPath -Raw
@@ -117,14 +118,16 @@ jobs:
             '  <script src="pc-worker-ca-sheet-v330.js"></script>',
             '  <script src="pc-operational-center-v340.js"></script>',
             '  <script src="pc-worker-history-v340.js"></script>',
+            '  <script src="qrcode-generator.js"></script>',
             '  <script src="pc-epi-flow-v350.js"></script>',
+            '  <script src="pc-epi-flow-enhancements-v360.js"></script>',
             '</body>',
             '</html>'
           )
           Set-Content -Path $indexPath -Value ($head + (($scriptLines -join "`r`n") + "`r`n")) -Encoding UTF8
           $assembled = Get-Content $indexPath -Raw
 
-          foreach ($required in @('auth-gestao.js','pc-login-session.js','pc-login-safe-v277.js','pc-biometric-crypto-v281.js','pc-worker-portal-v290.js','pc-batch-delivery-v274.js','pc-brand-v279.js','pc-brand-login-v300.js','pc-version-v280.js','pc-mobile-parity-v280.js','pc-desktop-shell-v280.js','pc-management-v310.js','pc-legal-compliance-v320.js','pc-legibility-v321.js','pc-ca-center-v330.js','pc-worker-ca-sheet-v330.js','pc-operational-center-v340.js','pc-worker-history-v340.js','pc-epi-flow-v350.js')) {
+          foreach ($required in @('auth-gestao.js','pc-login-session.js','pc-login-safe-v277.js','pc-biometric-crypto-v281.js','pc-worker-portal-v290.js','pc-batch-delivery-v274.js','pc-brand-v279.js','pc-brand-login-v300.js','pc-version-v280.js','pc-mobile-parity-v280.js','pc-desktop-shell-v280.js','pc-management-v310.js','pc-legal-compliance-v320.js','pc-legibility-v321.js','pc-ca-center-v330.js','pc-worker-ca-sheet-v330.js','pc-operational-center-v340.js','pc-worker-history-v340.js','pc-epi-flow-v350.js','pc-epi-flow-enhancements-v360.js')) {
             if ($assembled -notmatch [regex]::Escape($required)) { throw "Script obrigatório ausente: $required" }
           }
           if ($assembled -match 'pc-login-bootstrap-v276\.js|pc-login-interaction-v275\.js|login-uppercase-gestao\.js|worker-link-gestao\.js|pc-fix\.js|prepare-pc\.js|pc-easy-layout-v273\.js') {
@@ -158,6 +161,9 @@ jobs:
           node --check 'auditar-epi-windows/app/pc-operational-center-v340.js'
           node --check 'auditar-epi-windows/app/pc-worker-history-v340.js'
           node --check 'auditar-epi-windows/app/pc-epi-flow-v350.js'
+          node --check 'auditar-epi-windows/app/pc-epi-flow-enhancements-v360.js'
+          Select-String -Path 'auditar-epi-windows/app/pc-epi-flow-enhancements-v360.js' -Pattern 'Rastreabilidade da entrega' -Quiet | Out-Null
+          Select-String -Path 'auditar-epi-windows/app/pc-epi-flow-enhancements-v360.js' -Pattern 'Relatório TST × Almoxarifado' -Quiet | Out-Null
           Select-String -Path 'auditar-epi-windows/app/pc-epi-flow-v350.js' -Pattern 'Liberação e Almoxarifado' -Quiet | Out-Null
           Select-String -Path 'auditar-epi-windows/app/pc-epi-flow-v350.js' -Pattern 'epi_authorization' -Quiet | Out-Null
           Select-String -Path 'auditar-epi-windows/app/pc-epi-flow-v350.js' -Pattern 'Entrega direta' -Quiet | Out-Null
@@ -192,7 +198,8 @@ jobs:
             'pc-worker-ca-sheet-v330.js',
             'pc-operational-center-v340.js',
             'pc-worker-history-v340.js',
-            'pc-epi-flow-v350.js'
+            'pc-epi-flow-v350.js',
+            'pc-epi-flow-enhancements-v360.js'
           )
           foreach ($script in $requiredScripts) {
             if ($index -notmatch [regex]::Escape($script)) { throw "Paridade PC incompleta: $script não foi carregado." }
@@ -230,6 +237,12 @@ jobs:
         working-directory: auditar-epi-windows
         run: npm install
 
+      - name: Empacotar QR local
+        shell: pwsh
+        run: |
+          Copy-Item -Force 'auditar-epi-windows/node_modules/qrcode-generator/qrcode.js' 'auditar-epi-windows/app/qrcode-generator.js'
+          node --check 'auditar-epi-windows/app/qrcode-generator.js'
+
       - name: Gerar aplicativo Windows
         working-directory: auditar-epi-windows
         env:
@@ -259,6 +272,7 @@ jobs:
             Desktop v3.3.0 com Central de CA, validade e Ficha de CA do trabalhador, além de conferência refinada da Nota Fiscal antes do estoque. Mantida a interface desktop e a base estável de login, sincronização e biometria.
             Desktop v3.4.0 adiciona Central Operacional de pendências, diagnóstico de sincronização e Histórico 360° do trabalhador, sem alterar o motor de sincronização.
             Desktop v3.5.0 adiciona fluxo TST/Almoxarifado com liberação, reserva, retirada parcial, entrega direta controlada, QR/código, substituição aprovada e rastreabilidade.
+            Desktop v3.6.0 adiciona comprovante completo, QR local/offline, leitura por câmera quando suportada, atalhos operacionais e relatório TST × Almoxarifado.
           files: auditar-epi-windows/dist/Gestao-EPI-Setup-${{ env.APP_VERSION }}.exe
           make_latest: true
           overwrite_files: true
