@@ -77,6 +77,8 @@ function doPost(e) {
 
     // Dados e IA
     if (action === 'epi_sync_merge') return jsonResponse_(tenantSync_(request));
+    if (action === 'tenant_epi_authorization_claim') return jsonResponse_(tenantEpiAuthorizationClaim_(request));
+    if (action === 'tenant_epi_authorization_claim_release') return jsonResponse_(tenantEpiAuthorizationClaimRelease_(request));
     if (action === 'tenant_store_purchase_document') return jsonResponse_(tenantStorePurchaseDocument_(request));
     if (action === 'tenant_biometric_key') return jsonResponse_(tenantBiometricKey_(request));
     if (action === 'tenant_store_biometric') return jsonResponse_(tenantStoreBiometric_(request));
@@ -1012,6 +1014,220 @@ function tenantSync_(request) {
     };
   } catch (error) {
     return {ok:false,message:'Falha na sincronização: ' + String(error)};
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+
+function tenantEpiAuthorizationClaim_(request) {
+  const session = commercialRequireTenantRole_(request.authToken,['admin','campo']);
+  if (!session.ok) return session;
+
+  const tenant = commercialTenantById_(session.tenant.id);
+  if (!tenant) return {ok:false,message:'Cliente não encontrado.'};
+
+  const license = commercialLicenseState_(tenant);
+  if (!license.ok) return license;
+
+  const authorizationId = String(request.authorizationId || '').trim();
+  const companyId = String(request.companyId || '').trim();
+  const workerId = String(request.workerId || '').trim();
+  const deviceId = String(request.deviceId || '').trim();
+  const items = Array.isArray(request.items) ? request.items.slice(0,30) : [];
+
+  if (!authorizationId || !companyId || !workerId || !items.length) {
+    return {ok:false,code:'AUTHORIZATION_CLAIM_INVALID',message:'Dados da retirada incompletos.'};
+  }
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+
+  try {
+    const snapshot = commercialReadTenantSnapshot_(tenant);
+    const log = Array.isArray(snapshot.app.auditLog) ? snapshot.app.auditLog : [];
+    const authorization = log.find(function(row){
+      return row && row.type === 'epi_authorization' && String(row.id || '') === authorizationId;
+    });
+
+    if (!authorization) {
+      return {ok:false,code:'AUTHORIZATION_NOT_FOUND',message:'Liberação não encontrada.'};
+    }
+
+    if (
+      String(authorization.companyId || '') !== companyId ||
+      String(authorization.workerId || '') !== workerId
+    ) {
+      return {ok:false,code:'AUTHORIZATION_MISMATCH',message:'A liberação não corresponde ao trabalhador/empresa.'};
+    }
+
+    const nowMs = Date.now();
+    if (
+      authorization.status === 'cancelled' ||
+      authorization.status === 'delivered' ||
+      (authorization.expiresAt && nowMs > Date.parse(authorization.expiresAt))
+    ) {
+      return {ok:false,code:'AUTHORIZATION_UNAVAILABLE',message:'Essa liberação não está disponível para retirada.'};
+    }
+
+    function effectiveEpi_(item) {
+      return item &&
+        item.substitution &&
+        item.substitution.status === 'approved' &&
+        item.substitution.toEpiId
+          ? String(item.substitution.toEpiId)
+          : String(item && item.epiId || '');
+    }
+
+    for (var i=0; i<items.length; i++) {
+      const requested = items[i] || {};
+      const epiId = String(requested.epiId || '');
+      const qty = Math.max(0,Number(requested.qty || 0));
+      const authorizedItem = (authorization.items || []).find(function(item){
+        return effectiveEpi_(item) === epiId &&
+          Math.max(0,Number(item.qty || 0) - Number(item.deliveredQty || 0)) > 0;
+      });
+
+      if (!authorizedItem || !qty) {
+        return {ok:false,code:'AUTHORIZATION_ITEM_INVALID',message:'Há EPI não autorizado nesta retirada.'};
+      }
+
+      const remaining =
+        Math.max(
+          0,
+          Number(authorizedItem.qty || 0) -
+          Number(authorizedItem.deliveredQty || 0)
+        );
+
+      if (qty > remaining) {
+        return {
+          ok:false,
+          code:'AUTHORIZATION_QTY_EXCEEDED',
+          message:'A quantidade solicitada é maior que o saldo da liberação.'
+        };
+      }
+    }
+
+    const activeClaim = log.find(function(row){
+      if (!row || row.type !== 'epi_authorization_claim') return false;
+      if (String(row.authorizationId || '') !== authorizationId) return false;
+      if (row.status === 'lost' || row.status === 'consumed' || row.status === 'released') return false;
+      if (row.expiresAt && Date.parse(row.expiresAt) <= nowMs) return false;
+      return true;
+    });
+
+    if (activeClaim) {
+      const sameDevice =
+        deviceId &&
+        String(activeClaim.deviceId || '') === deviceId &&
+        String(activeClaim.claimedBy && activeClaim.claimedBy.username || '') ===
+          String(session.user && session.user.username || '');
+
+      if (sameDevice) {
+        return {
+          ok:true,
+          claimId:String(activeClaim.id || ''),
+          expiresAt:String(activeClaim.expiresAt || ''),
+          mode:'server-atomic',
+          reused:true
+        };
+      }
+
+      return {
+        ok:false,
+        code:'AUTHORIZATION_BUSY',
+        message:'Essa liberação está sendo atendida em outro dispositivo.'
+      };
+    }
+
+    const claimedAt = new Date().toISOString();
+    const expiresAt = new Date(nowMs + 90000).toISOString();
+    const claim = {
+      id:'srvclaim_' + Utilities.getUuid(),
+      type:'epi_authorization_claim',
+      authorizationId:authorizationId,
+      companyId:companyId,
+      workerId:workerId,
+      items:items.map(function(item){
+        return {
+          epiId:String(item && item.epiId || ''),
+          qty:Math.max(0,Number(item && item.qty || 0))
+        };
+      }),
+      deviceId:deviceId,
+      claimedBy:{
+        username:String(session.user && session.user.username || ''),
+        name:String(session.user && (session.user.name || session.user.username) || ''),
+        role:String(session.user && session.user.role || '')
+      },
+      status:'won',
+      mode:'server-atomic',
+      createdAt:claimedAt,
+      updatedAt:claimedAt,
+      expiresAt:expiresAt
+    };
+
+    snapshot.app.auditLog.unshift(claim);
+    snapshot.app.auditLog = snapshot.app.auditLog.slice(0,1000);
+    snapshot.revision = Number(snapshot.revision || 0) + 1;
+    snapshot.updatedAt = claimedAt;
+    commercialWriteTenantSnapshot_(tenant,snapshot);
+
+    return {
+      ok:true,
+      claimId:claim.id,
+      expiresAt:expiresAt,
+      mode:'server-atomic'
+    };
+  } catch (error) {
+    return {ok:false,code:'AUTHORIZATION_CLAIM_FAILED',message:'Falha ao reservar a liberação: ' + String(error)};
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function tenantEpiAuthorizationClaimRelease_(request) {
+  const session = commercialRequireTenantRole_(request.authToken,['admin','campo']);
+  if (!session.ok) return session;
+
+  const tenant = commercialTenantById_(session.tenant.id);
+  if (!tenant) return {ok:false,message:'Cliente não encontrado.'};
+
+  const claimId = String(request.claimId || '').trim();
+  if (!claimId) return {ok:false,code:'CLAIM_ID_REQUIRED',message:'Trava de retirada não informada.'};
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(12000);
+
+  try {
+    const snapshot = commercialReadTenantSnapshot_(tenant);
+    const log = Array.isArray(snapshot.app.auditLog) ? snapshot.app.auditLog : [];
+    const claim = log.find(function(row){
+      return row && row.type === 'epi_authorization_claim' && String(row.id || '') === claimId;
+    });
+
+    if (!claim) return {ok:true,released:false,message:'Trava já não está ativa.'};
+
+    const owner = String(claim.claimedBy && claim.claimedBy.username || '');
+    const username = String(session.user && session.user.username || '');
+    if (owner && owner !== username && session.user.role !== 'admin') {
+      return {ok:false,code:'CLAIM_OWNER_MISMATCH',message:'A trava pertence a outro usuário.'};
+    }
+
+    const releasedAt = new Date().toISOString();
+    claim.status = 'released';
+    claim.deliveryId = String(request.deliveryId || '');
+    claim.releasedAt = releasedAt;
+    claim.updatedAt = releasedAt;
+    claim.expiresAt = releasedAt;
+
+    snapshot.revision = Number(snapshot.revision || 0) + 1;
+    snapshot.updatedAt = releasedAt;
+    commercialWriteTenantSnapshot_(tenant,snapshot);
+
+    return {ok:true,released:true,claimId:claimId};
+  } catch (error) {
+    return {ok:false,code:'AUTHORIZATION_RELEASE_FAILED',message:'Falha ao liberar a trava: ' + String(error)};
   } finally {
     lock.releaseLock();
   }
