@@ -6,13 +6,19 @@ const esc=(v='')=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','
 function read(k,f={}){try{return {...f,...JSON.parse(localStorage.getItem(k)||'{}')}}catch{return f}}
 function fmt(v){if(!v)return '—';try{return new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(new Date(v))}catch{return String(v)}}
 function field(note,key){const m=String(note||'').match(new RegExp('(?:^|\\|)\\s*'+key+'\\s*:\\s*([^|]+)','i'));return m?m[1].trim():''}
-function data(){const a=read(APP,{companies:[],workers:[],epis:[],deliveries:[]}),s=read(STOCK,{movements:[]});for(const k of ['companies','workers','epis','deliveries'])a[k]=Array.isArray(a[k])?a[k]:[];s.movements=Array.isArray(s.movements)?s.movements:[];return {a,s}}
+function data(){const a=read(APP,{companies:[],workers:[],epis:[],deliveries:[],auditLog:[]}),s=read(STOCK,{movements:[]});for(const k of ['companies','workers','epis','deliveries','auditLog'])a[k]=Array.isArray(a[k])?a[k]:[];s.movements=Array.isArray(s.movements)?s.movements:[];return {a,s}}
 function evidenceText(d){const x=[];if(d.signature)x.push('assinatura');if(d.biometricVerified||d.biometricEvidenceId||d.confirmationMethod==='face-biometric')x.push('biometria');if(d.biometricEvidenceHash)x.push('hash de evidência');return x.join(' + ')||'sem evidência identificada'}
 function timeline(workerId){
  const {a,s}=data(),epis=new Map(a.epis.map(e=>[e.id,e])),events=[];
  a.deliveries.filter(d=>d.workerId===workerId&&d.cancelled!==true).forEach(d=>{
    const items=(d.items||[]).map(i=>{const e=epis.get(i.epiId)||{};return (e.name||'EPI')+(e.ca?' • CA '+e.ca:'')+' • qtd. '+Number(i.qty||0)}).join(' | ');
-   events.push({at:d.createdAt,type:'Entrega',icon:'📦',title:(d.reason||'Entrega de EPI'),detail:items||'Sem itens identificados',meta:'Evidência: '+evidenceText(d),receipt:d.id});
+   const flow=d.deliveryFlow==='authorized'?'Entrega com liberação TST':d.deliveryFlow==='direct'?'Entrega direta do almoxarifado':'Entrega';const by=d.warehouseDeliveredBy?.name||d.warehouseDeliveredBy?.username||d.registeredBy?.name||d.registeredBy?.username||d.responsible||'';events.push({at:d.createdAt,type:flow,icon:d.deliveryFlow==='direct'?'🏪':'📦',title:(d.reason||'Entrega de EPI'),detail:items||'Sem itens identificados',meta:(by?'Entregue por '+by+' • ':'')+'Evidência: '+evidenceText(d),receipt:d.id});
+ });
+ a.auditLog.filter(x=>x?.type==='epi_authorization'&&x.workerId===workerId).forEach(a=>{
+   const names=(a.items||[]).map(i=>{const id=i.substitution?.status==='approved'&&i.substitution.toEpiId?i.substitution.toEpiId:i.epiId;const e=epis.get(id)||{};return (e.name||'EPI')+' x'+Number(i.qty||0)}).join(' | ');
+   events.push({at:a.authorizedAt||a.createdAt,type:'Liberação TST',icon:'✅',title:a.code||'Liberação de EPI',detail:names||a.reason||'',meta:'Liberado por '+(a.authorizedBy?.name||a.authorizedBy?.username||'—')+' • status '+String(a.status||'pending')});
+   if(a.cancelledAt)events.push({at:a.cancelledAt,type:'Liberação cancelada',icon:'⛔',title:a.code||'Liberação',detail:a.reason||'',meta:'Cancelada por '+(a.cancelledBy?.name||a.cancelledBy?.username||'—')});
+   (a.items||[]).forEach(i=>{if(i.substitution?.requestedAt)events.push({at:i.substitution.requestedAt,type:'Substituição solicitada',icon:'🔁',title:(epis.get(i.epiId)?.name||'EPI'),detail:'Solicitado: '+(epis.get(i.substitution.toEpiId)?.name||'EPI'),meta:i.substitution.reason||''})});
  });
  (s.movements||[]).forEach(m=>{
    const wid=m.workerId||field(m.note,'workerId');if(wid!==workerId)return;
