@@ -50,7 +50,7 @@ function profiles(root=readRoot()){return root.app.auditLog.filter(x=>x?.type===
 function settings(root=readRoot(),companyId=''){return root.app.auditLog.find(x=>x?.type==='epi_flow_settings'&&x.companyId===companyId)||{id:'flowset_'+companyId,type:'epi_flow_settings',companyId,directDeliveryAllowed:true,defaultExpiryDays:5,reserveStock:true}}
 function policy(root,companyId,epiId){return root.app.auditLog.find(x=>x?.type==='epi_policy'&&x.companyId===companyId&&x.epiId===epiId)||{authorizationRequired:false}}
 function profile(){
-  const u=user();if(!u)return 'none';if(u.role==='admin')return 'both';
+  const u=user();if(!u)return 'none';if(u.role==='admin')return 'both';if(u.role==='consulta')return 'none';
   const p=profiles().find(x=>norm(x.username)===norm(u.username));return String(p?.profile||'both');
 }
 const canTst=()=>['tst','both'].includes(profile())||user()?.role==='admin';
