@@ -256,6 +256,47 @@ function masterLogin_(request) {
         return String(b.createdAt || '').localeCompare(String(a.createdAt || ''));
       });
 
+  safeDeliveries.forEach(function(d){
+    const authorization =
+      d.authorizationId
+        ? auditLog.find(function(row){
+            return (
+              row &&
+              row.type === 'epi_authorization' &&
+              String(row.id || '') === String(d.authorizationId || '')
+            );
+          })
+        : null;
+
+    const directReview =
+      auditLog.find(function(row){
+        return (
+          row &&
+          row.type === 'epi_direct_delivery' &&
+          String(row.deliveryId || '') === String(d.id || '')
+        );
+      }) || null;
+
+    d.authorizationCode = authorization ? String(authorization.code || '') : '';
+    d.authorizedBy =
+      authorization &&
+      authorization.authorizedBy &&
+      typeof authorization.authorizedBy === 'object'
+        ? String(authorization.authorizedBy.name || authorization.authorizedBy.username || '')
+        : '';
+    d.authorizedAt = authorization
+      ? String(authorization.authorizedAt || authorization.createdAt || '')
+      : '';
+    d.reviewStatus = directReview ? String(directReview.reviewStatus || '') : '';
+    d.reviewedBy =
+      directReview &&
+      directReview.reviewedBy &&
+      typeof directReview.reviewedBy === 'object'
+        ? String(directReview.reviewedBy.name || directReview.reviewedBy.username || '')
+        : '';
+    d.reviewedAt = directReview ? String(directReview.reviewedAt || '') : '';
+  });
+
   const flowSettings =
     auditLog.find(function(row){
       return (
