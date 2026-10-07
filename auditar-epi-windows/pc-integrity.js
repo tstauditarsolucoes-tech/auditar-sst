@@ -17,12 +17,14 @@
       root.app.workers=Array.isArray(root.app.workers)?root.app.workers:[];
       root.app.epis=Array.isArray(root.app.epis)?root.app.epis:[];
       root.app.deliveries=Array.isArray(root.app.deliveries)?root.app.deliveries:[];
+      root.app.epiAuthorizations=Array.isArray(root.app.epiAuthorizations)?root.app.epiAuthorizations:[];
+      root.app.auditLog=Array.isArray(root.app.auditLog)?root.app.auditLog:[];
       root.stock=root.stock&&typeof root.stock==='object'?root.stock:{};
       root.stock.movements=Array.isArray(root.stock.movements)?root.stock.movements:[];
       root.stock.minimums=root.stock.minimums&&typeof root.stock.minimums==='object'?root.stock.minimums:{};
       root.stock.processedDeliveryIds=Array.isArray(root.stock.processedDeliveryIds)?root.stock.processedDeliveryIds:[];
       return root;
-    }catch(_){return {version:1,revision:0,updatedAt:'',app:{companies:[],workers:[],epis:[],deliveries:[]},stock:{startedAt:'',processedDeliveryIds:[],movements:[],minimums:{}}};}
+    }catch(_){return {version:1,revision:0,updatedAt:'',app:{companies:[],workers:[],epis:[],deliveries:[],epiAuthorizations:[],auditLog:[]},stock:{startedAt:'',processedDeliveryIds:[],movements:[],minimums:{}}};}
   }
   function writeAndReload(root,message,receiptId=''){
     root.updatedAt=now();
@@ -33,11 +35,11 @@
 
   function currentRole(){return window.GestaoEpiAuth?.user?.()?.role||document.body.dataset.epiRole||'';}
   function canAdmin(){return currentRole()==='admin';}
-  function canDeliver(){const r=currentRole();return r==='admin'||r==='campo';}
+  function canDeliver(){const r=currentRole();return r==='admin'||r==='campo'||r==='almoxarifado';}
   function isConfirmedFace(d){return d?.biometricVerified===true||((d?.confirmationType==='face-1to1'||d?.confirmationMethod==='face-biometric')&&Boolean(d?.biometricVerifiedAt||d?.facialVerifiedAt));}
 
   function applyPermissions(){
-    const role=currentRole(),admin=role==='admin',deliver=role==='admin'||role==='campo';
+    const role=currentRole(),admin=role==='admin',deliver=role==='admin'||role==='campo'||role==='almoxarifado';
     const set=(sel,show)=>$$(sel).forEach(el=>{el.style.display=show?'':'none';});
     set('.nav[data-view="importWorkersPc"]',admin);set('[data-pc-go="importWorkersPc"]',admin);set('[data-pc-go="epis"]',admin);
     set('.nav[data-view="newDeliveryPc"]',deliver);set('[data-pc-go="newDeliveryPc"]',deliver);
@@ -73,6 +75,8 @@
     if(!companyId)return toast('Selecione a empresa.');if(!workerId)return toast('Selecione o trabalhador.');
     const worker=root.app.workers.find(w=>w.id===workerId);if(!worker||worker.companyId!==companyId)return toast('O trabalhador não pertence à empresa selecionada.');
     const items=$$('.pc-delivery-item').map(r=>({epiId:r.querySelector('.pc-item-epi')?.value||'',qty:Math.max(0,Number(r.querySelector('.pc-item-qty')?.value||0))})).filter(i=>i.epiId&&i.qty>0);if(!items.length)return toast('Adicione pelo menos um EPI.');
+    const authorizationGuard=window.GestaoEpiPcAuthorization?.validateDelivery?.({root,companyId,workerId,worker,items,reason:$('#pcDeliveryReason')?.value||'Primeira entrega'});
+    if(authorizationGuard?.ok===false)return toast(authorizationGuard.message||'Entrega bloqueada pela política de liberação.');
     const guard=window.GestaoEpiV270Guard?.validateDelivery?.(root,companyId,worker,items);
     if(guard?.ok===false)return toast(guard.message||'Entrega bloqueada por uma validação de segurança.');
     if(guard?.confirm&&!window.confirm(guard.confirm))return;
@@ -108,6 +112,8 @@
       delivery.biometricModelVersion=String(face.biometricModelVersion||'3.3.6');
     }
 
+    const authorizationApplied=window.GestaoEpiPcAuthorization?.applyDelivery?.({root,delivery,items,worker});
+    if(authorizationApplied?.ok===false)return toast(authorizationApplied.message||'Não foi possível vincular a liberação.');
     root.app.deliveries.unshift(delivery);
     if(!root.stock.startedAt)root.stock.startedAt=createdAt;
     const totals={};for(const item of items)totals[item.epiId]=(totals[item.epiId]||0)+Number(item.qty||0);
