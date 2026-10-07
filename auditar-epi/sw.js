@@ -1,4 +1,4 @@
-const CACHE='gestao-epi-v322-shell';
+const CACHE='gestao-epi-v350-shell';
 const ASSETS=[
   './','./index.html',
   './styles.css','./import-workers.css','./stock.css',
@@ -6,6 +6,10 @@ const ASSETS=[
   './signature-assist.js','./biometric-crypto-v1.js','./biometric-face.js','./liveness-face.js',
   './company-branding.js','./auth.js','./brand-login-v300.js',
   './worker-portal-share-v1.js','./ux-v300.js','./quality-v310.js','./legal-evidence-v320.js','./cloud-sync.js',
+  './operations-center-v340.js','./worker-history-v360.js','./more-shortcut-v323.js',
+  './invoice-epi-ai-v350.js','./mobile-general-report-v330.js','./smart-management-v350.js',
+  './quick-epi-v325.js','./ca-validity-display-v326.js','./ca-center-v330.js',
+  './epi-authorizations-v350.js','./user-management-v350.js',
   './manifest.webmanifest','./icon.svg','./brand-icon-v300.svg','./brand-logo-v300.svg'
 ];
 
