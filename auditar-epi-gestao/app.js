@@ -15,12 +15,12 @@
   const uid=p=>`${p}_${Date.now()}_${Math.random().toString(36).slice(2,9)}`;
   const now=()=>new Date().toISOString();
 
-  function blank(){return {version:1,revision:0,updatedAt:'',app:{companies:[],workers:[],epis:[],deliveries:[]},stock:{startedAt:'',processedDeliveryIds:[],movements:[],minimums:{}}};}
+  function blank(){return {version:1,revision:0,updatedAt:'',app:{companies:[],workers:[],epis:[],deliveries:[],purchases:[],batches:[],epiKits:[],returns:[],refusals:[],inventoryCounts:[],auditLog:[]},stock:{startedAt:'',processedDeliveryIds:[],movements:[],minimums:{},warehouses:[],warehouseMinimums:{}}};}
   function normalize(root){
     const x=root&&typeof root==='object'?root:{};
     const app=x.app&&typeof x.app==='object'?x.app:{};
     const stock=x.stock&&typeof x.stock==='object'?x.stock:{};
-    return {version:1,revision:Number(x.revision||0),updatedAt:String(x.updatedAt||''),app:{companies:Array.isArray(app.companies)?app.companies:[],workers:Array.isArray(app.workers)?app.workers:[],epis:Array.isArray(app.epis)?app.epis:[],deliveries:Array.isArray(app.deliveries)?app.deliveries:[]},stock:{startedAt:String(stock.startedAt||''),processedDeliveryIds:Array.isArray(stock.processedDeliveryIds)?stock.processedDeliveryIds:[],movements:Array.isArray(stock.movements)?stock.movements:[],minimums:stock.minimums&&typeof stock.minimums==='object'?stock.minimums:{}}};
+    return {version:1,revision:Number(x.revision||0),updatedAt:String(x.updatedAt||''),app:{companies:Array.isArray(app.companies)?app.companies:[],workers:Array.isArray(app.workers)?app.workers:[],epis:Array.isArray(app.epis)?app.epis:[],deliveries:Array.isArray(app.deliveries)?app.deliveries:[],purchases:Array.isArray(app.purchases)?app.purchases:[],batches:Array.isArray(app.batches)?app.batches:[],epiKits:Array.isArray(app.epiKits)?app.epiKits:[],returns:Array.isArray(app.returns)?app.returns:[],refusals:Array.isArray(app.refusals)?app.refusals:[],inventoryCounts:Array.isArray(app.inventoryCounts)?app.inventoryCounts:[],auditLog:Array.isArray(app.auditLog)?app.auditLog:[]},stock:{startedAt:String(stock.startedAt||''),processedDeliveryIds:Array.isArray(stock.processedDeliveryIds)?stock.processedDeliveryIds:[],movements:Array.isArray(stock.movements)?stock.movements:[],minimums:stock.minimums&&typeof stock.minimums==='object'?stock.minimums:{},warehouses:Array.isArray(stock.warehouses)?stock.warehouses:[],warehouseMinimums:stock.warehouseMinimums&&typeof stock.warehouseMinimums==='object'?stock.warehouseMinimums:{}}};
   }
   function loadCache(){try{return normalize(JSON.parse(localStorage.getItem(CACHE_STORE)||'{}'));}catch{return blank();}}
   function saveCache(){localStorage.setItem(CACHE_STORE,JSON.stringify(data));}
