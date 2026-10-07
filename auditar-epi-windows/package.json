@@ -1,6 +1,6 @@
 {
   "name": "gestao-epi",
-  "version": "3.5.0",
+  "version": "3.6.0",
   "description": "Gestão EPI para Windows",
   "main": "main.js",
   "private": true,
@@ -9,7 +9,8 @@
   },
   "devDependencies": {
     "electron": "37.2.0",
-    "electron-builder": "26.0.12"
+    "electron-builder": "26.0.12",
+    "qrcode-generator": "1.4.4"
   },
   "build": {
     "appId": "br.com.gestao.epi",
