@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.170 Mobile 360-412
+name: Auditar SST Android v3.29.171 Exclusao ADM
 # Clean rebuild v3.29.145 after protected productivity consolidation
 # Rebuild v3.29.113 logo recovery
 
@@ -122,6 +122,9 @@ on:
       - 'tools/regression_release_baseline_v329169_v33088.py'
       - 'tools/patch_mobile_360_412_v329170_v33089.py'
       - 'tools/regression_mobile_360_412_v329170_v33089.py'
+      - 'feature_sources/admin_company_deletion_service_v329171_v33094.dart'
+      - 'tools/patch_admin_company_permanent_delete_v329171_v33094.py'
+      - 'tools/regression_admin_company_permanent_delete_v329171_v33094.py'
       - 'docs/HOMOLOGACAO_RELEASE_AUDITAR_SST.md'
       - 'feature_sources/offline_report_inline_suggestions_v329165.dart'
       - 'feature_sources/offline_report_inline_suggestions_test_v329165.dart'
@@ -1292,6 +1295,19 @@ jobs:
           python3 tools/regression_mobile_360_412_v329170_v33089.py "$APP_DIR"
           grep -Fq "version: 3.29.170+312" "$APP_DIR/pubspec.yaml"
 
+      - name: Adicionar exclusao definitiva somente para ADM
+        run: |
+          set -euo pipefail
+          python3 tools/patch_admin_company_permanent_delete_v329171_v33094.py "$APP_DIR" android
+          cd "$APP_DIR"
+          dart format lib/database.dart lib/services/admin_company_deletion_service.dart lib/screens/companies_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          cd "$GITHUB_WORKSPACE"
+          python3 tools/regression_admin_company_permanent_delete_v329171_v33094.py "$APP_DIR" android
+          python3 tools/regression_admin_authority_v329137_v33056.py "$APP_DIR"
+          python3 tools/regression_android_offline_login_fallback_v329162_v33081.py "$APP_DIR"
+          grep -Fq "version: 3.29.171+313" "$APP_DIR/pubspec.yaml"
+
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
         env:
@@ -1354,12 +1370,12 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.170-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.170-Android.apk > dist/Auditar-SST-v3.29.170-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.171-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.171-Android.apk > dist/Auditar-SST-v3.29.171-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.170-Android-Mobile-360-412
+          name: Auditar-SST-v3.29.171-Android-Exclusao-ADM
           path: dist/*
           retention-days: 30
 
