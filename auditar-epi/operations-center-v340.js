@@ -10,7 +10,7 @@ function parseDate(v){if(!v)return null;let m=String(v).trim().match(/^(\d{1,2})
 function daysTo(v){const d=parseDate(v);if(!d)return null;const n=new Date();n.setHours(12,0,0,0);d.setHours(12,0,0,0);return Math.ceil((d-n)/86400000)}
 function field(note,key){const m=String(note||'').match(new RegExp('(?:^|\\|)\\s*'+key+'\\s*:\\s*([^|]+)','i'));return m?m[1].trim():''}
 function state(){
- const app=read(APP,{companies:[],workers:[],epis:[],deliveries:[]});for(const k of ['companies','workers','epis','deliveries'])app[k]=Array.isArray(app[k])?app[k]:[];
+ const app=read(APP,{companies:[],workers:[],epis:[],deliveries:[],epiAuthorizations:[]});for(const k of ['companies','workers','epis','deliveries','epiAuthorizations'])app[k]=Array.isArray(app[k])?app[k]:[];
  const stock=read(STOCK,{movements:[],minimums:{}});stock.movements=Array.isArray(stock.movements)?stock.movements:[];stock.minimums=stock.minimums||{};
  return {app,stock};
 }
@@ -40,6 +40,7 @@ function buildPendencies(filter=''){
  for(const k of Object.keys(st.minimums||{})){const [c,eid]=k.split('::');if(!companyOk(c))continue;const min=Number(st.minimums[k]||0),saldo=balance(st,c,eid);if(saldo<=min){const e=epis.get(eid);out.push({kind:'Estoque',sev:saldo<=0?'bad':'warn',companyId:c,title:e?.name||'EPI',detail:'Saldo '+saldo+' • mínimo '+min,go:'stock'})}}
  const hs=holdings(a,st);
  hs.forEach(h=>{const w=workers.get(h.workerId),e=epis.get(h.epiId);if(!w||!e||!companyOk(w.companyId)||!Number(e.cycle||0)||!h.last?.createdAt)return;const due=new Date(h.last.createdAt);due.setDate(due.getDate()+Number(e.cycle));const days=Math.ceil((due-new Date())/86400000);if(days<0)out.push({kind:'Troca',sev:'bad',companyId:w.companyId,title:w.name+' • '+e.name,detail:'Troca vencida há '+Math.abs(days)+' dia(s)',go:'smartManagementV350'});else if(days<=15)out.push({kind:'Troca',sev:'warn',companyId:w.companyId,title:w.name+' • '+e.name,detail:'Troca prevista em '+days+' dia(s)',go:'smartManagementV350'})});
+ app.epiAuthorizations.filter(x=>['pending','partial','substitution_requested'].includes(String(x.status||'pending'))&&companyOk(x.companyId)).forEach(x=>{const w=workers.get(x.workerId);out.push({kind:'Liberação',sev:x.status==='substitution_requested'?'bad':'warn',companyId:x.companyId,title:w?.name||'Trabalhador',detail:(x.status==='partial'?'Retirada parcial':x.status==='substitution_requested'?'Substituição aguardando TST':'Aguardando retirada')+' • '+String(x.code||''),go:'epiAuthorizationsV350'})});
  const syncTxt=$('#epiCloudStatus')?.textContent||'';if(!navigator.onLine||/falha|erro/i.test(syncTxt)||localStorage.getItem('gestaoEpiNeedsRefreshV222'))out.push({kind:'Sincronização',sev:!navigator.onLine?'warn':'bad',companyId:'',title:!navigator.onLine?'Dispositivo offline':'Sincronização requer atenção',detail:syncTxt||'Há atualização pendente',go:'operationsCenterV340'});
  return {rows:out.sort((x,y)=>(x.sev==='bad'?0:1)-(y.sev==='bad'?0:1)||x.kind.localeCompare(y.kind)),app:a,stock:st,companies};
 }
