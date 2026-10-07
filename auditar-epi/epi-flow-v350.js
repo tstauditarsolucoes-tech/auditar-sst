@@ -198,7 +198,7 @@ async function finalizeDelivery(){
  if(!d)return;
  const u=who();d.deliveryFlow=cap.mode==='authorized'?'authorized':'direct';d.authorizationId=cap.authorizationId||'';d.warehouseDeliveredBy=u;d.warehouseDeliveredAt=now();d.updatedAt=now();
  if(cap.mode==='authorized'){
-   const a=auths(r).find(x=>x.id===cap.authorizationId);if(a){(d.items||[]).forEach(di=>{const ai=(a.items||[]).find(i=>effectiveEpi(i)===di.epiId&&remaining(i)>0);if(ai)ai.deliveredQty=Math.min(Number(ai.qty||0),Number(ai.deliveredQty||0)+Number(di.qty||0))});a.status=statusOf(a);a.lastDeliveryId=d.id;a.lastDeliveredBy=u;a.lastDeliveredAt=now();a.updatedAt=now();upsert(r,a)}
+   const a=auths(r).find(x=>x.id===cap.authorizationId);if(a){(d.items||[]).forEach(di=>{const ai=(a.items||[]).find(i=>effectiveEpi(i)===di.epiId&&remaining(i)>0);if(ai)ai.deliveredQty=Math.min(Number(ai.qty||0),Number(ai.deliveredQty||0)+Number(di.qty||0))});a.status=statusOf(a);a.lastDeliveryId=d.id;a.lastDeliveredBy=u;a.lastDeliveredAt=now();a.updatedAt=now();upsert(r,a);if(a.status==='delivered'&&a.sourceRequestId){const req=(r.app.auditLog||[]).find(x=>x?.type==='worker_epi_request'&&x.id===a.sourceRequestId);if(req){req.status='fulfilled';req.fulfilledAt=now();req.fulfilledBy=u;req.updatedAt=now();upsert(r,req)}}}
  }else{
    upsert(r,{id:'direct_'+d.id,type:'epi_direct_delivery',deliveryId:d.id,companyId:d.companyId,workerId:d.workerId,items:d.items||[],reason:d.reason||'',reviewStatus:'pending',deliveredBy:u,createdAt:d.createdAt||now(),updatedAt:now()})
  }
