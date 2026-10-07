@@ -149,7 +149,10 @@
 
   function showReceipt(id){
     const d=state.deliveries.find(x=>x.id===id); if(!d)return; currentReceiptId=id; const w=workerById(d.workerId), c=companyById(d.companyId);
-    const itemRows=d.items.map(i=>{ const e=epiById(i.epiId)||{}; return `<tr><td>${esc(e.name||'EPI')}</td><td>${esc(e.ca||'—')}</td><td>${esc(e.model||'—')}</td><td>${i.qty}</td></tr>`; }).join('');
+    const audit=Array.isArray(state.auditLog)?state.auditLog:[],authorization=d.authorizationId?audit.find(x=>x?.type==='epi_authorization'&&x.id===d.authorizationId):null;
+    const flowLabel=d.deliveryFlow==='authorized'?'Entrega com liberação do TST':d.deliveryFlow==='direct'?'Entrega direta pelo almoxarifado':'Entrega de EPI';
+    const authCode=authorization?.code||'',authorizedBy=authorization?.authorizedBy?.name||authorization?.authorizedBy?.username||'',deliveredBy=d.warehouseDeliveredBy?.name||d.warehouseDeliveredBy?.username||d.responsible||'';
+    const itemRows=d.items.map(i=>{ const e=epiById(i.epiId)||{}; return `<tr><td>${esc(e.name||'EPI')}</td><td>${esc(e.ca||'—')}</td><td>${esc(e.caValidity||'—')}</td><td>${esc(e.model||'—')}</td><td>${i.qty}</td></tr>`; }).join('');
     $('#receiptContent').innerHTML=`
       <div class="receipt-head"><h1>COMPROVANTE DE ENTREGA DE EPI</h1><p>Registro eletrônico de fornecimento de Equipamento de Proteção Individual</p></div>
       <div class="receipt-meta">
@@ -157,12 +160,15 @@
         <div><b>Data e hora</b><br>${fmtDate(d.createdAt)}</div>
         <div><b>Colaborador</b><br>${esc(w?.name||'—')}<br><small>${w?.cpf?'CPF '+esc(w.cpf):''}</small></div>
         <div><b>Cargo / Setor</b><br>${esc(w?.role||'—')}${w?.sector?' / '+esc(w.sector):''}</div>
+        <div><b>Fluxo da entrega</b><br>${esc(flowLabel)}${authCode?'<br><small>'+esc(authCode)+'</small>':''}</div>
+        <div><b>Responsabilidades</b><br>${authorizedBy?'Liberado por: '+esc(authorizedBy)+'<br>':''}Entregue por: ${esc(deliveredBy||'—')}</div>
       </div>
-      <table class="receipt-table"><thead><tr><th>EPI</th><th>CA</th><th>Modelo</th><th>Qtd.</th></tr></thead><tbody>${itemRows}</tbody></table>
-      <div class="receipt-declaration"><b>Motivo:</b> ${esc(d.reason)}<br>${d.responsible?`<b>Responsável pela entrega:</b> ${esc(d.responsible)}<br>`:''}${d.notes?`<b>Observação:</b> ${esc(d.notes)}<br>`:''}<br>Declaro que recebi os equipamentos acima relacionados e fui informado de que devo utilizá-los de acordo com as orientações e procedimentos de segurança aplicáveis, conservar os equipamentos e comunicar necessidade de substituição quando houver perda de eficácia, dano ou outra condição que impeça o uso seguro.</div>
+      <table class="receipt-table"><thead><tr><th>EPI</th><th>CA</th><th>Validade CA</th><th>Modelo</th><th>Qtd.</th></tr></thead><tbody>${itemRows}</tbody></table>
+      <div class="receipt-declaration"><b>Motivo:</b> ${esc(d.reason)}<br><b>Tipo de fluxo:</b> ${esc(flowLabel)}<br>${authCode?`<b>Código da liberação:</b> ${esc(authCode)}<br>`:''}${authorizedBy?`<b>Liberado por:</b> ${esc(authorizedBy)}<br>`:''}${deliveredBy?`<b>Entregue por:</b> ${esc(deliveredBy)}<br>`:''}${d.deliveryConcurrencyCheck?`<b>Conferência operacional:</b> ${esc(d.deliveryConcurrencyCheck)}<br>`:''}${d.notes?`<b>Observação:</b> ${esc(d.notes)}<br>`:''}<br>Declaro que recebi os equipamentos acima relacionados e fui informado de que devo utilizá-los de acordo com as orientações e procedimentos de segurança aplicáveis, conservar os equipamentos e comunicar necessidade de substituição quando houver perda de eficácia, dano ou outra condição que impeça o uso seguro.</div>
       <div class="receipt-sign"><img src="${d.signature}" alt="Assinatura do colaborador"><div class="sign-line">${esc(w?.name||'Colaborador')}<br>Assinatura do colaborador</div></div>`;
     go('receipt');
   }
+  document.addEventListener('epi-flow-delivery-finalized',e=>{if(e.detail?.deliveryId&&currentReceiptId===e.detail.deliveryId){state=loadState();showReceipt(e.detail.deliveryId);}});
   $('#btnPrint').addEventListener('click',()=>window.print());
 
   $('#btnBackup').addEventListener('click',()=>{
