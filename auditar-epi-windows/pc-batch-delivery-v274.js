@@ -22,7 +22,7 @@
     }catch(_){return {app:{companies:[],workers:[],epis:[],deliveries:[]},stock:{movements:[],minimums:{},processedDeliveryIds:[],inventoryControl:{}}};}
   }
   function role(){return window.GestaoEpiAuth?.user?.()?.role||document.body.dataset.epiRole||'';}
-  function canDeliver(){return ['admin','campo'].includes(role());}
+  function canDeliver(){return ['admin','campo','almoxarifado'].includes(role());}
   function user(){const u=window.GestaoEpiAuth?.user?.()||{};return u.name||u.username||u.user||'Usuário';}
   function toast(m){const e=$('#toast');if(!e)return alert(m);e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2800);}
   function balance(r,c,e){return r.stock.movements.filter(m=>m.companyId===c&&m.epiId===e).reduce((s,m)=>s+Number(m.delta||0),0);}
