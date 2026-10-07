@@ -29,7 +29,7 @@
   function currentUser(){const u=window.GestaoEpiAuth?.user?.()||{};return u.name||u.username||u.user||u.login||'Usuário';}
   function currentRole(){return window.GestaoEpiAuth?.user?.()?.role||document.body.dataset.epiRole||'';}
   function isAdmin(){return currentRole()==='admin';}
-  function canDeliver(){return ['admin','campo'].includes(currentRole());}
+  function canDeliver(){return ['admin','campo','almoxarifado'].includes(currentRole());}
   function addAudit(entity,action,details=''){
     entity.auditTrail=Array.isArray(entity.auditTrail)?entity.auditTrail:[];
     entity.auditTrail.unshift({id:uid('audit'),at:now(),user:currentUser(),role:currentRole()||'—',action,details:String(details||'')});
