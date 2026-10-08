@@ -130,15 +130,30 @@ function renderOverview(){
 }
 function renderWarehouses(){
  const r=read(),prev=$('#adv380Company')?.value||r.app.companies[0]?.id||'';
- $('#adv380Body').innerHTML=`<div class="adv380-card"><div class="adv380-grid"><label>Empresa<select id="adv380Company">${companyOptions(r,prev)}</select></label><label>Novo almoxarifado<input id="adv380WhName" placeholder="Ex.: Almoxarifado Central"></label></div><div class="adv380-actions"><button class="adv380-btn primary" id="adv380AddWh">＋ Adicionar almoxarifado</button></div></div><div class="adv380-card"><h3>Almoxarifados</h3><div id="adv380WhList"></div></div><div class="adv380-card"><h3>Transferir estoque</h3><div class="adv380-grid three"><label>Origem<select id="adv380TransferFrom"></select></label><label>Destino<select id="adv380TransferTo"></select></label><label>EPI<select id="adv380TransferEpi"></select></label><label>Quantidade<input id="adv380TransferQty" type="number" min="1" value="1"></label><label style="grid-column:span 2">Observação<input id="adv380TransferNote" placeholder="Opcional"></label></div><div id="adv380TransferHint" class="adv380-note" style="margin-top:9px"></div><div class="adv380-actions"><button class="adv380-btn primary" id="adv380Transfer">Transferir</button></div></div>`;
+ $('#adv380Body').innerHTML=`<div class="adv380-card"><div class="adv380-grid"><label>Empresa<select id="adv380Company">${companyOptions(r,prev)}</select></label><label>Novo almoxarifado<input id="adv380WhName" placeholder="Ex.: Almoxarifado Central"></label></div><div class="adv380-actions"><button class="adv380-btn" id="adv380AllocateLegacy">↪ Alocar saldo legado no padrão</button><button class="adv380-btn primary" id="adv380AddWh">＋ Adicionar almoxarifado</button></div></div><div class="adv380-card"><h3>Almoxarifados</h3><div id="adv380WhList"></div></div><div class="adv380-card"><h3>Transferir estoque</h3><div class="adv380-grid three"><label>Origem<select id="adv380TransferFrom"></select></label><label>Destino<select id="adv380TransferTo"></select></label><label>EPI<select id="adv380TransferEpi"></select></label><label>Quantidade<input id="adv380TransferQty" type="number" min="1" value="1"></label><label style="grid-column:span 2">Observação<input id="adv380TransferNote" placeholder="Opcional"></label></div><div id="adv380TransferHint" class="adv380-note" style="margin-top:9px"></div><div class="adv380-actions"><button class="adv380-btn primary" id="adv380Transfer">Transferir</button></div></div>`;
  const refresh=()=>{const root=read(),c=$('#adv380Company').value,ws=warehouses(root,c);$('#adv380WhList').innerHTML=ws.length?'<div class="adv380-list">'+ws.map(w=>`<div class="adv380-row"><div><b>${esc(w.name)}</b><small>${w.isDefault?'Padrão para novas entregas':'Almoxarifado ativo'}</small></div><div class="adv380-actions"><button class="adv380-btn" data-wh-default="${esc(w.id)}">${w.isDefault?'✓ Padrão':'Definir padrão'}</button><button class="adv380-btn danger" data-wh-archive="${esc(w.id)}">Arquivar</button></div></div>`).join('')+'</div>':'<div class="adv380-note">Nenhum almoxarifado cadastrado. Se não usar multiestoque, não precisa cadastrar.</div>';const opts='<option value="">Não alocado / legado</option>'+ws.map(w=>`<option value="${esc(w.id)}">${esc(w.name)}</option>`).join('');$('#adv380TransferFrom').innerHTML=opts;$('#adv380TransferTo').innerHTML='<option value="">Selecione</option>'+ws.map(w=>`<option value="${esc(w.id)}">${esc(w.name)}</option>`).join('');$('#adv380TransferEpi').innerHTML='<option value="">Selecione</option>'+root.app.epis.filter(e=>e.active!==false).map(e=>`<option value="${esc(e.id)}">${esc(e.name)}${e.ca?' • CA '+esc(e.ca):''}</option>`).join('');bindWhButtons();updateTransferHint()};
- $('#adv380Company').onchange=refresh;$('#adv380AddWh').onclick=addWarehouse;$('#adv380TransferFrom').onchange=updateTransferHint;$('#adv380TransferEpi').onchange=updateTransferHint;$('#adv380Transfer').onclick=transferStock;refresh()
+ $('#adv380Company').onchange=refresh;$('#adv380AddWh').onclick=addWarehouse;$('#adv380AllocateLegacy').onclick=allocateLegacyStock;$('#adv380TransferFrom').onchange=updateTransferHint;$('#adv380TransferEpi').onchange=updateTransferHint;$('#adv380Transfer').onclick=transferStock;refresh()
 }
 function bindWhButtons(){
  $$('[data-wh-default]').forEach(b=>b.onclick=()=>setDefaultWarehouse(b.dataset.whDefault));$$('[data-wh-archive]').forEach(b=>b.onclick=()=>archiveWarehouse(b.dataset.whArchive))
 }
 async function addWarehouse(){
  if(!admin())return toast('Somente o Administrador pode cadastrar almoxarifados.');const r=read(),c=$('#adv380Company').value,name=$('#adv380WhName').value.trim();if(!c)return toast('Selecione a empresa.');if(!name)return toast('Informe o nome do almoxarifado.');const ws=warehouses(r,c);if(ws.some(w=>norm(w.name)===norm(name)))return toast('Esse almoxarifado já existe.');r.stock.warehouses.push({id:uid('wh'),companyId:c,name,active:true,isDefault:ws.length===0,createdAt:now(),updatedAt:now(),createdBy:who()});write(r);await sync();toast('Almoxarifado cadastrado.');renderWarehouses();injectDeliveryExtras()
+}
+async function allocateLegacyStock(){
+ if(!admin())return toast('Somente o Administrador pode alocar o estoque legado.');
+ const r=read(),c=$('#adv380Company')?.value||'',target=defaultWarehouse(r,c);if(!c)return toast('Selecione a empresa.');if(!target)return toast('Cadastre um almoxarifado e defina o padrão primeiro.');
+ const epiIds=[...new Set((r.stock.movements||[]).filter(m=>m.companyId===c&&String(m.warehouseId||'')==='').map(m=>m.epiId).filter(Boolean))];
+ const rows=epiIds.map(e=>({epiId:e,qty:whBalance(r,c,e,'')})).filter(x=>x.qty>0);
+ if(!rows.length)return toast('Não há saldo legado não alocado.');
+ const total=rows.reduce((s,x)=>s+x.qty,0);
+ if(!confirm('Alocar '+total+' unidade(s) de '+rows.length+' EPI(s) ao almoxarifado padrão “'+target.name+'”? O estoque total não será alterado.'))return;
+ const at=now(),transferId=uid('legacy_alloc');let seq=0;
+ for(const row of rows){
+   const chunks=allocateLots(r,c,row.epiId,row.qty,'',true);
+   for(const ch of chunks){if(!ch.qty)continue;seq++;const base={companyId:c,epiId:row.epiId,transferId,batchId:ch.batchId||'',purchaseId:ch.purchaseId||'',lot:ch.lot||'',physicalExpiry:ch.physicalExpiry||'',invoiceNumber:ch.invoiceNumber||'',createdAt:at,updatedAt:at,createdBy:who(),note:'Alocação inicial de saldo legado'};r.stock.movements.unshift({...base,id:transferId+'_out_'+seq,type:'TRANSFER_OUT',delta:-ch.qty,warehouseId:''},{...base,id:transferId+'_in_'+seq,type:'TRANSFER_IN',delta:ch.qty,warehouseId:target.id})}
+ }
+ write(r);await sync();toast('Saldo legado alocado ao almoxarifado padrão.');renderWarehouses()
 }
 async function setDefaultWarehouse(id){const r=read(),w=r.stock.warehouses.find(x=>x.id===id);if(!w)return;r.stock.warehouses.filter(x=>x.companyId===w.companyId).forEach(x=>{x.isDefault=x.id===id;x.updatedAt=now()});write(r);await sync();toast('Almoxarifado padrão atualizado.');renderWarehouses();injectDeliveryExtras()}
 async function archiveWarehouse(id){if(!confirm('Arquivar este almoxarifado? O histórico será preservado.'))return;const r=read(),w=r.stock.warehouses.find(x=>x.id===id);if(!w)return;w.active=false;w.isDefault=false;w.updatedAt=now();const left=warehouses(r,w.companyId);if(left.length&&!left.some(x=>x.isDefault))left[0].isDefault=true;write(r);await sync();toast('Almoxarifado arquivado.');renderWarehouses();injectDeliveryExtras()}
@@ -206,6 +221,11 @@ function applyKit(){
 function captureDelivery(e){
  const btn=e.target.closest?.(PC?'#pcSaveDelivery':'#btnSaveDelivery');if(!btn)return;
  const root=read(),companyId=PC?$('#pcDeliveryCompany')?.value||'':$('#deliveryCompany')?.value||'',workerId=PC?$('#pcDeliveryWorker')?.value||'':$('#deliveryWorker')?.value||'',sel=PC?$('#pcDeliveryWarehouse'):$('#deliveryWarehouse'),warehouseId=sel&&sel.closest('label')?.style.display!=='none'?sel.value||'':'';
+ if(warehouseId){
+   const rows=PC?$('#pcDeliveryItems .pc-delivery-item'):$('#deliveryItems .delivery-item'),totals={};
+   rows.forEach(row=>{const epiId=PC?row.querySelector('.pc-item-epi')?.value||'':row.querySelector('.item-epi')?.value||'',qty=Number(PC?row.querySelector('.pc-item-qty')?.value||0:row.querySelector('.item-qty')?.value||0);if(epiId&&qty>0)totals[epiId]=(totals[epiId]||0)+qty});
+   for(const [epiId,qty] of Object.entries(totals)){const have=whBalance(root,companyId,epiId,warehouseId);if(qty>have){e.preventDefault();e.stopImmediatePropagation();toast('Saldo insuficiente no almoxarifado para '+(epi(root,epiId).name||'EPI')+'. Disponível: '+have+'. Use Estoque avançado para transferir ou alocar o saldo.');return}}
+ }
  deliveryCapture={before:new Set(root.app.deliveries.map(d=>d.id)),companyId,workerId,warehouseId};
  queueMicrotask(enrichDeliveryAfterSave);
 }
