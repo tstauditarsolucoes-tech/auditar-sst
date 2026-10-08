@@ -73,7 +73,7 @@ s=s[:end]+'''
 ''' +s[end:]
 replace("[group.isEmpty ? 'Sem grupo' : group,", "[if (_organization.alias(company.id).isNotEmpty) _organization.alias(company.id), group.isEmpty ? 'Sem grupo' : group,")
 # Registrar navegação sem mudar a rota existente.
-replace('() => Navigator.of(context)', '() {\n              unawaited(_organization.markVisited(company.id).catchError((Object _) {}));\n              return Navigator.of(context)')
+replace('() => Navigator.of(context)', '() {\n              unawaited(_organization.markVisited(company.id).catchError((Object _) {}));\n              Navigator.of(context)')
 # Fecha o bloco adicionado no callback original.
 start=s.index('unawaited(_organization.markVisited');end=s.index('.then((_) => _load()),',start)
 s=s[:end]+s[end:].replace('.then((_) => _load()),', '.then((_) => _load());\n            },',1)
