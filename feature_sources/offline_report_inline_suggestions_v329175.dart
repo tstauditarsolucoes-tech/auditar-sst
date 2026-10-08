@@ -1,4 +1,5 @@
 import '../services/offline_reasoning.dart';
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -105,7 +106,7 @@ class OfflineReportInlineSuggestionService {
       final previous=old.where((m)=>m['id']==id).firstOrNull;
       final count=int.tryParse('${previous?['useCount'] ?? 0}') ?? 0;
       final map=<String,dynamic>{'id':id,'title':title,
-        'description':clean(item.assessment?.reusableDescription ?? item.description),
+        'description':clean(item.assessment?.reusableDescription ?? item.title),
         'risk':clean(item.risk),'possibleConsequence':clean(item.possibleConsequence),
         'recommendation':clean(item.recommendation),'priority':item.priority,
         'source':'manual_auto_approved','useCount':count+1,
@@ -153,6 +154,13 @@ class OfflineReportInlineSuggestionService {
       return unique.values.take(limit).toList();
     }
     if (OfflineReasoning.explicitSafeOrUncertain(query)) return const [];
+    // Equipamentos com regras de falha explícitas não podem gerar uma
+    // "não conformidade" baseada apenas na coincidência do nome.
+    if (OfflineReasoning.has(
+        'extintor|botao|botoeira|sensor|andaime',
+        OfflineReasoning.normalize(query))) {
+      return const [];
+    }
 
     final all = <OfflineInlineSuggestion>[
       ..._fallback,
@@ -1498,6 +1506,32 @@ class OfflineReportInlineSuggestions extends StatelessWidget {
     if (selected != null && context.mounted) onSelected(selected);
   }
 
+  // Aplicar é uma aceitação consciente pelo técnico; não há confirmação
+  // extra nem aprendizado ao apenas digitar ou abrir a prévia.
+  void _quickApply(BuildContext context, OfflineInlineSuggestion item) {
+    final a = item.assessment;
+    if (a == null) {
+      _review(context, item);
+      return;
+    }
+    unawaited(OfflineReportInlineSuggestionService.learnApplied(item)
+        .then<void>((_) {})
+        .catchError((_) {}));
+    onSelected(OfflineInlineSuggestion(
+      id: item.id,
+      title: item.title,
+      description: a.description,
+      risk: item.risk,
+      possibleConsequence: item.possibleConsequence,
+      recommendation:
+          '${item.recommendation}\nReferência temática para conferência: ${a.rule.reference}.',
+      priority: item.priority,
+      source: item.source,
+      assessment: a,
+      reviewed: true,
+    ));
+  }
+
   Future<void> _showMore(
     BuildContext context,
     List<OfflineInlineSuggestion> items,
@@ -1563,13 +1597,15 @@ class OfflineReportInlineSuggestions extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: theme.colorScheme.outlineVariant),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.search_off_rounded, size: 18),
-                  SizedBox(width: 8),
+                  const Icon(Icons.search_off_rounded, size: 18),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Nenhuma sugestão confirmada. Informe o equipamento e a condição atual. Situações corrigidas ou não verificadas precisam de revisão.',
+                      OfflineReasoning.explicitSafeOrUncertain(query)
+                          ? 'Condição normal, corrigida ou ainda não verificada: nenhuma falha ativa sugerida.'
+                          : 'Precisa de mais detalhes: informe o equipamento, a falha observada e a condição atual.',
                     ),
                   ),
                 ],
@@ -1603,7 +1639,9 @@ class OfflineReportInlineSuggestions extends StatelessWidget {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        items.first.assessment != null ? 'Regra local encontrada • revisar' : 'Modelo semelhante • revisar',
+                        items.first.assessment != null
+                            ? 'Correspondência forte • confira os fatos'
+                            : 'Precisa de mais detalhes • modelo semelhante',
                         style: theme.textTheme.labelLarge?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
@@ -1612,19 +1650,40 @@ class OfflineReportInlineSuggestions extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 5),
-                for (var index = 0; index < visible.length; index++) ...[
-                  if (index > 0) const Divider(height: 1),
-                  _row(context, visible[index], compact: true),
-                ],
-                if (hidden.isNotEmpty)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                      onPressed: () => _showMore(context, hidden),
-                      icon: const Icon(Icons.expand_more_rounded, size: 18),
-                      label: Text('Ver mais ${hidden.length}'),
-                    ),
+                _row(context, visible.first, compact: true),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 0, 10, 4),
+                  child: Text(
+                    visible.first.assessment == null
+                        ? 'Modelo parecido. Confirme a falha e ajuste a descrição antes de aplicar.'
+                        : visible.first.description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall,
                   ),
+                ),
+                Wrap(
+                  alignment: WrapAlignment.start,
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    if (visible.first.assessment != null)
+                      FilledButton.tonal(
+                        onPressed: () => _quickApply(context, visible.first),
+                        child: const Text('Aplicar'),
+                      ),
+                    OutlinedButton(
+                      onPressed: () => _review(context, visible.first),
+                      child: const Text('Ajustar'),
+                    ),
+                    if (hidden.isNotEmpty)
+                      TextButton.icon(
+                        onPressed: () => _showMore(context, hidden),
+                        icon: const Icon(Icons.expand_more_rounded, size: 18),
+                        label: const Text('Outras opções'),
+                      ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -1660,26 +1719,36 @@ class _OfflineReviewDialogState extends State<_OfflineReviewDialog> {
       return;
     }
     setState(() => busy = true);
-    String? learnedId;
-    var learningFailed = false;
-    try {
-      learnedId = await OfflineReportInlineSuggestionService.learnApplied(
-        OfflineInlineSuggestion(id: widget.item.id, title: title.text.trim(),
-          description: widget.item.description, risk: risk.text.trim(),
-          possibleConsequence: consequence.text.trim(), recommendation: action.text.trim(),
-          priority: priority, source: widget.item.source, assessment: widget.item.assessment));
-      learningFailed = learnedId == null;
-    } catch (_) {
-      learningFailed = true; // Learning must never block the field record.
-    }
+    // O registro é aplicado imediatamente. Gravação de aprendizado nunca
+    // bloqueia a navegação, mas continua serializada no armazenamento local.
+    unawaited(OfflineReportInlineSuggestionService.learnApplied(
+      OfflineInlineSuggestion(
+        id: widget.item.id,
+        title: title.text.trim(),
+        description: widget.item.description,
+        risk: risk.text.trim(),
+        possibleConsequence: consequence.text.trim(),
+        recommendation: action.text.trim(),
+        priority: priority,
+        source: widget.item.source,
+        assessment: widget.item.assessment,
+      ),
+    ).then<void>((_) {}).catchError((_) {}));
     if (!mounted) return;
     final a = widget.item.assessment;
-    if (learningFailed) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Texto aplicado. O aprendizado local está indisponível neste momento.')));
-    Navigator.pop(context, OfflineInlineSuggestion(id: learnedId ?? widget.item.id,
-      title: title.text.trim(), description: description.text.trim(), risk: risk.text.trim(),
+    Navigator.pop(context, OfflineInlineSuggestion(
+      id: widget.item.id,
+      title: title.text.trim(),
+      description: description.text.trim(),
+      risk: risk.text.trim(),
       possibleConsequence: consequence.text.trim(),
-      recommendation: '${action.text.trim()}${a == null ? '' : '\nReferência temática para conferência: ${a.rule.reference}.'}',
-      priority: priority, source: learnedId == null ? widget.item.source : 'manual_auto_approved', assessment: a, reviewed: true));
+      recommendation:
+          '${action.text.trim()}${a == null ? '' : '\nReferência temática para conferência: ${a.rule.reference}.'}',
+      priority: priority,
+      source: widget.item.source,
+      assessment: a,
+      reviewed: true,
+    ));
   }
   @override
   Widget build(BuildContext context) {

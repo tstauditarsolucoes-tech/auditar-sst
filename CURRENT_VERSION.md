@@ -1,5 +1,19 @@
 # Auditar SST — versão atual
 
+## Em validação — Sugestões offline rápidas
+
+Android **v3.29.176+318** e Windows **v3.30.99+286** preparados na branch `feature/client-panel-permissions-v329106` para CI.
+Base estável de instalação permanece **v3.29.174+316** Android / **v3.30.97+284** Windows até CI e testes físicos.
+
+- Um modelo principal com duas linhas, ações Aplicar, Ajustar e Outras opções.
+- Correspondência forte requer equipamento e falha na mesma situação; para simples menção de extintor, botão, sensor ou andaime, pede mais detalhes.
+- Aplicação imediata preservando os fatos escritos; aprendizagem local automática após aplicar sem dialogar sobre salvar.
+- Corrigida espera de gravação que fazia os testes de prévia falharem em certas larguras.
+- Sem alterações na sincronização, banco, autenticação, mídia, IA, GS ou Central. PR #15 em rascunho, sem merge ou deploy.
+- CI e testes Android/Windows desta versão pendentes de conclusão. Não distribuir os pacotes como validados antes da verificação.
+
+## Histórico — Versão anteriormente validada
+
 ## Linha vigente — Visita rápida
 
 | Plataforma | Versão | CI |

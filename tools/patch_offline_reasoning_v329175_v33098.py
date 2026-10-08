@@ -48,7 +48,7 @@ s = s[:start] + block + s[end:]
 p.write_text(s, encoding='utf-8', newline='\n')
 p = root / 'pubspec.yaml'
 s = p.read_text(encoding='utf-8')
-old, new = ('3.29.174+316', '3.29.175+317') if platform == 'android' else ('3.30.97+284', '3.30.98+285')
+old, new = ('3.29.174+316', '3.29.176+318') if platform == 'android' else ('3.30.97+284', '3.30.99+286')
 assert s.count('version: ' + old) == 1
 p.write_text(s.replace('version: ' + old, 'version: ' + new), encoding='utf-8', newline='\n')
 for path, digest in before.items():

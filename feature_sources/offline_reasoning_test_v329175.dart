@@ -169,13 +169,53 @@ void main() {
       await tester.pumpAndSettle();
       expect(applied?.description,'Condição conferida no equipamento.'); expect(applied?.priority,'Crítica');
       expect(applied?.recommendation,contains('NR-12'));
-      expect(await tester.runAsync(()=>File('${dir.path}/offline_reasoning_learning_v1.json').exists()),isTrue);
+      final persisted = await tester.runAsync(() async {
+        final file = File('${dir.path}/offline_reasoning_learning_v1.json');
+        for (var attempt = 0; attempt < 150; attempt++) {
+          if (await file.exists()) return true;
+          await Future<void>.delayed(const Duration(milliseconds: 20));
+        }
+        return false;
+      });
+      expect(persisted, isTrue);
       final learned = await tester.runAsync(()=>OfflineReportInlineSuggestionService.search(query:'botão de emergência inoperante'));
       expect(learned?.first.learned,isTrue);
       expect(applied?.reviewed,isTrue);
       expect(tester.takeException(),isNull);
     });
   }
+  test('pede detalhes quando há somente equipamento, sem falha', () async {
+    expect(await OfflineReportInlineSuggestionService.search(
+      query:'extintor instalado na parede'), isEmpty);
+    expect(await OfflineReportInlineSuggestionService.search(
+      query:'sensor da porta instalado'), isEmpty);
+    expect(await OfflineReportInlineSuggestionService.search(
+      query:'andaime montado'), isEmpty);
+  });
+  testWidgets('atalhos Aplicar e Ajustar preservam fatos e aprendem sem perguntar', (tester) async {
+    const original = 'Extintor sem sinalização no setor de embalagem.';
+    OfflineInlineSuggestion? applied;
+    await tester.runAsync(() => OfflineReportInlineSuggestionService.search(query:original));
+    await tester.pumpWidget(MaterialApp(home:Scaffold(body:
+        OfflineReportInlineSuggestions(query:original,onSelected:(v)=>applied=v))));
+    await tester.pumpAndSettle();
+    expect(find.text('Correspondência forte • confira os fatos'), findsOneWidget);
+    expect(find.text('Aplicar'), findsOneWidget);
+    expect(find.text('Ajustar'), findsOneWidget);
+    await tester.tap(find.text('Aplicar'));
+    await tester.pumpAndSettle();
+    expect(applied?.description, original);
+    expect(applied?.reviewed, isTrue);
+    final persisted = await tester.runAsync(() async {
+      final file=File('${dir.path}/offline_reasoning_learning_v1.json');
+      for (var i=0; i<150; i++) {
+        if (await file.exists()) return true;
+        await Future<void>.delayed(const Duration(milliseconds:20));
+      }
+      return false;
+    });
+    expect(persisted, isTrue);
+  });
   testWidgets('cancelar prévia não altera registro nem aprende', (tester) async {
     var calls=0;
     await tester.runAsync(() => OfflineReportInlineSuggestionService.search(query:'extintor sem placa'));

@@ -1,4 +1,4 @@
-# Sugestões offline — Android 3.29.175 / Windows 3.30.98
+# Sugestões offline — Android 3.29.176 / Windows 3.30.99
 
 Implementação adicional ao catálogo existente, sem modelo de IA e sem consultas à rede. A identificação de equipamento e falha usa regras, sinônimos e normalização explícita; não é compreensão livre de linguagem.
 
@@ -33,3 +33,13 @@ Páginas oficiais consultadas em 08/10/2026:
 - NR-35: https://www.gov.br/trabalho-e-emprego/pt-br/acesso-a-informacao/participacao-social/conselhos-e-orgaos-colegiados/comissao-tripartite-partitaria-permanente/normas-regulamentadora/normas-regulamentadoras-vigentes/norma-regulamentadora-no-35-nr-35
 
 Esta versão amplia regras locais e reaproveitamento de modelos. Não interpreta qualquer texto, imagem ou norma como uma IA; temas não cobertos continuam dependentes de revisão manual ou dos recursos de IA já existentes.
+
+
+## Refinamento da interface (3.29.176 / 3.30.99)
+
+- Uma sugestão principal com prévia de até duas linhas; estado "Correspondência forte" somente com equipamento e falha reconhecidos pela regra local.
+- "Aplicar" aceita os fatos atuais sem abrir diálogo; "Ajustar" mantém a revisão completa; "Outras opções" expande os demais modelos.
+- Sem falha identificada em extintor, botoeira, sensor ou andaime, o sistema solicita mais detalhes em vez de preencher uma NC pela presença de um nome.
+- Não aprende pela digitação ou ao cancelar. Aprende automaticamente ao aplicar uma sugestão, sem interromper o registro enquanto grava localmente.
+- Para modelos sem regra forte, a revisão é necessária antes de aplicar. Descrições reutilizáveis sem regra guardam o título genérico, não o texto da empresa/obra.
+- Corrige condição de teste na qual aguardar a gravação antes de fechar o diálogo podia deixar o registro sem aplicação. A gravação local assíncrona deve ser conferida em teste físico.
