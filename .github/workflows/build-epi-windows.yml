@@ -178,6 +178,10 @@ jobs:
           node --check 'auditar-epi-windows/app/pc-legibility-v380.js'
           Select-String -Path 'auditar-epi-windows/app/pc-adaptive-modules-v380.js' -Pattern 'Perfil da conta' -Quiet | Out-Null
           Select-String -Path 'auditar-epi-windows/app/pc-adaptive-modules-v380.js' -Pattern 'Permissões por usuário' -Quiet | Out-Null
+          Select-String -Path 'auditar-epi-windows/app/pc-adaptive-modules-v380.js' -Pattern "preset:'complete'" -Quiet | Out-Null
+          Select-String -Path 'auditar-epi-windows/app/pc-batch-delivery-v274.js' -Pattern 'v274Warehouse' -Quiet | Out-Null
+          Select-String -Path 'auditar-epi-windows/app/pc-batch-delivery-v274.js' -Pattern 'warehouseId' -Quiet | Out-Null
+          Select-String -Path 'auditar-epi-windows/app/pc-batch-delivery-v274.js' -Pattern 'allocateLots' -Quiet | Out-Null
           Select-String -Path 'auditar-epi-windows/app/pc-advanced-operations-v380.js' -Pattern 'Estoque avançado' -Quiet | Out-Null
           Select-String -Path 'auditar-epi-windows/app/pc-advanced-operations-v380.js' -Pattern 'Previsão de estoque' -Quiet | Out-Null
           Select-String -Path 'auditar-epi-windows/app/pc-advanced-operations-v380.js' -Pattern 'Recolhimento' -Quiet | Out-Null
