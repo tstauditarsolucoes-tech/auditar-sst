@@ -68,18 +68,35 @@
       const totals={};
       (d.items||[]).forEach(item=>{
         if(!item.epiId) return;
-        totals[item.epiId]=(totals[item.epiId]||0)+Math.max(0,Number(item.qty||0));
+        const batchId=String(item.batchId||'');
+        const warehouseId=String(item.warehouseId||d.warehouseId||'');
+        const groupKey=[item.epiId,batchId,warehouseId].join('::');
+        if(!totals[groupKey])totals[groupKey]={
+          epiId:item.epiId,batchId,warehouseId,
+          purchaseId:String(item.purchaseId||''),
+          lot:String(item.lot||''),
+          physicalExpiry:String(item.physicalExpiry||''),
+          invoiceNumber:String(item.invoiceNumber||''),
+          qty:0
+        };
+        totals[groupKey].qty+=Math.max(0,Number(item.qty||0));
       });
-      Object.entries(totals).forEach(([epiId,qty])=>{
-        if(!qty) return;
+      Object.values(totals).forEach(row=>{
+        if(!row.qty) return;
         stock.movements.unshift({
-          id:uid('sm'), type:'OUT', delta:-qty,
-          companyId:d.companyId, epiId,
+          id:uid('sm'), type:'OUT', delta:-row.qty,
+          companyId:d.companyId, epiId:row.epiId,
+          warehouseId:row.warehouseId,
+          batchId:row.batchId,
+          purchaseId:row.purchaseId,
+          lot:row.lot,
+          physicalExpiry:row.physicalExpiry,
+          invoiceNumber:row.invoiceNumber,
           deliveryId:d.id, workerId:d.workerId,
-          note:`Entrega para ${workerName(d.workerId,app)}`,
+          note:`Entrega para ${workerName(d.workerId,app)}`+(row.lot?` • lote ${row.lot}`:''),
           createdAt:d.createdAt || new Date().toISOString()
         });
-        const key=stockKey(d.companyId,epiId);
+        const key=stockKey(d.companyId,row.epiId);
         if(stock.minimums[key] == null) stock.minimums[key]=DEFAULT_MIN;
       });
       processed.add(d.id); changed=true;
