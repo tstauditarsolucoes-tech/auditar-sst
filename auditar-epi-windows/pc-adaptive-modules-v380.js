@@ -85,7 +85,7 @@ async function syncNow(){
 }
 function audit(root,type){return (root.app.auditLog||[]).filter(x=>x?.type===type)}
 function upsert(root,row){const a=root.app.auditLog||(root.app.auditLog=[]),i=a.findIndex(x=>x.id===row.id);if(i>=0)a[i]=row;else a.unshift(row)}
-function accountRow(root=readRoot()){return audit(root,'epi_account_module_profile')[0]||{id:'modules_account_v380',type:'epi_account_module_profile',preset:'auto',modules:{}}}
+function accountRow(root=readRoot()){return audit(root,'epi_account_module_profile')[0]||{id:'modules_account_v380',type:'epi_account_module_profile',preset:'complete',modules:{}}}
 function userRow(username,root=readRoot()){return audit(root,'epi_user_module_profile').find(x=>norm(x.username)===norm(username))||{id:'modules_user_'+norm(username).replace(/[^a-z0-9]/g,'_'),type:'epi_user_module_profile',username,mode:'inherit',modules:{}}}
 function workerCount(root=readRoot()){return (root.app.workers||[]).filter(w=>w.active!==false).length}
 function autoPreset(root=readRoot()){const n=workerCount(root);return n<=25?'essential':n<=100?'operational':'complete'}
