@@ -2,6 +2,44 @@
 
 ## Linha vigente
 
+| Plataforma | Versão | CI |
+|---|---|---|
+| Android | **v3.29.173** | run `37756842635` — success |
+| Windows | **v3.30.96** | run `37756842584` — success |
+
+Branch: `feature/client-panel-permissions-v329106`. PR #15 permanece **Draft**, sem merge.
+Commit compilado e validado: `77d3f6f95ca06f195fb6cb466c488788b04db085`.
+Conferência de CI e artefatos: 08/10/2026.
+
+## Grupos de empresas
+
+- Cadastro com vínculo opcional a grupo; empresas sem grupo continuam disponíveis.
+- Criação, movimentação, renomeação, união e remoção de grupos, preservando empresas e registros SST.
+- Nome curto de unidade, busca, favoritos, recentes e memória de filtros.
+- Resumo gerencial por grupo no PC.
+- Canal separado para compartilhar grupos, tipo e nome curto entre Android e Windows.
+- Favoritos, recentes e filtros permanecem pessoais por aparelho/usuário.
+- **Compartilhamento depende da implantação autorizada de CompanyGroupsSync.gs e da rota na Central. Essa implantação NÃO foi realizada.**
+- Instruções: `docs/GRUPOS_COMPARTILHADOS_IMPLANTACAO.md`.
+
+## Pacotes conferidos
+
+- APK: `Auditar-SST-v3.29.173-Android.apk`, artefato `11541077753`.
+- Instalador: `Auditar-SST-Setup-v3.30.96.exe`.
+- Portátil: `Auditar-SST-Windows-v3.30.96-PORTATIL.zip`, artefato Windows `11541741652`.
+- Testes, análise, regressões e compilação concluídos nos dois pipelines.
+- Android compilado com verificação da chave permanente e do identificador do pacote.
+- SHA-256 dos ZIPs de artefatos conferido contra o GitHub; integridade dos ZIPs verificada.
+- **Pendente:** validação física no Android e Windows e homologação do compartilhamento na Central real.
+- Não publicar a Central ou fazer merge automaticamente.
+
+## Registro anterior
+
+O conteúdo abaixo é histórico da base v3.29.170 / v3.30.90, não o estado vigente.
+
+
+## Linha vigente
+
 | Plataforma | Versão |
 |---|---|
 | Android | **v3.29.170+312** |
