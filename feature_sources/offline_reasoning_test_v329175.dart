@@ -161,7 +161,9 @@ void main() {
       final description=find.widgetWithText(TextField,'Descrição do registro');
       await tester.ensureVisible(description); await tester.enterText(description,'Condição conferida no equipamento.');
       expect(find.byType(CheckboxListTile),findsNothing);
-      await tester.tap(find.text('Aplicar texto revisado'));
+      await tester.runAsync(() async {
+        await tester.tap(find.text('Aplicar texto revisado'));
+      });
       for(var attempt=0; attempt<100 && applied==null; attempt++) {
         await tester.runAsync(()=>Future<void>.delayed(const Duration(milliseconds:20)));
         await tester.pump();
@@ -202,7 +204,9 @@ void main() {
     expect(find.text('Correspondência forte • confira os fatos'), findsOneWidget);
     expect(find.text('Aplicar'), findsOneWidget);
     expect(find.text('Ajustar'), findsOneWidget);
-    await tester.tap(find.text('Aplicar'));
+    await tester.runAsync(() async {
+      await tester.tap(find.text('Aplicar'));
+    });
     await tester.pumpAndSettle();
     expect(applied?.description, original);
     expect(applied?.reviewed, isTrue);
