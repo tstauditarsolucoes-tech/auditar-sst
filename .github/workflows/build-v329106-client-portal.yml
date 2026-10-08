@@ -8,6 +8,11 @@ on:
     branches: [feature/client-panel-permissions-v329106]
     paths:
       - '.github/workflows/build-v329106-client-portal.yml'
+      - 'feature_sources/company_organization_v329173_v33096.dart'
+      - 'feature_sources/company_organization_test_v329173_v33096.dart'
+      - 'feature_sources/CompanyGroupsSync_v1.gs'
+      - 'tools/patch_company_groups_shared_v329173_v33096.py'
+      - 'tools/test_company_groups_sync_v1.js'
       - 'feature_sources/company_client_access_section_v329133.dart'
       - 'tools/patch_company_client_access_v329133.py'
       - 'tools/regression_company_client_access_v329133.py'
@@ -1312,6 +1317,8 @@ jobs:
         run: |
           set -euo pipefail
           python3 tools/patch_company_organization_v329172_v33095.py "$APP_DIR" android
+          node tools/test_company_groups_sync_v1.js
+          python3 tools/patch_company_groups_shared_v329173_v33096.py "$APP_DIR" android
           cd "$APP_DIR"
           dart format lib/screens/companies_screen.dart lib/widgets/company_organization.dart test/company_organization_test.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
@@ -1372,6 +1379,8 @@ jobs:
         run: |
           mkdir -p dist
           mkdir -p dist/Central-Painel-Cliente
+          cp "$APP_DIR/painel_web_google_apps_script/CompanyGroupsSync.gs" dist/CompanyGroupsSync.gs.txt
+          cp docs/GRUPOS_COMPARTILHADOS_IMPLANTACAO.md dist/Grupos-Compartilhados-Instrucoes.md
           cp "$GITHUB_WORKSPACE/docs/HOMOLOGACAO_RELEASE_AUDITAR_SST.md" dist/HOMOLOGACAO_RELEASE.md
           cp "$APP_DIR/painel_web_google_apps_script/Code.gs" dist/Central-Painel-Cliente/Code.gs.txt
           cp "$APP_DIR/painel_web_google_apps_script/MultiUser.gs" dist/Central-Painel-Cliente/MultiUser.gs.txt
@@ -1379,12 +1388,12 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.172-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.172-Android.apk > dist/Auditar-SST-v3.29.172-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.173-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.173-Android.apk > dist/Auditar-SST-v3.29.173-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.172-Android-Grupos-Locais
+          name: Auditar-SST-v3.29.173-Android-Grupos-Locais
           path: dist/*
           retention-days: 30
 

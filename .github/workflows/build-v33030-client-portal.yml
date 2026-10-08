@@ -6,6 +6,11 @@ on:
     branches: [feature/client-panel-permissions-v329106]
     paths:
       - '.github/workflows/build-v33030-client-portal.yml'
+      - 'feature_sources/company_organization_v329173_v33096.dart'
+      - 'feature_sources/company_organization_test_v329173_v33096.dart'
+      - 'feature_sources/CompanyGroupsSync_v1.gs'
+      - 'tools/patch_company_groups_shared_v329173_v33096.py'
+      - 'tools/test_company_groups_sync_v1.js'
       - 'feature_sources/company_organization_v329172_v33095.dart'
       - 'feature_sources/company_organization_test_v329172_v33095.dart'
       - 'tools/patch_company_organization_v329172_v33095.py'
@@ -1548,6 +1553,10 @@ jobs:
         run: |
           python tools/patch_company_organization_v329172_v33095.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Falha grupos' }
+          node tools/test_company_groups_sync_v1.js
+          if ($LASTEXITCODE -ne 0) { throw 'Falha teste servidor de grupos' }
+          python tools/patch_company_groups_shared_v329173_v33096.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha integração grupos compartilhados' }
           Push-Location "$env:APP_DIR"
           dart format lib/screens/companies_screen.dart lib/widgets/company_organization.dart test/company_organization_test.dart
           if ($LASTEXITCODE -ne 0) { throw 'Falha formato grupos' }
@@ -1570,6 +1579,8 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist/windows | Out-Null
+          Copy-Item "$env:APP_DIR/painel_web_google_apps_script/CompanyGroupsSync.gs" 'dist/windows/CompanyGroupsSync.gs.txt' -Force
+          Copy-Item 'docs/GRUPOS_COMPARTILHADOS_IMPLANTACAO.md' 'dist/windows/Grupos-Compartilhados-Instrucoes.md' -Force
           Copy-Item "$env:GITHUB_WORKSPACE/docs/HOMOLOGACAO_RELEASE_AUDITAR_SST.md" 'dist/windows/HOMOLOGACAO_RELEASE.md' -Force
           New-Item -ItemType Directory -Force dist/windows/Central-Painel-Cliente | Out-Null
           # Include every required Apps Script module in the Windows handoff.
@@ -1580,8 +1591,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.95-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.95-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.95-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.96-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.96-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.96-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -1596,12 +1607,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.95',
+            'AppVersion=3.30.96',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.95',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.96',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -1618,11 +1629,11 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.95.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.95.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.96.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.96.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.95-Windows-Grupos-Locais
+          name: Auditar-SST-v3.30.96-Windows-Grupos-Locais
           path: dist/windows/*
           retention-days: 30
 
