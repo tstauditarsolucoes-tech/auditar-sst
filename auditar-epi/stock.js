@@ -156,9 +156,12 @@
     const current=balance(stock,companyId,epiId);
     const delta=op==='SET' ? qty-current : qty;
     stock.minimums[stockKey(companyId,epiId)]=minimum;
+    const activeWarehouses=(stock.warehouses||[]).filter(w=>w.companyId===companyId&&w.active!==false);
+    const defaultWh=activeWarehouses.find(w=>w.isDefault)||activeWarehouses[0]||null;
     stock.movements.unshift({
       id:uid('sm'), type:op, delta,
       companyId, epiId,
+      warehouseId:op==='IN'&&defaultWh?defaultWh.id:'',
       note:note || (op==='SET'?'Ajuste de saldo':'Entrada de estoque'),
       createdAt:new Date().toISOString()
     });
