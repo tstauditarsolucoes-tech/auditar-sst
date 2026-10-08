@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.172 Grupos Locais
+name: Auditar SST Android v3.29.173 Grupos Compartilhados
 # Clean rebuild v3.29.145 after protected productivity consolidation
 # Rebuild v3.29.113 logo recovery
 
@@ -1393,7 +1393,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.173-Android-Grupos-Locais
+          name: Auditar-SST-v3.29.173-Android-Grupos-Compartilhados
           path: dist/*
           retention-days: 30
 

@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.95 Grupos Locais
+name: Auditar SST Windows v3.30.96 Grupos Compartilhados
 # Clean rebuild v3.30.64 after protected productivity consolidation
 
 on:
@@ -1633,7 +1633,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.96-Windows-Grupos-Locais
+          name: Auditar-SST-v3.30.96-Windows-Grupos-Compartilhados
           path: dist/windows/*
           retention-days: 30
 
