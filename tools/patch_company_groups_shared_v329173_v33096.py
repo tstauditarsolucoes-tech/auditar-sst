@@ -77,7 +77,11 @@ replace('() => Navigator.of(context)', '() {\n              unawaited(_organizat
 # Fecha o bloco adicionado no callback original.
 start=s.index('unawaited(_organization.markVisited');end=s.index('.then((_) => _load()),',start)
 s=s[:end]+s[end:].replace('.then((_) => _load()),', '.then((_) => _load());\n            },',1)
-replace("import 'dart:async';", "import 'dart:async';\nimport 'dart:convert';")
+# Windows pode não ter dart:async antes desta extensão. Inclua apenas imports ausentes.
+for module in ('dart:async', 'dart:convert'):
+ statement = "import '"+module+"';"
+ if s.count(statement)>1: raise RuntimeError('Import duplicado: '+module)
+ if statement not in s: s=statement+'\n'+s
 replace('  bool _recentOnly = false;', '  bool _recentOnly = false;\n  bool _viewLoaded = false;')
 replace('    final loadedStats = <String, Map<String, int>>{};', """    if (!_viewLoaded) {
       try {
