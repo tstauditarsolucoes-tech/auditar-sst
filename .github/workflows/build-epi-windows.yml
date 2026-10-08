@@ -3,12 +3,13 @@ name: Gerar Windows Gestão EPI
 on:
   workflow_dispatch:
   push:
-    branches: [main, feature/gestao-epi-pc-desktop-v280, feature/gestao-epi-biometria-evidencia-v281, feature/gestao-epi-worker-portal-v290, feature/gestao-epi-brand-login-v300, feature/gestao-epi-quality-v310, feature/gestao-epi-legal-v320, feature/gestao-epi-pc-legibility-v321, feature/gestao-epi-pc-parity-v330, feature/gestao-epi-pc-operational-v340, feature/gestao-epi-pc-tst-warehouse-v350, feature/gestao-epi-pc-flow-enhancements-v360, feature/gestao-epi-pc-worker-portal-v450]
+    branches: [main, feature/gestao-epi-pc-desktop-v280, feature/gestao-epi-biometria-evidencia-v281, feature/gestao-epi-worker-portal-v290, feature/gestao-epi-brand-login-v300, feature/gestao-epi-quality-v310, feature/gestao-epi-legal-v320, feature/gestao-epi-pc-legibility-v321, feature/gestao-epi-pc-parity-v330, feature/gestao-epi-pc-operational-v340, feature/gestao-epi-pc-tst-warehouse-v350, feature/gestao-epi-pc-flow-enhancements-v360, feature/gestao-epi-pc-worker-portal-v450, feature/gestao-epi-pc-adaptive-ops-v380]
     paths:
       - 'auditar-epi-gestao/**'
       - 'auditar-epi-windows/**'
       - 'backend/Code-Gestao-EPI-v4.4.0-PORTAL-TRABALHADOR.txt'
       - 'backend/Code-Gestao-EPI-v4.5.0-PORTAL-TRABALHADOR.txt'
+      - 'backend/Code-Gestao-EPI-v4.6.0-ADAPTATIVO-ESTOQUE.txt'
       - 'backend/PortalTrabalhador.html'
       - '.github/workflows/build-epi-windows.yml'
 
@@ -76,6 +77,9 @@ jobs:
           Copy-Item -Force 'auditar-epi-windows/pc-epi-flow-v350.js' 'auditar-epi-windows/app/pc-epi-flow-v350.js'
           Copy-Item -Force 'auditar-epi-windows/pc-epi-flow-enhancements-v360.js' 'auditar-epi-windows/app/pc-epi-flow-enhancements-v360.js'
           Copy-Item -Force 'auditar-epi-windows/pc-worker-portal-ops-v370.js' 'auditar-epi-windows/app/pc-worker-portal-ops-v370.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-adaptive-modules-v380.js' 'auditar-epi-windows/app/pc-adaptive-modules-v380.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-advanced-operations-v380.js' 'auditar-epi-windows/app/pc-advanced-operations-v380.js'
+          Copy-Item -Force 'auditar-epi-windows/pc-legibility-v380.js' 'auditar-epi-windows/app/pc-legibility-v380.js'
 
           $indexPath = 'auditar-epi-windows/app/index.html'
           $index = Get-Content $indexPath -Raw
@@ -124,13 +128,16 @@ jobs:
             '  <script src="pc-epi-flow-v350.js"></script>',
             '  <script src="pc-epi-flow-enhancements-v360.js"></script>',
             '  <script src="pc-worker-portal-ops-v370.js"></script>',
+            '  <script src="pc-adaptive-modules-v380.js"></script>',
+            '  <script src="pc-advanced-operations-v380.js"></script>',
+            '  <script src="pc-legibility-v380.js"></script>',
             '</body>',
             '</html>'
           )
           Set-Content -Path $indexPath -Value ($head + (($scriptLines -join "`r`n") + "`r`n")) -Encoding UTF8
           $assembled = Get-Content $indexPath -Raw
 
-          foreach ($required in @('auth-gestao.js','pc-login-session.js','pc-login-safe-v277.js','pc-biometric-crypto-v281.js','pc-worker-portal-v290.js','pc-batch-delivery-v274.js','pc-brand-v279.js','pc-brand-login-v300.js','pc-version-v280.js','pc-mobile-parity-v280.js','pc-desktop-shell-v280.js','pc-management-v310.js','pc-legal-compliance-v320.js','pc-legibility-v321.js','pc-ca-center-v330.js','pc-worker-ca-sheet-v330.js','pc-operational-center-v340.js','pc-worker-history-v340.js','pc-epi-flow-v350.js','pc-epi-flow-enhancements-v360.js','pc-worker-portal-ops-v370.js')) {
+          foreach ($required in @('auth-gestao.js','pc-login-session.js','pc-login-safe-v277.js','pc-biometric-crypto-v281.js','pc-worker-portal-v290.js','pc-batch-delivery-v274.js','pc-brand-v279.js','pc-brand-login-v300.js','pc-version-v280.js','pc-mobile-parity-v280.js','pc-desktop-shell-v280.js','pc-management-v310.js','pc-legal-compliance-v320.js','pc-legibility-v321.js','pc-ca-center-v330.js','pc-worker-ca-sheet-v330.js','pc-operational-center-v340.js','pc-worker-history-v340.js','pc-epi-flow-v350.js','pc-epi-flow-enhancements-v360.js','pc-worker-portal-ops-v370.js','pc-adaptive-modules-v380.js','pc-advanced-operations-v380.js','pc-legibility-v380.js')) {
             if ($assembled -notmatch [regex]::Escape($required)) { throw "Script obrigatório ausente: $required" }
           }
           if ($assembled -match 'pc-login-bootstrap-v276\.js|pc-login-interaction-v275\.js|login-uppercase-gestao\.js|worker-link-gestao\.js|pc-fix\.js|prepare-pc\.js|pc-easy-layout-v273\.js') {
@@ -166,6 +173,15 @@ jobs:
           node --check 'auditar-epi-windows/app/pc-epi-flow-v350.js'
           node --check 'auditar-epi-windows/app/pc-epi-flow-enhancements-v360.js'
           node --check 'auditar-epi-windows/app/pc-worker-portal-ops-v370.js'
+          node --check 'auditar-epi-windows/app/pc-adaptive-modules-v380.js'
+          node --check 'auditar-epi-windows/app/pc-advanced-operations-v380.js'
+          node --check 'auditar-epi-windows/app/pc-legibility-v380.js'
+          Select-String -Path 'auditar-epi-windows/app/pc-adaptive-modules-v380.js' -Pattern 'Perfil da conta' -Quiet | Out-Null
+          Select-String -Path 'auditar-epi-windows/app/pc-adaptive-modules-v380.js' -Pattern 'Permissões por usuário' -Quiet | Out-Null
+          Select-String -Path 'auditar-epi-windows/app/pc-advanced-operations-v380.js' -Pattern 'Estoque avançado' -Quiet | Out-Null
+          Select-String -Path 'auditar-epi-windows/app/pc-advanced-operations-v380.js' -Pattern 'Previsão de estoque' -Quiet | Out-Null
+          Select-String -Path 'auditar-epi-windows/app/pc-advanced-operations-v380.js' -Pattern 'Recolhimento' -Quiet | Out-Null
+          Select-String -Path 'auditar-epi-windows/app/pc-legibility-v380.js' -Pattern 'Confortável' -Quiet | Out-Null
           Select-String -Path 'auditar-epi-windows/app/pc-worker-portal-ops-v370.js' -Pattern 'Solicitações do trabalhador' -Quiet | Out-Null
           Select-String -Path 'auditar-epi-windows/app/pc-worker-portal-ops-v370.js' -Pattern 'Aprovar e liberar' -Quiet | Out-Null
           Select-String -Path 'auditar-epi-windows/app/pc-worker-portal-ops-v370.js' -Pattern 'portalContactPhone' -Quiet | Out-Null
@@ -207,7 +223,10 @@ jobs:
             'pc-worker-history-v340.js',
             'pc-epi-flow-v350.js',
             'pc-epi-flow-enhancements-v360.js',
-            'pc-worker-portal-ops-v370.js'
+            'pc-worker-portal-ops-v370.js',
+            'pc-adaptive-modules-v380.js',
+            'pc-advanced-operations-v380.js',
+            'pc-legibility-v380.js'
           )
           foreach ($script in $requiredScripts) {
             if ($index -notmatch [regex]::Escape($script)) { throw "Paridade PC incompleta: $script não foi carregado." }
@@ -221,10 +240,10 @@ jobs:
       - name: Validar Portal do Trabalhador
         shell: pwsh
         run: |
-          Copy-Item 'backend/Code-Gestao-EPI-v4.5.0-PORTAL-TRABALHADOR.txt' 'portal-backend-check.js'
+          Copy-Item 'backend/Code-Gestao-EPI-v4.6.0-ADAPTATIVO-ESTOQUE.txt' 'portal-backend-check.js'
           node --check 'portal-backend-check.js'
           $backend = Get-Content 'portal-backend-check.js' -Raw
-          foreach ($feature in @('workerPortalSubmitRequest','workerPortalAcknowledgeNotice','worker_epi_request')) {
+          foreach ($feature in @('workerPortalSubmitRequest','workerPortalAcknowledgeNotice','worker_epi_request','warehouseId','row.warehouseId')) {
             if ($backend -notmatch [regex]::Escape($feature)) { throw "Portal backend sem recurso obrigatório: $feature" }
           }
           $html = Get-Content 'backend/PortalTrabalhador.html' -Raw
@@ -289,6 +308,7 @@ jobs:
             Desktop v3.5.0 adiciona fluxo TST/Almoxarifado com liberação, reserva, retirada parcial, entrega direta controlada, QR/código, substituição aprovada e rastreabilidade.
             Desktop v3.6.0 adiciona comprovante completo, QR local/offline, leitura por câmera quando suportada, atalhos operacionais e relatório TST × Almoxarifado.
             Desktop v3.7.0 integra o Portal do Trabalhador 4.5: solicitações de troca/problema, análise pelo TST, aprovação com liberação automática, status e contato configurável.
+            Desktop v3.8.0 adiciona interface adaptativa por porte e usuário, texto maior configurável, multiestoque, previsão, lotes/recolhimento, auditoria de divergências e kits por função.
           files: auditar-epi-windows/dist/Gestao-EPI-Setup-${{ env.APP_VERSION }}.exe
           make_latest: true
           overwrite_files: true
@@ -296,9 +316,9 @@ jobs:
       - name: Disponibilizar Portal do Trabalhador
         uses: actions/upload-artifact@v4
         with:
-          name: Gestao-EPI-Portal-Trabalhador-v4.5.0
+          name: Gestao-EPI-Backend-Portal-v4.6.0
           path: |
-            backend/Code-Gestao-EPI-v4.5.0-PORTAL-TRABALHADOR.txt
+            backend/Code-Gestao-EPI-v4.6.0-ADAPTATIVO-ESTOQUE.txt
             backend/PortalTrabalhador.html
           if-no-files-found: error
           retention-days: 14
