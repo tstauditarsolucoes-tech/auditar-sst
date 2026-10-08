@@ -266,7 +266,8 @@
         if(changed){epi.updatedAt=now;updated++;}
       }
       const sk=`${companyId}::${epi.id}`;if(stock.minimums[sk]==null)stock.minimums[sk]=DEFAULT_MIN;
-      stock.movements.unshift({id:uid('sm'),type:'IN',delta:item.qty,companyId,epiId:epi.id,note:`Entrada por nota fiscal IA • ${marker}${currentInvoice.number?' • NF '+currentInvoice.number:''}${currentInvoice.supplier?' • '+currentInvoice.supplier:''}${src.code?' • cód. '+src.code:''}`,invoiceKey:currentInvoice.key||'',invoiceNumber:currentInvoice.number||'',invoiceSupplier:currentInvoice.supplier||'',productCode:src.code||'',createdAt:now});entered++;
+      const activeWarehouses=(stock.warehouses||[]).filter(w=>w.companyId===companyId&&w.active!==false),defaultWh=activeWarehouses.find(w=>w.isDefault)||activeWarehouses[0]||null,batchId=uid('b_nf');
+      stock.movements.unshift({id:uid('sm'),type:'IN',delta:item.qty,companyId,epiId:epi.id,warehouseId:defaultWh?defaultWh.id:'',batchId,lot:clean(src.lot||''),physicalExpiry:clean(src.physicalExpiry||''),note:`Entrada por nota fiscal IA • ${marker}${currentInvoice.number?' • NF '+currentInvoice.number:''}${currentInvoice.supplier?' • '+currentInvoice.supplier:''}${src.code?' • cód. '+src.code:''}`,invoiceKey:currentInvoice.key||'',invoiceNumber:currentInvoice.number||'',invoiceSupplier:currentInvoice.supplier||'',productCode:src.code||'',createdAt:now});entered++;
     }
     if(!entered)return toast('Nenhum item válido para importar.');
     writeState(state);
