@@ -216,6 +216,20 @@ void main() {
     });
     expect(persisted, isTrue);
   });
+  testWidgets('sem falha identificada solicita detalhes e não aplica modelo', (tester) async {
+    await tester.runAsync(() =>
+      OfflineReportInlineSuggestionService.search(query:'extintor instalado na parede'));
+    await tester.pumpWidget(MaterialApp(
+      home:Scaffold(body:OfflineReportInlineSuggestions(
+        query:'extintor instalado na parede',
+        onSelected:(_)=>fail('Não deve aplicar sem confirmação de falha'),
+      )),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Precisa de mais detalhes'), findsOneWidget);
+    expect(find.text('Aplicar'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('cancelar prévia não altera registro nem aprende', (tester) async {
     var calls=0;
     await tester.runAsync(() => OfflineReportInlineSuggestionService.search(query:'extintor sem placa'));
