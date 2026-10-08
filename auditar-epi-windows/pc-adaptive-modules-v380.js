@@ -45,7 +45,7 @@ const VIEW_MAP={
  managerReportsPc:'reports',indicators:'reports',
  alertsPc:'operations',operationsCenterV340:'operations',epiFlowV350:'operations',pending:'operations',
  importWorkersPc:'imports',importWorkers:'imports',
- inventoryPc:'advanced_stock',dataQualityPc:'advanced_stock',advancedStockV380:'advanced_stock',
+ inventoryPc:'advanced_stock',dataQualityPc:'advanced_stock',advancedStockV380:null,
  rolePpePc:'kits',
  inspectionPc:'compliance',inspectionDossierPc:'compliance',legalCompliancePc:'compliance',
  dataSafetyPc:'data_safety',
