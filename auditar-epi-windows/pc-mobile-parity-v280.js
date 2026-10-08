@@ -371,8 +371,9 @@
         const productKey=safePart(item.code||e.id||index),movementId='sm_nf_'+safePart(companyId)+'_'+safePart(sourceKey)+'_'+productKey+'_'+index;
         if(root.stock.movements.some(m=>String(m.id)===movementId))return;
         const batchId='b_nf_'+safePart(sourceKey)+'_'+productKey+'_'+index;
+        const activeWarehouses=(root.stock.warehouses||[]).filter(w=>w.companyId===companyId&&w.active!==false),defaultWh=activeWarehouses.find(w=>w.isDefault)||activeWarehouses[0]||null;
         root.stock.movements.unshift({
-          id:movementId,type:'IN',delta:Number(item.qty||0),companyId,epiId:e.id,purchaseId,batchId,lot:String(item.lot||''),physicalExpiry:String(item.physicalExpiry||''),
+          id:movementId,type:'IN',delta:Number(item.qty||0),companyId,epiId:e.id,warehouseId:defaultWh?defaultWh.id:'',purchaseId,batchId,lot:String(item.lot||''),physicalExpiry:String(item.physicalExpiry||''),
           invoiceNumber:String(inv.number||''),invoiceKey:digits(inv.key),invoiceIdentity:sourceKey,supplier:String(inv.supplier||''),supplierCnpj:digits(inv.supplierCnpj),productCode:String(item.code||''),unit:String(item.unit||''),
           unitValue:Number(item.unitValue||0),total:Number(item.total||0),source:'pc-nf-ai-v330',documentFileId:String(stored.fileId||''),note:`Entrada NF ${String(inv.number||'').trim()||'s/n'} • ${String(inv.supplier||'Fornecedor')}`,createdAt:now(),updatedAt:now()
         });
