@@ -224,7 +224,10 @@ class _QuickVisitScreenState extends State<QuickVisitScreen> {
     try {
       await Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
     } finally {
-      if (mounted) setState(() => _opening = false);
+      if (mounted) {
+        setState(() => _opening = false);
+        await _load();
+      }
     }
   }
 

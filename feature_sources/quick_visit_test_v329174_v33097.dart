@@ -21,7 +21,7 @@ void main() {
             'alias': 'Centro',
             'favorite': true,
           },
-          'b': {'group': 'Construtora Quality', 'lastVisit': '2026-10-08'},
+          'b': {'group': 'Construtora Quality', '_lastVisit': '2026-10-08'},
         },
       );
       List<Company> select({
@@ -40,6 +40,15 @@ void main() {
       expect(select(query: 'centro').single.id, 'a');
       expect(select(group: '').length, 0);
       expect(select(favorites: true).single.id, 'a');
+      expect(
+        quickVisitCompanies(
+          companies,
+          organization,
+          recent: true,
+          canAccess: (id) => id != 'd',
+        ).single.id,
+        'b',
+      );
       expect(
         quickVisitCompanies(companies, organization, canAccess: (_) => false),
         isEmpty,
