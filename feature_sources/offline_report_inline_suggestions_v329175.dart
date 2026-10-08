@@ -1,5 +1,4 @@
 import '../services/offline_reasoning.dart';
-import '../services/offline_report_knowledge_service.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -18,6 +17,7 @@ class OfflineInlineSuggestion {
     required this.source,
     this.useCount = 0,
     this.assessment,
+    this.reviewed = false,
   });
 
   final String id;
@@ -30,6 +30,7 @@ class OfflineInlineSuggestion {
   final String source;
   final int useCount;
   final OfflineAssessment? assessment;
+  final bool reviewed;
 
   bool get learned =>
       source.contains('approved') ||
@@ -64,7 +65,7 @@ class OfflineReportInlineSuggestionService {
     final learned = <OfflineInlineSuggestion>[];
     try {
       final dir = await getApplicationSupportDirectory();
-      for (final path in ['${dir.path}/$_fileName', '${dir.path}/auditar_sst/offline_report_knowledge/$_fileName']) {
+      for (final path in ['${dir.path}/$_fileName', '${dir.path}/auditar_sst/offline_report_knowledge/$_fileName', '${dir.path}/offline_reasoning_learning_v1.json']) {
       try {
       final file = File(path);
       if (await file.exists()) {
@@ -85,6 +86,40 @@ class OfflineReportInlineSuggestionService {
   }
 
   static void invalidateLearnedCache() { _learnedCache = null; _learnedCacheAt = null; }
+
+  static Future<void> _learningQueue = Future<void>.value();
+
+  // A separate local file preserves the previous library and stores the latest
+  // applied correction exactly, including shorter wording. No network involved.
+  static Future<String?> learnApplied(OfflineInlineSuggestion item) async {
+    String clean(String text) => text.trim().replaceAll(
+      RegExp(r'\b\d{2}\.?\d{3}\.?\d{3}/?\d{4}-?\d{2}\b'), '');
+    final title=clean(item.title);
+    if(title.length < 4) return null;
+    final key='${item.assessment?.rule.id ?? 'model'}|${_normalize(title)}';
+    final id='auto-${base64Url.encode(utf8.encode(key)).replaceAll('=', '')}';
+    final operation = _learningQueue.catchError((_) {}).then((_) async {
+      final dir=await getApplicationSupportDirectory();
+      final file=File('${dir.path}/offline_reasoning_learning_v1.json');
+      final old=await file.exists() ? _extractTemplateMaps(jsonDecode(await file.readAsString())) : <Map<String,dynamic>>[];
+      final previous=old.where((m)=>m['id']==id).firstOrNull;
+      final count=int.tryParse('${previous?['useCount'] ?? 0}') ?? 0;
+      final map=<String,dynamic>{'id':id,'title':title,
+        'description':clean(item.assessment?.reusableDescription ?? item.description),
+        'risk':clean(item.risk),'possibleConsequence':clean(item.possibleConsequence),
+        'recommendation':clean(item.recommendation),'priority':item.priority,
+        'source':'manual_auto_approved','useCount':count+1,
+        'updatedAt':DateTime.now().toIso8601String()};
+      await dir.create(recursive:true);
+      final temporary=File('${file.path}.tmp');
+      await temporary.writeAsString(jsonEncode({'schemaVersion':1,'templates':[map,...old.where((m)=>m['id']!=id)].take(500).toList()}),flush:true);
+      await temporary.rename(file.path);
+      invalidateLearnedCache();
+    });
+    _learningQueue=operation;
+    await operation;
+    return id;
+  }
 
   static Future<List<OfflineInlineSuggestion>> search({
     required String query,
@@ -109,7 +144,10 @@ class OfflineReportInlineSuggestionService {
           }
         }
       }
-      results.sort((a,b) => (a.learned ? 1 : 0).compareTo(b.learned ? 1 : 0));
+      results.sort((a,b) {
+        final learned = (b.learned ? 1 : 0).compareTo(a.learned ? 1 : 0);
+        return learned != 0 ? learned : b.useCount.compareTo(a.useCount);
+      });
       final unique = <String, OfflineInlineSuggestion>{};
       for (final item in results) { unique.putIfAbsent(item.id, () => item); }
       return unique.values.take(limit).toList();
@@ -1455,7 +1493,7 @@ class OfflineReportInlineSuggestions extends StatelessWidget {
   }
 
   Future<void> _review(BuildContext context, OfflineInlineSuggestion item) async {
-    final selected = await showDialog<OfflineInlineSuggestion>(context: context,
+    final selected = await showDialog<OfflineInlineSuggestion>(context: context, barrierDismissible: false,
       builder: (_) => _OfflineReviewDialog(item: item));
     if (selected != null && context.mounted) onSelected(selected);
   }
@@ -1609,13 +1647,11 @@ class _OfflineReviewDialogState extends State<_OfflineReviewDialog> {
   late final risk = TextEditingController(text: widget.item.risk);
   late final consequence = TextEditingController(text: widget.item.possibleConsequence);
   late final action = TextEditingController(text: widget.item.recommendation);
-  late final reusable = TextEditingController(text: widget.item.title);
   late String priority = widget.item.priority;
   String exposure = 'Não informado';
-  bool saveModel = false;
   bool busy = false;
   @override
-  void dispose() { for(final c in [title,description,risk,consequence,action,reusable]) { c.dispose(); } super.dispose(); }
+  void dispose() { for(final c in [title,description,risk,consequence,action]) { c.dispose(); } super.dispose(); }
   Widget field(String label, TextEditingController controller) => Padding(padding: const EdgeInsets.only(bottom: 12), child: TextField(controller: controller, minLines: 1, maxLines: 5, decoration: InputDecoration(labelText: label, border: const OutlineInputBorder())));
   Future<void> apply() async {
     if (busy) return;
@@ -1624,34 +1660,31 @@ class _OfflineReviewDialogState extends State<_OfflineReviewDialog> {
       return;
     }
     setState(() => busy = true);
-    if (saveModel) {
-      try {
-        final saved = await OfflineReportKnowledgeService.learnFromApprovedFields(
-          title: title.text, description: reusable.text, risk: risk.text,
-          possibleConsequence: consequence.text, recommendation: action.text,
-          immediateAction: '', priority: priority, source: 'manual_approved');
-        if (saved == null) throw StateError('Modelo incompleto');
-        OfflineReportInlineSuggestionService.invalidateLearnedCache();
-      } catch (_) {
-        if (mounted) {
-          setState(() => busy = false);
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível salvar o modelo. Revise o texto ou desmarque a opção para apenas aplicar.')));
-        }
-        return;
-      }
+    String? learnedId;
+    var learningFailed = false;
+    try {
+      learnedId = await OfflineReportInlineSuggestionService.learnApplied(
+        OfflineInlineSuggestion(id: widget.item.id, title: title.text.trim(),
+          description: widget.item.description, risk: risk.text.trim(),
+          possibleConsequence: consequence.text.trim(), recommendation: action.text.trim(),
+          priority: priority, source: widget.item.source, assessment: widget.item.assessment));
+      learningFailed = learnedId == null;
+    } catch (_) {
+      learningFailed = true; // Learning must never block the field record.
     }
     if (!mounted) return;
     final a = widget.item.assessment;
-    Navigator.pop(context, OfflineInlineSuggestion(id: widget.item.id,
+    if (learningFailed) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Texto aplicado. O aprendizado local está indisponível neste momento.')));
+    Navigator.pop(context, OfflineInlineSuggestion(id: learnedId ?? widget.item.id,
       title: title.text.trim(), description: description.text.trim(), risk: risk.text.trim(),
       possibleConsequence: consequence.text.trim(),
       recommendation: '${action.text.trim()}${a == null ? '' : '\nReferência temática para conferência: ${a.rule.reference}.'}',
-      priority: priority, source: widget.item.source, assessment: a));
+      priority: priority, source: learnedId == null ? widget.item.source : 'manual_auto_approved', assessment: a, reviewed: true));
   }
   @override
   Widget build(BuildContext context) {
     final a=widget.item.assessment;
-    return AlertDialog(title: const Text('Revisar sugestão sem IA'),
+    return PopScope(canPop: !busy, child: AlertDialog(title: const Text('Revisar sugestão sem IA'),
       content: SizedBox(width: 560, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         if(a != null) ...[
           Text('${a.segment} • ${a.equipment}', style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -1668,13 +1701,9 @@ class _OfflineReviewDialogState extends State<_OfflineReviewDialog> {
           decoration: const InputDecoration(labelText: 'Prioridade — revisão do técnico'),
           items: ['Baixa','Média','Alta','Crítica'].map((p)=>DropdownMenuItem(value:p,child:Text(p))).toList(),
           onChanged: (v) {if(v != null) setState(()=>priority=v);}),
-        CheckboxListTile(contentPadding: EdgeInsets.zero, value: saveModel,
-          title: const Text('Salvar como modelo aprovado'),
-          subtitle: const Text('Use texto genérico, sem nomes, CNPJ, endereço ou dados pessoais.'),
-          onChanged: busy ? null : (v)=>setState(()=>saveModel=v??false)),
-        if(saveModel) field('Descrição genérica para reutilizar',reusable),
+        const Padding(padding: EdgeInsets.only(top:12), child: Text('Aprendizado automático ao aplicar: suas correções serão reutilizadas nas próximas sugestões.')),
       ]))),
       actions: [TextButton(onPressed: busy ? null : ()=>Navigator.pop(context), child: const Text('Cancelar')),
-        FilledButton(onPressed: busy ? null : apply, child: Text(busy ? 'Salvando...' : 'Aplicar texto revisado'))]);
+        FilledButton(onPressed: busy ? null : apply, child: Text(busy ? 'Salvando...' : 'Aplicar texto revisado'))]));
   }
 }

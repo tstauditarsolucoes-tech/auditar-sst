@@ -110,8 +110,32 @@ void main() {
     OfflineReportInlineSuggestionService.invalidateLearnedCache();
     final found=await OfflineReportInlineSuggestionService.search(query:'extintor sem placa',limit:20);
     expect(found.any((v)=>v.learned && v.recommendation=='Recomendação aprovada de teste.'),isTrue);
-    expect(found.first.id,'rule-extinguisher-sign');
+    expect(found.first.learned,isTrue);
     expect(await File('${dir.path}/auditar_sst/offline_report_knowledge/offline_report_knowledge_v1.json').exists(),isTrue);
+  });
+  test('aprendizado automático reaproveita correção sem copiar observação identificada', () async {
+    final a=OfflineReasoning.analyze('extintor sem placa na Empresa Exemplo')[0];
+    final id=await OfflineReportInlineSuggestionService.learnApplied(OfflineInlineSuggestion(
+      id:'rule-extinguisher-sign',title:'Extintor sem sinalização',
+      description:a.description,risk:'Risco revisto',possibleConsequence:'Demora no atendimento',
+      recommendation:'Providenciar sinalização revisada.',priority:'Média',source:'auditar_rule',assessment:a));
+    expect(id,isNotNull);
+    final raw=jsonDecode(await File('${dir.path}/offline_reasoning_learning_v1.json').readAsString());
+    final stored=(raw['templates'] as List).first as Map;
+    expect(stored['description'],isNot(contains('Empresa Exemplo')));
+    expect(stored['recommendation'],'Providenciar sinalização revisada.');
+    final found=await OfflineReportInlineSuggestionService.search(query:'extintor sem placa');
+    expect(found.first.learned,isTrue);
+    expect(found.first.risk,'Risco revisto');
+    await OfflineReportInlineSuggestionService.learnApplied(OfflineInlineSuggestion(
+      id:found.first.id,title:found.first.title,description:a.description,
+      risk:'Revisto',possibleConsequence:'Demora',recommendation:'Sinalizar.',
+      priority:'Baixa',source:found.first.source,assessment:a));
+    final updated=await OfflineReportInlineSuggestionService.search(query:'extintor sem placa');
+    expect(updated.first.risk,'Revisto');
+    expect(updated.first.recommendation,'Sinalizar.');
+    expect(updated.first.useCount,2);
+    expect(updated.where((v)=>v.learned).length,1);
   });
   test('leitura continua aceitando arquivo legado sem modificá-lo', () async {
     final file=File('${dir.path}/offline_report_knowledge_v1.json');
@@ -136,10 +160,19 @@ void main() {
       await tester.tap(find.widgetWithText(ChoiceChip,'Sim')); await tester.pumpAndSettle();
       final description=find.widgetWithText(TextField,'Descrição do registro');
       await tester.ensureVisible(description); await tester.enterText(description,'Condição conferida no equipamento.');
-      await tester.tap(find.text('Aplicar texto revisado')); await tester.pumpAndSettle();
+      expect(find.byType(CheckboxListTile),findsNothing);
+      await tester.tap(find.text('Aplicar texto revisado'));
+      for(var attempt=0; attempt<100 && applied==null; attempt++) {
+        await tester.runAsync(()=>Future<void>.delayed(const Duration(milliseconds:20)));
+        await tester.pump();
+      }
+      await tester.pumpAndSettle();
       expect(applied?.description,'Condição conferida no equipamento.'); expect(applied?.priority,'Crítica');
       expect(applied?.recommendation,contains('NR-12'));
-      expect(await tester.runAsync(()=>File('${dir.path}/auditar_sst/offline_report_knowledge/offline_report_knowledge_v1.json').exists()),isFalse);
+      expect(await tester.runAsync(()=>File('${dir.path}/offline_reasoning_learning_v1.json').exists()),isTrue);
+      final learned = await tester.runAsync(()=>OfflineReportInlineSuggestionService.search(query:'botão de emergência inoperante'));
+      expect(learned?.first.learned,isTrue);
+      expect(applied?.reviewed,isTrue);
       expect(tester.takeException(),isNull);
     });
   }

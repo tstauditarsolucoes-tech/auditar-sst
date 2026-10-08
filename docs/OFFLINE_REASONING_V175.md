@@ -11,14 +11,14 @@ Implementação adicional ao catálogo existente, sem modelo de IA e sem consult
 - A biblioteca anterior continua disponível como modelos semelhantes quando não há correspondência de regra. Exige revisão, sem sinalizar diagnóstico confirmado.
 - Uma sugestão inicial e expansão para alternativas. A prévia permite editar título, descrição, risco, consequência, recomendação e prioridade antes de aplicar.
 - Uma pergunta por regra ajuda a explicitar exposição/contexto. A prioridade é uma triagem editável, não uma matriz formal ou laudo automático. Exposição atual a algumas condições graves propõe Crítica; as demais começam em Alta e dependem de revisão.
-- Aprendizado na prévia é opcional, por caixa desmarcada inicialmente e texto genérico separado. Reutiliza o serviço de aprovação já existente. Não aprende fotos nem dados de empresa automaticamente.
-- A leitura abrange o caminho canônico `auditar_sst/offline_report_knowledge/offline_report_knowledge_v1.json` e o legado na raiz do suporte. Não migra nem apaga arquivos existentes. Cache é invalidado após aprovação.
+- Aprendizado automático quando o técnico aplica o texto revisado, sem pergunta ou caixa de salvar. Um arquivo local complementar guarda descrição genérica da regra/modelo e as correções técnicas, sem copiar o texto da observação atual. Digitar ou cancelar não gera aprendizado. Modelos aprendidos têm preferência na próxima busca compatível; falha de gravação não impede aplicar o registro.
+- A leitura abrange o caminho canônico `auditar_sst/offline_report_knowledge/offline_report_knowledge_v1.json` e o legado na raiz do suporte. O aprendizado automático fica em `offline_reasoning_learning_v1.json`, separado da biblioteca anterior, com até 500 modelos recentes e escrita serializada. Não migra nem apaga arquivos existentes. Cache é invalidado após aprovação.
 
 ## Isolamento e validação
 
-Patch altera o widget de sugestões, adiciona o motor, testes e versão. Verifica hashes de todos os outros arquivos em lib e dos arquivos da Central presentes na aplicação reconstruída. Banco, modelos, telas, sincronização, autenticação, mídia, IA e serviço de conhecimento permanecem byte a byte iguais no patch. Não requer novo GS.
+Patch altera o widget de sugestões, ajusta a aplicação explícita dos campos revisados na Vistoria e Ronda e adiciona o motor, testes e versão. Verifica hashes de todos os arquivos de lib fora do widget e das duas telas de integração e dos arquivos da Central presentes na aplicação reconstruída. Banco, modelos, demais telas, sincronização, autenticação, mídia, IA e serviço de conhecimento permanecem byte a byte iguais no patch. Não requer novo GS.
 
-Testes cobrem exemplos positivos, negações, correções, incerteza, separação de assuntos, prioridade, biblioteca anterior, leitura legada/canônica e prévia em 360/412/1280 px, aplicação editada e cancelamento. CI executa análise, regressões e compila os dois alvos. Homologação física permanece necessária: abrir registro, testar offline, cancelar/aplicar, aprovar modelo e reabrir o app, além de conferir fluxos usuais e sincronização em ambiente de teste.
+Testes cobrem exemplos positivos, negações, correções, incerteza, separação de assuntos, prioridade, biblioteca anterior, leitura legada/canônica e prévia em 360/412/1280 px, aplicação editada e cancelamento. CI executa análise, regressões e compila os dois alvos. Homologação física permanece necessária: abrir registro, testar offline, cancelar/aplicar, aplicar texto revisado e reabrir o app para conferir o aprendizado automático, além de conferir fluxos usuais e sincronização em ambiente de teste.
 
 ## Referências temáticas
 

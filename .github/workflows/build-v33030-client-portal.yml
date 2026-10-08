@@ -1593,7 +1593,7 @@ jobs:
           python tools/patch_offline_reasoning_v329175_v33098.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Falha integracao offline' }
           Push-Location "$env:APP_DIR"
-          dart format lib/services/offline_reasoning.dart lib/widgets/offline_report_inline_suggestions.dart test/offline_reasoning_test.dart
+          dart format lib/services/offline_reasoning.dart lib/widgets/offline_report_inline_suggestions.dart lib/screens/safety_observations_screen.dart lib/screens/express_round_screen.dart test/offline_reasoning_test.dart
           if ($LASTEXITCODE -ne 0) { throw 'Falha validacao offline' }
           flutter analyze --no-fatal-infos --no-fatal-warnings
           if ($LASTEXITCODE -ne 0) { throw 'Falha validacao offline' }

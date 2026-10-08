@@ -7,9 +7,10 @@ class OfflineRule {
   final bool severe;
 }
 class OfflineAssessment {
-  const OfflineAssessment(this.rule, this.description, this.equipment, this.segment);
+  const OfflineAssessment(this.rule, this.description, this.equipment, this.segment, this.fault);
   final OfflineRule rule;
-  final String description, equipment, segment;
+  final String description, equipment, segment, fault;
+  String get reusableDescription => '$equipment $fault.';
   String get reason => 'Equipamento/tema e falha identificados no texto. Referência temática: ${rule.reference}.';
   String priority(String exposure) => rule.severe && exposure == 'Sim' ? 'Crítica' : 'Alta';
   String priorityReason(String exposure) => exposure == 'Sim' && rule.severe
@@ -43,7 +44,7 @@ class OfflineReasoning {
         // Histórico de correção não é convertido em uma falha atual.
         if (has('corrigido|corrigida|regularizado|regularizada|reparado|reparada|ja resolvido|ja resolvida',clause)) continue;
         final equipment=RegExp(rule.entity).firstMatch(clause)?.group(0)??rule.title;
-        out.add(OfflineAssessment(rule,query.trim(),equipment,segment));break;
+        out.add(OfflineAssessment(rule,query.trim(),equipment,segment,RegExp(rule.fault).firstMatch(clause)!.group(0)!));break;
       }
     }
     return out;
