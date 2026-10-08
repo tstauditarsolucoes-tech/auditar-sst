@@ -65,10 +65,10 @@ function lotRows(r,c='',epiId=''){
  }
  return [...map.values()].filter(x=>x.balance>0).sort((a,b)=>String(a.physicalExpiry||'9999').localeCompare(String(b.physicalExpiry||'9999')));
 }
-function allocateLots(r,c,e,qty,warehouseId=''){
+function allocateLots(r,c,e,qty,warehouseId='',strictWarehouse=false){
  const rows=lotRows(r,c,e).filter(x=>{
-  if(!warehouseId)return true;
-  const hasWh=(r.stock.movements||[]).some(m=>m.companyId===c&&m.epiId===e&&(m.batchId===x.batchId||(!x.batchId&&m.lot===x.lot))&&String(m.warehouseId||'')===String(warehouseId));
+  if(!strictWarehouse&&!warehouseId)return true;
+  const hasWh=(r.stock.movements||[]).some(m=>m.companyId===c&&m.epiId===e&&(m.batchId===x.batchId||(!x.batchId&&m.lot===x.lot))&&String(m.warehouseId||'')===String(warehouseId||''));
   return hasWh;
  });
  let left=Number(qty||0),out=[];
@@ -224,6 +224,6 @@ function bind(){
  document.addEventListener('gestao-epi-sync-applied',()=>setTimeout(()=>{nav();injectDeliveryExtras();central();if($('#advancedStockV380')?.classList.contains('active'))render()},120));
  document.addEventListener('auditar-epi-data-changed',()=>setTimeout(()=>{injectDeliveryExtras();central()},120));
 }
-function boot(){styles();nav();view();bind();[500,1200,2600,4500].forEach(ms=>setTimeout(()=>{nav();view();injectDeliveryExtras();central()},ms));window.GestaoEpiAdvancedV380={lotRows,forecastRows,auditIssues,warehouses,totalBalance,whBalance}}
+function boot(){styles();nav();view();bind();[500,1200,2600,4500].forEach(ms=>setTimeout(()=>{nav();view();injectDeliveryExtras();central()},ms));window.GestaoEpiAdvancedV380={lotRows,forecastRows,auditIssues,warehouses,totalBalance,whBalance,allocateLots}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
