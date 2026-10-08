@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.173 Grupos Compartilhados
+name: Auditar SST Android v3.29.174 Visita Rapida
 # Clean rebuild v3.29.145 after protected productivity consolidation
 # Rebuild v3.29.113 logo recovery
 
@@ -7,6 +7,9 @@ on:
   push:
     branches: [feature/client-panel-permissions-v329106]
     paths:
+      - 'tools/patch_quick_visit_v329174_v33097.py'
+      - 'feature_sources/quick_visit_screen_v329174_v33097.dart'
+      - 'feature_sources/quick_visit_test_v329174_v33097.dart'
       - '.github/workflows/build-v329106-client-portal.yml'
       - 'feature_sources/company_organization_v329173_v33096.dart'
       - 'feature_sources/company_organization_test_v329173_v33096.dart'
@@ -1324,6 +1327,15 @@ jobs:
           flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter test test/company_organization_test.dart
 
+      - name: Simplificar inicio e atalhos de visita
+        run: |
+          set -euo pipefail
+          python3 tools/patch_quick_visit_v329174_v33097.py "$APP_DIR" android
+          cd "$APP_DIR"
+          dart format lib/screens/home_screen.dart lib/screens/company_detail_screen.dart lib/screens/quick_visit_screen.dart test/quick_visit_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/quick_visit_test.dart test/company_organization_test.dart
+
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
         env:
@@ -1388,12 +1400,12 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.173-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.173-Android.apk > dist/Auditar-SST-v3.29.173-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.174-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.174-Android.apk > dist/Auditar-SST-v3.29.174-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.173-Android-Grupos-Compartilhados
+          name: Auditar-SST-v3.29.174-Android-Visita-Rapida
           path: dist/*
           retention-days: 30
 

@@ -1,10 +1,13 @@
-name: Auditar SST Windows v3.30.96 Grupos Compartilhados
+name: Auditar SST Windows v3.30.97 Visita Rapida
 # Clean rebuild v3.30.64 after protected productivity consolidation
 
 on:
   push:
     branches: [feature/client-panel-permissions-v329106]
     paths:
+      - 'tools/patch_quick_visit_v329174_v33097.py'
+      - 'feature_sources/quick_visit_screen_v329174_v33097.dart'
+      - 'feature_sources/quick_visit_test_v329174_v33097.dart'
       - '.github/workflows/build-v33030-client-portal.yml'
       - 'feature_sources/company_organization_v329173_v33096.dart'
       - 'feature_sources/company_organization_test_v329173_v33096.dart'
@@ -1566,6 +1569,20 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha testes grupos' }
           Pop-Location
 
+      - name: Simplificar inicio e atalhos de visita
+        shell: pwsh
+        run: |
+          python tools/patch_quick_visit_v329174_v33097.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha integracao visita rapida' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/screens/home_screen.dart lib/screens/company_detail_screen.dart lib/screens/quick_visit_screen.dart test/quick_visit_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha formatacao visita rapida' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha analise visita rapida' }
+          flutter test test/quick_visit_test.dart test/company_organization_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha testes visita rapida' }
+          Pop-Location
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
@@ -1591,8 +1608,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.96-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.96-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.96-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.97-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.97-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.97-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -1607,12 +1624,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.96',
+            'AppVersion=3.30.97',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.96',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.97',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -1629,11 +1646,11 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.96.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.96.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.97.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.97.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.96-Windows-Grupos-Compartilhados
+          name: Auditar-SST-v3.30.97-Windows-Visita-Rapida
           path: dist/windows/*
           retention-days: 30
 
