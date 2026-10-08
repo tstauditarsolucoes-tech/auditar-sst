@@ -1,5 +1,36 @@
 # Auditar SST — versão atual
 
+## Linha vigente — Visita rápida
+
+| Plataforma | Versão | CI |
+|---|---|---|
+| Android | **v3.29.174+316** | run `37809109366` — success |
+| Windows | **v3.30.97+284** | run `37809109576` — success |
+
+Branch: `feature/client-panel-permissions-v329106`. PR #15 permanece **Draft**, sem merge.
+Commit compilado: `4802f806d1368ea506378a5418c3a57c32cc3ed3`.
+Conferência final: 08/10/2026.
+
+- Início com Iniciar visita, Continuar rascunho, Pendências e Relatórios.
+- Seleção rápida com pesquisa por empresa/obra, nome curto, grupo, favoritas e recentes.
+- Empresa selecionada mantida durante a navegação; troca explícita.
+- Atalhos para Ronda, Vistoria, registro de não conformidade e pendências da empresa.
+- Módulos e telas anteriores acessíveis em Mais opções; menu lateral no desktop.
+- Retomada usa os fluxos existentes de Ronda e histórico; não introduz novo armazenamento de rascunhos.
+- Testes automatizados de acesso, atividade, pesquisa, grupos, favoritos e recentes.
+- Testes de atalhos em 360, 412 e 1280 px com texto ampliado aprovados.
+- Análise, testes, regressões, APK assinado e empacotamento Windows concluídos.
+- Banco, modelos, todos os serviços e arquivos da Central preservados byte a byte pelo novo patch.
+- Esta navegação não exige atualização do GS. O compartilhamento de grupos da versão anterior continua dependendo da implantação específica já entregue.
+- Pendente: teste físico no Android e Windows.
+
+Artefatos verificados por SHA-256:
+- Android `11564379024`: `Auditar-SST-v3.29.174-Android.apk`.
+- Windows `11564684318`: `Auditar-SST-Setup-v3.30.97.exe` e `Auditar-SST-Windows-v3.30.97-PORTATIL.zip`.
+
+## Histórico anterior — não representa a versão vigente
+
+
 ## Linha vigente
 
 | Plataforma | Versão | CI |
