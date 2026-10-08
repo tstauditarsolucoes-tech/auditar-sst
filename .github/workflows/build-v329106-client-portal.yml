@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.174 Visita Rapida
+name: Auditar SST Android v3.29.175 Sugestoes Offline
 # Clean rebuild v3.29.145 after protected productivity consolidation
 # Rebuild v3.29.113 logo recovery
 
@@ -7,6 +7,10 @@ on:
   push:
     branches: [feature/client-panel-permissions-v329106]
     paths:
+      - 'tools/patch_offline_reasoning_v329175_v33098.py'
+      - 'feature_sources/offline_reasoning_v329175.dart'
+      - 'feature_sources/offline_report_inline_suggestions_v329175.dart'
+      - 'feature_sources/offline_reasoning_test_v329175.dart'
       - 'tools/patch_quick_visit_v329174_v33097.py'
       - 'feature_sources/quick_visit_screen_v329174_v33097.dart'
       - 'feature_sources/quick_visit_test_v329174_v33097.dart'
@@ -1336,6 +1340,15 @@ jobs:
           flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter test test/quick_visit_test.dart test/company_organization_test.dart
 
+      - name: Ampliar sugestoes offline com revisao e regras locais
+        run: |
+          set -euo pipefail
+          python3 tools/patch_offline_reasoning_v329175_v33098.py "$APP_DIR" android
+          cd "$APP_DIR"
+          dart format lib/services/offline_reasoning.dart lib/widgets/offline_report_inline_suggestions.dart test/offline_reasoning_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/offline_reasoning_test.dart test/offline_report_inline_suggestions_test.dart test/offline_report_knowledge_test.dart test/quick_visit_test.dart test/company_organization_test.dart
+
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
         env:
@@ -1400,12 +1413,12 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.174-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.174-Android.apk > dist/Auditar-SST-v3.29.174-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.175-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.175-Android.apk > dist/Auditar-SST-v3.29.175-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.174-Android-Visita-Rapida
+          name: Auditar-SST-v3.29.175-Android-Sugestoes-Offline
           path: dist/*
           retention-days: 30
 
