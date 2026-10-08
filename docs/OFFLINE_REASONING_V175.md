@@ -43,3 +43,11 @@ Esta versão amplia regras locais e reaproveitamento de modelos. Não interpreta
 - Não aprende pela digitação ou ao cancelar. Aprende automaticamente ao aplicar uma sugestão, sem interromper o registro enquanto grava localmente.
 - Para modelos sem regra forte, a revisão é necessária antes de aplicar. Descrições reutilizáveis sem regra guardam o título genérico, não o texto da empresa/obra.
 - Corrige condição de teste na qual aguardar a gravação antes de fechar o diálogo podia deixar o registro sem aplicação. A gravação local assíncrona deve ser conferida em teste físico.
+
+## Checklist de aceitação (teste físico)
+
+- No Android 360/412 px e no Windows, confirmar visualização de somente uma sugestão principal, duas linhas e ações que não ultrapassem a tela.
+- Diferenciar extintor obstruído, desobstruído e sem sinalização; sem estado observável, pedir detalhes.
+- Com o aparelho sem internet, aplicar uma sugestão e editar outra; reabrir e conferir reaproveitamento local.
+- Confirmar que cancelar não cria modelo e que o sistema não modifica a descrição dos fatos informados.
+- Verificar que modelos não são compartilhados entre aparelhos sem atualização específica de sincronização.
