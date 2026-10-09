@@ -188,7 +188,7 @@ class _WorksiteFollowupScreenState extends State<WorksiteFollowupScreen> {
               type,input.text.trim()));
           },child:const Text('Registrar')),
         ])));
-    input.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) => input.dispose());
     if(result==null||!mounted)return;
     await _save(_record.copyWith(log:[result,..._record.log].take(80).toList()));
   }
