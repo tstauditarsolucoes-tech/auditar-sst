@@ -7,7 +7,7 @@
 const CLIENT_TREATMENT_SHEET_V1='AUDITAR_TRATATIVAS_V1';
 
 function clientTreatmentAuthorized_(token,companyId,topicId) {
-  const actor=clientPortalAuthorizedUser_(token);
+  const actor=clientTreatmentActorV2_(token);
   const company=String(companyId||'').trim();
   const topic=String(topicId||'').trim();
   if(!actor)return {ok:false,code:'SESSION_INVALID',message:'Entre novamente.'};
@@ -59,7 +59,7 @@ function clientPortalTreatmentList(token,companyId,topicId) {
       author:body.author||'Participante',role:String(row[5]||''),
       type:body.type||'mensagem',message:body.message||'',
       responsible:body.responsible||'',dueDate:body.dueDate||'',
-      decision:body.decision||''
+      decision:body.decision||'',actionId:body.actionId||''
     };
   });
   return {ok:true,companyId:auth.companyId,topicId:auth.topicId,
@@ -75,7 +75,7 @@ function clientPortalTreatmentPost(token,companyId,topicId,input) {
   const type=String(item.type||'mensagem').trim();
   const clientTypes=['mensagem','esclarecimento','proposta_prazo'];
   const staffTypes=['mensagem','resposta_tecnica','solicitar_verificacao',
-    'revisao_tecnica','encaminhamento','reuniao','eficacia_confirmada'];
+    'revisao_tecnica','encaminhamento','reuniao','eficacia_confirmada','vinculo_acao'];
   const allowed=auth.actor.role==='cliente'?clientTypes:staffTypes;
   if(allowed.indexOf(type)<0)return {ok:false,code:'TYPE_NOT_ALLOWED',
     message:'Essa decisão exige avaliação técnica da Auditar.'};
@@ -94,8 +94,14 @@ function clientPortalTreatmentPost(token,companyId,topicId,input) {
   const decision=String(item.decision||'').trim();
   if(decision.length>80||(decision&&auth.actor.role==='cliente'))
     return {ok:false,code:'TYPE_NOT_ALLOWED'};
+  const actionId=String(item.actionId||'').trim();
+  if(actionId&&(type!=='vinculo_acao'||auth.actor.role==='cliente'||
+      actionId.length>120||!/^[a-zA-Z0-9_-]+$/.test(actionId)))
+    return {ok:false,code:'INVALID_ACTION_LINK',message:'Identificador de ação inválido.'};
+  if(type==='vinculo_acao'&&!actionId)
+    return {ok:false,code:'ACTION_REQUIRED',message:'Informe a referência da ação existente.'};
   const event={
-    type:type,message:message,
+    actionId:actionId,type:type,message:message,
     author:String(auth.actor.name||'Participante').slice(0,120),
     responsible:responsible,dueDate:dueDate,decision:decision
   };
@@ -127,4 +133,125 @@ function clientPortalTreatmentPost(token,companyId,topicId,input) {
       String(auth.actor.id||''),auth.actor.role,JSON.stringify(event)]);
     return {ok:true,id:id,at:date};
   } finally {lock.releaseLock();}
+}
+
+/** Permite TST no aplicativo com token nativo; cliente somente no portal. */
+function clientTreatmentActorV2_(token) {
+  const value=String(token||'').trim();
+  if(!value)return null;
+  const portal=clientPortalAuthorizedUser_(value);
+  if(portal)return portal;
+  const staff=authUserFromToken_(value,false);
+  if(!staff||staff.active!==true||['admin','tecnico'].indexOf(staff.role)<0||
+     staff.sessionPlatform==='client_portal')return null;
+  return staff;
+}
+
+/**
+ * Caixa de entrada: indicador de "aguardando resposta" pelo ultimo autor.
+ * Nao representa leitura confirmada nem envia notificacoes push.
+ */
+function clientPortalTreatmentInbox(token,companyFilter) {
+  const actor=clientTreatmentActorV2_(token);
+  if(!actor)return {ok:false,code:'SESSION_INVALID',message:'Entre novamente.'};
+  const filter=String(companyFilter||'').trim();
+  if(filter&&(!userCanAccessCompany_(actor,filter)||
+    !clientPortalFindSnapshot_(filter)))
+    return {ok:false,code:'ACCESS_DENIED'};
+  if(actor.role==='cliente'&&!clientPortalPermissions_(actor.clientPermissions).tratativas)
+    return {ok:false,code:'ACCESS_DENIED'};
+  const sheet=clientTreatmentSheetV1_();
+  const last=sheet.getLastRow();
+  // Janela limitada; constatações e PDFs nunca são alterados.
+  const start=Math.max(2,last-4999);
+  const rows=last<2?[]:sheet.getRange(start,1,last-start+1,7).getValues();
+  const byTopic={};
+  rows.forEach(function(row){
+    const company=String(row[0]||''),topic=String(row[1]||'');
+    if(filter&&company!==filter)return;
+    if(!company||!topic||!userCanAccessCompany_(actor,company))return;
+    const key=company+'|'+topic;
+    let body={};
+    try{body=JSON.parse(String(row[6]||'{}'));}catch(_){return;}
+    if(!byTopic[key])byTopic[key]={companyId:company,topicId:topic,
+      total:0,events:[],updatedAt:'',lastRole:'',lastMessage:'',
+      lastType:'',lastAuthor:'',dueDate:'',actionId:''};
+    const rec=byTopic[key];rec.total++;
+    const at=String(row[3]||'');
+    rec.events.push({at:at,role:String(row[5]||''),type:String(body.type||''),
+      dueDate:String(body.dueDate||''),actionId:String(body.actionId||'')});
+    if(at>=rec.updatedAt){
+      rec.updatedAt=at;
+      rec.lastRole=String(row[5]||'');
+      rec.lastType=String(body.type||'');
+      rec.lastMessage=String(body.message||'').slice(0,240);
+      rec.lastAuthor=String(body.author||'').slice(0,120);
+    }
+  });
+  const cache={};
+  function authorized(company,topic) {
+    const key=company+'|'+topic;
+    if(!cache[company]){
+      const snapshot=clientPortalFindSnapshot_(company);
+      if(!snapshot){cache[company]={eligible:false,names:{}};}
+      else{
+        const titles={GERAL:'Conversa geral'};
+        const records=clientPortalRows_(snapshot.payload,
+          ['openNonConformities','nonConformities','ncs','ncRecords','nonConformityRows']);
+        records.forEach(function(row){if(row.id)titles[row.id]=(row.title||row.description||row.id).slice(0,180);});
+        cache[company]={eligible:true,names:titles,
+          companyName:String((snapshot.payload.company||{}).name||'Empresa').slice(0,140)};
+      }
+    }
+    const data=cache[company];
+    if(!data.eligible||!Object.prototype.hasOwnProperty.call(data.names,topic))return null;
+    if(actor.role==='cliente'&&topic!=='GERAL'&&
+      !clientPortalPermissions_(actor.clientPermissions).naoConformidades)return null;
+    return {title:data.names[topic],companyName:data.companyName};
+  }
+  const now=new Date().toISOString().slice(0,10);
+  const result=[];
+  Object.keys(byTopic).forEach(function(key){
+    const rec=byTopic[key],visible=authorized(rec.companyId,rec.topicId);
+    if(!visible)return;
+    const finished=rec.lastType==='eficacia_confirmada';
+    const awaiting=finished?'Concluída':
+      rec.lastRole==='cliente'?'Aguardando Auditar':
+      rec.lastType==='solicitar_verificacao'?'Aguardando verificação':'Aguardando cliente';
+    for(let i=rec.events.length-1;i>=0;i--){
+      const ev=rec.events[i];
+      if(!rec.dueDate&&ev.dueDate&&ev.role!=='cliente')rec.dueDate=ev.dueDate;
+      if(!rec.actionId&&ev.actionId)rec.actionId=ev.actionId;
+    }
+    result.push({companyId:rec.companyId,companyName:visible.companyName,
+      topicId:rec.topicId,title:visible.title,updatedAt:rec.updatedAt,
+      lastType:rec.lastType,lastMessage:rec.lastMessage,lastAuthor:rec.lastAuthor,
+      lastRole:rec.lastRole,status:awaiting,events:rec.total,
+      dueDate:rec.dueDate,actionId:rec.actionId,
+      overdue:!finished&&rec.dueDate&&rec.dueDate<now});
+  });
+  result.sort(function(a,b){return b.updatedAt.localeCompare(a.updatedAt);});
+  const all=result.length;
+  return {ok:true,threads:result.slice(0,120),total:all,
+    truncated:all>120||last>5001,
+    summary:{
+      awaitingAuditar:result.filter(function(x){return x.status==='Aguardando Auditar';}).length,
+      awaitingClient:result.filter(function(x){return x.status==='Aguardando cliente';}).length,
+      awaitingVerification:result.filter(function(x){return x.status==='Aguardando verificação';}).length,
+      overdue:result.filter(function(x){return x.overdue;}).length
+    }};
+}
+
+/** Rota isolada para o aplicativo (Android/Windows), sem modificar device_sync. */
+function clientTreatmentAppV2_(request) {
+  const r=request&&typeof request==='object'?request:{};
+  const token=String(r.authToken||'');
+  const user=clientTreatmentActorV2_(token);
+  if(!user||['admin','tecnico'].indexOf(user.role)<0)
+    return {ok:false,code:'ACCESS_DENIED'};
+  const mode=String(r.mode||'inbox');
+  if(mode==='inbox')return clientPortalTreatmentInbox(token,r.companyId);
+  if(mode==='list')return clientPortalTreatmentList(token,r.companyId,r.topicId);
+  if(mode==='post')return clientPortalTreatmentPost(token,r.companyId,r.topicId,r.record);
+  return {ok:false,code:'INVALID_MODE'};
 }
