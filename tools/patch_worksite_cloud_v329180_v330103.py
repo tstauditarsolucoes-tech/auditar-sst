@@ -15,6 +15,8 @@ protected=[p for base in ('lib','painel_web_google_apps_script')
 before={p:hashlib.sha256(p.read_bytes()).hexdigest() for p in protected}
 shutil.copyfile(repo/'feature_sources/worksite_followup_cloud_service_v329180.dart',service)
 shutil.copyfile(repo/'feature_sources/worksite_followup_screen_v329180.dart',screen)
+shutil.copyfile(repo/'feature_sources/worksite_followup_cloud_test_v329180.dart',
+  root/'test/worksite_followup_cloud_test.dart')
 s=code.read_text(encoding='utf-8')
 anchor="    if (request.action === 'offline_knowledge_sync_v1') {"
 assert s.count(anchor)==1 and "'worksite_followup_sync_v1'" not in s
