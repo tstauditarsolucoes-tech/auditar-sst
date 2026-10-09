@@ -171,9 +171,13 @@ class OfflineKnowledgeCloudService {
       for(final r in (state['pending'] is List?state['pending'] as List:const []))
         if(r is Map) Map<String,dynamic>.from(r)];
     final sent=pending.take(20).toList();
+    final cacheFile=await _file('offline_knowledge_cache');
+    final oldCache=await _read(cacheFile);
+    final oldCursor=oldCache['nextCursor'];
+    final cursor=oldCursor is int&&oldCursor>0&&oldCursor<=10000?oldCursor:0;
     final response=await AppsScriptHttp.postJson(Uri.parse(endpoint),
       {'action':'offline_knowledge_sync_v1','authToken':AuthService.sessionToken,
-       'changes':sent,'cursor':0,'limit':80},timeout:const Duration(seconds:25));
+       'changes':sent,'cursor':cursor,'limit':80},timeout:const Duration(seconds:25));
     if(response.statusCode!=200) throw StateError('Central indisponível.');
     final body=jsonDecode(response.body);
     if(body is! Map||body['ok']!=true||body['accepted'] is! List||
@@ -190,19 +194,25 @@ class OfflineKnowledgeCloudService {
       queue.removeWhere((m)=>accepted.contains(m['id'])&&sent.any((s)=>
         s['id']==m['id']&&s['risk']==m['risk']&&s['recommendation']==m['recommendation']));
       if(outbox!=null) await _write(outbox,{...latest,'pending':queue});
-      final cacheFile=await _file('offline_knowledge_cache');
       if(cacheFile==null) return;
-      final previous=await _read(cacheFile);
-      final byId=<String,Map<String,dynamic>>{
-        for(final r in (previous['items'] is List?previous['items'] as List:const []))
-          if(r is Map&&r['id'] is String) r['id'] as String:Map<String,dynamic>.from(r)
-      };
+      final byId=<String,Map<String,dynamic>>{};
+      // Keep newest models first. Never discard the most recent page while
+      // loading older pages of a large shared library.
       for(final r in body['items'] as List) {
-        if(r is! Map || _shareable(r)==null) continue;
+        if(r is! Map||_shareable(r)==null) continue;
         byId[r['id'].toString()]=Map<String,dynamic>.from(r);
       }
+      for(final r in (oldCache['items'] is List?oldCache['items'] as List:const [])) {
+        if(r is Map&&r['id'] is String)
+          byId.putIfAbsent(r['id'] as String,()=>Map<String,dynamic>.from(r));
+      }
+      final ordered=byId.values.toList()..sort((a,b) =>
+        (b['updatedAt']??'').toString().compareTo((a['updatedAt']??'').toString()));
+      final rawNext=body['nextCursor'];
+      final next=rawNext is int&&rawNext>cursor&&rawNext<=10000?rawNext:0;
       await _write(cacheFile,{
-        'items':byId.values.toList().reversed.take(120).toList(),
+        'items':ordered.take(120).toList(),
+        'nextCursor':next,
         'lastSuccess':DateTime.now().toUtc().toIso8601String()
       });
     });
