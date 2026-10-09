@@ -235,6 +235,52 @@ class _WorksiteFollowupScreenState extends State<WorksiteFollowupScreen> {
     }
   }
 
+
+  Future<void> _restoreLocalBackup() async {
+    if(_saving||_cloudBusy)return;
+    setState(()=>_cloudBusy=true);
+    try {
+      final raw=await AppDatabase.instance.getSetting(
+        WorksiteFollowupStore.backupKey(widget.company.id));
+      if(raw.isEmpty) {
+        _cloudNotice('Ainda não existe uma cópia anterior para restaurar.');
+        return;
+      }
+      final data=jsonDecode(raw);
+      if(data is! Map)throw StateError('Cópia anterior inválida.');
+      final backup=WorksiteFollowup.fromMap(Map<String,dynamic>.from(data));
+      if(!mounted)return;
+      final restore=await showDialog<bool>(context:context,builder:(dialog)=>
+        AlertDialog(
+          title:const Text('Restaurar acompanhamento local?'),
+          content:const Text('A cópia anterior será restaurada somente nesta obra. '
+            'O acompanhamento atual ficará salvo como cópia de segurança. '
+            'Não haverá envio automático à Central.'),
+          actions:[
+            TextButton(onPressed:()=>Navigator.pop(dialog,false),
+              child:const Text('Cancelar')),
+            FilledButton(onPressed:()=>Navigator.pop(dialog,true),
+              child:const Text('Restaurar cópia')),
+          ]));
+      if(restore!=true||!mounted)return;
+      await AppDatabase.instance.setSetting(
+        WorksiteFollowupStore.backupKey(widget.company.id)+'_before_restore',
+        jsonEncode(_currentForm().toMap()));
+      await WorksiteFollowupStore.save(widget.company.id,backup);
+      if(!mounted)return;
+      _responsible.text=backup.responsible;
+      _notes.text=backup.notes;
+      _nextVisit.text=backup.nextVisit;
+      _targetDate.text=backup.targetDate;
+      setState(()=>_record=backup);
+      _cloudNotice('Cópia local restaurada. Nenhum dado foi enviado à Central.');
+    } catch (_) {
+      _cloudNotice('Não foi possível restaurar a cópia anterior. A versão atual foi mantida.');
+    } finally {
+      if(mounted)setState(()=>_cloudBusy=false);
+    }
+  }
+
   /// Remote import requires explicit confirmation and leaves a local backup.
   Future<void> _receiveWorksite() async {
     if(_saving||_cloudBusy)return;
@@ -374,6 +420,10 @@ class _WorksiteFollowupScreenState extends State<WorksiteFollowupScreen> {
                 onPressed:_cloudBusy||_saving?null:_receiveWorksite,
                 icon:const Icon(Icons.cloud_download_outlined),
                 label:const Text('Consultar versão da Central')),
+              TextButton.icon(
+                onPressed:_cloudBusy||_saving?null:_restoreLocalBackup,
+                icon:const Icon(Icons.restore_outlined),
+                label:const Text('Restaurar cópia local')),
             ]),
             const SizedBox(height:6),
             const Text('O envio é manual nesta etapa. Fora da internet, o registro permanece local. Não altera fotos, relatórios ou a sincronização SST.'),
