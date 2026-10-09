@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.101 Sugestoes Offline
+name: Auditar SST Windows v3.30.102 Sugestoes Offline
 # Clean rebuild v3.30.64 after protected productivity consolidation
 
 on:
@@ -1631,6 +1631,20 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha testes obra' }
           Pop-Location
 
+      - name: Monitorar aprendizado online sem alterar sincronizacao
+        shell: pwsh
+        run: |
+          python tools/patch_knowledge_status_v329179_v330102.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na tela status biblioteca' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/screens/offline_knowledge_status_screen.dart lib/screens/quick_visit_screen.dart lib/services/offline_knowledge_cloud_service.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha formatação status biblioteca' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha análise status biblioteca' }
+          flutter test test/worksite_followup_test.dart test/offline_reasoning_test.dart test/quick_visit_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha testes status biblioteca' }
+          Pop-Location
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
@@ -1645,6 +1659,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force dist/windows | Out-Null
           Copy-Item "$env:APP_DIR/painel_web_google_apps_script/CompanyGroupsSync.gs" 'dist/windows/CompanyGroupsSync.gs.txt' -Force
+          Copy-Item "$env:APP_DIR/painel_web_google_apps_script/OfflineKnowledgeCloud.gs" 'dist/windows/OfflineKnowledgeCloud.gs.txt' -Force
           Copy-Item 'docs/GRUPOS_COMPARTILHADOS_IMPLANTACAO.md' 'dist/windows/Grupos-Compartilhados-Instrucoes.md' -Force
           Copy-Item "$env:GITHUB_WORKSPACE/docs/HOMOLOGACAO_RELEASE_AUDITAR_SST.md" 'dist/windows/HOMOLOGACAO_RELEASE.md' -Force
           New-Item -ItemType Directory -Force dist/windows/Central-Painel-Cliente | Out-Null
@@ -1656,8 +1671,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.101-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.101-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.101-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.102-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.102-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.102-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -1672,12 +1687,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.101',
+            'AppVersion=3.30.102',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.101',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.102',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -1694,11 +1709,11 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.101.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.101.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.102.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.102.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.101-Windows-Sugestoes-Offline
+          name: Auditar-SST-v3.30.102-Windows-Sugestoes-Offline
           path: dist/windows/*
           retention-days: 30
 
