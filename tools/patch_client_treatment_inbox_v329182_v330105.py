@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Tratativas in app + Central route: additive, protecting sync, media, DB, auth and IA."""
 from pathlib import Path
-import hashlib,shutil,sys
+import hashlib,shutil,sys,re
 root=Path(sys.argv[1]); platform=sys.argv[2]
 assert platform in ('android','windows')
 repo=Path(__file__).resolve().parents[1]
@@ -31,18 +31,22 @@ s=home.read_text(encoding='utf-8')
 imp="import 'client_treatment_inbox_screen.dart';\n"
 assert imp not in s
 s=imp+s
-anchor="        onMore: _showModules,\n      ),\n    ]);"
-assert s.count(anchor)==1
-s=s.replace(anchor,"""        onMore: _showModules,
-      ),
-      Card(child:ListTile(
-        leading:const Icon(Icons.forum_outlined),
-        title:const Text('Caixa de entrada Auditar'),
-        subtitle:const Text('Respostas de clientes, prazos e reuniões'),
-        trailing:const Icon(Icons.chevron_right),
-        onTap:()=>_open(const ClientTreatmentInboxScreen()),
-      )),
-    ]);""",1)
+# Quick Visit replaces the Home layout; insert after its VisitStartPanel
+# callback without depending on Dart formatter indentation for the full list.
+matches=list(re.finditer(r'(?m)^[ \t]*onMore:[ \t]*_showModules,[ \t]*\n([ \t]*)\),[ \t]*$',s))
+assert len(matches)==1 and s.count('onMore: _showModules,')==1, (
+  'Home: expected one VisitStartPanel for the Auditar inbox'
+)
+insert="""\n      Card(
+        child: ListTile(
+          leading: const Icon(Icons.forum_outlined),
+          title: const Text('Caixa de entrada Auditar'),
+          subtitle: const Text('Respostas de clientes, prazos e reuniões'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => _open(const ClientTreatmentInboxScreen()),
+        ),
+      ),"""
+s=s[:matches[0].end()]+insert+s[matches[0].end():]
 home.write_text(s,encoding='utf-8',newline='\n')
 s=quick.read_text(encoding='utf-8')
 s="import 'client_treatment_inbox_screen.dart';\n"+s
