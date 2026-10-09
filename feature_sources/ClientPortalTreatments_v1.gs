@@ -246,6 +246,24 @@ function clientPortalTreatmentInbox(token,companyFilter) {
     }};
 }
 
+/** Lista apenas os assuntos que estão publicados no Painel desta empresa. */
+function clientPortalTreatmentTopics(token,companyId) {
+  const authorized=clientTreatmentAuthorized_(token,companyId,'GERAL');
+  if(!authorized.ok)return authorized;
+  const snap=clientPortalFindSnapshot_(authorized.companyId);
+  const records=clientPortalRows_(snap.payload,
+    ['openNonConformities','nonConformities','ncs','ncRecords','nonConformityRows']);
+  const topics=[{id:'GERAL',title:'Comunicação geral'}];
+  const seen={GERAL:true};
+  records.forEach(function(row){
+    if(!row.id||seen[row.id])return;
+    seen[row.id]=true;
+    topics.push({id:row.id,title:(row.title||row.description||'Não conformidade').slice(0,160),
+      sector:(row.sector||'').slice(0,100)});
+  });
+  return {ok:true,topics:topics.slice(0,251)};
+}
+
 /** Rota isolada para o aplicativo (Android/Windows), sem modificar device_sync. */
 function clientTreatmentAppV2_(request) {
   const r=request&&typeof request==='object'?request:{};
@@ -255,6 +273,7 @@ function clientTreatmentAppV2_(request) {
     return {ok:false,code:'ACCESS_DENIED'};
   const mode=String(r.mode||'inbox');
   if(mode==='inbox')return clientPortalTreatmentInbox(token,r.companyId);
+  if(mode==='topics')return clientPortalTreatmentTopics(token,r.companyId);
   if(mode==='list')return clientPortalTreatmentList(token,r.companyId,r.topicId);
   if(mode==='post')return clientPortalTreatmentPost(token,r.companyId,r.topicId,r.record);
   return {ok:false,code:'INVALID_MODE'};
