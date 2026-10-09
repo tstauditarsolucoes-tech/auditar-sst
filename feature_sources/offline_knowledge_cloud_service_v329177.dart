@@ -201,7 +201,27 @@ class OfflineKnowledgeCloudService {
         if(r is! Map || _shareable(r)==null) continue;
         byId[r['id'].toString()]=Map<String,dynamic>.from(r);
       }
-      await _write(cacheFile,{'items':byId.values.toList().reversed.take(120).toList()});
+      await _write(cacheFile,{
+        'items':byId.values.toList().reversed.take(120).toList(),
+        'lastSuccess':DateTime.now().toUtc().toIso8601String()
+      });
     });
   }
+  static Future<OfflineKnowledgeStatus> status() async {
+    final outbox=await _read(await _file('offline_knowledge_outbox'));
+    final cache=await _read(await _file('offline_knowledge_cache'));
+    final pending=outbox['pending'] is List ? (outbox['pending'] as List).length : 0;
+    final cached=cache['items'] is List ? (cache['items'] as List).length : 0;
+    return OfflineKnowledgeStatus(
+      pending:pending,cached:cached,lastSuccess:(cache['lastSuccess']??'').toString());
+  }
+
+}
+
+
+class OfflineKnowledgeStatus {
+  const OfflineKnowledgeStatus({
+    required this.pending,required this.cached,required this.lastSuccess});
+  final int pending,cached;
+  final String lastSuccess;
 }
