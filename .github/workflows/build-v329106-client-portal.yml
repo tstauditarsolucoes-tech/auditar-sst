@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.180 Sugestoes Offline
+name: Auditar SST Android v3.29.182 Sugestoes Offline
 # Clean rebuild v3.29.145 after protected productivity consolidation
 # Rebuild v3.29.113 logo recovery
 
@@ -1468,15 +1468,18 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/Code.gs" dist/Central-Painel-Cliente/Code.gs.txt
           cp "$APP_DIR/painel_web_google_apps_script/MultiUser.gs" dist/Central-Painel-Cliente/MultiUser.gs.txt
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.gs" dist/Central-Painel-Cliente/ClientPortal.gs.txt
+          for module in OfflineKnowledgeCloud WorksiteFollowupCloud ClientPortalTreatments; do
+            cp "$APP_DIR/painel_web_google_apps_script/${module}.gs" "dist/Central-Painel-Cliente/${module}.gs.txt"
+          done
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.180-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.180-Android.apk > dist/Auditar-SST-v3.29.180-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.182-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.182-Android.apk > dist/Auditar-SST-v3.29.182-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.180-Android-Sugestoes-Offline
+          name: Auditar-SST-v3.29.182-Android-Sugestoes-Offline
           path: dist/*
           retention-days: 30
 
