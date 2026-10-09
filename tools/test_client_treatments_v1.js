@@ -17,6 +17,7 @@ const ctx={
  ensureAuthStorage_:()=>({getSheetByName:()=>rows.length?sheet:null,
    insertSheet:()=>sheet}),
  clientPortalAuthorizedUser_:()=>actor,
+ authUserFromToken_:()=>null,
  userCanAccessCompany_:(user,id)=>user.role==='admin'||user.companyIds.includes(id),
  clientPortalPermissions_:perms=>perms||{},
  clientPortalFindSnapshot_:id=>data[id]||null,
@@ -44,8 +45,16 @@ assert.equal(post('vale','exaustores',{type:'solicitar_verificacao',requestId:'i
 assert.equal(post('vale','exaustores',{type:'encaminhamento',requestId:'id_staff_124',
  message:'Definir plano de ação e responsável.',dueDate:'2026-10-17',responsible:'Operações'}).ok,true);
 assert.equal(post('vale','exaustores',{type:'eficacia_confirmada',requestId:'id_staff_125',
- message:'Correção verificada in loco por técnico responsável.'}).ok,true);
+ message:'Correção verificada em visita técnica com registro documental e novo teste.',
+ verificationMethod:'vistoria_in_loco'}).ok,true);
 assert.equal(list().events.length,4);
+const inbox=ctx.clientPortalTreatmentInbox('token','vale');
+assert.equal(inbox.ok,true);
+assert.equal(inbox.summary.awaitingAuditar,0);
+assert.equal(inbox.threads.find(t=>t.topicId==='exaustores').status,'Concluída');
+assert.equal(ctx.clientPortalTreatmentInbox('token','other').code,'ACCESS_DENIED');
+assert.equal(post('vale','escada',{type:'eficacia_confirmada',requestId:'id_staff_noproof',
+ message:'Concluída sem prova'}).code,'VERIFICATION_REQUIRED');
 assert.ok(rows.some(r=>String(r[6]).startsWith('{')));
 actor={id:'cliente-a',role:'cliente',companyIds:['vale'],clientPermissions:{tratativas:false,naoConformidades:true}};
 assert.equal(list().code,'ACCESS_DENIED');
