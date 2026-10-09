@@ -89,6 +89,41 @@ class _ClientTreatmentInboxScreenState extends State<ClientTreatmentInboxScreen>
         title:(row['title']??'Tratativa').toString(),request:request)));
     if(mounted)await load();
   }
+  Future<void> startNew() async {
+    if(widget.companyId.isEmpty)return;
+    try {
+      final response=await request('topics',companyId:widget.companyId);
+      final topics=<Map<String,dynamic>>[];
+      for(final value in response['topics'] is List?response['topics'] as List:const []){
+        if(value is Map)topics.add(Map<String,dynamic>.from(value));
+      }
+      if(!mounted)return;
+      final chosen=await showModalBottomSheet<Map<String,dynamic>>(
+        context:context,isScrollControlled:true,
+        builder:(dialog)=>SafeArea(child:ListView(
+          shrinkWrap:true,padding:const EdgeInsets.all(15),
+          children:[
+            const Text('Iniciar tratativa',style:TextStyle(
+              fontSize:18,fontWeight:FontWeight.bold)),
+            const Text('Selecione uma ocorrência publicada ou a conversa geral.'),
+            const SizedBox(height:8),
+            for(final item in topics)ListTile(
+              leading:const Icon(Icons.forum_outlined),
+              title:Text((item['title']??'Ocorrência').toString()),
+              subtitle:Text((item['sector']??'').toString()),
+              onTap:()=>Navigator.of(dialog).pop(item)),
+          ])));
+      if(chosen!=null&&mounted)await open({
+        'companyId':widget.companyId,
+        'topicId':chosen['id'],
+        'title':chosen['title'],
+      });
+    }catch(e){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content:Text('Não foi possível carregar os assuntos: '+e.toString())));
+    }
+  }
+
   @override
   Widget build(BuildContext context)=>Scaffold(
     appBar:AppBar(title:Text(widget.companyId.isEmpty?
@@ -102,6 +137,9 @@ class _ClientTreatmentInboxScreenState extends State<ClientTreatmentInboxScreen>
           fontSize:19,fontWeight:FontWeight.w800)),
         const Text('Mensagens por ocorrência, sem alterar as constatações originais.'),
         const SizedBox(height:10),
+        if(widget.companyId.isNotEmpty)OutlinedButton.icon(
+          onPressed:startNew,icon:const Icon(Icons.add_comment_outlined),
+          label:const Text('Iniciar tratativa da empresa')),
         Wrap(spacing:7,runSpacing:7,children:[
           Chip(label:Text('Auditar: '+count('awaitingAuditar').toString())),
           Chip(label:Text('Cliente: '+count('awaitingClient').toString())),
