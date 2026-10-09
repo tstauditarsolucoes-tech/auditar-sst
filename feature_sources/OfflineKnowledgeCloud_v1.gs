@@ -70,7 +70,8 @@ function offlineKnowledgeSyncV1_(request) {
       id:String(r[0]), ruleId:String(r[1]), title:String(r[2]),
       description:String(r[3]), risk:String(r[4]),
       possibleConsequence:String(r[5]), recommendation:String(r[6]),
-      priority:String(r[7]), version:Number(r[8] || 0), source:'manual_cloud_approved'
+      priority:String(r[7]), version:Number(r[8] || 0),
+      updatedAt:String(r[9] || ''), source:'manual_cloud_approved'
     }));
     return {ok:true,accepted:accepted,conflicts:conflicts,items:items,
       nextCursor:cursor+items.length < visible.length ? cursor+items.length : null,
