@@ -59,7 +59,7 @@ function clientPortalTreatmentList(token,companyId,topicId) {
       author:body.author||'Participante',role:String(row[5]||''),
       type:body.type||'mensagem',message:body.message||'',
       responsible:body.responsible||'',dueDate:body.dueDate||'',
-      decision:body.decision||'',actionId:body.actionId||''
+      decision:body.decision||'',actionId:body.actionId||'',verificationMethod:body.verificationMethod||''
     };
   });
   return {ok:true,companyId:auth.companyId,topicId:auth.topicId,
@@ -100,8 +100,12 @@ function clientPortalTreatmentPost(token,companyId,topicId,input) {
     return {ok:false,code:'INVALID_ACTION_LINK',message:'Identificador de ação inválido.'};
   if(type==='vinculo_acao'&&!actionId)
     return {ok:false,code:'ACTION_REQUIRED',message:'Informe a referência da ação existente.'};
+  const verification=String(item.verificationMethod||'').trim();
+  if(type==='eficacia_confirmada'&&
+     (['vistoria_in_loco','teste_funcional','evidencia_analisada','documental'].indexOf(verification)<0||message.length<40))
+    return {ok:false,code:'VERIFICATION_REQUIRED',message:'Informe como foi feita a verificação e detalhe o resultado (mínimo de 40 caracteres).'};
   const event={
-    actionId:actionId,type:type,message:message,
+    verificationMethod:verification,actionId:actionId,type:type,message:message,
     author:String(auth.actor.name||'Participante').slice(0,120),
     responsible:responsible,dueDate:dueDate,decision:decision
   };
