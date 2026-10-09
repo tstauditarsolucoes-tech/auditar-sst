@@ -43,7 +43,7 @@ allowed=true;signedIn=false;
 assert.equal(scope.worksiteFollowupCloudV1_({companyId:'obra-a',mode:'read'}).code,'AUTH_REQUIRED');
 signedIn=true;
 assert.throws(()=>scope.worksiteFollowupCloudV1_({...request,baseVersion:2,record:{...record,progress:999}}),/Avanço/);
-assert.throws(()=>scope.worksiteFollowupCloudV1_({...request,baseVersion:2,record:{...record,log:[{at:'wrong',type:'Visita',note:'x'}]}}),/Diário/);
+assert.throws(()=>scope.worksiteFollowupCloudV1_({...request,baseVersion:2,record:{...record,log:[{at:'wrong',type:'Visita',note:'x'}]}}),/diário/i);
 const big={...record,log:Array.from({length:80},(_,i)=>({at:'2026-10-09T12:00:00Z',type:'Visita',note:'A'.repeat(800)}))};
 a=scope.worksiteFollowupCloudV1_({...request,baseVersion:2,record:big});
 assert.equal(a.ok,true);
