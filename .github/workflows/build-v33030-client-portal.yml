@@ -1661,6 +1661,20 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha testes obras online' }
           Pop-Location
 
+      - name: Validar comunicacao com cliente e linha do tempo
+        shell: pwsh
+        run: |
+          node tools/test_client_treatments_v1.js
+          if ($LASTEXITCODE -ne 0) { throw 'Falha nos testes de tratativas' }
+          python tools/patch_client_treatment_timeline_v1.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na integracao de linha do tempo' }
+          python tools/test_client_treatment_portal_patch_v1.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao do Painel' }
+          Push-Location "$env:APP_DIR"
+          python -c "from pathlib import Path; p=Path('pubspec.yaml');s=p.read_text();assert s.count('version: 3.30.103+290')==1;p.write_text(s.replace('version: 3.30.103+290','version: 3.30.104+291'))"
+          if ($LASTEXITCODE -ne 0) { throw 'Versao Windows inconsistente' }
+          Pop-Location
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
