@@ -179,7 +179,7 @@ class _ClientTreatmentInboxScreenState extends State<ClientTreatmentInboxScreen>
         const Text('Indicadores atualizados ao consultar a Central. '
           'Este recurso ainda não envia notificações push.',
           style:TextStyle(fontSize:12)),
-      ]))),
+      ])),
   );
 }
 typedef TreatmentRequest=Future<Map<String,dynamic>> Function(
