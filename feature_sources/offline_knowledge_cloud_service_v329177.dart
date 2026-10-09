@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import '../database.dart';
 import 'apps_script_http.dart';
 import 'auth_service.dart';
+import 'offline_reasoning.dart';
 
 /// Fila e cache separados: não usa device_sync, não guarda fotos ou ocorrências.
 /// A gravação local existente é preservada mesmo que a Central esteja offline.
@@ -16,7 +17,7 @@ class OfflineKnowledgeCloudService {
   static String? get _user {
     final id=(AuthService.currentUser?.id ?? '')
       .replaceAll(RegExp(r'[^a-zA-Z0-9_-]'),'_');
-    return id.isEmpty ? null : id.substring(0,id.length.clamp(0,64));
+    return id.isEmpty ? null : id.substring(0,id.length>64?64:id.length);
   }
   static Future<File?> _file(String name) async {
     final id=_user;
@@ -69,11 +70,13 @@ class OfflineKnowledgeCloudService {
     final id=''+(raw['id'] ?? '').toString();
     final rule=_rule(id);
     if(rule==null||id.length>190) return null;
+    final technical=OfflineReasoning.rules.where((r)=>r.id==rule).firstOrNull;
+    if(technical==null) return null;
     String take(String k,int max) {
       final s=''+(raw[k] ?? '').toString().trim().replaceAll(RegExp(r'\s+'),' ');
       return s.length<=max ? s : '';
     }
-    final title=take('title',110),desc=take('description',220),
+    final title=technical.title,desc=take('description',220),
       risk=take('risk',350),consequence=take('possibleConsequence',350),
       recommendation=take('recommendation',650),priority=take('priority',15);
     if(title.isEmpty||desc.isEmpty||risk.isEmpty||recommendation.isEmpty||
@@ -193,7 +196,7 @@ class OfflineKnowledgeCloudService {
         if(r is! Map || _shareable(r)==null) continue;
         byId[r['id'].toString()]=Map<String,dynamic>.from(r);
       }
-      await _write(cacheFile,{'items':byId.values.take(120).toList()});
+      await _write(cacheFile,{'items':byId.values.toList().reversed.take(120).toList()});
     });
   }
 }
