@@ -183,7 +183,7 @@ class _ClientTreatmentInboxScreenState extends State<ClientTreatmentInboxScreen>
   );
 }
 typedef TreatmentRequest=Future<Map<String,dynamic>> Function(
- String mode,{String companyId,String topicId,Map<String,dynamic>? record});
+ String mode,{required String companyId,required String topicId,Map<String,dynamic>? record});
 class _TreatmentConversation extends StatefulWidget {
   const _TreatmentConversation({required this.companyId,required this.topicId,
     required this.title,required this.request});
