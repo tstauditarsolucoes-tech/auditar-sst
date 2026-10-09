@@ -1,16 +1,19 @@
-# Auditar SST — versão atual
+# Auditar SST — versões em validação
 
-## Em validação — Obras compartilhadas com segurança
+**Android v3.29.182+324 / Windows v3.30.105+292** — Gestão de Tratativas e Linha do Tempo V2.
 
-**Android v3.29.180+322 / Windows v3.30.103+290**. Branch feature/client-panel-permissions-v329106, PR #15 em Draft.
+- Nova caixa de entrada Auditar no aplicativo, por empresa e assunto; cliente responde no Painel do Cliente.
+- Indicadores por último responsável pela resposta, prazos de acompanhamento e verificação; sem push.
+- Respostas rápidas, registro de reunião, parecer técnico e referência ao Plano de Ação já existente.
+- Fotos por NC continuam no módulo de evidências preexistente; não muda mídia ou sincronização.
+- Confirmação de eficácia exclusiva do técnico e dependente de descrição/método. A NC original NÃO é encerrada automaticamente.
+- PR #15 DRAFT, sem merge e sem implantação do Apps Script/Central.
+- Compilações em execução; não declarar homologadas sem aprovação CI e testes físicos.
 
-- Acompanhamento individual de obras ampliado para envio e consulta manuais pela Central, com token interno, acesso por empresa e revisão para prevenir conflitos. Cópia local pode ser restaurada.
-- Novos serviços isolados; não foram alterados o núcleo de sincronização de dados, fotos, banco, autenticação ou relatórios.
-- A biblioteca técnica online também permanece em homologação. Nenhum Apps Script foi publicado.
-- Versões 180/103 aguardam CI, testes físicos e implantação autorizada do backend.
-- Último Android aprovado anteriormente: v3.29.179, run 37928949581.
+Instruções: docs/TRATATIVAS_LINHA_DO_TEMPO_CLIENTE_V2.md.
 
 ---
+
 ## Histórico — Versão anteriormente validada
 
 ## Linha vigente — Visita rápida
