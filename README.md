@@ -1,5 +1,18 @@
 # Auditar — Sistemas SST e EPI
 
+> ## 🚧 VERSÃO ATUAL DO AUDITAR SST
+> **Android:** `v3.29.158+300`  
+> **Windows:** `v3.30.77+264`  
+> **Branch:** `feature/client-panel-permissions-v329106`  
+> **PR:** `#15` — permanece em rascunho para revisão; não publicar a Central automaticamente.  
+> **Status:** ✅ CI validada — Android e Windows concluídos com sucesso em 03/10/2026. A linha atual mantém a **Ronda** no **Padrão Auditar 3** e a **biblioteca técnica offline** agora também sugere modelos diretamente no modo Ronda a partir da descrição digitada. O recurso é local e complementar: não substitui IA, preenchimento manual nem funções existentes.
+>
+> O código final é montado pelos workflows atuais a partir da base + patches incrementais.  
+> **Regra permanente:** não alterar, substituir ou refatorar funcionalidades que já estejam funcionando sem autorização expressa. Toda melhoria deve ser aditiva, isolada e de mínimo impacto. Preservar especialmente sincronização, banco, autenticação, IA, mídia/fotos, Drive e Central.
+>
+> Consulte [CURRENT_VERSION.md](CURRENT_VERSION.md) antes de iniciar qualquer alteração. Estado validado atual: integração da Ronda offline no commit `544e490d2c82342e6d839b74a1ddb5fa9bf41f1b`, Android run `37167428008`, Windows run `37167429861`.
+
+
 Repositório de desenvolvimento dos sistemas da Auditar Soluções.
 
 ## Produtos
@@ -9,7 +22,7 @@ Aplicativo Flutter para Android e Windows, com operação offline-first e sincro
 
 Principais módulos: empresas, vistorias, não conformidades, planos de ação, trabalhadores, treinamentos, alertas, CIPA, checklists, Rotina SST, Agenda SST, melhorias e indicadores.
 
-**Versão em estabilização:** `3.22.0+80`
+**Linha histórica de estabilização:** `3.22.0+80` (não representa a versão atual)
 
 ### Gestão EPI
 Os módulos EPI permanecem isolados nas pastas `auditar-epi*` e `gestao-epi-master*`. Alterações nesses módulos não devem modificar o build do Auditar SST.

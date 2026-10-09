@@ -1,0 +1,49 @@
+name: DIAG company delete admin
+
+on:
+  push:
+    branches:
+      - feature/client-panel-permissions-v329106
+    paths:
+      - '.github/workflows/diag-company-delete-admin.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Montar base Android para diagnostico
+        run: |
+          set -euo pipefail
+          APP_DIR=app/Auditar_SST_v1_5_dashboard
+          bash tools/assemble_android_v32966.sh "$APP_DIR"
+          python tools/patch_logo_extinguisher_media_v32967.py "$APP_DIR"
+          python tools/patch_training_records_media_v32968_v3306.py "$APP_DIR" android
+          python tools/patch_internal_management_training_v32969_v3307.py "$APP_DIR" android
+          python tools/patch_management_panel_logo_theme_v32970_v3308.py "$APP_DIR" android
+      - name: Mostrar exclusao atual de empresa
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('app/Auditar_SST_v1_5_dashboard')
+          for rel, needles in [
+              ('lib/database.dart', ['deleteCompanyIfUnused','deleteCompany','company_id','inspection_id','worker_id','election_id','answer_id','action_id']),
+              ('lib/screens/companies_screen.dart', ['deleteCompanyIfUnused','excluir','Excluir','Desative','vistorias','PopupMenuItem']),
+              ('lib/services/device_sync_service.dart', ['delete','deleted','tombstone','companies','company_id']),
+          ]:
+              p=root/rel
+              print('\n###', rel)
+              text=p.read_text(encoding='utf-8')
+              lines=text.splitlines()
+              hits=set()
+              for i,line in enumerate(lines):
+                  if any(n.lower() in line.lower() for n in needles):
+                      for j in range(max(0,i-16), min(len(lines),i+24)):
+                          hits.add(j)
+              for j in sorted(hits):
+                  print(f'{j+1}: {lines[j]}')
+          PY
