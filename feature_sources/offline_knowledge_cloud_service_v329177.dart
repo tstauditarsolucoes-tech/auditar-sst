@@ -76,13 +76,16 @@ class OfflineKnowledgeCloudService {
       final s=''+(raw[k] ?? '').toString().trim().replaceAll(RegExp(r'\s+'),' ');
       return s.length<=max ? s : '';
     }
+    // Canonical cloud key never contains the user's free-text title.
+    final sharedId='auto-'+base64Url.encode(
+      utf8.encode(rule+'|'+technical.title.toLowerCase())).replaceAll('=','');
     final title=technical.title,desc=take('description',220),
       risk=take('risk',350),consequence=take('possibleConsequence',350),
       recommendation=take('recommendation',650),priority=take('priority',15);
     if(title.isEmpty||desc.isEmpty||risk.isEmpty||recommendation.isEmpty||
        !['Baixa','Média','Alta','Crítica'].contains(priority)||
        ![title,desc,risk,consequence,recommendation].every(_safe)) return null;
-    return {'id':id,'ruleId':rule,'title':title,'description':desc,'risk':risk,
+    return {'id':sharedId,'ruleId':rule,'title':title,'description':desc,'risk':risk,
       'possibleConsequence':consequence,'recommendation':recommendation,
       'priority':priority,'baseVersion':revision};
   }
@@ -98,7 +101,9 @@ class OfflineKnowledgeCloudService {
     await _locked(() async {
       final state=await _read(outbox);
       final cache=await cachedModels();
-      final id=''+(local['id']??'').toString();
+      final canonical=_shareable(local);
+      if(canonical==null) return;
+      final id=canonical['id'] as String;
       final pending=<Map<String,dynamic>>[
         for(final r in (state['pending'] is List?state['pending'] as List:const []))
           if(r is Map) Map<String,dynamic>.from(r)];
