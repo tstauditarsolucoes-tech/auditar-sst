@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.177 Sugestoes Offline
+name: Auditar SST Android v3.29.178 Sugestoes Offline
 # Clean rebuild v3.29.145 after protected productivity consolidation
 # Rebuild v3.29.113 logo recovery
 
@@ -1359,6 +1359,15 @@ jobs:
           flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter test test/offline_reasoning_test.dart test/quick_visit_test.dart test/company_organization_test.dart
 
+      - name: Acompanhar obras individualmente e testar os atalhos
+        run: |
+          set -euo pipefail
+          python3 tools/patch_worksite_followup_v329178_v330101.py "$APP_DIR" android
+          cd "$APP_DIR"
+          dart format lib/screens/quick_visit_screen.dart lib/screens/worksite_followup_screen.dart test/worksite_followup_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/worksite_followup_test.dart test/quick_visit_test.dart test/offline_reasoning_test.dart
+
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
         env:
@@ -1423,12 +1432,12 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.177-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.177-Android.apk > dist/Auditar-SST-v3.29.177-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.178-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.178-Android.apk > dist/Auditar-SST-v3.29.178-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.177-Android-Sugestoes-Offline
+          name: Auditar-SST-v3.29.178-Android-Sugestoes-Offline
           path: dist/*
           retention-days: 30
 
