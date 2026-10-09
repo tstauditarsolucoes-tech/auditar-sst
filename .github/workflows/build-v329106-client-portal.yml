@@ -1396,6 +1396,17 @@ jobs:
           cd "$APP_DIR"
           python3 -c "from pathlib import Path; p=Path('pubspec.yaml');s=p.read_text();assert s.count('version: 3.29.180+322')==1;p.write_text(s.replace('version: 3.29.180+322','version: 3.29.181+323'))"
 
+      - name: Validar caixa de entrada Auditar e tratativas
+        run: |
+          set -euo pipefail
+          node tools/test_client_treatments_v1.js
+          python3 tools/patch_client_treatment_inbox_v329182_v330105.py "$APP_DIR" android
+          python3 tools/test_client_treatment_portal_patch_v1.py "$APP_DIR"
+          cd "$APP_DIR"
+          dart format lib/screens/client_treatment_inbox_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/worksite_followup_cloud_test.dart test/worksite_followup_test.dart test/quick_visit_test.dart
+
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
         env:
