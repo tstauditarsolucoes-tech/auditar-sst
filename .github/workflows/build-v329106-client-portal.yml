@@ -7,6 +7,7 @@ on:
   push:
     branches: [feature/client-panel-permissions-v329106]
     paths:
+      - 'tools/patch_client_treatment_inbox_v329182_v330105.py'
       - 'tools/patch_offline_reasoning_v329175_v33098.py'
       - 'feature_sources/offline_reasoning_v329175.dart'
       - 'feature_sources/offline_report_inline_suggestions_v329175.dart'
