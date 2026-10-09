@@ -48,6 +48,10 @@ assert.equal(post('vale','exaustores',{type:'eficacia_confirmada',requestId:'id_
  message:'Correção verificada em visita técnica com registro documental e novo teste.',
  verificationMethod:'vistoria_in_loco'}).ok,true);
 assert.equal(list().events.length,4);
+const topics=ctx.clientTreatmentAppV2_({authToken:'token',mode:'topics',companyId:'vale'});
+assert.equal(topics.ok,true);
+assert.ok(topics.topics.some(t=>t.id==='exaustores'));
+assert.equal(ctx.clientTreatmentAppV2_({authToken:'token',mode:'topics',companyId:'other'}).code,'ACCESS_DENIED');
 const inbox=ctx.clientPortalTreatmentInbox('token','vale');
 assert.equal(inbox.ok,true);
 assert.equal(inbox.summary.awaitingAuditar,0);
