@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.106 Raciocinio de Campo Sem GS
+name: Auditar SST Windows v3.30.107 Captura Sequencial Sem GS
 # Clean rebuild v3.30.64 after protected productivity consolidation
 
 on:
@@ -6,6 +6,7 @@ on:
     branches: [feature/client-panel-permissions-v329106]
     paths:
       - 'tools/patch_client_treatment_inbox_v329182_v330105.py'
+      - 'tools/patch_fast_capture_v329184_v330107.py'
       - 'tools/patch_offline_reasoning_v329175_v33098.py'
       - 'feature_sources/offline_reasoning_v329175.dart'
       - 'feature_sources/offline_report_inline_suggestions_v329175.dart'
@@ -1694,6 +1695,21 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha nos testes Flutter' }
           Pop-Location
 
+      - name: Captura sequencial e falhas independentes sem GS
+        shell: pwsh
+        run: |
+          python tools/patch_fast_capture_v329184_v330107.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha patch de captura' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/screens/quick_visit_screen.dart lib/services/offline_reasoning.dart test/offline_reasoning_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha formatacao' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha analise' }
+          flutter test test/offline_reasoning_test.dart test/quick_visit_test.dart test/offline_report_inline_suggestions_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha testes' }
+          Pop-Location
+          if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.107+294")) { throw 'Versao incorreta' }
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
@@ -1736,7 +1752,7 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.103',
+            'AppVersion=3.30.107',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
@@ -1762,7 +1778,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.105-Windows-Sugestoes-Offline
+          name: Auditar-SST-v3.30.107-Windows-Sugestoes-Offline
           path: dist/windows/*
           retention-days: 30
 

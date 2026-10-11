@@ -66,6 +66,25 @@ void main() {
       expect(results.first.description, item.key);
     });
   }
+  test('não apaga falha ativa por outra já corrigida', () {
+    final r=OfflineReasoning.analyze(
+      'extintor bloqueado, já regularizado; botão de emergência não funciona');
+    expect(r.map((a)=>a.rule.id).toList(), ['stop']);
+  });
+  test('histórico corrigido dentro da própria frase continua inativo', () {
+    expect(OfflineReasoning.analyze('extintor bloqueado, mas já foi regularizado'),isEmpty);
+    expect(OfflineReasoning.analyze('extintor bloqueado; regularizado'),isEmpty);
+  });
+  test('não confunde comando de partida com parada de emergência', () {
+    final r=OfflineReasoning.analyze(
+      'botão de partida inoperante e botão de emergência não funcionou');
+    expect(r.map((a)=>a.rule.id).toSet(),{'control','stop'});
+  });
+  test('negação de outra falha não elimina NC independente', () {
+    final r=OfflineReasoning.analyze(
+      'extintor sem placa, botão de emergência não está inoperante');
+    expect(r.map((a)=>a.rule.id).toList(), ['extinguisher-sign']);
+  });
   const safe = [
     'extintor desobstruído', 'extintor não está obstruído',
     'extintor não bloqueado', 'extintor sem obstrução',

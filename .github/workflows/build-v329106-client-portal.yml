@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.183 Raciocinio de Campo Sem GS
+name: Auditar SST Android v3.29.184 Captura Sequencial Sem GS
 # Clean rebuild v3.29.145 after protected productivity consolidation
 # Rebuild v3.29.113 logo recovery
 
@@ -8,6 +8,7 @@ on:
     branches: [feature/client-panel-permissions-v329106]
     paths:
       - 'tools/patch_client_treatment_inbox_v329182_v330105.py'
+      - 'tools/patch_fast_capture_v329184_v330107.py'
       - 'tools/patch_offline_reasoning_v329175_v33098.py'
       - 'feature_sources/offline_reasoning_v329175.dart'
       - 'feature_sources/offline_report_inline_suggestions_v329175.dart'
@@ -1408,6 +1409,17 @@ jobs:
           flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter test test/worksite_followup_cloud_test.dart test/worksite_followup_test.dart test/quick_visit_test.dart
 
+      - name: Captura sequencial e falhas independentes sem GS
+        run: |
+          set -euo pipefail
+          python3 tools/patch_fast_capture_v329184_v330107.py "$APP_DIR" android
+          cd "$APP_DIR"
+          dart format lib/screens/quick_visit_screen.dart lib/services/offline_reasoning.dart test/offline_reasoning_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/offline_reasoning_test.dart test/quick_visit_test.dart test/offline_report_inline_suggestions_test.dart
+          cd "$GITHUB_WORKSPACE"
+          grep -Fq "version: 3.29.184+326" "$APP_DIR/pubspec.yaml"
+
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
         env:
@@ -1475,12 +1487,12 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.182-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.182-Android.apk > dist/Auditar-SST-v3.29.182-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.184-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.184-Android.apk > dist/Auditar-SST-v3.29.184-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.182-Android-Sugestoes-Offline
+          name: Auditar-SST-v3.29.184-Android-Sugestoes-Offline
           path: dist/*
           retention-days: 30
 

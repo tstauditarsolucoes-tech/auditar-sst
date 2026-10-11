@@ -31,8 +31,9 @@ class OfflineReasoning {
   static List<OfflineAssessment> analyze(String query, {List<String> context = const []}) {
     if (query.length > 3000) return const [];
     final normalized=normalize(query);
-    if (has('corrigido|corrigida|regularizado|regularizada|reparado|reparada|resolvido|resolvida', normalized)) return const [];
-    final clauses=normalized.split(RegExp('[;.!?]|, |,? mas | e (?=(?:$_objects)\\b)'));
+    // Correção de um equipamento não apaga falha de outro.
+    // Manter "mas já corrigido" junto do fato histórico.
+    final clauses=normalized.split(RegExp('(?:[;.!?,]\\s*|\\s+(?:e|mas)\\s+)(?=(?:$_objects)\\b)'));
     final out=<OfflineAssessment>[];
     final ctx=normalize(context.join(' '));
     final segment=has('obra|construtora|canteiro',ctx+' '+normalized)?'Obra':has('padaria|panificadora|masseira',ctx+' '+normalized)?'Padaria':has('ceramica|telha',ctx+' '+normalized)?'Cerâmica':has('laticinio|leite',ctx+' '+normalized)?'Laticínio':has('oficina',ctx+' '+normalized)?'Oficina':'Geral';
@@ -40,7 +41,7 @@ class OfflineReasoning {
       for(final clause in clauses) {
         if (explicitSafeOrUncertain(clause)) continue;
         if (!has(rule.entity,clause) || !has(rule.fault,clause)) continue;
-        if (rule.exclude.isNotEmpty && has(rule.exclude,normalized)) continue;
+        if (rule.exclude.isNotEmpty && has(rule.exclude,clause)) continue;
         // Histórico de correção não é convertido em uma falha atual.
         if (has('corrigido|corrigida|regularizado|regularizada|reparado|reparada|ja resolvido|ja resolvida',clause)) continue;
         final equipment=RegExp(rule.entity).firstMatch(clause)?.group(0)??rule.title;

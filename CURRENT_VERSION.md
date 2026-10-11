@@ -1,6 +1,15 @@
 # Auditar SST — versões em validação
 
-**Android v3.29.182+324 / Windows v3.30.105+292** — Gestão de Tratativas e Linha do Tempo V2.
+**ALVO EM CI: Android v3.29.184+326 / Windows v3.30.107+294** — captura sequencial e falhas independentes sem GS.
+
+- Ao voltar do formulário de NC na Visita Rápida, ação opcional "Novo registro" reaproveita a empresa e o formulário/salvamento existentes; não presume que houve salvamento.
+- Regras offline separam NC ativa de outro equipamento já regularizado, sem compartilhar negações ou exclusões entre as orações.
+- Banco, serviços protegidos, GS em produção, fotos e histórico intocados neste patch. PR #15 Draft, sem deploy ou merge.
+- **Ainda sem homologação CI/física para esta versão.**
+- Última versão com sucesso confirmado: Android v3.29.182+324 run 37996663284, Windows v3.30.105+292 run 37996663312, commit 3d87062a8d11953ad6fe2dac8d49b0381624127b.
+- Linha intermediária v3.29.183 / v3.30.106 no commit 32cf4936924dea86ede7d8514603a0e6c140cdc4 contém refinamentos para andaimes e precisa de sua própria conferência.
+
+---
 
 - Nova caixa de entrada Auditar no aplicativo, por empresa e assunto; cliente responde no Painel do Cliente.
 - Indicadores por último responsável pela resposta, prazos de acompanhamento e verificação; sem push.
