@@ -67,7 +67,7 @@ s=s.replace(anchor,anchor+"\n  renderTreatmentInboxV2();",1)
 portal.write_text(s,encoding='utf-8',newline='\n')
 pub=root/'pubspec.yaml'
 s=pub.read_text(encoding='utf-8')
-old,new=('3.29.181+323','3.29.182+324') if platform=='android' else ('3.30.104+291','3.30.105+292')
+old,new=('3.29.181+323','3.29.183+325') if platform=='android' else ('3.30.104+291','3.30.106+293')
 assert s.count('version: '+old)==1,('Unexpected version',old)
 pub.write_text(s.replace('version: '+old,'version: '+new),encoding='utf-8',newline='\n')
 for p,digest in before.items():

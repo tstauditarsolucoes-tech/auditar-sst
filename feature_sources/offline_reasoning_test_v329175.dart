@@ -37,6 +37,10 @@ void main() {
     'betoneira sem proteção':'guard',
     'manutenção da máquina sem bloqueio':'lock',
     'andaime sobre tijolo':'scaffold-base',
+    'andaime sem sapata':'scaffold-support',
+    'andaime apoiado sobre madeira no piso de cerâmica':'scaffold-support',
+    'andaime sem barras diagonais':'scaffold-brace',
+    'andaime balançando durante o uso':'scaffold-movement',
     'andaime sem guarda-corpo':'scaffold-guard',
     'andaime com acesso improvisado':'scaffold-access',
     'talabarte preso no próprio andaime':'anchor',
@@ -75,12 +79,29 @@ void main() {
     'verificar se extintor está bloqueado',
     'sensor da porta não testado, talvez inoperante',
     'sensor de temperatura inoperante',
+    'andaime não está balançando',
+    'andaime talvez esteja balançando',
+    'verificar se andaime está sem sapata',
+    'andaime sem barras diagonais, situação regularizada',
   ];
   for(final query in safe) {
     test('não confirma falha: $query', () {
       expect(OfflineReasoning.analyze(query), isEmpty);
     });
   }
+  test('andaime: apoio, travamento e oscilação não são laudo automático', () {
+    final apoio=OfflineReasoning.analyze('andaime apoiado sobre madeira')[0];
+    final contraventamento=OfflineReasoning.analyze('andaime sem barras diagonais')[0];
+    final oscilacao=OfflineReasoning.analyze('andaime balançando')[0];
+    expect(apoio.rule.id,'scaffold-support');
+    expect(apoio.rule.action,contains('não confirma irregularidade'));
+    expect(contraventamento.rule.action,contains('antes de concluir'));
+    expect(oscilacao.rule.id,'scaffold-movement');
+    expect(apoio.rule.reference,'NR-18');
+    expect(apoio.priority('Não informado'),'Alta');
+    expect(oscilacao.priority('Sim'),'Crítica');
+    expect(OfflineReasoning.analyze('andaime montado; guarda-corpo não foi verificado').map((x)=>x.rule.id).contains('scaffold-guard'),isFalse);
+  });
   test('separa falhas e não atribui placa ao botão', () {
     final results = OfflineReasoning.analyze('extintor sem placa e botão de emergência inoperante');
     expect(results.map((a)=>a.rule.id).toSet(), {'stop','extinguisher-sign'});
