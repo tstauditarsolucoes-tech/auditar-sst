@@ -1,3 +1,13 @@
+# Diário completo — cópia local para acompanhamento SST (13/10/2026)
+
+**Em validação CI:** Android v3.29.190+332 / Windows v3.30.113+300.
+- Diários anteriores + 80 recentes podem ser reunidos, em ordem de data, para cópia manual pelo TST.
+- Não gera NC, não marca itens como conformes e não envia nada automaticamente.
+- Mantidos os arquivos de histórico local, a Central V1 e todos os serviços SST existentes.
+- PR #15 Draft; não publicar GS. Testes reais Android/Windows ainda necessários.
+
+---
+
 # Diário de obras — preservação dos registros anteriores (13/10/2026)
 
 Android **v3.29.189+331** / Windows **v3.30.112+299** — código em validação.

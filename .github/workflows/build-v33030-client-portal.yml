@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.112 Diário Protegido
+name: Auditar SST Windows v3.30.113 Diário Completo
 # Clean rebuild v3.30.64 after protected productivity consolidation
 
 on:
@@ -11,6 +11,9 @@ on:
       - 'tools/patch_nr18_field_v329187_v330110.py'
       - 'tools/audit_navigation_inventory_v1.py'
       - 'tools/patch_worksite_diary_archive_v329189_v330112.py'
+      - 'tools/patch_worksite_diary_export_v329190_v330113.py'
+      - 'tools/regression_worksite_diary_export_v329190_v330113.py'
+      - 'feature_sources/worksite_diary_export_test_v329190.dart'
       - 'tools/regression_worksite_diary_archive_v329189_v330112.py'
       - 'feature_sources/worksite_diary_archive_test_v329189.dart'
       - 'tools/patch_visit_navigation_v329188_v330111.py'
@@ -1812,6 +1815,23 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha testes histórico' }
           Pop-Location
 
+      - name: Copia explicita do diario completo da obra
+        shell: pwsh
+        run: |
+          python tools/patch_worksite_diary_export_v329190_v330113.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha patch diario completo' }
+          python tools/regression_worksite_diary_export_v329190_v330113.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressão diario completo' }
+          Copy-Item feature_sources/worksite_diary_export_test_v329190.dart "$env:APP_DIR/test/worksite_diary_export_test.dart"
+          Push-Location $env:APP_DIR
+          dart format lib/screens/worksite_followup_screen.dart test/worksite_diary_export_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha format diário completo' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha analyze diário completo' }
+          flutter test test/worksite_diary_export_test.dart test/worksite_diary_archive_test.dart test/worksite_followup_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha testes diário completo' }
+          Pop-Location
+
       - name: Inventario de navegação e rotas do aplicativo montado
         shell: pwsh
         run: |
@@ -1855,8 +1875,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.112-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.112-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.112-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.113-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.113-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.113-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -1871,12 +1891,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.112',
+            'AppVersion=3.30.113',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.112',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.113',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -1893,11 +1913,11 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.112.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.112.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.113.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.113.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.112-Windows-Diario
+          name: Auditar-SST-v3.30.113-Windows-Diario-Completo
           path: dist/windows/*
           retention-days: 30
 
