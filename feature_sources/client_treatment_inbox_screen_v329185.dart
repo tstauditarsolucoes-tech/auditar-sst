@@ -210,7 +210,7 @@ class _ClientTreatmentInboxScreenState extends State<ClientTreatmentInboxScreen>
             title:Text(item['title'].toString(),maxLines:2,overflow:TextOverflow.ellipsis),
             subtitle:Text((item['blocked']==true?'Revisar: ':'Aguardando confirmação. ')+(item['error']??'').toString()),
             onTap:()=>showDialog<void>(context:context,builder:(dialog)=>AlertDialog(
-              title:Text(item['title'].toString()),content:SingleChildScrollView(child:Text(item['record']['message'].toString())),
+              title:Text(item['title'].toString()),content:SingleChildScrollView(child:SelectableText(item['record']['message'].toString())),
               actions:[TextButton(onPressed:()=>Navigator.pop(dialog),child:const Text('Fechar'))])),
             trailing:IconButton(tooltip:'Remover da fila',icon:const Icon(Icons.delete_outline),
               onPressed:()=>discardPending(item))),
@@ -312,6 +312,7 @@ class _TreatmentConversationState extends State<_TreatmentConversation> {
     });}
   }
   void quick(String next,String text){
+    if(sending)return;
     setState(()=>type=next);note.text=text;
   }
   Future<void> send() async {
@@ -342,7 +343,7 @@ class _TreatmentConversationState extends State<_TreatmentConversation> {
       final remaining=await treatmentOutbox.list(scope.key);
       if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(
         remaining.isEmpty?'Envio confirmado pela Central.':'Mensagem guardada. Consulte os envios pendentes na caixa de entrada.')));
-      if(mounted)await load();
+      if(mounted&&remaining.isEmpty)await load();
     }catch(e){
       if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(
         saved?'Mensagem guardada; confirmação pendente. Consulte a caixa de entrada.':'Não foi possível guardar a mensagem: '+e.toString())));
@@ -390,17 +391,17 @@ class _TreatmentConversationState extends State<_TreatmentConversation> {
         onChanged:(v){if(v!=null)setState(()=>type=v);},
         decoration:const InputDecoration(labelText:'Tipo',border:OutlineInputBorder())),
       const SizedBox(height:8),
-      TextField(controller:note,maxLength:1600,maxLines:4,
+      TextField(readOnly:sending,controller:note,maxLength:1600,maxLines:4,
         decoration:const InputDecoration(labelText:'Mensagem',
           border:OutlineInputBorder())),
       if(type=='encaminhamento'||type=='reuniao')...[
-        TextField(controller:responsible,maxLength:120,
+        TextField(readOnly:sending,controller:responsible,maxLength:120,
           decoration:const InputDecoration(labelText:'Responsável')),
-        TextField(controller:date,
+        TextField(readOnly:sending,controller:date,
           decoration:const InputDecoration(labelText:'Prazo AAAA-MM-DD')),
       ],
       if(type=='vinculo_acao')
-        TextField(controller:actionId,maxLength:120,
+        TextField(readOnly:sending,controller:actionId,maxLength:120,
           decoration:const InputDecoration(labelText:'ID da ação existente')),
       if(type=='eficacia_confirmada')DropdownButtonFormField<String>(
         initialValue:verification,
