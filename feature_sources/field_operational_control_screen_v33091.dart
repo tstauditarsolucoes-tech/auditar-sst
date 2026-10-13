@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../brand.dart';
 import '../database.dart';
 import '../models.dart';
+import '../services/auth_service.dart';
 import '../services/correction_recurrence_detector.dart';
 import '../services/device_sync_service.dart';
 import '../services/field_operational_priority_service.dart';
@@ -92,19 +93,27 @@ class _FieldOperationalControlScreenState
     }
     try {
       final db = AppDatabase.instance;
-      final loadedCompanies = await db.getCompanies();
+      final userId=AuthService.currentUser?.id;
+      final loadedCompanies=(await db.getCompanies()).where((c)=>
+        c.active&&AuthService.canAccessCompany(c.id)).toList();
       if (companyId.isNotEmpty &&
           !loadedCompanies.any((company) => company.id == companyId)) {
         companyId = '';
       }
       final cid = selectedCompanyId;
-      final loadedNcs = await db.getNonConformityRows(companyId: cid);
-      final loadedActions = await db.getPendingActions(
-        companyId: cid,
-        includeCompleted: true,
-      );
-      final loadedInspections = await db.getInspectionHistory(companyId: cid);
-      final loadedTrainingSummary = await db.getTrainingSummary(companyId: cid);
+      if(cid!=null&&!AuthService.canAccessCompany(cid)){
+        throw StateError('Conta sem acesso à empresa.');
+      }
+      // Restricted profiles must select one company; ADM retains global view.
+      final noCompanyForRestricted=cid==null&&!AuthService.isAdmin;
+      final loadedNcs=noCompanyForRestricted?<Map<String,Object?>>[]
+        :await db.getNonConformityRows(companyId:cid);
+      final loadedActions=noCompanyForRestricted?<Map<String,Object?>>[]
+        :await db.getPendingActions(companyId:cid,includeCompleted:true);
+      final loadedInspections=noCompanyForRestricted?<Map<String,Object?>>[]
+        :await db.getInspectionHistory(companyId:cid);
+      final loadedTrainingSummary=noCompanyForRestricted?<String,int>{}
+        :await db.getTrainingSummary(companyId:cid);
 
       int pendingData = 0;
       int pendingMedia = 0;
@@ -173,8 +182,11 @@ class _FieldOperationalControlScreenState
       }
 
       if (!mounted) return;
+      if(!mounted||userId!=AuthService.currentUser?.id||
+         cid!=selectedCompanyId)return;
       setState(() {
-        companies = loadedCompanies;
+        companies = loadedCompanies.where((c)=>AuthService.canAccessCompany(c.id))
+          .toList(growable:false);
         ncs = loadedNcs;
         actions = loadedActions;
         inspections = loadedInspections;
@@ -276,6 +288,10 @@ class _FieldOperationalControlScreenState
   }
 
   void _openPriority(FieldVisitPriorityItem item) {
+    if(item.code!='sync'&&selectedCompanyId==null&&!AuthService.isAdmin){
+      _requireCompany();
+      return;
+    }
     switch (item.code) {
       case 'critical_nc':
       case 'open_nc':
@@ -313,8 +329,8 @@ class _FieldOperationalControlScreenState
   }
 
   String get connectionLabel {
-    if (online == null) return 'Conferindo conexão';
-    return online! ? 'Online' : 'Offline';
+    if (online == null) return 'Verificando rede';
+    return online!?'Rede disponível • Central não testada':'Rede indisponível';
   }
 
   String get lastInspectionLabel {
