@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.186 Fila Visível
+name: Auditar SST Android v3.29.187 Inspeção NR18
 # Clean rebuild v3.29.145 after protected productivity consolidation
 # Rebuild v3.29.113 logo recovery
 
@@ -10,6 +10,10 @@ on:
       - 'tools/patch_client_treatment_inbox_v329182_v330105.py'
       - 'tools/patch_treatment_outbox_v329185_v330108.py'
       - 'tools/patch_treatment_conversation_v329186_v330109.py'
+      - 'tools/patch_nr18_field_v329187_v330110.py'
+      - 'tools/regression_nr18_field_v329187_v330110.py'
+      - 'feature_sources/nr18_field_checklist_screen_v329187.dart'
+      - 'feature_sources/nr18_field_checklist_test_v329187.dart'
       - 'tools/regression_treatment_conversation_v329186_v330109.py'
       - 'feature_sources/client_treatment_inbox_screen_v329186.dart'
       - 'feature_sources/treatment_outbox_test_v329186.dart'
@@ -1448,6 +1452,16 @@ jobs:
           flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter test test/treatment_outbox_test.dart test/quick_visit_test.dart
 
+      - name: Roteiro NR-18 por etapa da obra
+        run: |
+          set -euo pipefail
+          python3 tools/patch_nr18_field_v329187_v330110.py "$APP_DIR" android
+          python3 tools/regression_nr18_field_v329187_v330110.py "$APP_DIR"
+          cd "$APP_DIR"
+          dart format lib/screens/nr18_field_checklist_screen.dart lib/screens/worksite_followup_screen.dart test/nr18_field_checklist_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/nr18_field_checklist_test.dart test/worksite_followup_test.dart test/worksite_followup_cloud_test.dart
+
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
         env:
@@ -1515,12 +1529,12 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.186-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.186-Android.apk > dist/Auditar-SST-v3.29.186-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.187-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.187-Android.apk > dist/Auditar-SST-v3.29.187-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.186-Android-Tratativas-Offline
+          name: Auditar-SST-v3.29.187-Android-Tratativas-Offline
           path: dist/*
           retention-days: 30
 

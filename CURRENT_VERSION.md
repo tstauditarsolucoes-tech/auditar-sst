@@ -1,3 +1,17 @@
+# NR-18 — Segurança em obras (13/10/2026)
+
+**Código em validação:** Android **v3.29.187+329** / Windows **v3.30.110+297**.
+
+- Módulo de obras: roteiro NR-18 offline por etapa, com 16 temas críticos, observações e status manual.
+- Nenhum item é presumido conforme. O checklist NÃO cria NC, fecha ações ou atesta cumprimento legal.
+- Itens não conformes permanecem visíveis mesmo após troca de etapa.
+- Rascunho local isolado por obra e usuário, sem misturar dados de construtoras.
+- Botões para Ronda com fotos, Vistoria e resumo copiável.
+- Sem alterações de sincronização, banco, auth, mídia, fotos, Drive, IA, Central e GS.
+- CI Android/Windows e testes físicos pendentes. PR #15 Draft, sem merge nem deploy.
+
+---
+
 # Auditar SST — fila visível na conversa (13/10/2026)
 
 **Em validação:** Android **3.29.186+328** / Windows **3.30.109+296**.
