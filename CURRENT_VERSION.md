@@ -1,3 +1,15 @@
+# Diário de obras — preservação dos registros anteriores (13/10/2026)
+
+Android **v3.29.189+331** / Windows **v3.30.112+299** — código em validação.
+- Registros antigos preservados em arquivo local por obra/técnico quando a lista de 80 é ultrapassada.
+- Central V1 continua recebendo no máximo 80 registros, sem mudança do GS.
+- Botão para consultar lançamentos anteriores; sem exclusão ou sobrescrita de histórico.
+- Não faz backup cloud do arquivo antigo; testes físicos ainda pendentes.
+- Login, banco SST, sincronização, mídia/fotos, IA e Apps Script existentes não alterados.
+- PR #15 permanece Draft, sem merge/deploy.
+
+---
+
 # Visita Rápida — alternância de tarefas (13/10/2026)
 
 **Versões em teste:** Android **v3.29.188+330** / Windows **v3.30.111+298**.
