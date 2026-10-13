@@ -1,3 +1,17 @@
+# Correção de repetição na cópia do Diário de Obras — 13/10/2026
+
+**Sem mudança de número de versão:** correção ainda na linha em validação
+Android v3.29.190 / Windows v3.30.113.
+
+- A cópia manual do diário reúne registros recentes e antigos sem repetir entradas idênticas que possam aparecer após consulta à Central.
+- A contagem apresentada ao usuário corresponde às entradas únicas copiadas.
+- A limpeza acontece **somente no texto de exportação**. Os diários locais, arquivos antigos e registros na Central não são modificados nem excluídos.
+- Teste adicional para histórico com sobreposição entre janela de 80 registros e arquivo anterior.
+- Nenhuma alteração em banco, sync, autenticação, fotos, IA, Drive ou Apps Script. PR #15 Draft.
+- Testes físicos Android/Windows e conferência final de novas compilações continuam necessários.
+
+---
+
 # Diário completo — cópia local para acompanhamento SST (13/10/2026)
 
 **Em validação CI:** Android v3.29.190+332 / Windows v3.30.113+300.

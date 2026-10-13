@@ -20,6 +20,17 @@ void main(){
     expect(current.length,80); // Export must not mutate existing lists.
     expect(old.length,21);
   });
+  test('a mesma visita vinda da Central e do arquivo aparece uma vez',(){
+    final current=[for(var i=21;i<101;i++)log(i)];
+    final old=[for(var i=0;i<=21;i++)log(i)];
+    final result=WorksiteDiaryArchive.exportText(
+      'Construtora Quality - Obra 35','Acabamento',current,old);
+    expect(result,contains('Total de lançamentos: 101'));
+    expect('Registro 21'.allMatches(result).length,1);
+    expect(current.length,80);
+    expect(old.length,22);
+    expect(WorksiteDiaryArchive.unique(current,old).length,101);
+  });
   test('sem entradas informa vazio, sem inventar registros',(){
     final result=WorksiteDiaryArchive.exportText('Obra A','Estrutura',[],[]);
     expect(result,contains('Nenhum lançamento registrado'));

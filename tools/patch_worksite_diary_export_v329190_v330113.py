@@ -32,7 +32,9 @@ fmt="""  /// Explicit text copy, including entries older than the Central V1 win
   /// Export doesn't mutate records, archive, cloud revision or permissions.
   static String exportText(String company,String phase,
       List<WorksiteLog> current,List<WorksiteLog> archived) {
-    final history=<WorksiteLog>[...current,...archived]
+    // Cloud and local archive may overlap after manual retrieval.
+    // Deduplicate only in this copy; never modify the saved SST diary.
+    final history=WorksiteDiaryArchive.unique(current,archived)
       ..sort((a,b)=>b.at.compareTo(a.at));
     final lines=<String>[
       'DIÁRIO COMPLETO DA OBRA — AUDITAR SST',
@@ -72,7 +74,7 @@ method="""  Future<void> _copyCompleteDiary() async {
       await Clipboard.setData(ClipboardData(text:full));
       if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content:Text('Diário completo copiado ('+
-          (_record.log.length+older.length).toString()+
+          WorksiteDiaryArchive.unique(_record.log,older).length.toString()+
           ' registros). Confira antes de compartilhar.')));
     } catch (_) {
       if(mounted)ScaffoldMessenger.of(context).showSnackBar(

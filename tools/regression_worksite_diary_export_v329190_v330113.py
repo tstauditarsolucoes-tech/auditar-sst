@@ -6,6 +6,8 @@ root=Path(sys.argv[1])
 screen=(root/'lib/screens/worksite_followup_screen.dart').read_text(encoding='utf-8')
 assert screen.count('class WorksiteDiaryArchive')==1
 assert 'static String exportText(' in screen
+assert 'WorksiteDiaryArchive.unique(current,archived)' in screen
+assert 'WorksiteDiaryArchive.unique(_record.log,older).length.toString()' in screen
 assert 'Future<void> _copyCompleteDiary()' in screen
 assert 'Clipboard.setData(ClipboardData(text:full))' in screen.replace(' ','').replace('\n','') or 'Clipboard.setData(ClipboardData(text: full))' in screen
 assert "Copiar diário completo" in screen
