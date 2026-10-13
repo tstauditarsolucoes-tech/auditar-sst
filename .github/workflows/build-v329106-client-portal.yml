@@ -17,6 +17,7 @@ on:
       - 'feature_sources/worksite_diary_archive_test_v329189.dart'
       - 'tools/patch_visit_navigation_v329188_v330111.py'
       - 'tools/regression_visit_navigation_v329188_v330111.py'
+      - 'tools/test_regression_visit_navigation_v329188_v330111.py'
       - 'feature_sources/visit_navigation_test_v329188.dart'
       - 'tools/test_navigation_inventory_v1.py'
       - 'tools/regression_nr18_field_v329187_v330110.py'
@@ -1474,6 +1475,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 tools/patch_visit_navigation_v329188_v330111.py "$APP_DIR" android
+          python3 tools/test_regression_visit_navigation_v329188_v330111.py
           python3 tools/regression_visit_navigation_v329188_v330111.py "$APP_DIR"
           cp feature_sources/visit_navigation_test_v329188.dart "$APP_DIR/test/visit_navigation_test.dart"
           cd "$APP_DIR"

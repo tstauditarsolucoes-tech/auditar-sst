@@ -15,6 +15,7 @@ on:
       - 'feature_sources/worksite_diary_archive_test_v329189.dart'
       - 'tools/patch_visit_navigation_v329188_v330111.py'
       - 'tools/regression_visit_navigation_v329188_v330111.py'
+      - 'tools/test_regression_visit_navigation_v329188_v330111.py'
       - 'feature_sources/visit_navigation_test_v329188.dart'
       - 'tools/test_navigation_inventory_v1.py'
       - 'tools/regression_nr18_field_v329187_v330110.py'
@@ -1780,6 +1781,8 @@ jobs:
         run: |
           python tools/patch_visit_navigation_v329188_v330111.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Falha patch navegação' }
+          python tools/test_regression_visit_navigation_v329188_v330111.py
+          if ($LASTEXITCODE -ne 0) { throw 'Falha teste regressão da navegação' }
           python tools/regression_visit_navigation_v329188_v330111.py "$env:APP_DIR"
           if ($LASTEXITCODE -ne 0) { throw 'Falha regressão navegação' }
           Copy-Item feature_sources/visit_navigation_test_v329188.dart "$env:APP_DIR/test/visit_navigation_test.dart" -Force
