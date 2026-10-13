@@ -1,3 +1,17 @@
+# Visita Rápida — alternância de tarefas (13/10/2026)
+
+**Versões em teste:** Android **v3.29.188+330** / Windows **v3.30.111+298**.
+
+- Quatro tarefas disponíveis dentro da empresa/obra selecionada: Visita, Rascunhos, Pendências e Relatórios.
+- A mudança de tarefa não troca a empresa, não altera os registros e não grava no banco de SST.
+- Ronda, Vistoria, NC, Plano de Ação, NR-18, Histórico, PDFs e Mais opções permanecem disponíveis.
+- Novos testes automatizados de responsividade em 360, 412 e 1280 px.
+- O auditor automático de navegação continua nos dois workflows.
+- Todos os serviços protegidos, banco, autenticação, sincronização, fotos, IA e GS preservados; PR #15 permanece Draft.
+- CI e testes físicos ainda precisam ser conferidos antes de distribuir. Os canais cloud exigem implantação autorizada do GS.
+
+---
+
 # NR-18 — Segurança em obras (13/10/2026)
 
 **Código em validação:** Android **v3.29.187+329** / Windows **v3.30.110+297**.
