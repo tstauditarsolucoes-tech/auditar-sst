@@ -6,7 +6,7 @@ import sys
 s=(Path(sys.argv[1])/"lib/screens/quick_visit_screen.dart").read_text(encoding="utf-8")
 # Dart formatter may wrap constructor arguments across lines; normalize
 # whitespace only for route-presence checks. Do not edit app source.
-compact=re.sub(r"\s+","",s)
+compact=re.sub(r",(?=\))","",re.sub(r"\s+","",s))
 assert s.count("class VisitIntentTabs extends StatelessWidget")==1
 assert "_activeIntent=widget.intent;" in s
 assert "selected:_activeIntent" in s

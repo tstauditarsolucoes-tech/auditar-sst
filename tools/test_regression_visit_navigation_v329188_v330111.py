@@ -23,7 +23,7 @@ if (_activeIntent == VisitIntent.reports) {}
 final a=ExpressRoundScreen(company: c);
 final b=NewInspectionScreen(
   initialCompany: c,
-  fieldMode: true
+  fieldMode: true,
 );
 final c=SafetyObservationFormScreen(company: c, sectors: sectors);
 final d=FieldOperationalControlScreen(initialCompanyId: c.id);
@@ -45,4 +45,10 @@ with tempfile.TemporaryDirectory() as d:
     negative=subprocess.run([sys.executable,str(regression),str(root)],
        capture_output=True,text=True)
     assert negative.returncode!=0, "Checker accepted missing route"
+    # A different fieldMode must still fail this guard.
+    target.write_text(fixture.replace("fieldMode: true,", "fieldMode: false,"),
+        encoding="utf-8")
+    negative_mode=subprocess.run([sys.executable,str(regression),str(root)],
+        capture_output=True,text=True)
+    assert negative_mode.returncode!=0, "Checker accepted incorrect field mode"
 print("NAVIGATION_REGRESSION_TEST_OK")
