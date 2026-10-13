@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.190 Diário Completo
+name: Auditar SST Android v3.29.191 NR18 Plano de Ação
 # Clean rebuild v3.29.145 after protected productivity consolidation
 # Rebuild v3.29.113 logo recovery
 
@@ -13,6 +13,8 @@ on:
       - 'tools/patch_nr18_field_v329187_v330110.py'
       - 'tools/audit_navigation_inventory_v1.py'
       - 'tools/audit_navigation_destinations_v1.py'
+      - 'tools/patch_nr18_action_plan_v329191_v330114.py'
+      - 'tools/regression_nr18_action_plan_v329191_v330114.py'
       - 'tools/test_audit_navigation_destinations_v1.py'
       - 'tools/patch_worksite_diary_archive_v329189_v330112.py'
       - 'tools/patch_worksite_diary_export_v329190_v330113.py'
@@ -1510,6 +1512,16 @@ jobs:
           flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter test test/worksite_diary_export_test.dart test/worksite_diary_archive_test.dart test/worksite_followup_test.dart
 
+      - name: NR18 atalho para Plano de Ação por obra
+        run: |
+          set -euo pipefail
+          python3 tools/patch_nr18_action_plan_v329191_v330114.py "$APP_DIR" android
+          python3 tools/regression_nr18_action_plan_v329191_v330114.py "$APP_DIR"
+          cd "$APP_DIR"
+          dart format lib/screens/nr18_field_checklist_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/nr18_field_checklist_test.dart test/visit_navigation_test.dart test/worksite_followup_test.dart
+
       - name: Inventario de navegação e rotas do aplicativo montado
         run: |
           set -euo pipefail
@@ -1522,7 +1534,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v329187-Auditoria-Navegacao-Android
+          name: Auditar-SST-v329191-Auditoria-Navegacao-Android
           path: dist/Auditoria-Navegacao/*
           if-no-files-found: ignore
           retention-days: 30
@@ -1594,12 +1606,12 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.190-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.190-Android.apk > dist/Auditar-SST-v3.29.190-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.191-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.191-Android.apk > dist/Auditar-SST-v3.29.191-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.190-Android-Diario-Completo
+          name: Auditar-SST-v3.29.191-Android-NR18-Acao
           path: dist/*
           retention-days: 30
 

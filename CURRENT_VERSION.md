@@ -1,3 +1,15 @@
+# Integração de campo NR-18 e Plano de Ação — 13/10/2026
+
+**Em validação CI:** Android **v3.29.191+333**, Windows **v3.30.114+301**.
+- Atalho no roteiro NR-18 para o Plano de Ação já existente, filtrado pela obra selecionada.
+- Não registra NC automaticamente, não altera ações nem fecha irregularidades.
+- Padronizados os nomes dos artefatos de auditoria de navegação às versões compiladas.
+- Preservados banco SST, sincronização, autenticação, fotos, mídia, Drive, IA e Apps Script.
+- **Pendente** CI das duas versões e testes físicos. Os históricos antigos do diário continuam locais; compartilhamento na Central depende de autorização e homologação.
+- PR #15 Draft, sem merge/deploy.
+
+---
+
 # Versão CI confirmada e pendências — 13/10/2026
 
 Android **v3.29.190+332**: [CI success 38459335580](https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/runs/38459335580).
