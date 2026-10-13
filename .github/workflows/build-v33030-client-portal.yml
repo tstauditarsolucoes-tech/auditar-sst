@@ -9,6 +9,8 @@ on:
       - 'tools/patch_treatment_outbox_v329185_v330108.py'
       - 'tools/patch_treatment_conversation_v329186_v330109.py'
       - 'tools/patch_nr18_field_v329187_v330110.py'
+      - 'tools/audit_navigation_inventory_v1.py'
+      - 'tools/test_navigation_inventory_v1.py'
       - 'tools/regression_nr18_field_v329187_v330110.py'
       - 'feature_sources/nr18_field_checklist_screen_v329187.dart'
       - 'feature_sources/nr18_field_checklist_test_v329187.dart'
@@ -1766,6 +1768,14 @@ jobs:
           flutter test test/nr18_field_checklist_test.dart test/worksite_followup_test.dart test/worksite_followup_cloud_test.dart
           if ($LASTEXITCODE -ne 0) { throw 'Falha testes NR18' }
           Pop-Location
+
+      - name: Inventario de navegação e rotas do aplicativo montado
+        shell: pwsh
+        run: |
+          python tools/test_navigation_inventory_v1.py
+          if ($LASTEXITCODE -ne 0) { throw 'Falha testes inventário' }
+          python tools/audit_navigation_inventory_v1.py "$env:APP_DIR" dist/windows/Auditoria-Navegacao --check-imports
+          if ($LASTEXITCODE -ne 0) { throw 'Imports locais ausentes' }
 
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}

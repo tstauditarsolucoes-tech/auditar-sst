@@ -11,6 +11,8 @@ on:
       - 'tools/patch_treatment_outbox_v329185_v330108.py'
       - 'tools/patch_treatment_conversation_v329186_v330109.py'
       - 'tools/patch_nr18_field_v329187_v330110.py'
+      - 'tools/audit_navigation_inventory_v1.py'
+      - 'tools/test_navigation_inventory_v1.py'
       - 'tools/regression_nr18_field_v329187_v330110.py'
       - 'feature_sources/nr18_field_checklist_screen_v329187.dart'
       - 'feature_sources/nr18_field_checklist_test_v329187.dart'
@@ -1461,6 +1463,12 @@ jobs:
           dart format lib/screens/nr18_field_checklist_screen.dart lib/screens/worksite_followup_screen.dart test/nr18_field_checklist_test.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter test test/nr18_field_checklist_test.dart test/worksite_followup_test.dart test/worksite_followup_cloud_test.dart
+
+      - name: Inventario de navegação e rotas do aplicativo montado
+        run: |
+          set -euo pipefail
+          python3 tools/test_navigation_inventory_v1.py
+          python3 tools/audit_navigation_inventory_v1.py "$APP_DIR" dist/Auditoria-Navegacao --check-imports
 
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
