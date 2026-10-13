@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """Regression: all old routes and sequential NC capture remain available."""
 from pathlib import Path
+import re
 import sys
 s=(Path(sys.argv[1])/"lib/screens/quick_visit_screen.dart").read_text(encoding="utf-8")
+# Dart formatter may wrap constructor arguments across lines; normalize
+# whitespace only for route-presence checks. Do not edit app source.
+compact=re.sub(r"\\s+","",s)
 assert s.count("class VisitIntentTabs extends StatelessWidget")==1
 assert "_activeIntent=widget.intent;" in s
 assert "selected:_activeIntent" in s
@@ -17,5 +21,5 @@ for route in ["ExpressRoundScreen(company: c)",
   "HistoryScreen(companyId: c.id)","ManagerReportsScreen(company: c)",
   "CompanyDetailScreen(company: c)",
   "Registrar outra ocorrência nesta empresa?"]:
-  assert route in s,route
+  assert re.sub(r"\\s+","",route) in compact,route
 print("NAVIGATION_COMPANY_CONTEXT_REGRESSION_OK")
