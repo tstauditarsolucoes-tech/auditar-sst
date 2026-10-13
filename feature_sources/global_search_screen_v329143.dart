@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../brand.dart';
 import '../database.dart';
 import '../models.dart';
+import '../services/auth_service.dart';
 import 'company_detail_screen.dart';
 import 'history_screen.dart';
 import 'trainings_screen.dart';
@@ -56,6 +57,21 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
     for (final worker in workers) worker.id: worker,
   };
 
+  /// A vistoria sem ID só pode ser ligada a uma empresa autorizada com nome único.
+  static Company? _inspectionCompany(
+      Map<String,Object?> row,List<Company> authorized){
+    final raw=(row['company_id']??row['companyId']??'').toString().trim();
+    if(raw.isNotEmpty){
+      for(final c in authorized){if(c.id==raw)return c;}
+      return null;
+    }
+    final name=(row['company_name']??'').toString().trim().toLowerCase();
+    if(name.isEmpty)return null;
+    final matches=authorized.where((c)=>c.name.trim().toLowerCase()==name)
+      .take(2).toList();
+    return matches.length==1?matches.single:null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -75,6 +91,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
     });
     try {
       final db = AppDatabase.instance;
+      final userId=AuthService.currentUser?.id;
       final values = await Future.wait<Object>([
         db.getCompanies(),
         db.getWorkers(),
@@ -85,17 +102,29 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
         db.getSstRecords(type: 'TREINAMENTO_SESSAO'),
         db.getSstRecords(type: 'MELHORIA'),
       ]);
-      if (!mounted) return;
+      if(!mounted||userId!=AuthService.currentUser?.id)return;
+      final accessibleCompanies=(values[0] as List<Company>)
+        .where((c)=>c.active&&AuthService.canAccessCompany(c.id)).toList();
+      final allowedIds=accessibleCompanies.map((c)=>c.id).toSet();
+      final accessibleWorkers=(values[1] as List<Worker>)
+        .where((w)=>allowedIds.contains(w.companyId)).toList();
+      final allowedWorkers=accessibleWorkers.map((w)=>w.id).toSet();
+      List<SstRecord> accessibleRecords(Object rows)=>
+        (rows as List<SstRecord>).where((r)=>r.companyId==null?
+          AuthService.isAdmin:allowedIds.contains(r.companyId)).toList();
       setState(() {
-        companies = values[0] as List<Company>;
-        workers = values[1] as List<Worker>;
-        trainings = values[2] as List<TrainingControl>;
-        inspections = values[3] as List<Map<String, Object?>>;
-        safety = values[4] as List<SstRecord>;
-        dds = values[5] as List<SstRecord>;
-        trainingSessions = values[6] as List<SstRecord>;
-        improvements = values[7] as List<SstRecord>;
-        loading = false;
+        companies=accessibleCompanies;
+        workers=accessibleWorkers;
+        trainings=(values[2] as List<TrainingControl>)
+          .where((t)=>allowedWorkers.contains(t.workerId)).toList();
+        inspections=(values[3] as List<Map<String,Object?>>)
+          .where((row)=>_inspectionCompany(row,accessibleCompanies)!=null)
+          .toList();
+        safety=accessibleRecords(values[4]);
+        dds=accessibleRecords(values[5]);
+        trainingSessions=accessibleRecords(values[6]);
+        improvements=accessibleRecords(values[7]);
+        loading=false;
       });
     } catch (e) {
       if (!mounted) return;
@@ -168,6 +197,8 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
     }
 
     for (final row in inspections) {
+      final company=_inspectionCompany(row,companies);
+      if(company==null||!AuthService.canAccessCompany(company.id))continue;
       final text = [
         _norm(row['company_name']),
         _norm(row['area']),
@@ -185,12 +216,16 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
             '${row['status'] ?? ''}',
           ].where((e) => e.trim().isNotEmpty).join(' • '),
           icon: Icons.fact_check_outlined,
+          companyId:company.id,
+          company:company,
         ));
       }
     }
 
     void addRecords(List<SstRecord> records, String kind, IconData icon) {
       for (final record in records) {
+        if(record.companyId==null?!AuthService.isAdmin:
+            !AuthService.canAccessCompany(record.companyId!))continue;
         final company = record.companyId == null ? null : companiesMap[record.companyId];
         final payloadText = record.payload.values
             .where((v) => v is String || v is num || v is bool)
@@ -220,6 +255,12 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
   }
 
   Future<void> _open(_SearchHit hit) async {
+    if(hit.companyId==null?!AuthService.isAdmin:
+        !AuthService.canAccessCompany(hit.companyId!)){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content:Text('Acesso à empresa não autorizado.')));
+      return;
+    }
     Widget destination;
     switch (hit.kind) {
       case 'Empresa':
@@ -232,7 +273,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
         destination = TrainingsScreen(companyId: hit.companyId);
         break;
       case 'Vistoria':
-        destination = const HistoryScreen();
+        destination = HistoryScreen(companyId:hit.companyId);
         break;
       default:
         if (hit.company != null) {

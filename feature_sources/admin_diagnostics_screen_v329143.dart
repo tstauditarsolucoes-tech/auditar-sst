@@ -45,7 +45,7 @@ class _AdminDiagnosticsScreenState extends State<AdminDiagnosticsScreen> {
       final structured = await DeviceSyncService.pendingChangesCount();
       final media = await MediaSyncService.pendingCount();
       final result = <String, String>{
-        'Versão': Platform.isWindows ? '3.30.62' : '3.29.143',
+        'Versão': 'Conferir versão exibida em Sobre o aplicativo',
         'Plataforma': Platform.isWindows ? 'Windows' : (Platform.isAndroid ? 'Android' : Platform.operatingSystem),
         'Usuário': AuthService.currentUser?.name ?? 'ADM',
         'Perfil': AuthService.currentUser?.role ?? 'admin',
@@ -57,7 +57,7 @@ class _AdminDiagnosticsScreenState extends State<AdminDiagnosticsScreen> {
         'Último erro de sincronização': (await db.getSetting('last_device_sync_error')).trim(),
         'Último envio de mídia': (await db.getSetting('media_sync_last_success')).trim(),
         'Último erro de mídia': (await db.getSetting('media_sync_last_error')).trim(),
-        'Central Online': (await db.getSetting('management_panel_endpoint')).trim().isEmpty
+        'Central configurada (não comprova conexão)': (await db.getSetting('management_panel_endpoint')).trim().isEmpty
             ? 'Não configurada neste aparelho'
             : 'Configurada',
       };

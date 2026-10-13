@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../brand.dart';
 import '../database.dart';
 import '../models.dart';
+import '../services/auth_service.dart';
 import 'field_operational_control_screen.dart';
 
 /// Visão gerencial multempresa somente leitura.
@@ -43,10 +44,16 @@ class _CompanyPortfolioManagementScreenState
 
     try {
       final db = AppDatabase.instance;
-      final companies = await db.getCompanies();
-      final loaded = await Future.wait(
-        companies.map((company) => _loadCompany(db, company)),
-      );
+      final openingUser=AuthService.currentUser?.id;
+      final companies=(await db.getCompanies()).where((c)=>
+        c.active&&AuthService.canAccessCompany(c.id)).toList();
+      final loaded=<_CompanyPortfolioRow>[];
+      // Limit parallel reads to avoid overwhelming the local DB with many worksites.
+      for(var i=0;i<companies.length;i+=6){
+        loaded.addAll(await Future.wait(
+          companies.skip(i).take(6).map((c)=>_loadCompany(db,c))));
+        if(!mounted||openingUser!=AuthService.currentUser?.id)return;
+      }
       loaded.sort((a, b) {
         final byStatus = b.statusRank.compareTo(a.statusRank);
         if (byStatus != 0) return byStatus;
@@ -59,10 +66,11 @@ class _CompanyPortfolioManagementScreenState
             );
       });
 
-      if (!mounted) return;
+      if(!mounted||openingUser!=AuthService.currentUser?.id)return;
       setState(() {
-        rows = loaded;
-        loading = false;
+        rows=loaded.where((r)=>AuthService.canAccessCompany(r.company.id))
+          .toList(growable:false);
+        loading=false;
       });
     } catch (e) {
       if (!mounted) return;
@@ -208,6 +216,7 @@ class _CompanyPortfolioManagementScreenState
       rows.where((row) => row.status == 'Controlada').length;
 
   Future<void> _openCompany(_CompanyPortfolioRow row) async {
+    if(!AuthService.canAccessCompany(row.company.id))return;
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => FieldOperationalControlScreen(
