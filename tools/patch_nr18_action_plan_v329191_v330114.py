@@ -24,7 +24,8 @@ import_anchor="import 'new_inspection_screen.dart';"
 assert s.count(import_anchor)==1
 assert "import 'action_plan_screen.dart';" not in s
 s=s.replace(import_anchor,import_anchor+"\nimport 'action_plan_screen.dart';",1)
-pattern=re.compile(r"label\s*:\s*const\s+Text\s*\(\s*'Abrir Vistoria'\s*\)\s*\)\s*,")
+# Aceita o Dart format com vírgulas opcionais em Text(...) e no item do Wrap.
+pattern=re.compile(r"label\s*:\s*const\s+Text\s*\(\s*'Abrir Vistoria'\s*,?\s*\)\s*,?\s*\)\s*,")
 hits=list(pattern.finditer(s))
 assert len(hits)==1, "expected exactly one NR18 inspection quick action"
 addition="""\n                  OutlinedButton.icon(

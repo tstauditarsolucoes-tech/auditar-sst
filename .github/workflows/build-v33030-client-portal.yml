@@ -12,6 +12,7 @@ on:
       - 'tools/audit_navigation_inventory_v1.py'
       - 'tools/audit_navigation_destinations_v1.py'
       - 'tools/patch_nr18_action_plan_v329191_v330114.py'
+      - 'tools/test_patch_nr18_action_plan_v329191_v330114.py'
       - 'tools/regression_nr18_action_plan_v329191_v330114.py'
       - 'tools/test_audit_navigation_destinations_v1.py'
       - 'tools/patch_worksite_diary_archive_v329189_v330112.py'
@@ -1839,6 +1840,8 @@ jobs:
       - name: NR18 atalho para Plano de Ação por obra
         shell: pwsh
         run: |
+          python tools/test_patch_nr18_action_plan_v329191_v330114.py
+          if ($LASTEXITCODE -ne 0) { throw "Falha teste âncora NR18" }
           python tools/patch_nr18_action_plan_v329191_v330114.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Falha patch Plano NR18' }
           python tools/regression_nr18_action_plan_v329191_v330114.py "$env:APP_DIR"
