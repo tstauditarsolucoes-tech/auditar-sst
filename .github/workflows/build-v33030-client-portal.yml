@@ -1777,6 +1777,15 @@ jobs:
           python tools/audit_navigation_inventory_v1.py "$env:APP_DIR" dist/windows/Auditoria-Navegacao --check-imports
           if ($LASTEXITCODE -ne 0) { throw 'Imports locais ausentes' }
 
+      - name: Publicar inventário de navegação mesmo se a compilação falhar
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v330110-Auditoria-Navegacao-Windows
+          path: dist/windows/Auditoria-Navegacao/*
+          if-no-files-found: ignore
+          retention-days: 30
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh

@@ -22,7 +22,9 @@ with TemporaryDirectory() as tmp:
     (screens/"orphan_screen.dart").write_text(
         "class OrphanScreen extends StatelessWidget {}\n",encoding="utf-8")
     (screens/"broken.dart").write_text(
-        "import 'does_not_exist.dart';\n",encoding="utf-8")
+        "import 'does_not_exist.dart';\n"
+        "final button=Button(onPressed: () {});\n"
+        "void missing()=>throw UnimplementedError();\n",encoding="utf-8")
     (root/"painel_web_google_apps_script").mkdir()
     (root/"painel_web_google_apps_script"/"Code.gs").write_text(
         "if(request.action==='client_treatment_v2'){}\n",encoding="utf-8")
@@ -34,6 +36,8 @@ with TemporaryDirectory() as tmp:
         "lib/screens/orphan_screen.dart"
     assert report["repeated_navigation_labels"][0]["label"]=="Pendências"
     assert len(report["missing_local_imports"])==1
+    assert {i["kind"] for i in report["potentially_inert_handlers"]} == {
+        "empty_click_handler", "unimplemented_exception"}
     assert report["backend_route_candidates"][2]["production_deployment_verified"] is False
     assert "não remover" in markdown(report).lower()
     serialized=json.loads(json.dumps(report,ensure_ascii=False))

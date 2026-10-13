@@ -17,7 +17,8 @@ CLASS = re.compile(r"\bclass\s+(\w+(?:Screen|Page|Dialog|Hub))\s+extends\s+")
 LABEL = re.compile(
     r"""(?:label|title|tooltip)\s*:\s*(?:const\s+)?Text\s*\(\s*(['"])([^'"\n]{3,90})\1"""
 )
-LITERAL = re.compile(r"\b(?:Screen|Page|Dialog|Hub)\b")
+INERT = re.compile(r"\b(?:onPressed|onTap|onLongPress)\s*:\s*\(\s*\)\s*(?:\{\s*\}|=>\s*null)")
+STUB = re.compile(r"\bthrow\s+UnimplementedError\s*\(")
 GSACTIONS = ("offline_knowledge_sync_v1", "worksite_followup_sync_v1",
              "client_treatment_v2", "company_group_sync_v1")
 
@@ -107,6 +108,17 @@ def scan(root: Path) -> dict:
                                key=lambda v: (v["file"], v["line"]))})
     repeated.sort(key=lambda item: (-item["screen_count"], item["label"].casefold()))
 
+    inert_candidates = []
+    for path, source in content.items():
+        for category, pattern in (("empty_click_handler", INERT),
+                                  ("unimplemented_exception", STUB)):
+            for hit in pattern.finditer(source):
+                inert_candidates.append({
+                    "file": relative(path, root),
+                    "line": source.count("\n", 0, hit.start()) + 1,
+                    "kind": category,
+                })
+
     portal = root / "painel_web_google_apps_script" / "Code.gs"
     backend = portal.read_text(encoding="utf-8") if portal.is_file() else ""
     all_client = "\n".join(content.values())
@@ -129,6 +141,7 @@ def scan(root: Path) -> dict:
         "all_screen_files": screens,
         "repeated_navigation_labels": repeated,
         "missing_local_imports": missing,
+        "potentially_inert_handlers": inert_candidates,
         "backend_route_candidates": gs,
     }
 
@@ -154,6 +167,8 @@ def markdown(report: dict) -> str:
         f"- Rótulos em mais de um arquivo: "
         f"**{len(report['repeated_navigation_labels'])}**",
         f"- Imports locais ausentes: **{len(report['missing_local_imports'])}**",
+        f"- Ações vazias ou explicitamente não implementadas: "
+        f"**{len(report['potentially_inert_handlers'])}**",
         "",
         "## Candidatas a revisão de acesso (não remover automaticamente)",
         ""
@@ -170,6 +185,11 @@ def markdown(report: dict) -> str:
         lines.append(f"- **{value['label']}** ({value['screen_count']} arquivos): {positions}")
     if not report["repeated_navigation_labels"]:
         lines.append("Nenhum rótulo literal repetido entre arquivos.")
+    lines += ["", "## Candidatos a botões sem ação real", ""]
+    for item in report["potentially_inert_handlers"]:
+        lines.append(f"- \x60{item['file']}:{item['line']}\x60 — {item['kind']}")
+    if not report["potentially_inert_handlers"]:
+        lines.append("Nenhum manipulador explicitamente vazio ou UnimplementedError detectado.")
     lines += ["", "## Rotas de integração presentes no pacote", ""]
     for candidate in report["backend_route_candidates"]:
         lines.append(f"- \x60{candidate['route']}\x60: "

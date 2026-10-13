@@ -1470,6 +1470,15 @@ jobs:
           python3 tools/test_navigation_inventory_v1.py
           python3 tools/audit_navigation_inventory_v1.py "$APP_DIR" dist/Auditoria-Navegacao --check-imports
 
+      - name: Publicar inventário de navegação mesmo se a compilação falhar
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v329187-Auditoria-Navegacao-Android
+          path: dist/Auditoria-Navegacao/*
+          if-no-files-found: ignore
+          retention-days: 30
+
       - name: Compilar APK com chave permanente verificada
         working-directory: ${{ env.APP_DIR }}
         env:
