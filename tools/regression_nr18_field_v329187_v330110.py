@@ -17,3 +17,7 @@ assert "Clipboard.setData" in nr
 assert "NewInspectionScreen(" in nr and "ExpressRoundScreen(" in nr
 assert "worksite_followup_sync_v1" not in nr
 print("NR18_FIELD_REGRESSION_OK")
+
+# The ListView, ConstrainedBox and Align wrappers need exactly three closes.
+assert "          ]))),\n      ),\n    );" in nr
+assert "          ])))),\n      ),\n    );" not in nr

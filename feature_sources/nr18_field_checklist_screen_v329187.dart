@@ -338,7 +338,7 @@ class _Nr18FieldChecklistScreenState extends State<Nr18FieldChecklistScreen>{
               onNote:()=>_editNote(item)),
             const SizedBox(height:12),
             const Text('Referência temática: NR-18, redação oficial atualizada em maio de 2026. Confirmar exigências específicas com o texto vigente e as demais NRs aplicáveis.'),
-          ])))),
+          ]))),
       ),
     );
   }
