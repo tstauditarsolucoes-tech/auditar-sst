@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.108 Tratativas Offline
+name: Auditar SST Windows v3.30.109 Fila Visível
 # Clean rebuild v3.30.64 after protected productivity consolidation
 
 on:
@@ -7,6 +7,10 @@ on:
     paths:
       - 'tools/patch_client_treatment_inbox_v329182_v330105.py'
       - 'tools/patch_treatment_outbox_v329185_v330108.py'
+      - 'tools/patch_treatment_conversation_v329186_v330109.py'
+      - 'tools/regression_treatment_conversation_v329186_v330109.py'
+      - 'feature_sources/client_treatment_inbox_screen_v329186.dart'
+      - 'feature_sources/treatment_outbox_test_v329186.dart'
       - 'feature_sources/client_treatment_inbox_screen_v329185.dart'
       - 'feature_sources/treatment_outbox_v1.dart'
       - 'feature_sources/treatment_outbox_store_v1.dart'
@@ -1729,6 +1733,21 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha testes fila' }
           Pop-Location
 
+      - name: Mensagens locais visíveis dentro da conversa
+        shell: pwsh
+        run: |
+          python tools/patch_treatment_conversation_v329186_v330109.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha patch conversa local' }
+          python tools/regression_treatment_conversation_v329186_v330109.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressão conversa local' }
+          Push-Location $env:APP_DIR
+          dart format lib/screens/client_treatment_inbox_screen.dart test/treatment_outbox_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha analyze conversa local' }
+          flutter test test/treatment_outbox_test.dart test/quick_visit_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha teste conversa local' }
+          Pop-Location
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
@@ -1755,8 +1774,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.108-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.108-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.108-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.109-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.109-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.109-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -1771,12 +1790,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.108',
+            'AppVersion=3.30.109',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.108',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.109',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -1793,11 +1812,11 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.108.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.108.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.109.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.109.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.108-Windows-Tratativas-Offline
+          name: Auditar-SST-v3.30.109-Windows-Fila-Visivel
           path: dist/windows/*
           retention-days: 30
 

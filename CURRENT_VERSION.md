@@ -1,3 +1,16 @@
+# Auditar SST — fila visível na conversa (13/10/2026)
+
+**Em validação:** Android **3.29.186+328** / Windows **3.30.109+296**.
+
+- Mostra mensagens locais não confirmadas dentro de cada conversa, por empresa e assunto, inclusive sem internet.
+- Indica quando a Central recusou a postagem e direciona revisão pela caixa de entrada.
+- Confirma envio por identificador da mensagem, sem confundir com filas de outras empresas.
+- Botão manual para tentar envio da fila existente. Não há push nem serviço em segundo plano.
+- Nenhuma mudança no banco SST, autenticação, sincronização, fotos, Drive, IA ou GS.
+- Ainda exige CI completo, instalação e testes reais; PR #15 segue Draft, sem deploy da Central.
+
+---
+
 # Atualização preparada — 13/10/2026
 
 Android **3.29.185+327** / Windows **3.30.108+295**: fila independente de tratativas.
