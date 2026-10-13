@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Add isolated NR-18 on-site checklist to existing worksite view, without changing SST core."""
 import hashlib
+import re
 from pathlib import Path
 import shutil
 import sys
@@ -27,8 +28,13 @@ value=existing.read_text(encoding="utf-8")
 anchor="import 'manager_reports_screen.dart';"
 assert value.count(anchor)==1
 value=value.replace(anchor,anchor+"\nimport 'nr18_field_checklist_screen.dart';",1)
-button_anchor="        const SizedBox(height:16),\n        DropdownButtonFormField<String>("
-assert value.count(button_anchor)==1
+# The assembled screen has already passed through dart format in older steps.
+# Anchor to the *semantic* phase dropdown instead of brittle whitespace.
+phase_field = re.compile(
+    r"DropdownButtonFormField\s*<\s*String\s*>\s*\(\s*key\s*:\s*ValueKey\s*\(\s*'phase-'"
+)
+matches = list(phase_field.finditer(value))
+assert len(matches) == 1, "Expected exactly one worksite phase field"
 addition="""        Card(child:Padding(padding:const EdgeInsets.all(12),
           child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
             Text('Segurança da obra • NR-18',
@@ -44,7 +50,8 @@ addition="""        Card(child:Padding(padding:const EdgeInsets.all(12),
           ]))),
         const SizedBox(height:16),
 """
-value=value.replace(button_anchor,addition+"        DropdownButtonFormField<String>(",1)
+# Preserve the exact original dropdown code; only prepend the new NR-18 card.
+value = value[:matches[0].start()] + addition + value[matches[0].start():]
 existing.write_text(value,encoding="utf-8")
 shutil.copyfile(repo/"feature_sources/nr18_field_checklist_screen_v329187.dart",new)
 shutil.copyfile(repo/"feature_sources/nr18_field_checklist_test_v329187.dart",test)
