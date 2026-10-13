@@ -1,17 +1,17 @@
 # Auditar — Sistemas SST e EPI
 
-> ## 🚧 VERSÃO ATUAL DO AUDITAR SST
-> **Android:** `v3.29.158+300`  
-> **Windows:** `v3.30.77+264`  
-> **Branch:** `feature/client-panel-permissions-v329106`  
-> **PR:** `#15` — permanece em rascunho para revisão; não publicar a Central automaticamente.  
-> **Status:** ✅ CI validada — Android e Windows concluídos com sucesso em 03/10/2026. A linha atual mantém a **Ronda** no **Padrão Auditar 3** e a **biblioteca técnica offline** agora também sugere modelos diretamente no modo Ronda a partir da descrição digitada. O recurso é local e complementar: não substitui IA, preenchimento manual nem funções existentes.
+> ## Versões, CI e regras de segurança
+> A fonte de verdade para as versões **Android e Windows**, commits e estado de validação é [CURRENT_VERSION.md](CURRENT_VERSION.md). Não use versões antigas copiadas deste README.
 >
-> O código final é montado pelos workflows atuais a partir da base + patches incrementais.  
-> **Regra permanente:** não alterar, substituir ou refatorar funcionalidades que já estejam funcionando sem autorização expressa. Toda melhoria deve ser aditiva, isolada e de mínimo impacto. Preservar especialmente sincronização, banco, autenticação, IA, mídia/fotos, Drive e Central.
+> **Auditar SST:** Flutter Android e Windows. Código final montado por workflows a partir da base e dos patches incrementais; consultar o CI da branch antes de instalar.
 >
-> Consulte [CURRENT_VERSION.md](CURRENT_VERSION.md) antes de iniciar qualquer alteração. Estado validado atual: integração da Ronda offline no commit `544e490d2c82342e6d839b74a1ddb5fa9bf41f1b`, Android run `37167428008`, Windows run `37167429861`.
-
+> **PR #15:** permanece em **Draft**, sem merge; não fazer deploy/publicação da Central, GS ou Painel do Cliente sem autorização expressa.
+>
+> **Regra de segurança:** preservar login, banco, sincronização, mídia/fotos, Drive, IA, históricos, acesso multiempresa e recursos já existentes. Corrigir de modo aditivo, testado e isolado. Compilação aprovada não substitui homologação em aparelhos reais.
+>
+> **CI da branch:** [Android](https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/workflows/build-v329106-client-portal.yml) • [Windows](https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/workflows/build-v33030-client-portal.yml).
+>
+> **Auditoria de navegação e duplicidades:** [critérios e pendências](docs/AUDITORIA_SST_SEGURANCA_E_NAVEGACAO_20261013.md).
 
 Repositório de desenvolvimento dos sistemas da Auditar Soluções.
 
