@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.110 Inspeção NR18
+name: Auditar SST Windows v3.30.111 Navegação
 # Clean rebuild v3.30.64 after protected productivity consolidation
 
 on:
@@ -10,6 +10,9 @@ on:
       - 'tools/patch_treatment_conversation_v329186_v330109.py'
       - 'tools/patch_nr18_field_v329187_v330110.py'
       - 'tools/audit_navigation_inventory_v1.py'
+      - 'tools/patch_visit_navigation_v329188_v330111.py'
+      - 'tools/regression_visit_navigation_v329188_v330111.py'
+      - 'feature_sources/visit_navigation_test_v329188.dart'
       - 'tools/test_navigation_inventory_v1.py'
       - 'tools/regression_nr18_field_v329187_v330110.py'
       - 'feature_sources/nr18_field_checklist_screen_v329187.dart'
@@ -1769,6 +1772,23 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha testes NR18' }
           Pop-Location
 
+      - name: Visita Rápida - alternância de tarefas na mesma empresa
+        shell: pwsh
+        run: |
+          python tools/patch_visit_navigation_v329188_v330111.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha patch navegação' }
+          python tools/regression_visit_navigation_v329188_v330111.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressão navegação' }
+          Copy-Item feature_sources/visit_navigation_test_v329188.dart "$env:APP_DIR/test/visit_navigation_test.dart" -Force
+          Push-Location $env:APP_DIR
+          dart format lib/screens/quick_visit_screen.dart test/visit_navigation_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha formato navegação' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha análise navegação' }
+          flutter test test/visit_navigation_test.dart test/quick_visit_test.dart test/nr18_field_checklist_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha teste navegação' }
+          Pop-Location
+
       - name: Inventario de navegação e rotas do aplicativo montado
         shell: pwsh
         run: |
@@ -1812,8 +1832,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.110-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.110-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.110-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.111-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.111-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.111-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -1828,12 +1848,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.110',
+            'AppVersion=3.30.111',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.110',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.111',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -1850,11 +1870,11 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.110.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.110.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.111.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.111.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.110-Windows-NR18
+          name: Auditar-SST-v3.30.111-Windows-Navegacao
           path: dist/windows/*
           retention-days: 30
 
