@@ -12,6 +12,8 @@ on:
       - 'tools/patch_treatment_conversation_v329186_v330109.py'
       - 'tools/patch_nr18_field_v329187_v330110.py'
       - 'tools/audit_navigation_inventory_v1.py'
+      - 'tools/audit_navigation_destinations_v1.py'
+      - 'tools/test_audit_navigation_destinations_v1.py'
       - 'tools/patch_worksite_diary_archive_v329189_v330112.py'
       - 'tools/patch_worksite_diary_export_v329190_v330113.py'
       - 'tools/regression_worksite_diary_export_v329190_v330113.py'
@@ -1513,6 +1515,8 @@ jobs:
           set -euo pipefail
           python3 tools/test_navigation_inventory_v1.py
           python3 tools/audit_navigation_inventory_v1.py "$APP_DIR" dist/Auditoria-Navegacao --check-imports
+          python3 tools/test_audit_navigation_destinations_v1.py
+          python3 tools/audit_navigation_destinations_v1.py "$APP_DIR" dist/Auditoria-Navegacao
 
       - name: Publicar inventário de navegação mesmo se a compilação falhar
         if: always()

@@ -10,6 +10,8 @@ on:
       - 'tools/patch_treatment_conversation_v329186_v330109.py'
       - 'tools/patch_nr18_field_v329187_v330110.py'
       - 'tools/audit_navigation_inventory_v1.py'
+      - 'tools/audit_navigation_destinations_v1.py'
+      - 'tools/test_audit_navigation_destinations_v1.py'
       - 'tools/patch_worksite_diary_archive_v329189_v330112.py'
       - 'tools/patch_worksite_diary_export_v329190_v330113.py'
       - 'tools/regression_worksite_diary_export_v329190_v330113.py'
@@ -1839,6 +1841,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha testes inventário' }
           python tools/audit_navigation_inventory_v1.py "$env:APP_DIR" dist/windows/Auditoria-Navegacao --check-imports
           if ($LASTEXITCODE -ne 0) { throw 'Imports locais ausentes' }
+          python tools/test_audit_navigation_destinations_v1.py
+          if ($LASTEXITCODE -ne 0) { throw 'Falha teste referências compartilhadas' }
+          python tools/audit_navigation_destinations_v1.py "$env:APP_DIR" dist/windows/Auditoria-Navegacao
+          if ($LASTEXITCODE -ne 0) { throw 'Falha auditoria de destinos' }
 
       - name: Publicar inventário de navegação mesmo se a compilação falhar
         if: always()
