@@ -1,3 +1,19 @@
+# Atualização preparada — 13/10/2026
+
+Android **3.29.185+327** / Windows **3.30.108+295**: fila independente de tratativas.
+
+- Mensagens persistidas antes de limpar o editor; fila por conta e endpoint, sem senha/token gravados na fila.
+- Retry com identificador estável; recusas do servidor ficam para revisão, sem repetição automática.
+- Tentativas a cada 45 segundos enquanto a caixa de entrada está em primeiro plano; sem serviço em segundo plano nem push.
+- Busca de conversas e aviso dentro da caixa de entrada quando aumenta a quantidade aguardando Auditar.
+- Novos arquivos isolados; banco, sincronização, autenticação, HTTP e mídia existentes preservados pelo patch.
+- Usa a rota `client_treatment_v2` existente. Não exige novo GS para a fila.
+- Nomes de saída Windows corrigidos para corresponder à versão compilada.
+- **CI destas versões ainda pendente. Não entregar como compilado até confirmar os dois jobs. Testes físicos e Central real continuam pendentes.**
+- PR #15 permanece Draft. Sem merge/deploy da Central.
+
+---
+
 # Auditar SST — versões em validação
 
 **ALVO EM CI: Android v3.29.184+326 / Windows v3.30.107+294** — captura sequencial e falhas independentes sem GS.
@@ -200,3 +216,4 @@ As melhorias devem ser aditivas, isoladas e validadas por regressão antes do bu
 - Windows: `.github/workflows/build-v33030-client-portal.yml`
 
 > Este arquivo deve ser atualizado sempre que a versão oficial da branch mudar.
+

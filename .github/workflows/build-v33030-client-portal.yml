@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.107 Captura Sequencial Sem GS
+name: Auditar SST Windows v3.30.108 Tratativas Offline
 # Clean rebuild v3.30.64 after protected productivity consolidation
 
 on:
@@ -6,6 +6,11 @@ on:
     branches: [feature/client-panel-permissions-v329106]
     paths:
       - 'tools/patch_client_treatment_inbox_v329182_v330105.py'
+      - 'tools/patch_treatment_outbox_v329185_v330108.py'
+      - 'feature_sources/client_treatment_inbox_screen_v329185.dart'
+      - 'feature_sources/treatment_outbox_v1.dart'
+      - 'feature_sources/treatment_outbox_store_v1.dart'
+      - 'feature_sources/treatment_outbox_test_v1.dart'
       - 'tools/patch_fast_capture_v329184_v330107.py'
       - 'tools/patch_offline_reasoning_v329175_v33098.py'
       - 'feature_sources/offline_reasoning_v329175.dart'
@@ -1710,6 +1715,20 @@ jobs:
           Pop-Location
           if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.107+294")) { throw 'Versao incorreta' }
 
+      - name: Fila independente de mensagens de tratativas
+        shell: pwsh
+        run: |
+          python tools/patch_treatment_outbox_v329185_v330108.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha patch fila tratativas' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/services/treatment_outbox.dart lib/services/treatment_outbox_store.dart lib/screens/client_treatment_inbox_screen.dart test/treatment_outbox_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha formatacao fila' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha analise fila' }
+          flutter test test/treatment_outbox_test.dart test/quick_visit_test.dart test/worksite_followup_cloud_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha testes fila' }
+          Pop-Location
+
       - name: Compilar Windows release
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
@@ -1736,8 +1755,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.105-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.105-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.105-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.108-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.108-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.108-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -1752,12 +1771,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.107',
+            'AppVersion=3.30.108',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.105',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.108',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -1774,12 +1793,13 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.105.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.105.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.108.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.108.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.107-Windows-Sugestoes-Offline
+          name: Auditar-SST-v3.30.108-Windows-Tratativas-Offline
           path: dist/windows/*
           retention-days: 30
 
 # retry-ronda-final-20261003
+
