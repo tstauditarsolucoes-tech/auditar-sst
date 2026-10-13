@@ -1,3 +1,19 @@
+# Versão CI confirmada e pendências — 13/10/2026
+
+Android **v3.29.190+332**: [CI success 38459335580](https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/runs/38459335580).
+
+Windows **v3.30.113+300**: [CI success 38459335519](https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/runs/38459335519).
+
+Commit: `d8c3a2666aa485b83f9bee93e7fd521ab8eaa05e`. PR #15 **Draft**, sem merge, sem deploy GS/Central.
+
+**Presentes nos builds:** navegação de campo por tarefa sem perder empresa; NR-18 orientativa; diário de obras com arquivo local de registros anteriores aos 80 recentes e cópia completa sem repetir registros no texto.
+
+**Não concluído:** testes físicos com atualização sobre a instalação existente; inspeção real de fotos/PDF, offline e isolamento multiempresa; ativação autorizada e homologação das rotas GS; validação técnico-normativa da NR-18; classificação manual dos rótulos repetidos. Os registros antigos do diário estão em arquivo local e não têm backup cloud validado.
+
+Compilação aprovada não significa homologação física nem que GS preparado esteja publicado.
+
+---
+
 # Correção de repetição na cópia do Diário de Obras — 13/10/2026
 
 **Sem mudança de número de versão:** correção ainda na linha em validação
