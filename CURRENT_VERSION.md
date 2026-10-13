@@ -4,6 +4,7 @@
 
 - Quatro tarefas disponíveis dentro da empresa/obra selecionada: Visita, Rascunhos, Pendências e Relatórios.
 - A mudança de tarefa não troca a empresa, não altera os registros e não grava no banco de SST.
+- O título superior acompanha a tarefa escolhida (Visita, Rascunhos, Pendências ou Relatórios), evitando título incorreto após a troca.
 - Ronda, Vistoria, NC, Plano de Ação, NR-18, Histórico, PDFs e Mais opções permanecem disponíveis.
 - Novos testes automatizados de responsividade em 360, 412 e 1280 px.
 - O auditor automático de navegação continua nos dois workflows.

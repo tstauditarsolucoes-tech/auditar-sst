@@ -66,6 +66,10 @@ part=part.replace(anchor,"""        VisitIntentTabs(
         const SizedBox(height:10),
 """+anchor,1)
 s=s[:start]+part+s[end:]
+# The header must reflect the currently selected task, not the entry intent.
+# Only navigation presentation changes; no route, data, or service is replaced.
+assert s.count("switch (widget.intent)") == 1, "Quick Visit app bar changed unexpectedly"
+s=s.replace("switch (widget.intent)", "switch (_activeIntent)", 1)
 path.write_text(s,encoding="utf-8")
 pub=root/"pubspec.yaml"
 v=pub.read_text(encoding="utf-8")
