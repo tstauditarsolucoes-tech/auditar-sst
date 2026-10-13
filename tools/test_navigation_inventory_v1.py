@@ -15,10 +15,10 @@ with TemporaryDirectory() as tmp:
         "import 'records_screen.dart';\n"
         "class HomeScreen extends StatelessWidget {\n"
         "Widget build(context)=>Text('Início');\n"
-        "final shortcut=Text('Pendências');\n}\n",encoding="utf-8")
+        "final shortcut=ListTile(title: Text('Pendências'));\n}\n",encoding="utf-8")
     (screens/"records_screen.dart").write_text(
         "class RecordsScreen extends StatefulWidget {\n"
-        "final button=Text('Pendências');\n}\n",encoding="utf-8")
+        "final button=Button(label: const Text('Pendências'));\n}\n",encoding="utf-8")
     (screens/"orphan_screen.dart").write_text(
         "class OrphanScreen extends StatelessWidget {}\n",encoding="utf-8")
     (screens/"broken.dart").write_text(
