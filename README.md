@@ -39,8 +39,9 @@ Não criar novos arquivos `completo (1).zip`, `completo (2).zip`, `CORRIGIDO_FIN
 
 ## Builds oficiais
 
-- Android: `.github/workflows/build-apk.yml`
-- Windows: `.github/workflows/build-windows.yml`
+- Android SST da branch: `.github/workflows/build-v329106-client-portal.yml`
+- Windows SST da branch: `.github/workflows/build-v33030-client-portal.yml`
+- Os workflows legados continuam no histórico e não representam necessariamente os últimos builds do Auditar SST.
 
 Os dois pipelines executam análise estática antes de compilar.
 
