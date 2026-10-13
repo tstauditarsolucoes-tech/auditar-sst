@@ -211,7 +211,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(applied?.description,'Condição conferida no equipamento.'); expect(applied?.priority,'Crítica');
       expect(applied?.recommendation,contains('NR-12'));
-      final persisted = await tester.runAsync(() async {
+      await tester.runAsync(() => OfflineReportInlineSuggestionService.waitForPendingLearning());
+    final persisted = await tester.runAsync(() async {
         final file = File('${dir.path}/offline_reasoning_learning_v1.json');
         for (var attempt = 0; attempt < 150; attempt++) {
           if (await file.exists()) return true;
@@ -250,6 +251,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(applied?.description, original);
     expect(applied?.reviewed, isTrue);
+    await tester.runAsync(() => OfflineReportInlineSuggestionService.waitForPendingLearning());
     final persisted = await tester.runAsync(() async {
       final file=File('${dir.path}/offline_reasoning_learning_v1.json');
       for (var i=0; i<150; i++) {

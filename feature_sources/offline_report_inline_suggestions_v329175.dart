@@ -89,6 +89,9 @@ class OfflineReportInlineSuggestionService {
   static void invalidateLearnedCache() { _learnedCache = null; _learnedCacheAt = null; }
 
   static Future<void> _learningQueue = Future<void>.value();
+  // Test/diagnostic hook: wait until the already accepted local learning writes settle.
+  // Does not start or change network sync or automatic learning behavior.
+  static Future<void> waitForPendingLearning() => _learningQueue;
 
   // A separate local file preserves the previous library and stores the latest
   // applied correction exactly, including shorter wording. No network involved.
