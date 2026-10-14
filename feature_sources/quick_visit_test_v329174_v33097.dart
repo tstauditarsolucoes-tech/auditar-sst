@@ -38,6 +38,9 @@ void main() {
       );
       expect(select().map((c) => c.id), ['a', 'b']);
       expect(select(query: 'centro').single.id, 'a');
+      expect(select(query: 'Quality Centro').single.id, 'a');
+      expect(select(query: 'quality obra').map((c) => c.id).toSet(), {'a','b'});
+      expect(select(query: 'quality inexistente'), isEmpty);
       expect(select(group: '').length, 0);
       expect(select(favorites: true).single.id, 'a');
       expect(
