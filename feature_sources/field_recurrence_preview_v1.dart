@@ -28,6 +28,17 @@ class FieldRecurrencePreview {
     'poeira':['poeira','respirador'],
     'ruido':['ruido','auricular']
   };
+  // Texto claramente regularizado ou sem falha não é tratado como reincidência.
+  static bool _safeStatement(String value) {
+    final s = normalize(value);
+    return RegExp(
+      r'\b(com protecao|protecao instalada|funcionando normalmente|'
+      r'em funcionamento|sem falhas|sem irregularidade|sem risco|'
+      r'regularizad[ao]s?|corrigid[ao]s?|adequad[ao]s?|'
+      r'conforme|conformidade comprovada)\b',
+    ).hasMatch(s);
+  }
+
   static Set<String> groups(String value) {
     final text=' ${normalize(value)} ';
     return families.entries.where((e)=>e.value.any((v)=>text.contains(' $v '))).map((e)=>e.key).toSet();
@@ -40,19 +51,25 @@ class FieldRecurrencePreview {
     required String companyId,required String sector,required String description,
     required Iterable<FieldRecurrenceItem> history,String worksiteId='',int limit=3,
   }) {
-    if(companyId.trim().isEmpty||sector.trim().isEmpty||description.trim().isEmpty||limit<=0)return const [];
+    if(companyId.trim().isEmpty||sector.trim().isEmpty||
+        description.trim().isEmpty||limit<=0||_safeStatement(description)) {
+      return const [];
+    }
     final kinds=groups(description),tokens=words(description);
     if(kinds.isEmpty||tokens.isEmpty)return const [];
     final results=<FieldRecurrenceMatch>[];
     for(final item in history) {
-      if(item.id.isEmpty||item.companyId!=companyId||normalize(item.sector)!=normalize(sector))continue;
-      if(worksiteId.isNotEmpty&&item.worksiteId!=worksiteId)continue;
+      if(item.id.isEmpty||item.companyId!=companyId||
+          normalize(item.sector)!=normalize(sector))continue;
+      // Falhar fechado: sem identificador da obra, não reutilizar histórico
+      // pertencente a uma obra específica. Nunca cruzar obras distintas.
+      if(item.worksiteId!=worksiteId||_safeStatement(item.text))continue;
       if(kinds.intersection(groups(item.text)).isEmpty)continue;
       final older=words(item.text),common=tokens.intersection(older).length;
       final total=tokens.union(older).length;
       if(total==0||common==0)continue;
       final score=(100*common/total).round();
-      if(score<20)continue;
+      if(score<25)continue;
       results.add(FieldRecurrenceMatch(item,score));
     }
     results.sort((a,b) {final n=b.score.compareTo(a.score);return n!=0?n:a.item.id.compareTo(b.item.id);});
