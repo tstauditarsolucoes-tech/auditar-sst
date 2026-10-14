@@ -47,7 +47,9 @@ import_marker = "import 'field_operational_control_screen.dart';"
 assert navigation.count(import_marker) == 1
 assert "import 'correction_evidence_center_screen.dart';" not in navigation
 navigation = navigation.replace(
-    import_marker, import_marker + "\n""import 'correction_evidence_center_screen.dart';'", 1
+    import_marker,
+    import_marker + "\nimport 'correction_evidence_center_screen.dart';",
+    1,
 )
 entry_marker = "          _action(\n            'Pendências da empresa',"
 assert navigation.count(entry_marker) == 1
