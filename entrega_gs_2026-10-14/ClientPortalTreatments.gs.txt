@@ -250,6 +250,10 @@ function clientPortalTreatmentInbox(token,companyFilter) {
 function clientPortalTreatmentTopics(token,companyId) {
   const authorized=clientTreatmentAuthorized_(token,companyId,'GERAL');
   if(!authorized.ok)return authorized;
+  // Conversas gerais sao visiveis, mas titulos de NC exigem permissao propria.
+  if(authorized.actor.role==='cliente'&&
+      !clientPortalPermissions_(authorized.actor.clientPermissions).naoConformidades)
+    return {ok:true,topics:[{id:'GERAL',title:'Comunicação geral'}]};
   const snap=clientPortalFindSnapshot_(authorized.companyId);
   const records=clientPortalRows_(snap.payload,
     ['openNonConformities','nonConformities','ncs','ncRecords','nonConformityRows']);

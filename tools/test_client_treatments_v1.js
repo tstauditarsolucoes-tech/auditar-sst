@@ -60,6 +60,13 @@ assert.equal(ctx.clientPortalTreatmentInbox('token','other').code,'ACCESS_DENIED
 assert.equal(post('vale','escada',{type:'eficacia_confirmada',requestId:'id_staff_noproof',
  message:'Concluída sem prova'}).code,'VERIFICATION_REQUIRED');
 assert.ok(rows.some(r=>String(r[6]).startsWith('{')));
+actor={id:'cliente-a',role:'cliente',companyIds:['vale'],clientPermissions:{tratativas:true,naoConformidades:false}};
+const limited=ctx.clientPortalTreatmentTopics('token','vale');
+assert.equal(limited.ok,true);
+assert.equal(limited.topics.length,1);
+assert.equal(limited.topics[0].id,'GERAL');
+assert.equal(ctx.clientPortalTreatmentList('token','vale','exaustores').code,'ACCESS_DENIED');
+assert.equal(ctx.clientPortalTreatmentList('token','vale','GERAL').ok,true);
 actor={id:'cliente-a',role:'cliente',companyIds:['vale'],clientPermissions:{tratativas:false,naoConformidades:true}};
 assert.equal(list().code,'ACCESS_DENIED');
 actor=null;
