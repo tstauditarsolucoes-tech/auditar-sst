@@ -388,14 +388,14 @@ class OfflineReportInlineSuggestionService {
       String query, String title, String description) {
     final candidate = '$title $description';
     final safeQuery = RegExp(
-      r'\\b(com protecao|funcionando normalmente|sem irregularidade|'
-      r'sem falhas|regularizado|corrigido|em conformidade)\\b',
+      r'\b(com protecao|funcionando normalmente|sem irregularidade|'
+      r'sem falhas|regularizado|corrigido|em conformidade)\b',
     ).hasMatch(query);
     if (safeQuery) return true;
-    if (RegExp(r'\\bsem protecao\\b').hasMatch(query) &&
-        RegExp(r'\\bcom protecao\\b').hasMatch(candidate)) return true;
-    if (RegExp(r'\\b(nao funcionou|inoperante|nao funciona)\\b').hasMatch(query) &&
-        RegExp(r'\\b(funcionando|operante|regularizado)\\b').hasMatch(title)) return true;
+    if (RegExp(r'\bsem protecao\b').hasMatch(query) &&
+        RegExp(r'\bcom protecao\b').hasMatch(candidate)) return true;
+    if (RegExp(r'\b(nao funcionou|inoperante|nao funciona)\b').hasMatch(query) &&
+        RegExp(r'\b(funcionando|operante|regularizado)\b').hasMatch(title)) return true;
     return false;
   }
 
