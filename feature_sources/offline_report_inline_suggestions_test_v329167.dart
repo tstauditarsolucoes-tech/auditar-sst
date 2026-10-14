@@ -18,6 +18,33 @@ void main() {
       expect(ranked.first.id, 'auditar-sensor-protecao-inoperante');
     });
 
+    test('texto de conformidade nao gera sugestao de irregularidade', () {
+      expect(
+        OfflineReportInlineSuggestionService.rankForTesting(
+          'Correia da prensa com proteção instalada',
+        ),
+        isEmpty,
+      );
+      expect(
+        OfflineReportInlineSuggestionService.rankForTesting(
+          'Botoeira de emergência funcionando normalmente',
+        ),
+        isEmpty,
+      );
+    });
+
+    test('proteção ausente não sugere modelo de proteção instalada', () {
+      final results = OfflineReportInlineSuggestionService.rankForTesting(
+        'Correia da prensa sem proteção',
+      );
+      expect(results, isNotEmpty);
+      expect(
+        results.take(5).any((item) =>
+            item.title.toLowerCase().contains('proteção instalada')),
+        isFalse,
+      );
+    });
+
     test('botao de emergencia prioriza parada de emergencia e nao extintor', () {
       final ranked = OfflineReportInlineSuggestionService.rankForTesting(
         'Botão de emergência não funcionou',
