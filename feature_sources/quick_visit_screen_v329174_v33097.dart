@@ -34,13 +34,17 @@ List<Company> quickVisitCompanies(
             (!favorites || organization.favorite(c.id)) &&
             (!recent || organization.lastVisit(c.id).isNotEmpty) &&
             (q.isEmpty ||
-                [
-                  c.name,
-                  c.cnpj ?? '',
-                  c.city ?? '',
-                  organization.alias(c.id),
-                  organization.group(c.id),
-                ].any((s) => CompanyOrganization.normalized(s).contains(q))),
+                // Uma pesquisa pode combinar informações de campos diferentes:
+                // "Quality Centro" encontra grupo Quality + apelido Centro.
+                q.split(' ').where((term) => term.isNotEmpty).every((term) =>
+                    [
+                      c.name,
+                      c.cnpj ?? '',
+                      c.city ?? '',
+                      organization.alias(c.id),
+                      organization.group(c.id),
+                    ].any((value) =>
+                        CompanyOrganization.normalized(value).contains(term)))),
       )
       .toList();
   result.sort((a, b) {
