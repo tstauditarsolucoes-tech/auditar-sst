@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.191 NR18 Plano de Ação
+name: Auditar SST Android v3.29.192 Praticidade de Campo
 # Clean rebuild v3.29.145 after protected productivity consolidation
 # Rebuild v3.29.113 logo recovery
 
@@ -14,6 +14,10 @@ on:
       - 'tools/audit_navigation_inventory_v1.py'
       - 'tools/audit_navigation_destinations_v1.py'
       - 'tools/patch_nr18_action_plan_v329191_v330114.py'
+      - 'tools/patch_field_recurrence_v329192_v330115.py'
+      - 'feature_sources/field_recurrence_preview_v1.dart'
+      - 'feature_sources/correction_recurrence_detector_v329192.dart'
+      - 'feature_sources/correction_recurrence_detector_test_v329192.dart'
       - 'tools/test_patch_nr18_action_plan_v329191_v330114.py'
       - 'tools/regression_nr18_action_plan_v329191_v330114.py'
       - 'tools/test_audit_navigation_destinations_v1.py'
@@ -1524,6 +1528,15 @@ jobs:
           flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter test test/nr18_field_checklist_test.dart test/visit_navigation_test.dart test/worksite_followup_test.dart
 
+      - name: Reincidências seguras nos cartões atuais (Android)
+        run: |
+          set -euo pipefail
+          python3 tools/patch_field_recurrence_v329192_v330115.py "$APP_DIR" android
+          cd "$APP_DIR"
+          dart format lib/services/field_recurrence_preview.dart lib/services/correction_recurrence_detector.dart lib/screens/correction_evidence_center_screen.dart test/correction_recurrence_detector_field_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/correction_recurrence_detector_test.dart test/correction_recurrence_detector_field_test.dart test/offline_report_inline_suggestions_test.dart test/quick_visit_test.dart
+
       - name: Inventario de navegação e rotas do aplicativo montado
         run: |
           set -euo pipefail
@@ -1536,7 +1549,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v329191-Auditoria-Navegacao-Android
+          name: Auditar-SST-v329192-Auditoria-Navegacao-Android
           path: dist/Auditoria-Navegacao/*
           if-no-files-found: ignore
           retention-days: 30
