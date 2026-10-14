@@ -31,8 +31,12 @@ class FieldRecurrencePreview {
   // Texto claramente regularizado ou sem falha não é tratado como reincidência.
   static bool _safeStatement(String value) {
     final s = normalize(value);
+    if (RegExp(
+      r'\b(sem protecao|protecao danificada|protecao ausente|'
+      r'protecao removida|sem guarda corpo|nao funcionou|inoperante)\b',
+    ).hasMatch(s)) return false;
     return RegExp(
-      r'\b(com protecao|protecao instalada|funcionando normalmente|'
+      r'\b(com protecao instalada|protecao instalada|funcionando normalmente|'
       r'em funcionamento|sem falhas|sem irregularidade|sem risco|'
       r'regularizad[ao]s?|corrigid[ao]s?|adequad[ao]s?|'
       r'conforme|conformidade comprovada)\b',
