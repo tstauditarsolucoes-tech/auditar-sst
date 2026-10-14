@@ -46,22 +46,20 @@ navigation = quick.read_text(encoding="utf-8")
 import_marker = "import 'field_operational_control_screen.dart';"
 assert navigation.count(import_marker) == 1
 assert "import 'correction_evidence_center_screen.dart';" not in navigation
-navigation = navigation.replace(import_marker, import_marker + (
-    "\\nimport 'correction_evidence_center_screen.dart';"
-), 1)
-entry_marker = "          _action(\\n            'Pendências da empresa',"
+navigation = navigation.replace(
+    import_marker, import_marker + "\n""import 'correction_evidence_center_screen.dart';'", 1
+)
+entry_marker = "          _action(\n            'Pendências da empresa',"
 assert navigation.count(entry_marker) == 1
-navigation = navigation.replace(entry_marker, (
-    "          _action(\\n"
-    "            'Ver reincidências',\\n"
-    "            'Consultar problemas semelhantes da empresa ou obra',\\n"
-    "            Icons.repeat_rounded,\\n"
-    "            CorrectionEvidenceCenterScreen(company: c),\\n"
-    "          ),\\n"
-) + entry_marker, 1)
-# Strings above are source snippets, so the escaped newlines become physical
-# line breaks when building the Dart quick-visit source.
-navigation = navigation.replace("\\n", "\n")
+addition = (
+    "          _action(\n"
+    "            'Ver reincidências',\n"
+    "            'Consultar problemas semelhantes da empresa ou obra',\n"
+    "            Icons.repeat_rounded,\n"
+    "            CorrectionEvidenceCenterScreen(company: c),\n"
+    "          ),\n"
+)
+navigation = navigation.replace(entry_marker, addition + entry_marker, 1)
 quick.write_text(navigation, encoding="utf-8")
 shutil.copyfile(
     repo / "feature_sources/correction_recurrence_detector_v329192.dart",
