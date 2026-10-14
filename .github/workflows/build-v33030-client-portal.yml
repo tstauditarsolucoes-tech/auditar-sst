@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.114 NR18 Plano de Ação
+name: Auditar SST Windows v3.30.115 Praticidade de Campo
 # Clean rebuild v3.30.64 after protected productivity consolidation
 
 on:
@@ -12,6 +12,10 @@ on:
       - 'tools/audit_navigation_inventory_v1.py'
       - 'tools/audit_navigation_destinations_v1.py'
       - 'tools/patch_nr18_action_plan_v329191_v330114.py'
+      - 'tools/patch_field_recurrence_v329192_v330115.py'
+      - 'feature_sources/field_recurrence_preview_v1.dart'
+      - 'feature_sources/correction_recurrence_detector_v329192.dart'
+      - 'feature_sources/correction_recurrence_detector_test_v329192.dart'
       - 'tools/test_patch_nr18_action_plan_v329191_v330114.py'
       - 'tools/regression_nr18_action_plan_v329191_v330114.py'
       - 'tools/test_audit_navigation_destinations_v1.py'
@@ -1855,6 +1859,20 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha testes Plano NR18' }
           Pop-Location
 
+      - name: Reincidências seguras nos cartões atuais (Windows)
+        shell: pwsh
+        run: |
+          python tools/patch_field_recurrence_v329192_v330115.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha integração reincidência' }
+          Push-Location $env:APP_DIR
+          dart format lib/services/field_recurrence_preview.dart lib/services/correction_recurrence_detector.dart lib/screens/correction_evidence_center_screen.dart test/correction_recurrence_detector_field_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha dart format reincidência' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha analyze reincidência' }
+          flutter test test/correction_recurrence_detector_test.dart test/correction_recurrence_detector_field_test.dart test/offline_report_inline_suggestions_test.dart test/quick_visit_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressões campo' }
+          Pop-Location
+
       - name: Inventario de navegação e rotas do aplicativo montado
         shell: pwsh
         run: |
@@ -1871,7 +1889,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v330114-Auditoria-Navegacao-Windows
+          name: Auditar-SST-v330115-Auditoria-Navegacao-Windows
           path: dist/windows/Auditoria-Navegacao/*
           if-no-files-found: ignore
           retention-days: 30
