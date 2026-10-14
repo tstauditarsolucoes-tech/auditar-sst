@@ -1,0 +1,35 @@
+PACOTE GS AUDITAR SST — 14/10/2026
+
+CANDIDATO PARA HOMOLOGAÇÃO. NÃO PUBLICADO. PR #15 CONTINUA DRAFT.
+Este conjunto contém módulos ADITIVOS, NÃO a Central completa. Não substitua Code.gs, MultiUser.gs, ClientPortal.gs nem ClientPortal.html da produção.
+
+ARQUIVOS: adicione um arquivo de Apps Script com o nome à direita, somente se não estiver instalado:
+CompanyGroupsSync.gs.txt → CompanyGroupsSync.gs
+OfflineKnowledgeCloud.gs.txt → OfflineKnowledgeCloud.gs
+WorksiteFollowupCloud.gs.txt → WorksiteFollowupCloud.gs
+ClientPortalTreatments.gs.txt → ClientPortalTreatments.gs
+
+ROTEAMENTO NO doPost DO Code.gs EXISTENTE: inserir apenas rotas ausentes, mantendo o padrão jsonResponse_ e antes do caso device_sync_push:
+if (request.action === 'company_groups_sync_v1') return jsonResponse_(companyGroupsSync_(request));
+if (request.action === 'offline_knowledge_sync_v1') return jsonResponse_(offlineKnowledgeSyncV1_(request));
+if (request.action === 'worksite_followup_sync_v1') return jsonResponse_(worksiteFollowupCloudV1_(request));
+if (request.action === 'client_treatment_v2') return jsonResponse_(clientTreatmentAppV2_(request));
+
+O Painel do Cliente exige também permissões e alterações controladas no ClientPortal.html/GS. Ver docs/TRATATIVAS_LINHA_DO_TEMPO_CLIENTE_V2.md.
+
+PACOTE COMPLETO GERADO PELO CI:
+Android: https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/runs/38470575926
+Windows: https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/runs/38470575908
+No artefato Windows aprovado, localizar Central-Painel-Cliente/ contendo Code.gs, MultiUser.gs, EpiSync.gs, ClientPortal.gs, ClientPortal.html, ReportEmail.gs, Index.html e módulos GS.
+CompanyGroupsSync.gs é entregue como arquivo adicional no mesmo artefato.
+
+ATENÇÃO: este Code.gs montado no CI NÃO foi comparado byte a byte com a Central efetivamente implantada. Não substituir arquivos de produção antes de backup, diff e homologação.
+
+CHECKLIST:
+1. Fazer cópia de segurança de todos os GS/HTML e da planilha.
+2. Conferir funções antigas e evitar criar rotas duplicadas.
+3. Executar testes node tools/test_company_groups_sync_v1.js, test_offline_knowledge_cloud_v1.js, test_worksite_followup_cloud_v1.js e test_client_treatments_v1.js.
+4. Homologar em versão de teste; validar escopo por empresa/usuário, offline, relatórios, fotos e sincronização.
+5. Publicar produção somente após aprovação expressa. Não realizar merge PR #15.
+
+APPS: Android v3.29.191, Windows v3.30.114 — CI sucesso. Testes físicos e GS produção continuam sem confirmação.
