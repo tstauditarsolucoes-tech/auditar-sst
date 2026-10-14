@@ -382,6 +382,23 @@ class OfflineReportInlineSuggestionService {
       .where((token) => token.length >= 3 && !_noiseTokens.contains(token))
       .toSet();
 
+  // Sem alteração visual: modelos com sentido oposto não entram no ranking.
+  // A confirmação de conformidade nunca deve gerar uma sugestão de NC.
+  static bool _conditionConflicts(
+      String query, String title, String description) {
+    final candidate = '$title $description';
+    final safeQuery = RegExp(
+      r'\\b(com protecao|funcionando normalmente|sem irregularidade|'
+      r'sem falhas|regularizado|corrigido|em conformidade)\\b',
+    ).hasMatch(query);
+    if (safeQuery) return true;
+    if (RegExp(r'\\bsem protecao\\b').hasMatch(query) &&
+        RegExp(r'\\bcom protecao\\b').hasMatch(candidate)) return true;
+    if (RegExp(r'\\b(nao funcionou|inoperante|nao funciona)\\b').hasMatch(query) &&
+        RegExp(r'\\b(funcionando|operante|regularizado)\\b').hasMatch(title)) return true;
+    return false;
+  }
+
   static double _score(
     OfflineInlineSuggestion item,
     String query,
@@ -391,6 +408,7 @@ class OfflineReportInlineSuggestionService {
     final description = _normalize(item.description);
     final risk = _normalize(item.risk);
     final recommendation = _normalize(item.recommendation);
+    if (_conditionConflicts(query, title, description)) return 0;
     final tokens = _usefulTokens(query);
     final queryConcepts = _concepts(query);
     final itemConcepts = _concepts(
@@ -419,7 +437,8 @@ class OfflineReportInlineSuggestionService {
       if (common.isNotEmpty) {
         score += 22 * common.length;
       } else if (itemConcepts.isNotEmpty) {
-        score -= 24;
+        // Nomes genéricos semelhantes não devem cruzar famílias técnicas.
+        return 0;
       }
     }
 
