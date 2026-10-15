@@ -46,6 +46,7 @@ on:
       - 'tools/patch_offline_reasoning_v329175_v33098.py'
       - 'feature_sources/offline_reasoning_v329175.dart'
       - 'feature_sources/offline_report_inline_suggestions_v329175.dart'
+      - 'feature_sources/offline_report_inline_suggestions_field_test_v329192.dart'
       - 'feature_sources/offline_reasoning_test_v329175.dart'
       - 'tools/patch_quick_visit_v329174_v33097.py'
       - 'feature_sources/quick_visit_screen_v329174_v33097.dart'
@@ -1535,7 +1536,9 @@ jobs:
           cd "$APP_DIR"
           dart format lib/services/field_recurrence_preview.dart lib/services/correction_recurrence_detector.dart lib/screens/correction_evidence_center_screen.dart test/correction_recurrence_detector_field_test.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
-          flutter test test/correction_recurrence_detector_test.dart test/correction_recurrence_detector_field_test.dart test/offline_report_inline_suggestions_test.dart test/quick_visit_test.dart
+          cp "$GITHUB_WORKSPACE/feature_sources/offline_report_inline_suggestions_field_test_v329192.dart" test/offline_report_inline_suggestions_field_test.dart
+          dart format test/offline_report_inline_suggestions_field_test.dart
+          flutter test test/correction_recurrence_detector_test.dart test/correction_recurrence_detector_field_test.dart test/offline_report_inline_suggestions_test.dart test/offline_report_inline_suggestions_field_test.dart test/quick_visit_test.dart
 
       - name: Inventario de navegação e rotas do aplicativo montado
         run: |
