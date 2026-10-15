@@ -44,6 +44,7 @@ on:
       - 'tools/patch_offline_reasoning_v329175_v33098.py'
       - 'feature_sources/offline_reasoning_v329175.dart'
       - 'feature_sources/offline_report_inline_suggestions_v329175.dart'
+      - 'feature_sources/offline_report_inline_suggestions_field_test_v329192.dart'
       - 'feature_sources/offline_reasoning_test_v329175.dart'
       - 'tools/patch_quick_visit_v329174_v33097.py'
       - 'feature_sources/quick_visit_screen_v329174_v33097.dart'
@@ -1869,7 +1870,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha dart format reincidência' }
           flutter analyze --no-fatal-infos --no-fatal-warnings
           if ($LASTEXITCODE -ne 0) { throw 'Falha analyze reincidência' }
-          flutter test test/correction_recurrence_detector_test.dart test/correction_recurrence_detector_field_test.dart test/offline_report_inline_suggestions_test.dart test/quick_visit_test.dart
+          Copy-Item "$env:GITHUB_WORKSPACE/feature_sources/offline_report_inline_suggestions_field_test_v329192.dart" 'test/offline_report_inline_suggestions_field_test.dart' -Force
+          dart format test/offline_report_inline_suggestions_field_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha dart format triagem técnica' }
+          flutter test test/correction_recurrence_detector_test.dart test/correction_recurrence_detector_field_test.dart test/offline_report_inline_suggestions_test.dart test/offline_report_inline_suggestions_field_test.dart test/quick_visit_test.dart
           if ($LASTEXITCODE -ne 0) { throw 'Falha regressões campo' }
           Pop-Location
 
