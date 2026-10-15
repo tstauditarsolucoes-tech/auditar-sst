@@ -1,0 +1,34 @@
+name: Auditar field convenience - pure Dart validation
+
+on:
+  push:
+    branches:
+      - feature/client-panel-permissions-v329106
+    paths:
+      - 'feature_sources/field_recurrence_preview_v1.dart'
+      - 'feature_sources/field_recurrence_preview_v1_test.dart'
+      - '.github/workflows/validate-field-convenience-dart.yml'
+  pull_request:
+    paths:
+      - 'feature_sources/field_recurrence_preview_v1.dart'
+      - 'feature_sources/field_recurrence_preview_v1_test.dart'
+      - '.github/workflows/validate-field-convenience-dart.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-recurrence:
+    name: Pure Dart - recurrence isolation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - name: Analyze field recurrence without Flutter
+        run: |
+          dart analyze feature_sources/field_recurrence_preview_v1.dart
+          dart analyze feature_sources/field_recurrence_preview_v1_test.dart
+      - name: Test technical and company/worksite isolation
+        run: dart feature_sources/field_recurrence_preview_v1_test.dart

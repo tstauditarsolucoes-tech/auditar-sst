@@ -1,0 +1,32 @@
+
+/* auditar-tratativas-v1 */
+.tratativa-hub{margin:17px 0;padding:17px;border:1px solid #dce6ef;
+ background:#f8fbfd;border-radius:14px}
+.tratativa-hub h3{color:#173f5b;margin:7px 0}
+.auditar-tratativa{background:#fff;border:1px solid #dfe7ef;border-radius:11px;margin:9px 0;overflow:hidden}
+.auditar-tratativa>summary{padding:13px 15px;cursor:pointer;font-weight:750;color:#173f5b}
+.auditar-tratativa[open]>summary{border-bottom:1px solid #e7edf3}
+.tratativa-content{padding:12px 14px}
+.tratativa-events{display:grid;gap:10px;margin:12px 0;max-height:470px;overflow:auto}
+.tratativa-event{border-left:3px solid #23906d;background:#f7fafc;padding:11px;border-radius:7px}
+.tratativa-event:has(.tratativa-tag){min-width:0}
+.tratativa-event-head{display:flex;flex-wrap:wrap;gap:7px;align-items:center;font-size:12px}
+.tratativa-event-head small{color:#61788f}
+.tratativa-tag{font-size:10px;padding:3px 7px;border-radius:999px;background:#e5f2ed;color:#125c4b}
+.tratativa-event p{margin:7px 0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px}
+.tratativa-form textarea{resize:vertical;min-height:80px}
+.tratativa-extras{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+.tratativa-form button{margin-top:11px}
+@media(max-width:600px){.tratativa-hub{padding:12px}.tratativa-content{padding:10px}}
+
+.tratativa-quick{display:flex;flex-wrap:wrap;gap:8px;margin:9px 0}
+.tratativa-quick button{font-size:12px;padding:9px 11px;text-align:left}
+.tratativa-inbox-list{display:grid;gap:7px}
+.tratativa-inbox-entry{display:flex;flex-direction:column;align-items:flex-start;
+ width:100%;gap:4px;text-align:left;background:#f1f6fb;color:#173b51;
+ border:1px solid #e0e9f1;border-radius:10px}
+.tratativa-inbox-entry b,.tratativa-inbox-entry small{
+ max-width:100%;overflow-wrap:anywhere}
+.tratativa-inbox-entry small{font-size:11px;color:#566e81;font-weight:500}
+@media(max-width:640px){.tratativa-quick button{flex:1 1 120px}
+ .tratativa-inbox-entry{padding:10px}}
