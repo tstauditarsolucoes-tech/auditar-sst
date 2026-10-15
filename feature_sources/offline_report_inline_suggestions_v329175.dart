@@ -132,6 +132,8 @@ class OfflineReportInlineSuggestionService {
   }) async {
     final normalized = _normalize(OfflineReasoning.normalize(query));
     if (normalized.length < 3 || query.length > 3000 || limit <= 0) return const [];
+    // Conformidade afirmativa não produz NC, mesmo com palavras de regras.
+    if (_clearlyCompliant(normalized)) return const [];
     final assessments = OfflineReasoning.analyze(query, context: contextTerms);
     if (assessments.isNotEmpty) {
       final learned = await _learnedSuggestions();
@@ -382,16 +384,28 @@ class OfflineReportInlineSuggestionService {
       .where((token) => token.length >= 3 && !_noiseTokens.contains(token))
       .toSet();
 
-  // Sem alteração visual: modelos com sentido oposto não entram no ranking.
-  // A confirmação de conformidade nunca deve gerar uma sugestão de NC.
+  // Somente conformidade afirmativa e sem defeito impede sugestão de NC.
+  // "Com proteção danificada" não significa "com proteção instalada".
+  static bool _clearlyCompliant(String query) {
+    final value = _normalize(query);
+    if (RegExp(
+      r'\b(sem protecao|protecao (?:danificada|ausente|removida|'
+      r'quebrada|defeituosa)|nao funcionou|nao funciona|'
+      r'nao respondeu|inoperante|defeito|obstruido|vencido|'
+      r'falha detectada|risco identificado|mas|porem)\b',
+    ).hasMatch(value)) return false;
+    return RegExp(
+      r'\b(com protecao instalada|protecao instalada|'
+      r'funcionando normalmente|sem irregularidade|sem falhas|'
+      r'regularizad[ao]s?|corrigid[ao]s?|em conformidade)\b',
+    ).hasMatch(value);
+  }
+
+  // O ranking também bloqueia condições claramente regulares.
   static bool _conditionConflicts(
       String query, String title, String description) {
     final candidate = '$title $description';
-    final safeQuery = RegExp(
-      r'\b(com protecao|funcionando normalmente|sem irregularidade|'
-      r'sem falhas|regularizado|corrigido|em conformidade)\b',
-    ).hasMatch(query);
-    if (safeQuery) return true;
+    if (_clearlyCompliant(query)) return true;
     if (RegExp(r'\bsem protecao\b').hasMatch(query) &&
         RegExp(r'\bcom protecao\b').hasMatch(candidate)) return true;
     if (RegExp(r'\b(nao funcionou|inoperante|nao funciona)\b').hasMatch(query) &&
