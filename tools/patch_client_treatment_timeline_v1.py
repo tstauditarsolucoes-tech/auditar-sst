@@ -41,6 +41,10 @@ h=h.replace('</style>',css+'\n</style>',1)
 a='function renderCompany(company){'
 assert h.count(a)==1
 h=h.replace(a,js+'\n'+a,1)
+# The inbox was defined but never mounted; render it after each authenticated load.
+a='  res.companies.forEach(renderCompany);'
+assert h.count(a)==1, 'portal dashboard rendering anchor missing'
+h=h.replace(a,a+'\n  renderTreatmentInboxV2();',1)
 a=' shell.append(renderReportHighlights(company));'
 assert h.count(a)==1
 h=h.replace(a,a+"\n const treatmentHub=renderTreatmentHubV1(company);\n if(treatmentHub)shell.append(treatmentHub);",1)
