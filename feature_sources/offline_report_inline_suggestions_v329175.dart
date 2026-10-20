@@ -1641,7 +1641,9 @@ class OfflineReportInlineSuggestions extends StatelessWidget {
                     child: Text(
                       OfflineReasoning.explicitSafeOrUncertain(query)
                           ? 'Condição normal, corrigida ou ainda não verificada: nenhuma falha ativa sugerida.'
-                          : 'Precisa de mais detalhes: informe o equipamento, a falha observada e a condição atual.',
+                          : OfflineReasoning.has('botao|botoeira', OfflineReasoning.normalize(query))
+                              ? 'Precisa de mais detalhes: esse botão pertence a qual equipamento e qual é sua função? Confira também o nome digitado.'
+                              : 'Precisa de mais detalhes: informe o equipamento, a falha observada e a condição atual.',
                     ),
                   ),
                 ],

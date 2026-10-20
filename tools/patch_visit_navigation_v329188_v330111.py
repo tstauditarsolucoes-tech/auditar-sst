@@ -27,9 +27,10 @@ tabs="""class VisitIntentTabs extends StatelessWidget {
     VisitIntent.reports:'Relatórios'
   };
   @override
-  Widget build(BuildContext context)=>SingleChildScrollView(
-    scrollDirection:Axis.horizontal,
-    child:Row(children:[
+  Widget build(BuildContext context)=>Wrap(
+    spacing: 8,
+    runSpacing: 8,
+    children:[
       for(final entry in labels.entries)Padding(
         padding:const EdgeInsets.only(right:8),
         child:ChoiceChip(
@@ -39,7 +40,7 @@ tabs="""class VisitIntentTabs extends StatelessWidget {
           onSelected:onSelected==null?null:(_)=>onSelected!(entry.key),
         ),
       ),
-    ]),
+    ],
   );
 }
 """

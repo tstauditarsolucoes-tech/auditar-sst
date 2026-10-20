@@ -1600,6 +1600,7 @@ class _CipaManagementScreenState extends State<CipaManagementScreen> {
             const SizedBox(width: 10),
             Expanded(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
@@ -1787,14 +1788,15 @@ class _CipaManagementScreenState extends State<CipaManagementScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: MediaQuery.of(context).size.width > 760 ? 4 : 2,
-            childAspectRatio: 1.65,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-            children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+              final columns = (constraints.maxWidth / (280 * scale)).floor().clamp(1, 4);
+              final width = (constraints.maxWidth - (columns - 1) * 8) / columns;
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: <Widget>[
               _metric('Membros ativos', '${activeMembers.length}', Icons.groups_outlined),
               _metric('Reuniões realizadas', '$realized', Icons.event_available_outlined),
               _metric('Reuniões pendentes', '$pending', Icons.event_busy_outlined),
@@ -1808,7 +1810,10 @@ class _CipaManagementScreenState extends State<CipaManagementScreen> {
                 color: overdueActionsCount > 0 ? Colors.red : AuditarBrand.greenDark,
               ),
               _metric('Eleições registradas', '${elections.length}', Icons.how_to_vote_outlined),
-            ],
+
+                ].map((card) => SizedBox(width: width, child: card)).toList(),
+              );
+            },
           ),
           const SizedBox(height: 14),
           _annualCipaCalendarCard(),
@@ -2398,7 +2403,9 @@ class _CipaManagementScreenState extends State<CipaManagementScreen> {
             ],
           ),
         ),
-        body: Stack(
+        body: SafeArea(
+          top: false,
+          child: Stack(
           children: [
             TabBarView(
               children: [
@@ -2422,6 +2429,7 @@ class _CipaManagementScreenState extends State<CipaManagementScreen> {
                 ),
               ),
           ],
+          ),
         ),
       ),
     );
