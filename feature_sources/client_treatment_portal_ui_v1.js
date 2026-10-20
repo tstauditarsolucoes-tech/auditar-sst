@@ -255,8 +255,13 @@ function renderTreatmentHubV1(company) {
 
 /* Caixa de entrada e indicadores de respostas, por conta autenticada. */
 function renderTreatmentInboxV2(){
- if(!current||(current.companies||[]).every(c=>!c.permissions||!c.permissions.tratativas))return;
  let dest=$('treatmentInboxV2');
+ if(!current||(current.companies||[]).every(c=>!c.permissions||!c.permissions.tratativas)){
+   // Never leave an old client's conversation visible after a session change.
+   if(dest)dest.remove();
+   pendingTreatmentTargetV2='';
+   return;
+ }
  if(!dest){dest=text('section','','panel');dest.id='treatmentInboxV2';
   $('companies').parentNode.insertBefore(dest,$('companies'));}
  dest.replaceChildren(text('h2','Caixa de entrada · Tratativas'));
