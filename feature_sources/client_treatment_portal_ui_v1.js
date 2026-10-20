@@ -184,8 +184,11 @@ function renderTreatmentHubV1(company) {
  if(company.permissions.naoConformidades){
    const panel=text('div','','tratativa-topics');
    const status=text('p','Consultando pendências e correções publicadas...','muted');
-   const list=text('div','','tratativa-topic-list');
-   panel.append(text('h4','Pendências em aberto e correções concluídas'),status,list);
+   const openTitle=text('h4','Pendências em acompanhamento');
+   const openList=text('div','','tratativa-topic-list');
+   const doneTitle=text('h4','Pendências resolvidas publicadas');
+   const doneList=text('div','','tratativa-topic-list');
+   panel.append(status,openTitle,openList,doneTitle,doneList);
    hub.append(panel);
    const session=token;
    call('clientPortalTreatmentTopics',[session,company.id],res=>{
@@ -196,7 +199,7 @@ function renderTreatmentHubV1(company) {
        return;
      }
      const topics=(res.topics||[]).filter(row=>row&&row.id&&row.id!=='GERAL');
-     list.replaceChildren();
+     openList.replaceChildren();doneList.replaceChildren();
      status.textContent=topics.length?
        topics.length+' ocorrências disponíveis para acompanhamento.':
        'Nenhuma ocorrência publicada. Use a conversa geral para pedir apoio.';
@@ -208,7 +211,8 @@ function renderTreatmentHubV1(company) {
        const statusText=String(row.status||'').trim();
        container.append(treatmentTimelineV1(company,row.id,title));
        if(statusText)container.append(text('small','Situação publicada: '+statusText,'muted'));
-       list.append(container);
+       const isDone=statusBucket(row)==='done';
+       (isDone?doneList:openList).append(container);
        const key=company.id+':tratativas:'+row.id;
        if(pendingTreatmentTargetV2===key){
          pendingTreatmentTargetV2='';
@@ -216,6 +220,12 @@ function renderTreatmentHubV1(company) {
          if(target){target.open=true;target.scrollIntoView({behavior:'smooth',block:'start'});}
        }
      });
+     const openCount=openList.children.length;
+     const doneCount=doneList.children.length;
+     openTitle.textContent='Pendências em acompanhamento ('+openCount+')';
+     doneTitle.textContent='Pendências resolvidas publicadas ('+doneCount+')';
+     if(!openCount)openList.append(text('p','Nenhuma pendência em acompanhamento nesta publicação.','muted'));
+     if(!doneCount)doneList.append(text('p','Nenhuma pendência resolvida publicada até o momento.','muted'));
    },err=>{if(session===token)status.textContent=
      'Não foi possível consultar as ocorrências: '+err;});
  }
