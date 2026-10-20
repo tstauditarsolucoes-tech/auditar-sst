@@ -2,18 +2,19 @@
 
 **Atenção:** versões abaixo são identificadores de COMPILAÇÃO, não uma homologação em dispositivos reais. O PR #15 continua **DRAFT**; não efetuar merge nem publicar Apps Script/Central e não executar `setupAuditar()` em produção.
 
-## Novos candidatos com correções das fotos — CI em andamento na atualização deste documento
+## Candidatos compilados e testados em CI — 20/10/2026
 
-- **Android v3.29.193+335** — [workflow de validação](https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/runs/39475359157), disparado sobre `f040c839f589411e49b724dc687682b2cb80e7f2`.
-- **Windows v3.30.116+303** — [workflow de validação](https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/runs/39475443202), disparado sobre `aa315892f6cd786437cae3e22de82a3d61e23c82`.
-- Patches isolados de interface: lista/nomes de empresas, rótulo Ronda, contraste do filtro de Atos e Condições, ajuda textual da Ronda e espaço de rolagem do botão Nova empresa.
-- Verificações automáticas e testes Flutter são obrigatórios antes de considerar os artefatos destes candidatos aptos à homologação.
+- **Android v3.29.193+335 — SUCCESS:** [GitHub Actions 39475359157](https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/runs/39475359157), commit `f040c839f589411e49b724dc687682b2cb80e7f2`, artefato **12291401598**. APK `Auditar-SST-v3.29.193-Android.apk`, SHA-256 `29065ac51c56aa2cd7bea45aa0831c992bfb066ee7bad7874bbcf6cfab191c03`.
+- **Windows v3.30.116+303 — SUCCESS:** [GitHub Actions 39475443202](https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/runs/39475443202), commit `aa315892f6cd786437cae3e22de82a3d61e23c82`, artefato **12291213718**. Instalador EXE SHA-256 `8f22dfd0aad8dea4e4a6fcfa0db01da5c79fb1c78b124e718757f561b0fb9a76`; portátil ZIP SHA-256 `8599cd2c80754308dcc41e6709e7b223291b346f3f29a4c357fcb0708930a71d`.
+- Checksums dos três binários conferidos com os respectivos manifestos SHA-256 dos artefatos. O ZIP portátil contém `auditar_sst.exe` e DLLs. **Isso comprova a integridade dos pacotes, não o funcionamento em computador/aparelho real.**
+- Patches de interface já montados na compilação: lista/nomes de empresas, rótulo Ronda, contraste em Atos e condições inseguras, orientação curta da Ronda e folga de rolagem da lista de empresas.
+- Ambos os workflows incluíram análise, testes automatizados e validação do empacotamento. **Apenas candidatos para homologação. Não distribuir como atualização de produção sem backups e testes físicos.**
 
-## Último par com CI de compilação aprovado
+## Base de comparação anterior — também CI SUCCESS
 
 - **Android v3.29.192+334** — [run 39468660375](https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/runs/39468660375), artefato 12288480059.
 - **Windows v3.30.115+302** — [run 39468660334](https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/runs/39468660334), artefato 12287199831.
-- Ambos no commit `64eb2d7ba9595f92bd3c73a694c2626fb783ce08`; hashes SHA-256 dos APK, EXE e portátil conferidos com os arquivos dos artefatos.
+- Ambos no commit `64eb2d7ba9595f92bd3c73a694c2626fb783ce08`.
 
 ## Pendências de homologação — NÃO marcar como concluído
 
