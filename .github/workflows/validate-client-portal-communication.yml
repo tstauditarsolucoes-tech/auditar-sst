@@ -9,6 +9,7 @@ on:
       - 'feature_sources/client_treatment_portal_ui_v1.css'
       - 'tools/patch_client_treatment_timeline_v1.py'
       - 'tools/test_client_treatments_v1.js'
+      - 'tools/test_client_treatment_ui_v2.js'
       - 'tools/test_client_treatment_portal_patch_v1.py'
       - '.github/workflows/validate-client-portal-communication.yml'
   workflow_dispatch:
@@ -35,6 +36,7 @@ jobs:
           node --check /tmp/client_treatment_backend.js
           node --check feature_sources/client_treatment_portal_ui_v1.js
           node tools/test_client_treatments_v1.js
+          node tools/test_client_treatment_ui_v2.js
           python3 -m py_compile tools/patch_client_treatment_timeline_v1.py tools/test_client_treatment_portal_patch_v1.py
       - name: Validate combined portal JavaScript and visible inbox call
         run: |
