@@ -30,3 +30,19 @@
 .tratativa-inbox-entry small{font-size:11px;color:#566e81;font-weight:500}
 @media(max-width:640px){.tratativa-quick button{flex:1 1 120px}
  .tratativa-inbox-entry{padding:10px}}
+
+/* Comunicação e pedidos de apoio: contraste e campos utilizáveis no celular. */
+.tratativa-support-button{display:inline-flex;align-items:center;min-height:44px;
+ padding:10px 16px;margin:8px 0 13px;white-space:normal;text-align:center;
+ background:#103e60!important;color:#fff!important;border:1px solid #103e60!important;
+ border-radius:9px;font-weight:750}
+.tratativa-topics{margin-top:18px;border-top:1px solid #dce6ef;padding-top:14px}
+.tratativa-topics h4{margin:0 0 7px;font-size:15px;color:#173f5b}
+.tratativa-topic-list{display:grid;gap:8px}
+.tratativa-topic small{display:block;margin:0 12px 8px}
+.tratativa-form select,.tratativa-form textarea,.tratativa-form input{
+ box-sizing:border-box;max-width:100%;min-width:0}
+.tratativa-form label{display:block;margin:8px 0 4px}
+.tratativa-form [role=status]{overflow-wrap:anywhere}
+@media(max-width:600px){.tratativa-support-button{width:100%}
+ .tratativa-hub h3{font-size:19px}.tratativa-form button[type=submit]{width:100%;min-height:44px}}
