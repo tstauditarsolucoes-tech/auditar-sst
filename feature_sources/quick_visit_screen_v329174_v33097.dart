@@ -576,7 +576,10 @@ class _QuickVisitScreenState extends State<QuickVisitScreen> {
             alignment: Alignment.topCenter,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 1000),
-              child: _selected == null ? _picker() : _tasks(),
+              child: SafeArea(
+                top: false,
+                child: _selected == null ? _picker() : _tasks(),
+              ),
             ),
           ),
   );
