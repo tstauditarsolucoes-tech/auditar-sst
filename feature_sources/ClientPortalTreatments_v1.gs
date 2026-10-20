@@ -22,7 +22,8 @@ function clientTreatmentPublishedTopicsV2_(payload) {
       seen[id]=true;
       output.push({id:id,title:String(row.title||row.description||'Ocorrência').slice(0,160),
         sector:String(row.sector||'').slice(0,100),
-        status:String(row.status||'').slice(0,100)});
+        status:String(row.status||(
+          /^(resolved|closed)/.test(source)?'Resolvida conforme publicação':'' )).slice(0,100)});
     });
   });
   return output.slice(0,250);
