@@ -1,6 +1,23 @@
 
 /* Client treatment timeline. All displayed content uses textContent. */
 let pendingTreatmentTargetV2='';
+/* Isolado das rotas antigas do portal: falhas do GS aparecem na própria conversa. */
+function treatmentCallV1(name,args,onSuccess,onFailure){
+  const fail=reason=>{
+    if(onFailure)onFailure(reason||'Não foi possível consultar a comunicação.');
+  };
+  try{
+    const runner=google.script.run.withSuccessHandler(onSuccess).withFailureHandler(
+      err=>fail(err&&err.message?err.message:'Não foi possível comunicar com a Central.'));
+    if(typeof runner[name]!=='function'){
+      fail('Módulo de comunicação indisponível nesta publicação da Central. Solicite à Auditar a verificação de ClientPortalTreatments.gs e das permissões da conta.');
+      return;
+    }
+    runner[name].apply(runner,args);
+  }catch(error){
+    fail('Não foi possível acessar a comunicação nesta versão do Painel. Atualize a página e, se continuar, solicite apoio à equipe Auditar.');
+  }
+}
 function treatmentTimelineV1(company,topicId,title){
  const block=document.createElement('details');
  block.className='auditar-tratativa';
@@ -99,7 +116,7 @@ function treatmentTimelineV1(company,topicId,title){
   if(loading)return;
   loading=true;status.textContent='Consultando linha do tempo...';
   const session=token;
-  call('clientPortalTreatmentList',[session,company.id,topicId],res=>{
+  treatmentCallV1('clientPortalTreatmentList',[session,company.id,topicId],res=>{
    loading=false;if(session!==token)return;
    history.replaceChildren();
    if(!res||!res.ok){status.textContent=res&&res.message||'Não foi possível consultar.';return;}
@@ -135,7 +152,7 @@ function treatmentTimelineV1(company,topicId,title){
     actionId:client?'':actionId.value.trim(),
     verificationMethod:client?'':verification.value};
   const session=token;
-  call('clientPortalTreatmentPost',[session,company.id,topicId,payload],res=>{
+  treatmentCallV1('clientPortalTreatmentPost',[session,company.id,topicId,payload],res=>{
    send.disabled=false;if(session!==token)return;
    if(!res||!res.ok){notice.textContent=res&&res.message||'Registro não confirmado.';return;}
    note.value='';due.value='';responsible.value='';actionId.value='';
@@ -183,6 +200,8 @@ function renderTreatmentHubV1(company) {
    if(note)note.focus();
  };
  hub.append(support,general);
+ // A linha do tempo geral já fica visível para o cliente, sem outro clique.
+ if(current.user.role==='cliente')general.open=true;
  if(company.permissions.naoConformidades){
    const panel=text('div','','tratativa-topics');
    const status=text('p','Consultando pendências e correções publicadas...','muted');
@@ -193,7 +212,7 @@ function renderTreatmentHubV1(company) {
    panel.append(status,openTitle,openList,doneTitle,doneList);
    hub.append(panel);
    const session=token;
-   call('clientPortalTreatmentTopics',[session,company.id],res=>{
+   treatmentCallV1('clientPortalTreatmentTopics',[session,company.id],res=>{
      if(session!==token)return;
      if(!res||!res.ok){
        status.textContent=res&&res.message||
@@ -244,7 +263,7 @@ function renderTreatmentInboxV2(){
  const info=text('p','Consultando atualizações...','muted');dest.append(info);
  const holder=text('div','','tratativa-inbox-list');dest.append(holder);
  const session=token;
- call('clientPortalTreatmentInbox',[session,''],res=>{
+ treatmentCallV1('clientPortalTreatmentInbox',[session,''],res=>{
   if(token!==session)return;
   if(!res||!res.ok){info.textContent=res&&res.message||'Não foi possível consultar as tratativas.';return;}
   const sum=res.summary||{};
