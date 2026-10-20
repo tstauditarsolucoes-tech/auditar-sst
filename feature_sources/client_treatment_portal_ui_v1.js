@@ -1,5 +1,6 @@
 
 /* Client treatment timeline. All displayed content uses textContent. */
+let pendingTreatmentTargetV2='';
 function treatmentTimelineV1(company,topicId,title){
  const block=document.createElement('details');
  block.className='auditar-tratativa';
@@ -208,6 +209,12 @@ function renderTreatmentHubV1(company) {
        container.append(treatmentTimelineV1(company,row.id,title));
        if(statusText)container.append(text('small','Situação publicada: '+statusText,'muted'));
        list.append(container);
+       const key=company.id+':tratativas:'+row.id;
+       if(pendingTreatmentTargetV2===key){
+         pendingTreatmentTargetV2='';
+         const target=container.querySelector('details[data-portal-key]');
+         if(target){target.open=true;target.scrollIntoView({behavior:'smooth',block:'start'});}
+       }
      });
    },err=>{if(session===token)status.textContent=
      'Não foi possível consultar as ocorrências: '+err;});
@@ -248,7 +255,10 @@ function renderTreatmentInboxV2(){
     const target=[...document.querySelectorAll('details[data-portal-key]')]
       .find(x=>x.dataset.portalKey===key);
     if(target){target.open=true;target.scrollIntoView({behavior:'smooth',block:'start'});}
-    else info.textContent='Conversa não liberada neste painel. Atualize a empresa.';
+    else {
+      pendingTreatmentTargetV2=key;
+      info.textContent='Abrindo conversa da ocorrência publicada...';
+    }
    };holder.append(row);
   });
  },err=>{info.textContent=err;});
