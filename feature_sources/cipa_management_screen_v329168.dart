@@ -2381,6 +2381,9 @@ class _CipaManagementScreenState extends State<CipaManagementScreen> {
           ],
           bottom: const TabBar(
             isScrollable: true,
+            labelColor: Colors.white,
+            unselectedLabelColor: Color(0xFFD5DDEE),
+            indicatorColor: Color(0xFF54D6A5),
             tabs: [
               Tab(text: 'Painel'),
               Tab(text: 'Mandato'),
