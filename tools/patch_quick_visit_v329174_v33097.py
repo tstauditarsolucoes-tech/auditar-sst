@@ -71,6 +71,8 @@ p.write_text(s,encoding='utf-8',newline='\n')
 # Company detail retains every module and adds a direct entry with this company.
 p=root/'lib/screens/company_detail_screen.dart'; s=p.read_text(encoding='utf-8')
 s="import 'quick_visit_screen.dart';\n"+s
+# Presentation-only label; routes and stored report names are unchanged.
+s=s.replace("'Ronda Expressa'", "'Ronda'")
 # Reuse the existing AppBar actions so no content or routes are removed.
 anchor='appBar: AppBar('; assert s.count(anchor)==1
 pos=s.index(anchor); actions=s.find('actions: [',pos)
