@@ -84,6 +84,5 @@ for p, old_digest in protected.items():
     assert hashlib.sha256(p.read_bytes()).hexdigest() == old_digest, (
         "Protected code changed: " + str(p)
     )
-assert "selectedColor: AuditarBrand.greenDark" in s or True
 print("FIELD_UI_ACCESSIBILITY_READY", platform, new)
 print("NO_DATA_SCHEMA_AUTH_SYNC_MEDIA_DRIVE_IA_OR_GS_CHANGES")
