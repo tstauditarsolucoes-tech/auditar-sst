@@ -71,7 +71,7 @@ class _CompanyTimelineScreenState extends State<CompanyTimelineScreen> {
           row['area'],
           row['sector_name'],
           row['status'],
-        ].where((e) => '${e ?? ''}'.trim().isNotEmpty).join(' • '),
+        ].map((e) => '${e ?? ''}'.trim()).where((e) => e.isNotEmpty).toSet().join(' • '),
         page: () => HistoryScreen(companyId: widget.company.id),
       ));
     }
@@ -92,7 +92,7 @@ class _CompanyTimelineScreenState extends State<CompanyTimelineScreen> {
             record.payload['sectorName'],
             record.payload['location'],
             record.status,
-          ].where((e) => '${e ?? ''}'.trim().isNotEmpty).join(' • '),
+          ].map((e) => '${e ?? ''}'.trim()).where((e) => e.isNotEmpty).toSet().join(' • '),
           page: page,
         ));
       }
@@ -129,7 +129,7 @@ class _CompanyTimelineScreenState extends State<CompanyTimelineScreen> {
           row['sector_name'],
           row['responsible'],
           row['completed_by'],
-        ].where((e) => '${e ?? ''}'.trim().isNotEmpty).join(' • '),
+        ].map((e) => '${e ?? ''}'.trim()).where((e) => e.isNotEmpty).toSet().join(' • '),
         page: () => ActionPlanScreen(companyId: widget.company.id),
       ));
     }
@@ -170,7 +170,9 @@ class _CompanyTimelineScreenState extends State<CompanyTimelineScreen> {
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(14, 14, 14, 30),
+                padding: EdgeInsets.fromLTRB(
+                  14, 14, 14, 30 + MediaQuery.viewPaddingOf(context).bottom,
+                ),
                 children: [
                   Container(
                     padding: const EdgeInsets.all(17),
