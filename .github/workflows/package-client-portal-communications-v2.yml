@@ -8,6 +8,7 @@ on:
       - 'feature_sources/ClientPortalTreatments_v1.gs'
       - 'feature_sources/client_treatment_portal_ui_v1.js'
       - 'feature_sources/client_treatment_portal_ui_v1.css'
+      - 'tools/test_client_treatment_ui_v2.js'
       - '.github/workflows/package-client-portal-communications-v2.yml'
   workflow_dispatch:
 
@@ -33,6 +34,7 @@ jobs:
         run: |
           set -euo pipefail
           node tools/test_client_treatments_v1.js
+          node tools/test_client_treatment_ui_v2.js
       - name: Download previous successful assembled portal (not production)
         uses: actions/download-artifact@v4
         with:
