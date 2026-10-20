@@ -496,6 +496,8 @@ class _QuickVisitScreenState extends State<QuickVisitScreen> {
                   itemBuilder: (_, i) {
                     final c = visible[i];
                     return ListTile(
+                      minVerticalPadding: 12,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       key: ValueKey('visit-company-${c.id}'),
                       leading: Icon(
                         _organization.favorite(c.id)
@@ -506,19 +508,16 @@ class _QuickVisitScreenState extends State<QuickVisitScreen> {
                         _organization.alias(c.id).isEmpty
                             ? c.name
                             : _organization.alias(c.id),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                        softWrap: true,
                       ),
                       subtitle: Text(
                         [
                           if (_organization.alias(c.id).isNotEmpty) c.name,
-                          _organization.group(c.id).isEmpty
-                              ? 'Sem grupo'
-                              : _organization.group(c.id),
+                          if (_organization.group(c.id).isNotEmpty)
+                            _organization.group(c.id),
                           c.city ?? '',
                         ].where((s) => s.isNotEmpty).join(' • '),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                        softWrap: true,
                       ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => _select(c),
