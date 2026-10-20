@@ -66,15 +66,22 @@ assert.ok(form&&typeof form.onsubmit==='function');
 assert.ok(note.focused,'support must focus on the message field');
 assert.ok(general.scrolled,'support must navigate to the conversation');
 
-let called=0;
+let called=0,reads=0;
 ctx.treatmentCallV1=(name,args,onSuccess)=>{
   if(name==='clientPortalTreatmentPost'){called++;onSuccess({ok:true,id:'treat_success_01'});}
-  else if(name==='clientPortalTreatmentList'){onSuccess({ok:true,events:[]});}
+  else if(name==='clientPortalTreatmentList'){reads++;onSuccess({ok:true,events:[]});}
 };
 ctx.renderTreatmentInboxV2=()=>{};
 note.value='Solicito uma visita técnica para avaliar o equipamento.';
 form.onsubmit({preventDefault(){}});
 assert.equal(called,1,'one support request must call the backend only once');
+const beforeManualRefresh=reads;
+const refresh=general.querySelector('button');
+assert.equal(refresh.textContent,'Atualizar conversa');
+refresh.onclick();
+assert.equal(reads,beforeManualRefresh+1,'refresh must fetch the new conversation events');
+general.event_toggle();
+assert.equal(reads,beforeManualRefresh+2,'reopening the timeline must refresh remote events');
 assert.ok(form.children.some(x=>/Pedido de apoio registrado/.test(x.textContent)),
   'support confirmation must be shown after backend acknowledgment');
 console.log('CLIENT_PORTAL_UI_V2_OK: support, single post, missing GS, session isolation, visible timeline');
