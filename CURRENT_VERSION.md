@@ -1,3 +1,31 @@
+# Auditar SST — status de validação em 20/10/2026
+
+**Atenção:** versões abaixo são identificadores de COMPILAÇÃO, não uma homologação em dispositivos reais. O PR #15 continua **DRAFT**; não efetuar merge nem publicar Apps Script/Central e não executar `setupAuditar()` em produção.
+
+## Novos candidatos com correções das fotos — CI em andamento na atualização deste documento
+
+- **Android v3.29.193+335** — [workflow de validação](https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/runs/39475359157), disparado sobre `f040c839f589411e49b724dc687682b2cb80e7f2`.
+- **Windows v3.30.116+303** — [workflow de validação](https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/runs/39475443202), disparado sobre `aa315892f6cd786437cae3e22de82a3d61e23c82`.
+- Patches isolados de interface: lista/nomes de empresas, rótulo Ronda, contraste do filtro de Atos e Condições, ajuda textual da Ronda e espaço de rolagem do botão Nova empresa.
+- Verificações automáticas e testes Flutter são obrigatórios antes de considerar os artefatos destes candidatos aptos à homologação.
+
+## Último par com CI de compilação aprovado
+
+- **Android v3.29.192+334** — [run 39468660375](https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/runs/39468660375), artefato 12288480059.
+- **Windows v3.30.115+302** — [run 39468660334](https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/runs/39468660334), artefato 12287199831.
+- Ambos no commit `64eb2d7ba9595f92bd3c73a694c2626fb783ce08`; hashes SHA-256 dos APK, EXE e portátil conferidos com os arquivos dos artefatos.
+
+## Pendências de homologação — NÃO marcar como concluído
+
+- Testar atualização sobre instalações reais Android e Windows, preservação de dados, fotos, PDF, assinatura e sincronização existente.
+- Testar contraste e quebra de texto com fontes ampliadas; fazer a varredura das demais telas com barra de navegação Android.
+- Conferir `TIMON-MA - PI` contra os campos do cadastro original; não alterar município ou UF por suposição.
+- Conferir identificadores completos das vistorias aparentemente repetidas na Linha do Tempo; não excluir registros.
+- Homologar mensagens de ida e volta na Central real apenas após autorização de integração dos GS.
+- Não considerar indicadores zerados nem caixa de entrada vazia como prova isolada de erro de sincronização.
+
+---
+
 # Integração de campo NR-18 e Plano de Ação — 13/10/2026
 
 **Em validação CI:** Android **v3.29.191+333**, Windows **v3.30.114+301**.
