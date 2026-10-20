@@ -1,0 +1,61 @@
+name: Auditar SST - validar comunicacao do cliente
+
+on:
+  push:
+    branches: [feature/client-panel-permissions-v329106]
+    paths:
+      - 'feature_sources/ClientPortalTreatments_v1.gs'
+      - 'feature_sources/client_treatment_portal_ui_v1.js'
+      - 'feature_sources/client_treatment_portal_ui_v1.css'
+      - 'tools/patch_client_treatment_timeline_v1.py'
+      - 'tools/test_client_treatments_v1.js'
+      - 'tools/test_client_treatment_portal_patch_v1.py'
+      - '.github/workflows/validate-client-portal-communication.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  communications:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Syntax and permission-isolation tests
+        run: |
+          set -euo pipefail
+          cp feature_sources/ClientPortalTreatments_v1.gs /tmp/client_treatment_backend.js
+          node --check /tmp/client_treatment_backend.js
+          node --check feature_sources/client_treatment_portal_ui_v1.js
+          node tools/test_client_treatments_v1.js
+          python3 -m py_compile tools/patch_client_treatment_timeline_v1.py tools/test_client_treatment_portal_patch_v1.py
+      - name: Validate combined portal JavaScript and visible inbox call
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          base=Path('build_sources/v3.29.106-client-portal/ClientPortal.html').read_text(encoding='utf-8')
+          js=Path('feature_sources/client_treatment_portal_ui_v1.js').read_text(encoding='utf-8')
+          css=Path('feature_sources/client_treatment_portal_ui_v1.css').read_text(encoding='utf-8')
+          patch=Path('tools/patch_client_treatment_timeline_v1.py').read_text(encoding='utf-8')
+          assert 'renderTreatmentInboxV2();' in patch
+          assert "clientPortalTreatmentTopics" in js
+          assert "Solicitar apoio técnico" in js and "Informar pendência corrigida" in js
+          assert "clientTreatmentPublishedTopicsV2_" in Path('feature_sources/ClientPortalTreatments_v1.gs').read_text(encoding='utf-8')
+          assert base.count('function renderCompany(company){')==1
+          assert base.count('res.companies.forEach(renderCompany);')==1
+          script=base.split('<script>',1)[1].split('</script>',1)[0]
+          script=script.replace('function renderCompany(company){', js+'\nfunction renderCompany(company){',1)
+          script=script.replace('res.companies.forEach(renderCompany);','res.companies.forEach(renderCompany);\n  renderTreatmentInboxV2();',1)
+          Path('/tmp/client_portal_combined.js').write_text(script, encoding='utf-8')
+          assert '.tratativa-support-button' in css
+          PY
+          node --check /tmp/client_portal_combined.js
+          echo "CLIENT_COMMUNICATION_V2_VALIDATED_NO_DEPLOY"
