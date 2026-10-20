@@ -31,9 +31,15 @@ new_js = (repo / "feature_sources/client_treatment_portal_ui_v1.js").read_text(e
 new_css = (repo / "feature_sources/client_treatment_portal_ui_v1.css").read_text(encoding="utf-8")
 html = one(base_html, old_js, new_js, "ClientPortal original JS")
 html = one(html, old_css, new_css, "ClientPortal original CSS")
-html = one(html, "res.companies.forEach(renderCompany);",
-           "res.companies.forEach(renderCompany);\n  renderTreatmentInboxV2();",
-           "Inbox mounting")
+# The previous assembled portal already mounts this inbox once.
+# Re-inserting the hook caused duplicate network calls and out-of-order updates.
+hook = "res.companies.forEach(renderCompany);\n  renderTreatmentInboxV2();"
+if html.count(hook) != 1:
+    raise RuntimeError("Expected exactly one existing inbox mount in assembled portal")
+if html.count("  renderTreatmentInboxV2();") != 2:
+    # One call after dashboard load plus one after submitting a message.
+    raise RuntimeError("Unexpected inbox refresh count; refusing to package")
+
 client_gs = (src / "ClientPortal.gs.txt").read_text(encoding="utf-8")
 code_gs = (src / "Code.gs.txt").read_text(encoding="utf-8")
 multi_gs = (src / "MultiUser.gs.txt").read_text(encoding="utf-8")
@@ -47,7 +53,8 @@ for token in ("function clientPortalTreatmentPost", "clientTreatmentPublishedTop
     if token not in mod:
         raise RuntimeError("Candidate backend incomplete: " + token)
 for token in ("Solicitar apoio técnico", "Pendências resolvidas publicadas",
-              "renderTreatmentInboxV2();", "clientPortalTreatmentTopics"):
+              "treatmentCallV1(", "clientPortalTreatmentTopics"):
+
     if token not in html:
         raise RuntimeError("Candidate portal incomplete: " + token)
 for token in ("client_treatment_v2",):
