@@ -71,7 +71,7 @@ s=s[:end]+'''
         TextButton.icon(onPressed: _sharingGroups ? null : _manageGroups, icon: const Icon(Icons.folder_outlined), label: const Text('Gerenciar grupos')),
       ]),
 ''' +s[end:]
-replace("[group.isEmpty ? 'Sem grupo' : group,", "[if (_organization.alias(company.id).isNotEmpty) _organization.alias(company.id), group.isEmpty ? 'Sem grupo' : group,")
+replace("[group.isEmpty ? 'Sem grupo' : group,", "[if (_organization.alias(company.id).isNotEmpty) _organization.alias(company.id), if (group.isNotEmpty) group,")
 # Registrar navegação sem mudar a rota existente.
 replace('() => Navigator.of(context)', '() {\n              unawaited(_organization.markVisited(company.id).catchError((Object _) {}));\n              Navigator.of(context)')
 # Fecha o bloco adicionado no callback original.
