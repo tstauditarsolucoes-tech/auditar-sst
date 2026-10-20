@@ -12,8 +12,11 @@ function treatmentTimelineV1(company,topicId,title){
  const typeLabel=text('label','Tipo de registro');const type=document.createElement('select');
  const client=current.user.role==='cliente';
  const options=client?
-  [['mensagem','Mensagem'],['esclarecimento','Esclarecimento da empresa'],
-   ['proposta_prazo','Propor prazo']]:
+  (topicId==='GERAL'?
+   [['mensagem','Mensagem'],['pedido_apoio','Solicitar apoio técnico'],
+    ['esclarecimento','Esclarecimento da empresa']]:
+   [['mensagem','Mensagem'],['informar_correcao','Informar correção realizada'],
+    ['esclarecimento','Esclarecimento da empresa'],['proposta_prazo','Propor prazo']]):
   [['mensagem','Mensagem'],['resposta_tecnica','Parecer da Auditar'],
    ['solicitar_verificacao','Solicitar verificação'],['revisao_tecnica','Revisão técnica'],
    ['encaminhamento','Encaminhamento/Plano de ação'],['reuniao','Registro de reunião'],
@@ -44,10 +47,13 @@ function treatmentTimelineV1(company,topicId,title){
  if(!client){extra.append(responsibleLabel,responsible);}
  extra.append(dueLabel,due);
  if(!client)extra.append(actionLabel,actionId,verifyLabel,verification);
- const send=text('button','Registrar na linha do tempo');send.type='submit';
+ const send=text('button','Enviar mensagem');send.type='submit';
  const notice=text('p','','muted');notice.setAttribute('role','status');
  form.append(typeLabel,type,noteLabel,note,extra,send,notice);
  type.onchange=()=>{
+  send.textContent=type.value==='pedido_apoio'?'Enviar solicitação de apoio':
+    type.value==='informar_correcao'?'Enviar correção para conferência':
+    'Registrar na linha do tempo';
   due.disabled=client&&type.value!=='proposta_prazo';
   actionId.hidden=actionLabel.hidden=type.value!=='vinculo_acao';
   verifyLabel.hidden=verification.hidden=type.value!=='eficacia_confirmada';
@@ -55,9 +61,13 @@ function treatmentTimelineV1(company,topicId,title){
  type.onchange();
  const quick=text('div','','tratativa-quick');
  const templates=client?
-  [['esclarecimento','Esclarecer','Sobre a constatação, informamos que: '],
-   ['proposta_prazo','Propor prazo','Propomos o prazo indicado para esta providência.'],
-   ['mensagem','Solicitar reunião','Solicitamos reunião para alinhamento do assunto.']]:
+  (topicId==='GERAL'?
+   [['pedido_apoio','Solicitar apoio','Precisamos do apoio da Auditar sobre: '],
+    ['mensagem','Solicitar reunião','Solicitamos reunião para alinhamento do assunto.']]:
+   [['informar_correcao','Informar pendência corrigida',
+      'Correção realizada: \nData: \nResponsável: \nSolicitamos conferência da Auditar.'],
+    ['esclarecimento','Esclarecer','Sobre a constatação, informamos que: '],
+    ['proposta_prazo','Propor prazo','Propomos o prazo indicado para esta providência.']]):
   [['solicitar_verificacao','Pedir conferência','Solicitamos verificar o funcionamento no local e encaminhar o resultado.'],
    ['reuniao','Registrar reunião','Participantes: \nDecisões: \nResponsáveis: \nPrazos: '],
    ['resposta_tecnica','Parecer técnico','Após analisar o esclarecimento, registramos: ']];
@@ -128,36 +138,86 @@ function treatmentTimelineV1(company,topicId,title){
    send.disabled=false;if(session!==token)return;
    if(!res||!res.ok){notice.textContent=res&&res.message||'Registro não confirmado.';return;}
    note.value='';due.value='';responsible.value='';actionId.value='';
-   notice.textContent='Registro incluído no histórico da empresa.';
+   notice.textContent=payload.type==='pedido_apoio'?
+     'Pedido de apoio registrado. Protocolo: '+String(res.id||'não informado')+
+       '. Aguardando resposta da Auditar.':
+     payload.type==='informar_correcao'?
+       'Correção informada à Auditar. Aguarda verificação técnica; a NC não foi encerrada.':
+       'Mensagem registrada na linha do tempo.';
    refresh();
+   renderTreatmentInboxV2();
   },err=>{send.disabled=false;notice.textContent=err;});
  };
  return block;
 }
 function renderTreatmentHubV1(company) {
- if(!company.permissions||!company.permissions.tratativas)return null;
  const hub=text('section','','tratativa-hub');
- hub.append(text('div','COMUNICAÇÃO E TRATATIVAS','section-eyebrow'),
-   text('h3','Linha do tempo com a Auditar'),
-   text('p','Converse sobre cada ocorrência sem perder as decisões e os prazos. '
-     +'O relatório original permanece intacto; situações de risco exigem atenção imediata.',
-     'muted'));
- hub.append(treatmentTimelineV1(company,'GERAL','Comunicação geral da empresa'));
- if(company.permissions.naoConformidades) {
-   const cases=(company.nonConformities||[]).filter(row=>row.id);
-   const seen=new Set();
-   cases.forEach(row=>{
-     if(seen.has(row.id))return;seen.add(row.id);
-     hub.append(treatmentTimelineV1(company,row.id,
-       (row.title||row.description||'Não conformidade').slice(0,140)));
-   });
+ hub.dataset.portalKey=company.id+':communication-hub';
+ hub.append(text('div','COMUNICAÇÃO DE SST','section-eyebrow'),
+   text('h3','Comunicação e linha do tempo'));
+ if(!company.permissions||!company.permissions.tratativas){
+   hub.append(text('p','A comunicação ainda não está habilitada nesta conta. '
+    +'Peça à Auditar para ativar a permissão Tratativas na Central e publicar o módulo de comunicação.',
+    'muted'));
+   return hub;
+ }
+ hub.append(text('p','Solicite apoio, informe correções e acompanhe as respostas '
+   +'por ocorrência. A confirmação técnica da Auditar é necessária para encerrar '
+   +'uma não conformidade.','muted'));
+ const general=treatmentTimelineV1(company,'GERAL','Conversa geral e solicitações de apoio');
+ const support=text('button','Solicitar apoio técnico','secondary tratativa-support-button');
+ support.type='button';
+ support.onclick=()=>{
+   general.open=true;
+   const type=general.querySelector('select');
+   const note=general.querySelector('textarea');
+   if(type&&[...type.options].some(x=>x.value==='pedido_apoio')){
+     type.value='pedido_apoio';type.onchange();
+   }
+   if(note&&!note.value.trim())
+     note.value='Precisamos do apoio da Auditar sobre: ';
+   general.scrollIntoView({behavior:'smooth',block:'start'});
+   if(note)note.focus();
+ };
+ hub.append(support,general);
+ if(company.permissions.naoConformidades){
+   const panel=text('div','','tratativa-topics');
+   const status=text('p','Consultando pendências e correções publicadas...','muted');
+   const list=text('div','','tratativa-topic-list');
+   panel.append(text('h4','Pendências em aberto e correções concluídas'),status,list);
+   hub.append(panel);
+   const session=token;
+   call('clientPortalTreatmentTopics',[session,company.id],res=>{
+     if(session!==token)return;
+     if(!res||!res.ok){
+       status.textContent=res&&res.message||
+         'Não foi possível consultar as ocorrências publicadas nesta versão da Central.';
+       return;
+     }
+     const topics=(res.topics||[]).filter(row=>row&&row.id&&row.id!=='GERAL');
+     list.replaceChildren();
+     status.textContent=topics.length?
+       topics.length+' ocorrências disponíveis para acompanhamento.':
+       'Nenhuma ocorrência publicada. Use a conversa geral para pedir apoio.';
+     const seen=new Set();
+     topics.forEach(row=>{
+       if(seen.has(row.id))return;seen.add(row.id);
+       const container=text('div','','tratativa-topic');
+       const title=(row.title||'Ocorrência').slice(0,160);
+       const statusText=String(row.status||'').trim();
+       container.append(treatmentTimelineV1(company,row.id,title));
+       if(statusText)container.append(text('small','Situação publicada: '+statusText,'muted'));
+       list.append(container);
+     });
+   },err=>{if(session===token)status.textContent=
+     'Não foi possível consultar as ocorrências: '+err;});
  }
  return hub;
 }
 
 /* Caixa de entrada e indicadores de respostas, por conta autenticada. */
 function renderTreatmentInboxV2(){
- if(!current)return;
+ if(!current||(current.companies||[]).every(c=>!c.permissions||!c.permissions.tratativas))return;
  let dest=$('treatmentInboxV2');
  if(!dest){dest=text('section','','panel');dest.id='treatmentInboxV2';
   $('companies').parentNode.insertBefore(dest,$('companies'));}
@@ -179,7 +239,9 @@ function renderTreatmentInboxV2(){
   list.forEach(item=>{
    const row=text('button','','secondary tratativa-inbox-entry');row.type='button';
    row.append(text('b',(item.companyName||'Empresa')+' · '+(item.title||'Conversa')),
-     text('small',(item.status||'')+(item.overdue?' • PRAZO VENCIDO':'')+
+     text('small',(item.lastType==='pedido_apoio'?'Pedido de apoio · ':
+        item.lastType==='informar_correcao'?'Correção informada · ':'')+
+       (item.status||'')+(item.overdue?' • PRAZO VENCIDO':'')+
        (item.lastMessage?' — '+item.lastMessage:'')));
    row.onclick=()=>{
     const key=item.companyId+':tratativas:'+item.topicId;
