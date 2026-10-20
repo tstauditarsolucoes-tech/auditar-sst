@@ -94,7 +94,10 @@ function treatmentTimelineV1(company,topicId,title){
   b.onclick=()=>{type.value=x[0];type.onchange();note.value=x[2];note.focus();};
   quick.append(b);
  });
- content.append(status,history,quick,form);
+ const refreshButton=text('button','Atualizar conversa','secondary');
+ refreshButton.type='button';
+ refreshButton.onclick=()=>refresh();
+ content.append(status,refreshButton,history,quick,form);
  if(topicId!=='GERAL'){
   const nav=text('div','','tratativa-quick');
   if(client&&company.permissions.enviarEvidencia){
@@ -140,7 +143,7 @@ function treatmentTimelineV1(company,topicId,title){
    });
   },err=>{loading=false;status.textContent=err;});
  }
- block.addEventListener('toggle',()=>{if(block.open&&!loaded)refresh();});
+ block.addEventListener('toggle',()=>{if(block.open)refresh();});
  form.onsubmit=event=>{
   event.preventDefault();
   if(send.disabled||!note.value.trim())return;
