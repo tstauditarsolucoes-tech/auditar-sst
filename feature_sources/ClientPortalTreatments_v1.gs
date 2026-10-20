@@ -6,6 +6,28 @@
  */
 const CLIENT_TREATMENT_SHEET_V1='AUDITAR_TRATATIVAS_V1';
 
+/** Ocorrências expressamente publicadas, inclusive as concluídas no snapshot.
+ * Nunca consulta dados privados, registros fora da empresa nem altera NCs.
+ */
+function clientTreatmentPublishedTopicsV2_(payload) {
+  const sources=['openNonConformities','nonConformities','ncs','ncRecords',
+    'nonConformityRows','resolvedNonConformities','closedNonConformities',
+    'resolvedNcs','closedNcs','ncHistory'];
+  const output=[];
+  const seen=Object.create(null);
+  sources.forEach(function(source){
+    clientPortalRows_(payload,[source]).forEach(function(row){
+      const id=String(row.id||'').trim();
+      if(!id||id.length>120||Object.prototype.hasOwnProperty.call(seen,id))return;
+      seen[id]=true;
+      output.push({id:id,title:String(row.title||row.description||'Ocorrência').slice(0,160),
+        sector:String(row.sector||'').slice(0,100),
+        status:String(row.status||'').slice(0,100)});
+    });
+  });
+  return output.slice(0,250);
+}
+
 function clientTreatmentAuthorized_(token,companyId,topicId) {
   const actor=clientTreatmentActorV2_(token);
   const company=String(companyId||'').trim();
@@ -19,8 +41,7 @@ function clientTreatmentAuthorized_(token,companyId,topicId) {
   const snapshot=clientPortalFindSnapshot_(company);
   if(!snapshot)return {ok:false,code:'NO_PUBLISHED_COMPANY',message:'Empresa sem painel publicado.'};
   if(topic!=='GERAL') {
-    const rows=clientPortalRows_(snapshot.payload,
-      ['openNonConformities','nonConformities','ncs','ncRecords','nonConformityRows']);
+    const rows=clientTreatmentPublishedTopicsV2_(snapshot.payload);
     if(!rows.some(function(item){return item.id===topic;}))
       return {ok:false,code:'TOPIC_UNAVAILABLE',
         message:'Ocorrência não está publicada para esta empresa.'};
@@ -73,12 +94,17 @@ function clientPortalTreatmentPost(token,companyId,topicId,input) {
   if(!auth.ok)return auth;
   const item=input&&typeof input==='object'&&!Array.isArray(input)?input:{};
   const type=String(item.type||'mensagem').trim();
-  const clientTypes=['mensagem','esclarecimento','proposta_prazo'];
+  const clientTypes=['mensagem','esclarecimento','proposta_prazo',
+    'pedido_apoio','informar_correcao'];
   const staffTypes=['mensagem','resposta_tecnica','solicitar_verificacao',
     'revisao_tecnica','encaminhamento','reuniao','eficacia_confirmada','vinculo_acao'];
   const allowed=auth.actor.role==='cliente'?clientTypes:staffTypes;
   if(allowed.indexOf(type)<0)return {ok:false,code:'TYPE_NOT_ALLOWED',
     message:'Essa decisão exige avaliação técnica da Auditar.'};
+  if((type==='pedido_apoio'&&auth.topicId!=='GERAL')||
+      (type==='informar_correcao'&&auth.topicId==='GERAL'))
+    return {ok:false,code:'TOPIC_TYPE_INVALID',
+      message:'Solicite apoio na conversa geral e informe correções na ocorrência correspondente.'};
   const message=String(item.message||'').trim();
   if(!message||message.length>1600||/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(message))
     return {ok:false,code:'MESSAGE_INVALID',message:'Escreva uma mensagem de até 1600 caracteres.'};
@@ -200,9 +226,8 @@ function clientPortalTreatmentInbox(token,companyFilter) {
       if(!snapshot){cache[company]={eligible:false,names:{}};}
       else{
         const titles={GERAL:'Conversa geral'};
-        const records=clientPortalRows_(snapshot.payload,
-          ['openNonConformities','nonConformities','ncs','ncRecords','nonConformityRows']);
-        records.forEach(function(row){if(row.id)titles[row.id]=(row.title||row.description||row.id).slice(0,180);});
+        const records=clientTreatmentPublishedTopicsV2_(snapshot.payload);
+        records.forEach(function(row){if(row.id)titles[row.id]=(row.title||row.id).slice(0,180);});
         cache[company]={eligible:true,names:titles,
           companyName:String((snapshot.payload.company||{}).name||'Empresa').slice(0,140)};
       }
@@ -255,16 +280,8 @@ function clientPortalTreatmentTopics(token,companyId) {
       !clientPortalPermissions_(authorized.actor.clientPermissions).naoConformidades)
     return {ok:true,topics:[{id:'GERAL',title:'Comunicação geral'}]};
   const snap=clientPortalFindSnapshot_(authorized.companyId);
-  const records=clientPortalRows_(snap.payload,
-    ['openNonConformities','nonConformities','ncs','ncRecords','nonConformityRows']);
-  const topics=[{id:'GERAL',title:'Comunicação geral'}];
-  const seen={GERAL:true};
-  records.forEach(function(row){
-    if(!row.id||seen[row.id])return;
-    seen[row.id]=true;
-    topics.push({id:row.id,title:(row.title||row.description||'Não conformidade').slice(0,160),
-      sector:(row.sector||'').slice(0,100)});
-  });
+  const records=clientTreatmentPublishedTopicsV2_(snap.payload);
+  const topics=[{id:'GERAL',title:'Comunicação geral'}].concat(records);
   return {ok:true,topics:topics.slice(0,251)};
 }
 
