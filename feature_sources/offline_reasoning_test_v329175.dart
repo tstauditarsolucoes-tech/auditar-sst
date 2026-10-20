@@ -48,6 +48,8 @@ void main() {
     'quadro elétrico sem identificação':'electric-label',
     'painel obstruído':'electric-access',
     'extintor bloqueado':'extinguisher-access',
+    'Extintor vencido':'extinguisher-expiry',
+    'Extintor com manutenção vencida':'extinguisher-expiry',
     'extitor s placa':'extinguisher-sign',
     'extintor com manômetro no vermelho':'extinguisher-condition',
     'saída de emergência trancada':'exit',
@@ -86,6 +88,8 @@ void main() {
     expect(r.map((a)=>a.rule.id).toList(), ['extinguisher-sign']);
   });
   const safe = [
+    'extintor não está vencido', 'extintor não se encontra vencido',
+    'verificar se extintor está vencido', 'extintor vencido, já regularizado',
     'extintor desobstruído', 'extintor não está obstruído',
     'extintor não bloqueado', 'extintor sem obstrução',
     'sensor da porta não está inoperante',
@@ -140,6 +144,14 @@ void main() {
     expect(await OfflineReportInlineSuggestionService.search(query:'extintor não está obstruído'),isEmpty);
     expect(await OfflineReportInlineSuggestionService.search(query:'botão de emergência falhou mas foi corrigido'),isEmpty);
     expect(await OfflineReportInlineSuggestionService.search(query:'extintor sem placa',limit:0),isEmpty);
+  });
+  test('busca reconhece prazo vencido sem inventar qual prazo', () async {
+    final found = await OfflineReportInlineSuggestionService.search(query: 'Extintor vencido');
+    expect(found, isNotEmpty);
+    expect(found.first.assessment?.rule.id, 'extinguisher-expiry');
+    expect(found.first.description, 'Extintor vencido');
+    expect(found.first.assessment?.rule.question, contains('Qual prazo'));
+    expect(await OfflineReportInlineSuggestionService.search(query: 'Extintor não está vencido'), isEmpty);
   });
   test('modelo aprovado reaparece na busca no caminho canônico', () async {
     final learned = await OfflineReportKnowledgeService.learnFromApprovedFields(
