@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.192 Praticidade de Campo
+name: Auditar SST Android v3.29.193 Praticidade de Campo
 # Clean rebuild v3.29.145 after protected productivity consolidation
 # Rebuild v3.29.113 logo recovery
 
@@ -15,6 +15,7 @@ on:
       - 'tools/audit_navigation_destinations_v1.py'
       - 'tools/patch_nr18_action_plan_v329191_v330114.py'
       - 'tools/patch_field_recurrence_v329192_v330115.py'
+      - 'tools/patch_field_visual_v329193_v330116.py'
       - 'feature_sources/field_recurrence_preview_v1.dart'
       - 'feature_sources/correction_recurrence_detector_v329192.dart'
       - 'feature_sources/correction_recurrence_detector_test_v329192.dart'
@@ -1540,6 +1541,15 @@ jobs:
           dart format test/offline_report_inline_suggestions_field_test.dart
           flutter test test/correction_recurrence_detector_test.dart test/correction_recurrence_detector_field_test.dart test/offline_report_inline_suggestions_test.dart test/offline_report_inline_suggestions_field_test.dart test/quick_visit_test.dart
 
+      - name: Corrigir contraste e textos de campo sem alterar nucleo (Android)
+        run: |
+          set -euo pipefail
+          python3 tools/patch_field_visual_v329193_v330116.py "$APP_DIR" android
+          cd "$APP_DIR"
+          dart format lib/screens/safety_observations_screen.dart lib/screens/express_round_screen.dart lib/screens/companies_screen.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/quick_visit_test.dart test/offline_report_inline_suggestions_field_test.dart
+
       - name: Inventario de navegação e rotas do aplicativo montado
         run: |
           set -euo pipefail
@@ -1552,7 +1562,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v329192-Auditoria-Navegacao-Android
+          name: Auditar-SST-v329193-Auditoria-Navegacao-Android
           path: dist/Auditoria-Navegacao/*
           if-no-files-found: ignore
           retention-days: 30
@@ -1624,12 +1634,12 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.192-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.192-Android.apk > dist/Auditar-SST-v3.29.192-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.193-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.193-Android.apk > dist/Auditar-SST-v3.29.193-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.192-Android-NR18-Acao
+          name: Auditar-SST-v3.29.193-Android-NR18-Acao
           path: dist/*
           retention-days: 30
 
