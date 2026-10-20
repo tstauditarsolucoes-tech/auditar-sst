@@ -16,7 +16,7 @@ class Element {
   get options(){return this.children;}
   querySelector(selector){
     const matches=x=> selector==='select'?x.tag==='select':selector==='textarea'?x.tag==='textarea':
-      selector==='[role="status"]'&&x.role==='status';
+      selector==='[role="status"]'?x.role==='status':x.tag===selector;
     const walk=x=>{for(const item of x.children){if(matches(item))return item;const result=walk(item);if(result)return result;}return null;};
     return walk(this);
   }
