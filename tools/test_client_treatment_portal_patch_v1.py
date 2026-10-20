@@ -11,11 +11,14 @@ for needle in ['clientPortalLogin(', 'clientPortalData(', 'clientPortalSubmitEvi
                'tratativas']:
  assert needle in gs,needle
 for needle in ['function clientPortalTreatmentList(', 'function clientPortalTreatmentPost(',
- 'userCanAccessCompany_', 'clientPortalFindSnapshot_', 'CLIENT_TREATMENT_SHEET_V1']:
+ 'userCanAccessCompany_', 'clientPortalFindSnapshot_', 'CLIENT_TREATMENT_SHEET_V1',
+ 'clientTreatmentPublishedTopicsV2_', "'pedido_apoio'", "'informar_correcao'"]:
  assert needle in mod,needle
 for needle in ['id="login"', 'id="dashboard"', 'id="companies"', 'id="cp_tratativas"',
   'id="cp_enviarEvidencia"', 'function renderTreatmentHubV1','function treatmentTimelineV1',
-  'function renderCompany(company)', 'function renderImprovementPlan(company)']:
+  'function renderCompany(company)', 'function renderImprovementPlan(company)',
+  'renderTreatmentInboxV2();', 'Solicitar apoio técnico',
+  'Informar pendência corrigida', 'clientPortalTreatmentTopics']:
  assert needle in html,needle
 assert html.count('<script>')==1 and html.count('</script>')==1
 assert "document.createElement('textarea')" in html
@@ -30,4 +33,4 @@ with tempfile.TemporaryDirectory() as temp:
   file=Path(temp)/name
   file.write_text(contents,encoding='utf-8')
   subprocess.run(['node','--check',str(file)],check=True)
-print('CLIENT_PORTAL_TREATMENTS_PATCH_V1_OK; portal login/admin/evidence preserved')
+print('CLIENT_PORTAL_TREATMENTS_PATCH_V2_OK; linha do tempo, apoio e correcoes; rotas originais preservadas')
