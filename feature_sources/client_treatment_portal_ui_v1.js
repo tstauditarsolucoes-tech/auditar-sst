@@ -186,23 +186,27 @@ function renderTreatmentHubV1(company) {
    +'por ocorrência. A confirmação técnica da Auditar é necessária para encerrar '
    +'uma não conformidade.','muted'));
  const general=treatmentTimelineV1(company,'GERAL','Conversa geral e solicitações de apoio');
- const support=text('button','Solicitar apoio técnico','secondary tratativa-support-button');
- support.type='button';
- support.onclick=()=>{
-   general.open=true;
-   const type=general.querySelector('select');
-   const note=general.querySelector('textarea');
-   if(type&&[...type.options].some(x=>x.value==='pedido_apoio')){
-     type.value='pedido_apoio';type.onchange();
-   }
-   if(note&&!note.value.trim())
-     note.value='Precisamos do apoio da Auditar sobre: ';
-   const feedback=general.querySelector('[role="status"]');
-   if(feedback)feedback.textContent='Descreva o apoio necessário e toque em Enviar solicitação de apoio. A Auditar receberá o pedido após a confirmação do envio.';
-   general.scrollIntoView({behavior:'smooth',block:'start'});
-   if(note)note.focus();
- };
- hub.append(support,general);
+ // Solicitar apoio pertence ao cliente; a equipe Auditar responde pela conversa geral.
+ if(current.user.role==='cliente'){
+   const support=text('button','Solicitar apoio técnico','secondary tratativa-support-button');
+   support.type='button';
+   support.onclick=()=>{
+     general.open=true;
+     const type=general.querySelector('select');
+     const note=general.querySelector('textarea');
+     if(type&&[...type.options].some(x=>x.value==='pedido_apoio')){
+       type.value='pedido_apoio';type.onchange();
+     }
+     if(note&&!note.value.trim())
+       note.value='Precisamos do apoio da Auditar sobre: ';
+     const feedback=general.querySelector('[role="status"]');
+     if(feedback)feedback.textContent='Descreva sua necessidade e toque em Enviar solicitação de apoio. O envio só estará concluído quando o protocolo aparecer nesta tela.';
+     general.scrollIntoView({behavior:'smooth',block:'start'});
+     if(note)note.focus();
+   };
+   hub.append(support);
+ }
+ hub.append(general);
  // A linha do tempo geral já fica visível para o cliente, sem outro clique.
  if(current.user.role==='cliente')general.open=true;
  if(company.permissions.naoConformidades){
