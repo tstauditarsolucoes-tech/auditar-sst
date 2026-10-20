@@ -157,8 +157,8 @@ function renderTreatmentHubV1(company) {
  hub.append(text('div','COMUNICAÇÃO DE SST','section-eyebrow'),
    text('h3','Comunicação e linha do tempo'));
  if(!company.permissions||!company.permissions.tratativas){
-   hub.append(text('p','A comunicação ainda não está habilitada nesta conta. '
-    +'Peça à Auditar para ativar a permissão Tratativas na Central e publicar o módulo de comunicação.',
+   hub.append(text('p','A comunicação e a linha do tempo não estão liberadas nesta conta. '
+    +'A equipe Auditar deve habilitar a permissão Tratativas, confirmar o módulo ClientPortalTreatments.gs na implantação ativa e publicar uma nova versão autorizada do Painel.',
     'muted'));
    return hub;
  }
@@ -177,6 +177,8 @@ function renderTreatmentHubV1(company) {
    }
    if(note&&!note.value.trim())
      note.value='Precisamos do apoio da Auditar sobre: ';
+   const feedback=general.querySelector('[role="status"]');
+   if(feedback)feedback.textContent='Descreva o apoio necessário e toque em Enviar solicitação de apoio. A Auditar receberá o pedido após a confirmação do envio.';
    general.scrollIntoView({behavior:'smooth',block:'start'});
    if(note)note.focus();
  };
