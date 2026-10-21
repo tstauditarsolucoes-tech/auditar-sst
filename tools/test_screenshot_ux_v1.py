@@ -16,12 +16,13 @@ def screen(name):
 cipa = screen("cipa_management_screen.dart")
 assert "backgroundColor: AuditarBrand.navyDark" in cipa, "CIPA dark tab/header surface"
 assert "unselectedLabelColor: Color(0xFFD5DDEE)" in cipa, "CIPA accessible tabs"
-assert "maxLines: 3" in cipa and "final columns = (constraints.maxWidth / (300 * scale))" in cipa, "CIPA metric labels"
+assert "maxLines: 3" in cipa and re.search(r"constraints\.maxWidth\s*/\s*\(300\s*\*\s*scale\)", cipa), "CIPA metric labels"
 
 backup = screen("evidence_backup_screen.dart")
-for expected in ("s.missingPhotos>0||s.pendingPhotos>0", "Não desinstale o aplicativo",
-                 "final itemWidth=single?width:(width-8)/2", "Fotos não localizadas"):
-    assert expected in backup, f"Evidence status visual protection missing: {expected}"
+assert "Não desinstale o aplicativo" in backup, "Device safety warning"
+assert "Fotos não localizadas" in backup, "Missing photo metric"
+assert re.search(r"s\.missingPhotos\s*>\s*0\s*\|\|\s*s\.pendingPhotos\s*>\s*0",backup), "Pending photo alert"
+assert re.search(r"final\s+itemWidth\s*=\s*single\s*\?\s*width\s*:\s*\(width\s*-\s*8\)\s*/\s*2",backup), "Responsive photo buttons"
 
 ronda = screen("express_round_screen.dart")
 assert "Inclua uma foto ou uma descrição." in ronda, "Ronda clear field helper"
