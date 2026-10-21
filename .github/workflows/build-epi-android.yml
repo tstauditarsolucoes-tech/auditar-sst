@@ -3,7 +3,7 @@ name: Gerar APK Gestão EPI Campo
 on:
   workflow_dispatch:
   push:
-    branches: [main, feature/gestao-epi-biometria-evidencia-v281, feature/gestao-epi-worker-portal-v290, feature/gestao-epi-brand-login-v300, feature/gestao-epi-android-cache-hotfix-v301, feature/gestao-epi-login-refine-v302, feature/gestao-epi-quality-v310, feature/gestao-epi-legal-v320, feature/gestao-epi-android-freeze-hotfix-v321, feature/gestao-epi-android-freeze-hotfix-v322, feature/gestao-epi-android-more-hotfix-v324, feature/gestao-epi-android-invoice-import-v325, feature/gestao-epi-ca-validity-v326, feature/gestao-epi-ca-sheet-v327, feature/gestao-epi-fichas-completas-v328, feature/gestao-epi-fichas-resumidas-v329, feature/gestao-epi-central-ca-v330, feature/gestao-epi-nf-refino-v331, feature/gestao-epi-worker-card-responsive-v332, feature/gestao-epi-login-lock-v333, feature/gestao-epi-operational-center-v340, feature/gestao-epi-tst-warehouse-v350, feature/gestao-epi-flow-enhancements-v360, feature/gestao-epi-worker-portal-v450, feature/gestao-epi-adaptive-ops-v380]
+    branches: [main, feature/gestao-epi-biometria-evidencia-v281, feature/gestao-epi-worker-portal-v290, feature/gestao-epi-brand-login-v300, feature/gestao-epi-android-cache-hotfix-v301, feature/gestao-epi-login-refine-v302, feature/gestao-epi-quality-v310, feature/gestao-epi-legal-v320, feature/gestao-epi-android-freeze-hotfix-v321, feature/gestao-epi-android-freeze-hotfix-v322, feature/gestao-epi-android-more-hotfix-v324, feature/gestao-epi-android-invoice-import-v325, feature/gestao-epi-ca-validity-v326, feature/gestao-epi-ca-sheet-v327, feature/gestao-epi-fichas-completas-v328, feature/gestao-epi-fichas-resumidas-v329, feature/gestao-epi-central-ca-v330, feature/gestao-epi-nf-refino-v331, feature/gestao-epi-worker-card-responsive-v332, feature/gestao-epi-login-lock-v333, feature/gestao-epi-operational-center-v340, feature/gestao-epi-tst-warehouse-v350, feature/gestao-epi-flow-enhancements-v360, feature/gestao-epi-worker-portal-v450, feature/gestao-epi-adaptive-ops-v380, feature/gestao-epi-stability-v381]
     paths:
       - 'auditar-epi/**'
       - 'auditar-epi-mobile/**'
@@ -77,8 +77,8 @@ jobs:
 
           gradle = Path('android/app/build.gradle')
           gradle_text = gradle.read_text(encoding='utf-8')
-          gradle_text = re.sub(r'versionCode\s+\d+', 'versionCode 380', gradle_text, count=1)
-          gradle_text = re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "3.8.0"', gradle_text, count=1)
+          gradle_text = re.sub(r'versionCode\s+\d+', 'versionCode 381', gradle_text, count=1)
+          gradle_text = re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "3.8.1"', gradle_text, count=1)
           # Isolated Google Code Scanner integration for Android API >= 23.
           gradle_text = re.sub(r'minSdkVersion\s+(?:rootProject.ext.minSdkVersion|\d+)', 'minSdkVersion 23', gradle_text, count=1)
           if 'play-services-code-scanner:16.1.0' not in gradle_text:
@@ -319,6 +319,9 @@ jobs:
           node --check adaptive-modules-v380.js
           node --check advanced-operations-v380.js
           node --check receipt-print-fix-v380.js
+          node --check operation-quality-v381.js
+          grep -q "Central de comprovantes" operation-quality-v381.js
+          grep -q "Entrega Expressa" operation-quality-v381.js
           grep -q "Compartilhar PDF" receipt-print-fix-v380.js
           grep -q "sharePdf" receipt-print-fix-v380.js
           ! grep -q "nativePrint('receipt')" receipt-print-fix-v380.js
@@ -464,6 +467,8 @@ jobs:
           unzip -p "$APK" assets/public/advanced-operations-v380.js | grep -q "Kits por função"
           unzip -p "$APK" assets/public/index.html | grep -q "receipt-print-fix-v380.js"
           unzip -p "$APK" assets/public/receipt-print-fix-v380.js | grep -q "NativePrint"
+          unzip -p "$APK" assets/public/index.html | grep -q "operation-quality-v381.js"
+          unzip -p "$APK" assets/public/operation-quality-v381.js | grep -q "Conferência rápida"
           unzip -p "$APK" assets/public/receipt-print-fix-v380.js | grep -q "Compartilhar PDF"
           unzip -p "$APK" assets/public/receipt-print-fix-v380.js | grep -q "Biometria facial verificada"
           grep -q '@CapacitorPlugin(name = "NativePrint")' auditar-epi-mobile/android/app/src/main/java/br/com/gestao/epi/NativePrintPlugin.java
