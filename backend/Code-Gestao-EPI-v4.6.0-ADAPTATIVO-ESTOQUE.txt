@@ -5150,6 +5150,7 @@ function mergeEpiSnapshots_(server,client) {
 function ensureDeliveryStockMovements_(snapshot) {
   const data=normalizeEpiSnapshot_(snapshot);
   const existing={};
+  const legacyExisting={}; // Movimentos antigos sem almoxarifado não podem ser baixados outra vez.
 
   data.stock.movements.forEach(function(m){
     const deliveryId = String(m && m.deliveryId || '').trim();
@@ -5159,6 +5160,7 @@ function ensureDeliveryStockMovements_(snapshot) {
 
     if(deliveryId && epiId && String(m.type || '') === 'OUT'){
       existing[deliveryId+'::'+epiId+'::'+batchId+'::'+warehouseId]=true;
+      if(!warehouseId)legacyExisting[deliveryId+'::'+epiId+'::'+batchId]=true;
     }
   });
 
@@ -5202,7 +5204,8 @@ function ensureDeliveryStockMovements_(snapshot) {
       const row=totals[totalKey];
       const key=deliveryId+'::'+row.epiId+'::'+row.batchId+'::'+row.warehouseId;
 
-      if(existing[key])return;
+      // A migração do saldo legado não autoriza lançar uma segunda saída.
+      if(existing[key] || legacyExisting[deliveryId+'::'+row.epiId+'::'+row.batchId])return;
 
       data.stock.movements.push({
         id:'sm_delivery_'+deliveryId+'_'+row.epiId+'_'+(row.batchId || 'legacy')+'_'+(row.warehouseId || 'unassigned'),
