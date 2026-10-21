@@ -153,6 +153,14 @@ function clientPortalTreatmentPost(token,companyId,topicId,input) {
          String(existed[4])!==String(auth.actor.id||'')){
         return {ok:false,code:'REQUEST_COLLISION'};
       }
+      // Retries are safe only when the original payload is identical.
+      // A reused requestId with changed content must never be reported as sent.
+      let saved={};
+      try{saved=JSON.parse(String(existed[6]||'{}'));}catch(_){}
+      const fields=['type','message','responsible','dueDate','decision','actionId','verificationMethod'];
+      if(fields.some(function(field){return String(saved[field]||'')!==String(event[field]||'');}))
+        return {ok:false,code:'REQUEST_PAYLOAD_MISMATCH',
+          message:'Esta solicitação já foi usada para outra mensagem. Atualize a conversa e tente novamente.'};
       return {ok:true,id:id,duplicate:true};
     }
     // Limite de eventos por topico para evitar abuso e excesso de dados.
