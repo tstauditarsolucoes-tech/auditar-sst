@@ -47,12 +47,16 @@ assert "_sendPending" in photos and "_restoreMissing" in photos
 assert "MediaSyncService.uploadPending" in photos, "Backup recovery controls lost"
 
 login = read("login_screen.dart")
-assert "final wideDesktop = MediaQuery.sizeOf(context).width >= 1100;" in login
+assert "final wideDesktop = MediaQuery.sizeOf(context).width >= 1000;" in login
 assert "Sua central de Segurança do Trabalho no computador" in login
 assert "if (wideDesktop)" in login
 assert "maxWidth: 470" in login
 assert "_submit" in login and "firstAdmin" in login, "Original authentication UI removed"
 assert "controller: email" in login and "controller: password" in login
+
+home = read("home_screen.dart")
+assert "Auditar SST para Windows • versão 3.30.118" in home
+assert "Widget _desktopBody()" in home and "Widget _mobileBody()" in home
 
 pubspec = (app / "pubspec.yaml").read_text(encoding="utf-8")
 assert "version: 3.30.118+305" in pubspec
