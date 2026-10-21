@@ -18,6 +18,7 @@ paths = {
     "cipa": screens / "cipa_management_screen.dart",
     "timeline": screens / "company_timeline_screen.dart",
     "photos": screens / "evidence_backup_screen.dart",
+    "login": screens / "login_screen.dart",
 }
 for path in paths.values():
     assert path.is_file(), f"Tela Windows nao localizada: {path}"
@@ -423,6 +424,88 @@ s = row_pattern.sub(
                 }
                 """ + m.group(2), s, count=1)
 paths["photos"].write_text(s, encoding="utf-8", newline="\n")
+
+# 5. Separate desktop sign-in illustration, preserving the exact login form,
+# validation, authentication and state that were already in the Card.
+s = pre["login"]
+s = one(
+    s, "final desktop = MediaQuery.sizeOf(context).width >= 760;",
+    """final desktop = MediaQuery.sizeOf(context).width >= 760;
+    final wideDesktop = MediaQuery.sizeOf(context).width >= 1100;""",
+    "login desktop breakpoint")
+s = one(
+    s, "constraints: BoxConstraints(maxWidth: desktop ? 470 : 430),",
+    """constraints: BoxConstraints(
+                  maxWidth: wideDesktop ? 1120 : (desktop ? 470 : 430)),""",
+    "login usable width")
+s = one(
+    s, "child: Card(",
+    """child: Row(
+                  children: [
+                    if (wideDesktop)
+                      const Expanded(
+                        flex: 6,
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 35),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(Icons.space_dashboard_rounded,
+                                size: 52, color: Colors.white),
+                              SizedBox(height: 21),
+                              Text('AUDITAR SST',
+                                style: TextStyle(color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1, fontSize: 29)),
+                              SizedBox(height: 12),
+                              Text(
+                                'Sua central de Segurança do Trabalho no computador',
+                                style: TextStyle(color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 22, height: 1.25)),
+                              SizedBox(height: 13),
+                              Text(
+                                'Empresas, vistorias, ações, treinamentos e '
+                                'indicadores disponíveis na mesma área de trabalho.',
+                                style: TextStyle(color: Colors.white70,
+                                  fontSize: 14, height: 1.5)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    Flexible(
+                      flex: 5,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 470),
+                        child: Card(""",
+    "login desktop visual left panel")
+# Add closures for login Card -> inner ConstrainedBox -> Flexible -> Row,
+# then preserve the original outer ConstrainedBox/ScrollView/Center/SafeArea.
+tail = """                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}"""
+replacement = """                ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}"""
+s = one(s, tail, replacement, "login preserved form closure")
+paths["login"].write_text(s, encoding="utf-8", newline="\n")
 
 # Current Windows release completed all preceding steps at 3.30.117+304.
 pub = root / "pubspec.yaml"
