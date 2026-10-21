@@ -1,6 +1,6 @@
 (() => {
   const CACHE='auditarEpiGestaoCacheV1';
-  const VERSION='PC v2.1.0';
+  const VERSION='PC v3.8.1';
   const $=(s,r=document)=>r.querySelector(s);
   const $$=(s,r=document)=>[...r.querySelectorAll(s)];
   const esc=(v='')=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
