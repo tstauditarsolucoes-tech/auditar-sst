@@ -16,6 +16,7 @@ on:
       - 'tools/patch_nr18_action_plan_v329191_v330114.py'
       - 'tools/patch_field_recurrence_v329192_v330115.py'
       - 'tools/patch_field_visual_v329193_v330116.py'
+      - 'tools/test_screenshot_ux_v1.py'
       - 'feature_sources/field_recurrence_preview_v1.dart'
       - 'feature_sources/correction_recurrence_detector_v329192.dart'
       - 'feature_sources/correction_recurrence_detector_test_v329192.dart'
@@ -1545,6 +1546,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 tools/patch_field_visual_v329193_v330116.py "$APP_DIR" android
+          python3 tools/test_screenshot_ux_v1.py "$APP_DIR"
           cd "$APP_DIR"
           dart format lib/screens/safety_observations_screen.dart lib/screens/express_round_screen.dart lib/screens/companies_screen.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
