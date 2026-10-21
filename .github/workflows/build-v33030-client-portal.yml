@@ -1907,13 +1907,36 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha formato desktop Windows' }
           Pop-Location
           python tools/test_windows_desktop_ux_v330118.py "$env:APP_DIR"
-          if ($LASTEXITCODE -ne 0) { throw 'Falha validacao layout desktop Windows' }
+          $structureExit = $LASTEXITCODE
+          if ($structureExit -ne 0) { Write-Warning 'Regressao estrutural do desktop falhou; coletando analise Flutter' }
           Push-Location "$env:APP_DIR"
           flutter analyze --no-fatal-infos --no-fatal-warnings
-          if ($LASTEXITCODE -ne 0) { throw 'Falha analise Flutter desktop Windows' }
-          flutter test test/quick_visit_test.dart test/visit_navigation_test.dart
-          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao visita PC' }
+          $analyzeExit = $LASTEXITCODE
+          $widgetExit = 0
+          if ($analyzeExit -eq 0) {
+            flutter test test/quick_visit_test.dart test/visit_navigation_test.dart
+            $widgetExit = $LASTEXITCODE
+          }
           Pop-Location
+          if ($structureExit -ne 0 -or $analyzeExit -ne 0 -or $widgetExit -ne 0) {
+            throw "Desktop nao aprovado: testes=$structureExit analise=$analyzeExit widget=$widgetExit"
+          }
+
+      - name: Salvar diagnostico da interface Windows montada
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-v330118-Fontes-Interface-Windows
+          path: |
+            ${{ env.APP_DIR }}/lib/screens/quick_visit_screen.dart
+            ${{ env.APP_DIR }}/lib/screens/cipa_management_screen.dart
+            ${{ env.APP_DIR }}/lib/screens/company_timeline_screen.dart
+            ${{ env.APP_DIR }}/lib/screens/evidence_backup_screen.dart
+            ${{ env.APP_DIR }}/lib/screens/login_screen.dart
+            ${{ env.APP_DIR }}/lib/screens/home_screen.dart
+            ${{ env.APP_DIR }}/pubspec.yaml
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Inventario de navegação e rotas do aplicativo montado
         shell: pwsh
