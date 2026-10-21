@@ -83,9 +83,10 @@ contains(login, "final wideDesktop = MediaQuery.sizeOf(context).width >= 1000",
 assert "Sua central de Segurança do Trabalho no computador" in login
 contains(login, "if (wideDesktop)", "Wide sign-in split absent")
 contains(login, "maxWidth: 470", "Sign-in form width limit removed")
-contains(login, "_submit", "Authentication action removed")
-contains(login, "firstAdmin", "First-admin setup path removed")
-contains(login, "controller: email", "Email field removed")
+contains(login, "AuthService.login", "Original user authentication path removed")
+contains(login, "_enter", "Existing login callback removed")
+contains(login, "_firstAccess", "First-admin setup path removed")
+contains(login, "controller: user", "Username field removed")
 contains(login, "controller: password", "Password field removed")
 
 home = read("home_screen.dart")
