@@ -35,9 +35,15 @@ function enrichNewest(){
    const u=user();if(u?.username||u?.name){d.registeredBy={username:String(u.username||''),name:String(u.name||u.username||'')};d.registeredAt=d.createdAt||new Date().toISOString();d.updatedAt=new Date().toISOString();localStorage.setItem(APP,JSON.stringify(root));document.dispatchEvent(new CustomEvent('auditar-epi-data-changed',{detail:{source:'receipt-fix-v380'}}))}
  }
 }
+function nativePrintPlugin(){
+ try{
+  if(window.Capacitor?.registerPlugin)return window.Capacitor.registerPlugin('NativePrint');
+ }catch(_){}
+ return window.Capacitor?.Plugins?.NativePrint||null;
+}
 async function nativePrint(){
  if(currentReceiptId)repairReceipt(currentReceiptId);
- const plugin=window.Capacitor?.Plugins?.NativePrint;
+ const plugin=nativePrintPlugin();
  if(plugin?.print){
    try{await plugin.print({jobName:'Comprovante de Entrega de EPI'});return}catch(e){toast('Não foi possível abrir a impressão do Android.')}
  }
@@ -48,6 +54,7 @@ function bindPrint(){
    const r=e.target.closest?.('[data-receipt]');if(r){currentReceiptId=r.dataset.receipt;setTimeout(()=>repairReceipt(currentReceiptId),80)}
    if(e.target.closest?.('#btnPrint')){e.preventDefault();e.stopImmediatePropagation();nativePrint()}
    if(e.target.closest?.('#flow360PrintReport')){e.preventDefault();e.stopImmediatePropagation();nativePrint()}
+   if(e.target.closest?.('#btnSaveDelivery'))setTimeout(enrichNewest,220);
  },true);
  document.addEventListener('auditar-epi-data-changed',()=>setTimeout(()=>{enrichNewest();if($('#receipt')?.classList.contains('active')){const root=data(),id=currentReceiptId||root.deliveries?.[0]?.id;if(id)repairReceipt(id)}},100));
 }
