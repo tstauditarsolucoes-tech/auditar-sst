@@ -23,15 +23,15 @@ function epi(root,id){return root.app.epis.find(x=>x.id===id)||{}}
 function toast(m){const t=$('#toast');if(t){t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}else alert(m)}
 
 function traceData(root,d){
- const a=d.authorizationId?authById(root,d.authorizationId):null,dir=directByDelivery(root,d.id),mode=d.deliveryFlow==='authorized'?'Entrega com liberação do TST':d.deliveryFlow==='direct'?'Entrega direta do almoxarifado':'Entrega padrão';
+ const a=d.authorizationId?authById(root,d.authorizationId):null,dir=directByDelivery(root,d.id),mode=(d.deliveryFlow==='authorized'||d.authorizationId)?'Entrega com liberação do TST':d.deliveryFlow==='direct'?'Entrega direta do almoxarifado':'Entrega padrão';
  return {
   mode,
-  code:a?.code||'—',
-  authorizedBy:a?.authorizedBy?.name||a?.authorizedBy?.username||'—',
+  code:a?.code||'',
+  authorizedBy:a?.authorizedBy?.name||a?.authorizedBy?.username||'',
   authorizedAt:a?.authorizedAt||a?.createdAt||'',
-  deliveredBy:d.warehouseDeliveredBy?.name||d.warehouseDeliveredBy?.username||d.registeredBy?.name||d.registeredBy?.username||d.responsible||'—',
+  deliveredBy:d.warehouseDeliveredBy?.name||d.warehouseDeliveredBy?.username||d.registeredBy?.name||d.registeredBy?.username||d.responsible||'',
   deliveredAt:d.warehouseDeliveredAt||d.createdAt||'',
-  reviewedBy:dir?.reviewedBy?.name||dir?.reviewedBy?.username||'—',
+  reviewedBy:dir?.reviewedBy?.name||dir?.reviewedBy?.username||'',
   reviewedAt:dir?.reviewedAt||'',
   reviewStatus:dir?.reviewStatus||''
  };
@@ -41,7 +41,11 @@ function decorateReceipt(id){
  const target=PC?$('#pcReceiptPaper'):$('#receiptContent');if(!target)return;
  target.querySelector('.flow360-trace')?.remove();
  const t=traceData(root,d),box=document.createElement('div');box.className='flow360-trace';
- box.innerHTML=`<div class="flow360-trace-title">Rastreabilidade da entrega</div><div class="flow360-trace-grid"><div><b>Tipo de entrega</b><br>${esc(t.mode)}</div><div><b>Código da liberação</b><br>${esc(t.code)}</div><div><b>Liberado por</b><br>${esc(t.authorizedBy)}${t.authorizedAt?'<br><small>'+esc(fmt(t.authorizedAt,true))+'</small>':''}</div><div><b>Entregue por</b><br>${esc(t.deliveredBy)}${t.deliveredAt?'<br><small>'+esc(fmt(t.deliveredAt,true))+'</small>':''}</div>${d.deliveryFlow==='direct'?'<div><b>Revisão do TST</b><br>'+esc(t.reviewStatus==='reviewed'?'Revisada':'Pendente')+'</div><div><b>Revisado por</b><br>'+esc(t.reviewedBy)+(t.reviewedAt?'<br><small>'+esc(fmt(t.reviewedAt,true))+'</small>':'')+'</div>':''}</div>`;
+ const item=(label,value,when)=>`<div><b>${esc(label)}</b><br>${esc(value||'Não informado — registro anterior')}${when?'<br><small>'+esc(fmt(when,true))+'</small>':''}</div>`;
+ const fields=[item('Tipo de entrega',t.mode),item('Entregue por',t.deliveredBy,t.deliveredAt)];
+ if(d.deliveryFlow==='authorized'||d.authorizationId){fields.splice(1,0,item('Código da liberação',t.code),item('Liberado por',t.authorizedBy,t.authorizedAt))}
+ if(d.deliveryFlow==='direct'){fields.push(item('Revisão do TST',t.reviewStatus==='reviewed'?'Revisada':'Pendente'));if(t.reviewStatus==='reviewed')fields.push(item('Revisado por',t.reviewedBy,t.reviewedAt))}
+ box.innerHTML=`<div class="flow360-trace-title">Rastreabilidade da entrega</div><div class="flow360-trace-grid">${fields.join('')}</div>`;
  const sign=target.querySelector('.receipt-sign,.pc-receipt-sign');if(sign)target.insertBefore(box,sign);else target.appendChild(box);
 }
 function currentReceiptIdFromClick(e){
