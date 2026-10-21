@@ -4,6 +4,8 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'../feature_sources/client_treatment_portal_ui_v1.js'),'utf8');
+assert.match(source,/Correção informada à Auditar\. Protocolo:/,'NC correction must display a confirmed protocol');
+assert.match(source,/a NC permanece aberta até validação/,'client must not mistake a report for NC closure');
 class Element {
   constructor(tag){this.tag=tag;this.children=[];this.dataset={};this.value='';this.open=false;this.disabled=false;this.removed=false;this.textContent='';}
   append(...items){this.children.push(...items);}
