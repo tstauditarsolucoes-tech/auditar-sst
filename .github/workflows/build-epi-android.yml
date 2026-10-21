@@ -174,8 +174,8 @@ jobs:
           import com.getcapacitor.PluginMethod;
           import com.getcapacitor.JSObject;
           import com.getcapacitor.annotation.CapacitorPlugin;
-          import com.google.android.gms.codescanner.GmsBarcodeScanning;
-          import com.google.android.gms.codescanner.GmsBarcodeScannerOptions;
+          import com.google.mlkit.vision.codescanner.GmsBarcodeScanning;
+          import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions;
           import com.google.mlkit.vision.barcode.common.Barcode;
 
           @CapacitorPlugin(name = "NativeQr")
