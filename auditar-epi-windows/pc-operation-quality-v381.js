@@ -111,12 +111,37 @@ function precheck(){
   $('#opi381CheckResult').textContent=issues.length?issues.join(' • '):'Conferência básica OK. Finalize pelo botão normal para verificar assinatura/biometria e estoque.';
  };
 }
+function fixPcReceiptEvidence(id){
+ if(!PC)return;
+ const a=data(),d=a.deliveries.find(x=>String(x.id)===String(id)),paper=$('#pcReceiptPaper');
+ if(!d||!paper)return;
+ const sign=paper.querySelector('.pc-receipt-sign');if(!sign)return;
+ const img=sign.querySelector('img');
+ const isFace=d.biometricVerified===true||d.confirmationMethod==='face-biometric';
+ if(isFace){
+  img?.remove();
+  const name=a.workers.find(w=>w.id===d.workerId)?.name||'Trabalhador';
+  const line=sign.querySelector('.line');if(line)line.textContent=name+' • Biometria facial verificada';
+  let details=sign.querySelector('.opi381-bio-info');
+  if(!details){details=document.createElement('p');details.className='opi381-bio-info';sign.appendChild(details)}
+  details.textContent=[
+   Number(d.biometricSimilarity)>0?'Compatibilidade: '+Math.round(Number(d.biometricSimilarity)*100)+'%':'',
+   d.biometricVerifiedAt?'Verificado em: '+fmt(d.biometricVerifiedAt):'',
+   d.biometricEvidenceId?'Evidência: '+d.biometricEvidenceId:''
+  ].filter(Boolean).join(' • ');
+ }else if(img){
+  const fallback=()=>{img.remove();const line=sign.querySelector('.line');if(line)line.textContent='Imagem da assinatura indisponível neste registro.'};
+  if(img.complete&&img.naturalWidth===0)fallback();
+  else img.addEventListener('error',fallback,{once:true});
+ }
+}
 function syncHint(){
  const host=PC?$('.sidebar-foot'):$('#ux300Status');if(!host)return;
  let e=$('#opi381Sync');if(!e){e=document.createElement('div');e.id='opi381Sync';e.className='opi381-status';host.appendChild(e)}
  e.textContent=navigator.onLine?'Rede disponível. Confira o status de sincronização antes de considerar os dados enviados.':'Sem rede. Registros pendentes precisam sincronizar quando houver conexão.';
 }
 function bind(){
+ if(PC)document.addEventListener('click',e=>{const b=e.target.closest?.('[data-pc-receipt]');if(b)setTimeout(()=>fixPcReceiptEvidence(b.dataset.pcReceipt),140)});
  document.addEventListener('click',e=>{
   const t=e.target.closest?.('[data-opi381-open],[data-opi381-receipt],[data-opi381-worker],[data-view="opi381Proofs"],[data-view="opi381Express"],[data-go="opi381Proofs"],[data-go="opi381Express"]');
   if(!t)return;e.preventDefault();e.stopImmediatePropagation();
