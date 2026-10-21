@@ -376,7 +376,7 @@ jobs:
           unzip -p "$APK" assets/public/index.html | grep -q "receipt-print-fix-v380.js"
           unzip -p "$APK" assets/public/receipt-print-fix-v380.js | grep -q "NativePrint"
           unzip -p "$APK" assets/public/receipt-print-fix-v380.js | grep -q "Biometria facial verificada"
-          unzip -l "$APK" | grep -q "br/com/gestao/epi/NativePrintPlugin"
+          unzip -p "$APK" classes.dex | strings | grep -q "NativePrintPlugin"
           unzip -p "$APK" assets/public/stock.js | grep -q "warehouseId"
           unzip -p "$APK" assets/public/invoice-epi-ai-v350.js | grep -q "physicalExpiry"
           unzip -p "$APK" assets/public/index.html | grep -q "ca-center-v330.js"
