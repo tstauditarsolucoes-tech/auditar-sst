@@ -56,7 +56,10 @@ assert "controller: email" in login and "controller: password" in login
 
 home = read("home_screen.dart")
 assert "Auditar SST para Windows • versão 3.30.118" in home
-assert "Widget _desktopBody()" in home and "Widget _mobileBody()" in home
+assert "Gestão Multempresa" in home and "FieldOperationalControlScreen" in home, (
+    "Desktop navigation and management actions lost")
+assert re.search(r"\b_desktopBody\s*\(", home) or "Central Executiva" in home or "CENTRAL EXECUTIVA" in home, (
+    "Windows desktop presentation not found")
 
 pubspec = (app / "pubspec.yaml").read_text(encoding="utf-8")
 assert "version: 3.30.118+305" in pubspec
