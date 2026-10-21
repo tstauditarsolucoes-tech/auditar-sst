@@ -19,7 +19,7 @@ function repairReceipt(id){
      if(line)line.innerHTML=esc(name)+'<br>Biometria facial verificada';
    }else if(img){
      if(!validImage(d.signature)){img.remove();if(!sign.querySelector('.receipt-sign-missing'))sign.insertAdjacentHTML('afterbegin','<div class="receipt-sign-missing">Assinatura eletrônica não disponível neste aparelho.</div>')}
-     else img.addEventListener('error',()=>{img.remove();if(!sign.querySelector('.receipt-sign-missing'))sign.insertAdjacentHTML('afterbegin','<div class="receipt-sign-missing">Assinatura eletrônica não pôde ser exibida.</div>'},{once:true});
+     else img.addEventListener('error',()=>{img.remove();if(!sign.querySelector('.receipt-sign-missing'))sign.insertAdjacentHTML('afterbegin','<div class="receipt-sign-missing">Assinatura eletrônica não pôde ser exibida.</div>')},{once:true});
    }
  }
  const trace=content.querySelector('.flow360-trace');
