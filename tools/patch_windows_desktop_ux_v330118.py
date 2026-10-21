@@ -19,6 +19,7 @@ paths = {
     "timeline": screens / "company_timeline_screen.dart",
     "photos": screens / "evidence_backup_screen.dart",
     "login": screens / "login_screen.dart",
+    "home": screens / "home_screen.dart",
 }
 for path in paths.values():
     assert path.is_file(), f"Tela Windows nao localizada: {path}"
@@ -431,7 +432,7 @@ s = pre["login"]
 s = one(
     s, "final desktop = MediaQuery.sizeOf(context).width >= 760;",
     """final desktop = MediaQuery.sizeOf(context).width >= 760;
-    final wideDesktop = MediaQuery.sizeOf(context).width >= 1100;""",
+    final wideDesktop = MediaQuery.sizeOf(context).width >= 1000;""",
     "login desktop breakpoint")
 s = one(
     s, "constraints: BoxConstraints(maxWidth: desktop ? 470 : 430),",
@@ -506,6 +507,22 @@ replacement = """                ),
 }"""
 s = one(s, tail, replacement, "login preserved form closure")
 paths["login"].write_text(s, encoding="utf-8", newline="\n")
+
+# 6. Accurate Windows version and readable desktop sidebar typography.
+# No data, auth, sync or Android changes.
+s = pre["home"]
+home_version = re.compile(r"Auditar SST para Windows • versão 3\.30\.\d+")
+assert len(home_version.findall(s)) == 1, "Etiqueta de versao na Home inesperada"
+s = home_version.sub("Auditar SST para Windows • versão 3.30.118", s, count=1)
+start = s.index("  Widget _desktopBody() {")
+end = s.index("\n  Widget ", start + 25)
+desktop = s[start:end]
+desktop, increased = re.subn(
+    r"fontSize:\s*(?:10(?:\.5)?|11)(?![\d.])",
+    "fontSize: 12", desktop)
+assert increased >= 2, "Fontes da navegacao desktop inesperadas"
+s = s[:start] + desktop + s[end:]
+paths["home"].write_text(s, encoding="utf-8", newline="\n")
 
 # Current Windows release completed all preceding steps at 3.30.117+304.
 pub = root / "pubspec.yaml"
