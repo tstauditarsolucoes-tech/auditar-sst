@@ -1610,7 +1610,13 @@ class _CipaManagementScreenState extends State<CipaManagementScreen> {
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                  Text(label, style: const TextStyle(fontSize: 12)),
+                  Text(
+                    label,
+                    softWrap: true,
+                    maxLines: 3,
+                    overflow: TextOverflow.visible,
+                    style: const TextStyle(fontSize: 12, height: 1.2),
+                  ),
                 ],
               ),
             ),
@@ -1791,7 +1797,9 @@ class _CipaManagementScreenState extends State<CipaManagementScreen> {
           LayoutBuilder(
             builder: (context, constraints) {
               final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
-              final columns = (constraints.maxWidth / (280 * scale)).floor().clamp(1, 4);
+              // Nunca comprimir dois indicadores longos em colunas estreitas.
+              // Fonte ampliada no Android exige um cartão por linha.
+              final columns = (constraints.maxWidth / (300 * scale)).floor().clamp(1, 4);
               final width = (constraints.maxWidth - (columns - 1) * 8) / columns;
               return Wrap(
                 spacing: 8,
@@ -2376,6 +2384,8 @@ class _CipaManagementScreenState extends State<CipaManagementScreen> {
       length: 10,
       child: Scaffold(
         appBar: AppBar(
+          backgroundColor: AuditarBrand.navyDark,
+          foregroundColor: Colors.white,
           title: const Text('CIPA'),
           actions: [
             IconButton(
