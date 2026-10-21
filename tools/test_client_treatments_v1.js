@@ -40,6 +40,7 @@ assert.equal(post().ok,true);
 assert.equal(list().events.length,1);
 assert.equal(list('vale','escada').events.length,0);
 assert.equal(post().duplicate,true);
+assert.equal(post('vale','exaustores',{message:'Outra mensagem com o mesmo requestId'}).code,'REQUEST_PAYLOAD_MISMATCH');
 assert.equal(post('vale','exaustores',{type:'eficacia_confirmada',requestId:'id_client_123'}).code,'TYPE_NOT_ALLOWED');
 assert.equal(post('vale','exaustores',{type:'encaminhamento',requestId:'id_client_125'}).code,'TYPE_NOT_ALLOWED');
 assert.equal(post('vale','exaustores',{responsible:'Sócio',requestId:'id_client_126'}).code,'TYPE_NOT_ALLOWED');
