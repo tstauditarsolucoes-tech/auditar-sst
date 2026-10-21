@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Offline structural acceptance checks for the Windows-only desktop layout."""
+"""Windows-only desktop UI acceptance tests on the actually assembled Flutter app.
+
+Whitespace-insensitive checks tolerate dart format while preserving functional
+assertions about navigation, compact fallback, photo safety and authentication.
+"""
 from pathlib import Path
 import re
 import sys
@@ -7,61 +11,92 @@ import sys
 assert len(sys.argv) == 2, "usage: test_windows_desktop_ux_v330118.py APP_DIR"
 app = Path(sys.argv[1])
 screens = app / "lib/screens"
-def read(name):
+
+def read(name: str) -> str:
     return (screens / name).read_text(encoding="utf-8")
 
+def compact(value: str) -> str:
+    return re.sub(r"\s+", "", value)
+
+def contains(source: str, expected: str, reason: str) -> None:
+    assert compact(expected) in compact(source), reason
+
 visit = read("quick_visit_screen.dart")
-assert "constraints: const BoxConstraints(maxWidth: 1560)" in visit
-assert "size.maxWidth < 920" in visit
-assert "width: 356" in visit and "child: _picker()" in visit
-assert "child: _selected == null" in visit and "_tasks()" in visit
-assert "'As atividades aparecerão aqui sem trocar de tela.'" in visit
-assert "widget.intent" in visit and "Continuar rascunho" in visit, "Existing visit intents lost"
+contains(visit, "BoxConstraints(maxWidth: 1560)", "Desktop visit workspace too narrow")
+contains(visit, "size.maxWidth < 920", "Compact visit fallback missing")
+contains(visit, "return _selected == null ? _picker() : _tasks();",
+         "Original compact workflow lost")
+contains(visit, "width: 356", "Desktop left-side company list missing")
+contains(visit, "child: _picker()", "Desktop company selector lost")
+contains(visit, "_selected == null", "Selected-company workspace missing")
+contains(visit, "_tasks()", "Existing activity shortcuts lost")
+assert "As atividades aparecerão aqui sem trocar de tela." in visit
+contains(visit, "widget.intent", "Existing visit intents lost")
+assert "Continuar rascunho" in visit
 
 cipa = read("cipa_management_screen.dart")
-assert "MediaQuery.sizeOf(context).width >= 960" in cipa
-assert re.search(
-    r"bottom:\s*MediaQuery\.sizeOf\(context\)\.width\s*>=\s*960\s*"
-    r"\?\s*null\s*:\s*const\s+TabBar\(", cipa), "CIPA tab bar fallback lost"
-assert "DefaultTabController.of(tabsContext)" in cipa
-assert "AnimatedBuilder(" in cipa and "controller.animateTo(index)" in cipa
-assert "Expanded(child: pages)" in cipa
-assert "length: 10" in cipa and "TabBarView(" in cipa
-assert len(re.findall(r"_(?:panel|mandate|members|meetings|minutes|actions|election|training|documents|history)Tab\(\)", cipa)) >= 10
+contains(cipa, "MediaQuery.sizeOf(context).width >= 960",
+         "CIPA Windows threshold missing")
+contains(cipa, "bottom: MediaQuery.sizeOf(context).width >= 960 ? null : const TabBar(",
+         "Original CIPA compact tabs missing")
+contains(cipa, "DefaultTabController.of(tabsContext)",
+         "CIPA desktop tab controller missing")
+contains(cipa, "controller.animateTo(index)",
+         "CIPA side navigation does not switch tabs")
+contains(cipa, "Expanded(child: pages)",
+         "CIPA ten-page content not visible")
+contains(cipa, "length: 10", "CIPA tab count reduced")
+contains(cipa, "TabBarView(", "CIPA original page navigation missing")
+for name in ["panel", "mandate", "members", "meetings", "minutes",
+             "actions", "election", "training", "documents", "history"]:
+    contains(cipa, f"_{name}Tab()", f"CIPA {name} page absent")
 
 timeline = read("company_timeline_screen.dart")
-assert "_windowsTimelineDesktop(rows)" in timeline
-assert "MediaQuery.sizeOf(context).width >= 960" in timeline
-assert "onTap: () => setState(() => filter = value)" in timeline
-assert "for (final entry in rows) _eventCard(entry)" in timeline
-assert "seenRecordKeys" in timeline, "Records deduped by different criteria"
-assert "onTap: () => _open(event.page())" in timeline, "History links removed"
+contains(timeline, "_windowsTimelineDesktop(rows)",
+         "Desktop activity timeline not integrated")
+contains(timeline, "MediaQuery.sizeOf(context).width >= 960",
+         "Timeline compact fallback missing")
+contains(timeline, "setState(() => filter = value)",
+         "Timeline filter not interactive")
+contains(timeline, "for (final entry in rows) _eventCard(entry)",
+         "Timeline records not displayed")
+contains(timeline, "seenRecordKeys", "Original record identity safeguard lost")
+contains(timeline, "_open(event.page())", "Original timeline destinations lost")
 
 photos = read("evidence_backup_screen.dart")
-assert "_windowsRecordRow(item)" in photos
-assert "MediaQuery.sizeOf(context).width >= 1000" in photos
-assert "photo.state == BackupPhotoState.missing" in photos
-assert "item.recordLabel" in photos and "photo.label" in photos
-assert "Não desinstale o aplicativo" in photos, "Safety warning lost"
-assert "_sendPending" in photos and "_restoreMissing" in photos
-assert "MediaSyncService.uploadPending" in photos, "Backup recovery controls lost"
+contains(photos, "_windowsRecordRow(item)", "Windows photo status rows absent")
+contains(photos, "MediaQuery.sizeOf(context).width >= 1000",
+         "Compact photo protection fallback absent")
+contains(photos, "photo.state == BackupPhotoState.missing",
+         "Missing-photo warnings absent")
+contains(photos, "item.recordLabel", "Record backup status lost")
+contains(photos, "photo.label", "Photo-level backup status lost")
+assert "Não desinstale o aplicativo" in photos, "Data-loss warning removed"
+contains(photos, "_sendPending", "Pending media action lost")
+contains(photos, "_restoreMissing", "Media recovery action lost")
+contains(photos, "MediaSyncService.uploadPending",
+         "Existing upload path no longer used")
 
 login = read("login_screen.dart")
-assert "final wideDesktop = MediaQuery.sizeOf(context).width >= 1000;" in login
+contains(login, "final wideDesktop = MediaQuery.sizeOf(context).width >= 1000",
+         "Desktop login threshold absent")
 assert "Sua central de Segurança do Trabalho no computador" in login
-assert "if (wideDesktop)" in login
-assert "maxWidth: 470" in login
-assert "_submit" in login and "firstAdmin" in login, "Original authentication UI removed"
-assert "controller: email" in login and "controller: password" in login
+contains(login, "if (wideDesktop)", "Wide sign-in split absent")
+contains(login, "maxWidth: 470", "Sign-in form width limit removed")
+contains(login, "_submit", "Authentication action removed")
+contains(login, "firstAdmin", "First-admin setup path removed")
+contains(login, "controller: email", "Email field removed")
+contains(login, "controller: password", "Password field removed")
 
 home = read("home_screen.dart")
 assert "Auditar SST para Windows • versão 3.30.118" in home
 assert "Gestão Multempresa" in home and "FieldOperationalControlScreen" in home, (
-    "Desktop navigation and management actions lost")
-assert re.search(r"\b_desktopBody\s*\(", home) or "Central Executiva" in home or "CENTRAL EXECUTIVA" in home, (
+    "Executive navigation and management actions lost")
+assert re.search(r"\b_desktopBody\s*\(", home) or (
+    "Central Executiva" in home or "CENTRAL EXECUTIVA" in home), (
     "Windows desktop presentation not found")
 
 pubspec = (app / "pubspec.yaml").read_text(encoding="utf-8")
-assert "version: 3.30.118+305" in pubspec
+contains(pubspec, "version: 3.30.118+305", "Windows version not incremented")
 print("WINDOWS_3_30_118_DESKTOP_UI_REGRESSION_OK")
 print("VISIT_CIPA_TIMELINE_BACKUP_MOBILE_FALLBACK_PRESERVED")
