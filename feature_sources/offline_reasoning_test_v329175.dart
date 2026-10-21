@@ -284,7 +284,8 @@ void main() {
       )),
     ));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Precisa de mais detalhes'), findsOneWidget);
+    expect(find.textContaining('Nenhum modelo semelhante encontrado'), findsOneWidget);
+    expect(find.textContaining('Se necessário, detalhe o equipamento'), findsOneWidget);
     expect(find.text('Aplicar'), findsNothing);
     expect(tester.takeException(), isNull);
   });
