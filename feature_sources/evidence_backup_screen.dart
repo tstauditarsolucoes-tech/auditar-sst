@@ -300,14 +300,15 @@ class _EvidenceBackupScreenState extends State<EvidenceBackupScreen> {
     }finally{if(mounted)setState(() {busy=false;progress='';});}
   }
 
-  Widget _stat(String title,String value,Color color)=>Expanded(
-    child:Container(padding:const EdgeInsets.all(12),
-      decoration:BoxDecoration(color:color.withValues(alpha:.08),
-        borderRadius:BorderRadius.circular(12)),
-      child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-        Text(value,style:TextStyle(color:color,fontSize:20,fontWeight:FontWeight.w900)),
-        Text(title,style:const TextStyle(fontSize:11.5)),
-      ])));
+  Widget _stat(String title,String value,Color color)=>Container(
+    padding:const EdgeInsets.all(12),
+    decoration:BoxDecoration(color:color.withValues(alpha:.08),
+      borderRadius:BorderRadius.circular(12)),
+    child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      Text(value,style:TextStyle(color:color,fontSize:20,fontWeight:FontWeight.w900)),
+      const SizedBox(height:3),
+      Text(title,softWrap:true,style:const TextStyle(fontSize:12,height:1.2)),
+    ]));
 
   Color _recordColor(BackupRecordState state)=>
     state==BackupRecordState.confirmed?AuditarBrand.greenDark:
@@ -332,21 +333,33 @@ class _EvidenceBackupScreenState extends State<EvidenceBackupScreen> {
               Text(widget.company.name,style:const TextStyle(
                 fontSize:17,fontWeight:FontWeight.w900)),
               const SizedBox(height:8),
-              Row(children:[
-                _stat('Registros protegidos','${s.confirmed}/${s.records.length}',
-                  AuditarBrand.greenDark),
-                const SizedBox(width:8),
-                _stat('Fotos com backup','${s.backedPhotos}/${s.photoCount}',
-                  AuditarBrand.navy),
-                const SizedBox(width:8),
-                _stat('Fotos não localizadas','${s.missingPhotos}',
-                  const Color(0xFFD93025)),
-              ]),
+              LayoutBuilder(builder:(context,constraints){
+                final width=constraints.maxWidth;
+                final columns=width<300?1:width<560?2:3;
+                final itemWidth=(width-(columns-1)*8)/columns;
+                return Wrap(spacing:8,runSpacing:8,children:[
+                  SizedBox(width:itemWidth,child:_stat('Registros protegidos',
+                    '${s.confirmed}/${s.records.length}',AuditarBrand.greenDark)),
+                  SizedBox(width:itemWidth,child:_stat('Fotos com backup',
+                    '${s.backedPhotos}/${s.photoCount}',AuditarBrand.navy)),
+                  SizedBox(width:itemWidth,child:_stat('Fotos não localizadas',
+                    '${s.missingPhotos}',const Color(0xFFD93025))),
+                ]);
+              }),
               const SizedBox(height:8),
               const Text('Registro e fotografia são verificados separadamente. '
                 'A foto só aparece como protegida quando há confirmação no catálogo do Drive. '
                 'O PDF enviado por e-mail não é backup dos registros editáveis.',
                 style:TextStyle(fontSize:11.5,color:Colors.black54)),
+              if(s.missingPhotos>0||s.pendingPhotos>0) Padding(
+                padding:const EdgeInsets.only(top:8),
+                child:Text(
+                  'Atenção: existem fotos sem backup confirmado. '
+                  'Não desinstale o aplicativo, limpe os dados ou exclua os arquivos '
+                  'deste aparelho antes de verificar a recuperação.',
+                  style:const TextStyle(fontSize:12,fontWeight:FontWeight.w700,
+                    color:Color(0xFF9E4C00)),
+                )),
               if(s.mediaError.isNotEmpty) Padding(
                 padding:const EdgeInsets.only(top:6),child:Text(
                   'Última pendência das fotos: ${s.mediaError}',
@@ -356,15 +369,21 @@ class _EvidenceBackupScreenState extends State<EvidenceBackupScreen> {
                     child:CircularProgressIndicator(strokeWidth:2)),
                   const SizedBox(width:8),Expanded(child:Text(progress))])),
               const SizedBox(height:8),
-              Row(children:[
-                Expanded(child:FilledButton.icon(onPressed:busy?null:_sendPending,
-                  icon:const Icon(Icons.cloud_upload_outlined),
-                  label:const Text('Enviar pendentes'))),
-                const SizedBox(width:8),
-                OutlinedButton.icon(onPressed:busy?null:_restoreMissing,
-                  icon:const Icon(Icons.cloud_download_outlined),
-                  label:const Text('Recuperar fotos')),
-              ]),
+              LayoutBuilder(builder:(context,constraints){
+                final width=constraints.maxWidth;
+                final single=width<460;
+                final itemWidth=single?width:(width-8)/2;
+                return Wrap(spacing:8,runSpacing:8,children:[
+                  SizedBox(width:itemWidth,child:FilledButton.icon(
+                    onPressed:busy?null:_sendPending,
+                    icon:const Icon(Icons.cloud_upload_outlined),
+                    label:const Text('Enviar pendentes'))),
+                  SizedBox(width:itemWidth,child:OutlinedButton.icon(
+                    onPressed:busy?null:_restoreMissing,
+                    icon:const Icon(Icons.cloud_download_outlined),
+                    label:const Text('Recuperar fotos'))),
+                ]);
+              }),
             ])),
           Expanded(child:s.records.isEmpty
             ?const Center(child:Text('Nenhuma vistoria encontrada nesta empresa.'))
