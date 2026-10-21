@@ -16,7 +16,7 @@ assert "size.maxWidth < 920" in visit
 assert "width: 356" in visit and "child: _picker()" in visit
 assert "child: _selected == null" in visit and "_tasks()" in visit
 assert "'As atividades aparecerão aqui sem trocar de tela.'" in visit
-assert "_activeIntent" in visit and "VisitIntentTabs" in visit, "Existing task switching lost"
+assert "widget.intent" in visit and "Continuar rascunho" in visit, "Existing visit intents lost"
 
 cipa = read("cipa_management_screen.dart")
 assert "MediaQuery.sizeOf(context).width >= 960" in cipa
