@@ -12,8 +12,8 @@ root = Path(sys.argv[1])
 platform = sys.argv[2]
 assert platform in ("android", "windows")
 versions = {
-    "android": ("3.29.192+334", "3.29.193+335"),
-    "windows": ("3.30.115+302", "3.30.116+303"),
+    "android": ("3.29.192+334", "3.29.194+336"),
+    "windows": ("3.30.115+302", "3.30.117+304"),
 }
 old, new = versions[platform]
 pub = root / "pubspec.yaml"
