@@ -45,22 +45,97 @@ function nativePrintPlugin(){
  }catch(_){}
  return window.Capacitor?.Plugins?.NativePrint||null;
 }
-async function nativePrint(mode='receipt'){
- document.documentElement.dataset.epiPrintMode=mode;
- if(mode==='receipt'&&currentReceiptId)repairReceipt(currentReceiptId);
- const plugin=nativePrintPlugin();
- if(plugin?.print){
-   try{await plugin.print({jobName:mode==='receipt'?'Comprovante de Entrega de EPI':'Relatório de Entregas de EPI'});return}
-   catch(e){toast('A impressão nativa não abriu. Tentando alternativa do aparelho.')}
+function dateLabel(iso){
+ if(!iso)return '';
+ try{return new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(new Date(iso))}
+ catch(_){return String(iso)}
+}
+function documentData(){
+ const root=data(),id=currentReceiptId||($('#receipt')?.classList.contains('active')?root.deliveries?.[0]?.id:'');
+ const d=(root.deliveries||[]).find(x=>String(x.id)===String(id));
+ if(!d)throw new Error('Abra um comprovante de entrega antes de gerar o PDF.');
+ const w=(root.workers||[]).find(x=>x.id===d.workerId)||{};
+ const c=(root.companies||[]).find(x=>x.id===d.companyId)||{};
+ const items=(d.items||[]).filter(i=>Number(i.qty)>0).map(i=>{
+   const e=(root.epis||[]).find(x=>x.id===i.epiId)||{};
+   return {name:String(e.name||'EPI'),ca:String(e.ca||''),model:String(e.model||''),size:String(e.size||''),qty:String(i.qty||1)};
+ });
+ if(!w.name||!items.length)throw new Error('Registro incompleto: colaborador ou itens não encontrados.');
+ const a=(root.auditLog||[]).find(x=>x.type==='epi_authorization'&&x.id===d.authorizationId);
+ const review=(root.auditLog||[]).find(x=>x.type==='epi_direct_delivery'&&x.deliveryId===d.id);
+ const flow=d.deliveryFlow==='authorized'||d.authorizationId?'Entrega com liberação do TST':d.deliveryFlow==='direct'?'Entrega direta do almoxarifado':'Entrega padrão';
+ const actor=x=>typeof x==='string'?x:(x?.name||x?.username||'');
+ const biometric=d.confirmationMethod==='face-biometric'||d.biometricVerified===true;
+ const content=$('#receiptContent');
+ const hasLegal=content?.dataset?.legalV320===String(d.id);
+ const codes=hasLegal?[...content.querySelectorAll('.legal-v320-code')].map(x=>x.textContent?.trim()||''):[];
+ return {
+  deliveryId:String(d.id||''),company:String(c.name||''),cnpj:String(c.cnpj||''),
+  worker:String(w.name||''),cpf:String(w.cpf||''),registration:String(w.reg||''),
+  roleSector:[w.role,w.sector].filter(Boolean).join(' / '),
+  date:dateLabel(d.createdAt),items,
+  type:flow,reason:String(d.reason||''),notes:String(d.notes||''),
+  responsible:String(d.responsible||''),deliveredBy:String(actor(d.warehouseDeliveredBy)||actor(d.registeredBy)||d.responsible||'Não informado — registro anterior'),
+  authorizationCode:flow==='Entrega com liberação do TST'?String(a?.code||'Não informado — registro anterior'):'',
+  authorizedBy:flow==='Entrega com liberação do TST'?String(actor(a?.authorizedBy)||'Não informado — registro anterior'):'',
+  reviewStatus:flow==='Entrega direta do almoxarifado'?String(review?.reviewStatus==='reviewed'?'Revisada por '+(actor(review?.reviewedBy)||'responsável não informado'):'Pendente de revisão'):'',
+  facial:biometric,method:biometric?'Biometria facial verificada':validImage(d.signature)?'Assinatura eletrônica':'Confirmação sem imagem de assinatura',
+  signature:biometric?'':validImage(d.signature)?d.signature:'',
+  similarity:biometric&&Number(d.biometricSimilarity)>0?Math.round(Number(d.biometricSimilarity)*100)+'%':'',
+  verifiedAt:biometric?dateLabel(d.biometricVerifiedAt||d.createdAt):'',
+  evidenceId:biometric?String(d.biometricEvidenceId||''):'',
+  evidenceHash:biometric?String(d.biometricEvidenceHash||''):'',
+  evidenceRecordId:'EPI-'+String(d.id||'').toUpperCase(),
+  receiptHash:codes[1]||''
+ };
+}
+function setPdfBusy(value){
+ for(const el of ['#btnPrint','#btnShareReceiptPdf']){
+  const button=$(el);if(!button)continue;button.disabled=value;button.setAttribute('aria-busy',value?'true':'false');
  }
- try{window.print()}catch(_){toast('Impressão indisponível. Confira o serviço de impressão Android.')}
+}
+async function exportReceiptPdf(share=false){
+ if(!window.Capacitor?.isNativePlatform?.()) {
+   toast('A geração e o compartilhamento nativos de PDF estão disponíveis no aplicativo Android.');
+   return;
+ }
+ let receipt;
+ try{
+   if(currentReceiptId)repairReceipt(currentReceiptId);
+   receipt=documentData();
+ }catch(error){toast(error?.message||'Não foi possível montar o comprovante.');return}
+ const plugin=nativePrintPlugin();
+ const fn=share?'sharePdf':'print';
+ if(typeof plugin?.[fn]!=='function'){
+   toast('Atualize o aplicativo Android para usar '+(share?'Compartilhar PDF.':'Imprimir PDF.'));
+   return;
+ }
+ setPdfBusy(true);
+ try{
+   await plugin[fn]({receipt,jobName:'Comprovante de Entrega de EPI'});
+ }catch(error){
+   toast('Erro ao gerar PDF: '+String(error?.message||'verifique o registro').slice(0,110));
+ }finally{
+   setPdfBusy(false);
+ }
+}
+function shareButton(){
+ if($('#btnShareReceiptPdf')||!$('#btnPrint'))return;
+ const button=document.createElement('button');
+ button.id='btnShareReceiptPdf';
+ button.type='button';
+ button.className='secondary';
+ button.textContent='↗ Compartilhar PDF';
+ button.setAttribute('aria-label','Compartilhar comprovante de entrega em PDF');
+ $('#btnPrint').insertAdjacentElement('afterend',button);
 }
 
 function bindPrint(){
  document.addEventListener('click',e=>{
    const r=e.target.closest?.('[data-receipt]');if(r){currentReceiptId=r.dataset.receipt;setTimeout(()=>repairReceipt(currentReceiptId),80)}
-   if(e.target.closest?.('#btnPrint')){e.preventDefault();e.stopImmediatePropagation();nativePrint('receipt')}
-   if(e.target.closest?.('#flow360PrintReport')){e.preventDefault();e.stopImmediatePropagation();nativePrint('report')}
+   if(e.target.closest?.('#btnPrint')){e.preventDefault();e.stopImmediatePropagation();exportReceiptPdf(false)}
+   if(e.target.closest?.('#btnShareReceiptPdf')){e.preventDefault();e.stopImmediatePropagation();exportReceiptPdf(true)}
+   if(e.target.closest?.('#flow360PrintReport')){e.preventDefault();e.stopImmediatePropagation();try{window.print()}catch(_){toast('Não foi possível imprimir este relatório.')}}
    if(e.target.closest?.('#btnSaveDelivery'))setTimeout(()=>{enrichNewest();if($('#receipt')?.classList.contains('active')){const id=data().deliveries?.[0]?.id||'';if(id){currentReceiptId=id;repairReceipt(id)}}},220);
  },true);
  document.addEventListener('auditar-epi-data-changed',()=>setTimeout(()=>{enrichNewest();if($('#receipt')?.classList.contains('active')){const root=data(),id=currentReceiptId||root.deliveries?.[0]?.id;if(id)repairReceipt(id)}},100));
@@ -135,7 +210,7 @@ function bindQr(){
 }
 function styles(){
  if($('#receipt380Style'))return;const s=document.createElement('style');s.id='receipt380Style';s.textContent=`
-.receipt-face-details{font-size:11px;color:#425c58;line-height:1.5}.receipt-face-proof{font-size:42px;line-height:1;margin:14px auto 8px}.receipt-sign-missing{font-size:11px;color:#6b817d;margin:12px auto;max-width:320px}.receipt380-scan-modal{display:none;position:fixed;inset:0;z-index:12000;background:rgba(0,0,0,.66);padding:18px;align-items:center;justify-content:center}.receipt380-scan-modal.open{display:flex}.receipt380-scan-card{width:min(100%,520px);background:#fff;border-radius:18px;padding:14px}.receipt380-scan-head{display:flex;justify-content:space-between;align-items:center;font-size:17px;margin-bottom:10px}.receipt380-scan-head button{border:0;background:#eef5f4;border-radius:10px;width:38px;height:38px;font-size:24px}.receipt380-scan-card video{width:100%;min-height:270px;max-height:60vh;object-fit:cover;border-radius:14px;background:#111}.receipt380-scan-card small{display:block;color:#667f7a;line-height:1.45;margin:9px 0}.receipt380-scan-card .primary{width:100%;min-height:48px}
+.receipt-actions{flex-wrap:wrap}.receipt-actions>button{flex:1 1 140px;min-height:48px}.receipt-face-details{font-size:11px;color:#425c58;line-height:1.5}.receipt-face-proof{font-size:42px;line-height:1;margin:14px auto 8px}.receipt-sign-missing{font-size:11px;color:#6b817d;margin:12px auto;max-width:320px}.receipt380-scan-modal{display:none;position:fixed;inset:0;z-index:12000;background:rgba(0,0,0,.66);padding:18px;align-items:center;justify-content:center}.receipt380-scan-modal.open{display:flex}.receipt380-scan-card{width:min(100%,520px);background:#fff;border-radius:18px;padding:14px}.receipt380-scan-head{display:flex;justify-content:space-between;align-items:center;font-size:17px;margin-bottom:10px}.receipt380-scan-head button{border:0;background:#eef5f4;border-radius:10px;width:38px;height:38px;font-size:24px}.receipt380-scan-card video{width:100%;min-height:270px;max-height:60vh;object-fit:cover;border-radius:14px;background:#111}.receipt380-scan-card small{display:block;color:#667f7a;line-height:1.45;margin:9px 0}.receipt380-scan-card .primary{width:100%;min-height:48px}
 #receipt.active{padding-bottom:calc(105px + env(safe-area-inset-bottom,0px))}
 body:has(#receipt.active) #bottomNav{display:none!important}
 body:has(.receipt380-scan-modal.open) #bottomNav{display:none!important}
@@ -149,6 +224,6 @@ body:has(.receipt380-scan-modal.open) #bottomNav{display:none!important}
 }
 `;document.head.appendChild(s)
 }
-function boot(){styles();bindPrint();bindQr();enrichNewest()}
+function boot(){styles();shareButton();bindPrint();bindQr();enrichNewest()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
