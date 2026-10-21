@@ -78,9 +78,32 @@ s = one(s,
     "Companies floating button scroll clearance")
 companies.write_text(s, encoding="utf-8", newline="\n")
 
+# UI-only renaming: keep identifiers (RONDA_EXPRESSA), stored types,
+# import names and navigation targets untouched.
+label_re = re.compile(
+    r"""(\b(?:Text|SelectableText)\s*\(\s*|\b(?:title|label|tooltip|semanticLabel)\s*:\s*)"""
+    r"""(['"])Ronda Expressa\2"""
+)
+renamed = []
+for folder in ("lib/screens", "lib/widgets"):
+    for candidate in (root / folder).glob("*.dart"):
+        if candidate in allowed:
+            continue
+        value = candidate.read_text(encoding="utf-8")
+        updated, n = label_re.subn(lambda m: m.group(1) + m.group(2) + "Ronda" + m.group(2), value)
+        if n:
+            allowed.add(candidate)
+            candidate.write_text(updated, encoding="utf-8", newline="\n")
+            renamed.append((candidate.name, n))
+assert not any(p not in allowed and hashlib.sha256(p.read_bytes()).hexdigest()!=digest
+               for p,digest in protected.items()), "Core mutation outside UI labels"
+print("RONDA_VISIBLE_LABELS_NORMALIZED", renamed)
+
 pub.write_text(version.replace("version: " + old, "version: " + new, 1),
                encoding="utf-8", newline="\n")
 for p, old_digest in protected.items():
+    if p in allowed:
+        continue  # Only the whitelisted visible UI label was changed.
     assert hashlib.sha256(p.read_bytes()).hexdigest() == old_digest, (
         "Protected code changed: " + str(p)
     )
