@@ -123,6 +123,44 @@ jobs:
           }
           ''', encoding='utf-8')
 
+          (java_dir/'NativePrintPlugin.java').write_text(r'''package br.com.gestao.epi;
+
+          import android.content.Context;
+          import android.print.PrintAttributes;
+          import android.print.PrintDocumentAdapter;
+          import android.print.PrintManager;
+          import android.webkit.WebView;
+          import com.getcapacitor.Plugin;
+          import com.getcapacitor.PluginCall;
+          import com.getcapacitor.PluginMethod;
+          import com.getcapacitor.annotation.CapacitorPlugin;
+
+          @CapacitorPlugin(name = "NativePrint")
+          public class NativePrintPlugin extends Plugin {
+              @PluginMethod
+              public void print(PluginCall call) {
+                  final String jobName = call.getString("jobName", "Comprovante de Entrega de EPI");
+                  getActivity().runOnUiThread(() -> {
+                      try {
+                          WebView webView = getBridge().getWebView();
+                          PrintManager printManager =
+                              (PrintManager) getActivity().getSystemService(Context.PRINT_SERVICE);
+                          PrintDocumentAdapter adapter =
+                              webView.createPrintDocumentAdapter(jobName);
+                          PrintAttributes attributes = new PrintAttributes.Builder()
+                              .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
+                              .setColorMode(PrintAttributes.COLOR_MODE_COLOR)
+                              .build();
+                          printManager.print(jobName, adapter, attributes);
+                          call.resolve();
+                      } catch (Exception error) {
+                          call.reject("Não foi possível abrir a impressão do Android.", error);
+                      }
+                  });
+              }
+          }
+          ''', encoding='utf-8')
+
           (java_dir/'MainActivity.java').write_text(r'''package br.com.gestao.epi;
 
           import android.os.Bundle;
@@ -132,6 +170,7 @@ jobs:
               @Override
               public void onCreate(Bundle savedInstanceState) {
                   registerPlugin(ScreenOrientationPlugin.class);
+                  registerPlugin(NativePrintPlugin.class);
                   super.onCreate(savedInstanceState);
               }
           }
@@ -202,6 +241,7 @@ jobs:
           grep -q "portalContactPhone" worker-portal-ops-v370.js
           node --check adaptive-modules-v380.js
           node --check advanced-operations-v380.js
+          node --check receipt-print-fix-v380.js
           grep -q "Perfil da conta" adaptive-modules-v380.js
           grep -q "Permissões por usuário" adaptive-modules-v380.js
           grep -q "Automático pelo porte" adaptive-modules-v380.js
@@ -210,6 +250,9 @@ jobs:
           grep -q "Previsão de estoque" advanced-operations-v380.js
           grep -q "Recolhimento" advanced-operations-v380.js
           grep -q "Kits por função" advanced-operations-v380.js
+          grep -q "NativePrint" receipt-print-fix-v380.js
+          grep -q "Biometria facial verificada" receipt-print-fix-v380.js
+          grep -q "BarcodeDetector" receipt-print-fix-v380.js
           grep -q "warehouseId" stock.js
           grep -q "batchId" stock.js
           grep -q "physicalExpiry" invoice-epi-ai-v350.js
@@ -330,6 +373,10 @@ jobs:
           unzip -p "$APK" assets/public/advanced-operations-v380.js | grep -q "Previsão de estoque"
           unzip -p "$APK" assets/public/advanced-operations-v380.js | grep -q "Recolhimento"
           unzip -p "$APK" assets/public/advanced-operations-v380.js | grep -q "Kits por função"
+          unzip -p "$APK" assets/public/index.html | grep -q "receipt-print-fix-v380.js"
+          unzip -p "$APK" assets/public/receipt-print-fix-v380.js | grep -q "NativePrint"
+          unzip -p "$APK" assets/public/receipt-print-fix-v380.js | grep -q "Biometria facial verificada"
+          unzip -l "$APK" | grep -q "br/com/gestao/epi/NativePrintPlugin"
           unzip -p "$APK" assets/public/stock.js | grep -q "warehouseId"
           unzip -p "$APK" assets/public/invoice-epi-ai-v350.js | grep -q "physicalExpiry"
           unzip -p "$APK" assets/public/index.html | grep -q "ca-center-v330.js"
@@ -347,7 +394,7 @@ jobs:
           tag_name: gestao-epi-campo-v3.8.0
           name: Gestão EPI Campo v3.8.0
           body: |
-            Gestão EPI Campo v3.8.0 adiciona perfil adaptativo por porte e por usuário, além de multiestoque, previsão de consumo, auditoria de divergências, lotes/recolhimento e kits por função. As funções podem ser ocultadas pelo administrador sem apagar dados.
+            Gestão EPI Campo v3.8.0 adiciona perfil adaptativo por porte e por usuário, multiestoque, previsão de consumo, auditoria de divergências, lotes/recolhimento e kits por função. Também corrige o comprovante no Android com impressão nativa/Salvar como PDF, remove a imagem quebrada quando a confirmação é biométrica e melhora a leitura de QR. As funções podem ser ocultadas pelo administrador sem apagar dados.
             Inclui EPIs em posse por trabalhador, controle de trocas por vencimento, desgaste, dano, perda e necessidade operacional, além da devolução com opção de retorno ao estoque.
             Mantidas assinatura em tela, reconhecimento facial, operação offline, sincronização, estoque, histórico e Portal do Trabalhador. As melhorias de interface são aditivas e não alteram o núcleo de sincronização.
           files: Gestao-EPI-Campo-v3.8.0-ADAPTATIVO-ESTOQUE.apk
