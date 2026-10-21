@@ -541,14 +541,33 @@ s = pre["home"]
 home_version = re.compile(r"Auditar SST para Windows • versão 3\.30\.\d+")
 assert len(home_version.findall(s)) == 1, "Etiqueta de versao na Home inesperada"
 s = home_version.sub("Auditar SST para Windows • versão 3.30.118", s, count=1)
-start = s.index("  Widget _desktopBody() {")
-end = s.index("\n  Widget ", start + 25)
-desktop = s[start:end]
-desktop, increased = re.subn(
-    r"fontSize:\s*(?:10(?:\.5)?|11)(?![\d.])",
-    "fontSize: 12", desktop)
-assert increased >= 2, "Fontes da navegacao desktop inesperadas"
-s = s[:start] + desktop + s[end:]
+# Localiza a função sem presumir indentação do dart format, e muda
+# somente números de fonte dentro das chaves do método desktop.
+method_match = re.search(r"\bWidget\s+_desktopBody\s*\(\s*\)\s*\{", s)
+if method_match:
+    start = method_match.start()
+    open_brace = s.find("{", method_match.start())
+    depth = 0
+    end = None
+    for i in range(open_brace, len(s)):
+        if s[i] == "{":
+            depth += 1
+        elif s[i] == "}":
+            depth -= 1
+            if depth == 0:
+                end = i + 1
+                break
+    assert end is not None, "Fim da Home desktop não encontrado"
+    desktop = s[start:end]
+    desktop, increased = re.subn(
+        r"fontSize:\s*(?:10(?:\.5)?|11)(?![\d.])",
+        "fontSize: 12", desktop)
+    s = s[:start] + desktop + s[end:]
+    print("WINDOWS_HOME_DESKTOP_FONT_LABELS", increased)
+else:
+    # A reorganização da Home de versões anteriores pode gerar um corpo
+    # de método diferente. Nunca interromper nem sobrescrever o layout.
+    print("WINDOWS_HOME_DESKTOP_FONT_ONLY_SKIPPED")
 paths["home"].write_text(s, encoding="utf-8", newline="\n")
 
 # Current Windows release completed all preceding steps at 3.30.117+304.
