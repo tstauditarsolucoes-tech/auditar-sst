@@ -242,7 +242,7 @@ class _QuickVisitScreenState extends State<QuickVisitScreen> {
     Widget page,
   ) => Card(
     child: ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       leading: Icon(icon),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
       subtitle: Text(detail),
@@ -272,7 +272,7 @@ class _QuickVisitScreenState extends State<QuickVisitScreen> {
   Widget _tasks() {
     final c = _selected!;
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       children: [
         Card(
           child: ListTile(
@@ -496,8 +496,8 @@ class _QuickVisitScreenState extends State<QuickVisitScreen> {
                   itemBuilder: (_, i) {
                     final c = visible[i];
                     return ListTile(
-                      minVerticalPadding: 12,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      minVerticalPadding: 7,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       key: ValueKey('visit-company-${c.id}'),
                       leading: Icon(
                         _organization.favorite(c.id)
