@@ -44,6 +44,14 @@ assert "Não desinstale o aplicativo" in photos, "Safety warning lost"
 assert "_sendPending" in photos and "_restoreMissing" in photos
 assert "MediaSyncService.uploadPending" in photos, "Backup recovery controls lost"
 
+login = read("login_screen.dart")
+assert "final wideDesktop = MediaQuery.sizeOf(context).width >= 1100;" in login
+assert "Sua central de Segurança do Trabalho no computador" in login
+assert "if (wideDesktop)" in login
+assert "maxWidth: 470" in login
+assert "_submit" in login and "firstAdmin" in login, "Original authentication UI removed"
+assert "controller: email" in login and "controller: password" in login
+
 pubspec = (app / "pubspec.yaml").read_text(encoding="utf-8")
 assert "version: 3.30.118+305" in pubspec
 print("WINDOWS_3_30_118_DESKTOP_UI_REGRESSION_OK")
