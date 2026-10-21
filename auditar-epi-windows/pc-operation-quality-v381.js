@@ -32,7 +32,9 @@ function ensure(){
  }
  if(PC){
   const nav=$('.sidebar nav');if(nav){
-   for(const [id,label] of [['opi381Proofs','🧾 Central de comprovantes'],['opi381Express','⚡ Entrega Expressa']]){
+   // Reusar o acesso Comprovantes já existente, sem duplicar itens no menu.
+   const existing=nav.querySelector('[data-view="receiptsPc"]');if(existing)existing.dataset.opi381Open='opi381Proofs';
+   for(const [id,label] of [['opi381Express','⚡ Entrega Expressa']]){
     if(nav.querySelector('[data-view="'+id+'"]'))continue;
     const b=document.createElement('button');b.className='nav pc-new';b.dataset.view=id;b.textContent=label;nav.appendChild(b);
    }
