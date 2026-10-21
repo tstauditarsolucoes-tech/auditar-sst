@@ -163,7 +163,8 @@ function treatmentTimelineV1(company,topicId,title){
      'Pedido de apoio registrado. Protocolo: '+String(res.id||'não informado')+
        '. Aguardando resposta da Auditar.':
      payload.type==='informar_correcao'?
-       'Correção informada à Auditar. Aguarda verificação técnica; a NC não foi encerrada.':
+       'Correção informada à Auditar. Protocolo: '+String(res.id||'não informado')+
+       '. Aguardando conferência do técnico; a NC permanece aberta até validação.':
        'Mensagem registrada na linha do tempo.';
    refresh();
    renderTreatmentInboxV2();
