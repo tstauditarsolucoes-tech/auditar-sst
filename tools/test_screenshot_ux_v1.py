@@ -5,6 +5,7 @@ Checks presentation only. No database, sync, media, authorization or Apps Script
 """
 from pathlib import Path
 import sys
+import re
 
 root = Path(sys.argv[1])
 def screen(name):
@@ -27,7 +28,7 @@ assert "Inclua uma foto ou uma descrição." in ronda, "Ronda clear field helper
 company = screen("companies_screen.dart")
 assert "'Ronda Expressa'" not in company, "Outdated title in company list"
 assert "padding: const EdgeInsets.fromLTRB(14, 14, 14, 175)" in company, "Company FAB safety"
-assert "company.name,\n                      softWrap: true" in company, "Full company label"
+assert re.search(r"company\.name,\s+softWrap:\s*true", company), "Full company label"
 
 observations = screen("safety_observations_screen.dart")
 assert "toolbarHeight: 76" in observations, "Atos readable toolbar"
