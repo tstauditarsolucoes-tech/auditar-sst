@@ -61,7 +61,7 @@ function bindPrint(){
    const r=e.target.closest?.('[data-receipt]');if(r){currentReceiptId=r.dataset.receipt;setTimeout(()=>repairReceipt(currentReceiptId),80)}
    if(e.target.closest?.('#btnPrint')){e.preventDefault();e.stopImmediatePropagation();nativePrint('receipt')}
    if(e.target.closest?.('#flow360PrintReport')){e.preventDefault();e.stopImmediatePropagation();nativePrint('report')}
-   if(e.target.closest?.('#btnSaveDelivery'))setTimeout(enrichNewest,220);
+   if(e.target.closest?.('#btnSaveDelivery'))setTimeout(()=>{enrichNewest();if($('#receipt')?.classList.contains('active')){const id=data().deliveries?.[0]?.id||'';if(id){currentReceiptId=id;repairReceipt(id)}}},220);
  },true);
  document.addEventListener('auditar-epi-data-changed',()=>setTimeout(()=>{enrichNewest();if($('#receipt')?.classList.contains('active')){const root=data(),id=currentReceiptId||root.deliveries?.[0]?.id;if(id)repairReceipt(id)}},100));
 }
