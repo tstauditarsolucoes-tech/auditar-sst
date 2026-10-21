@@ -20,7 +20,9 @@ assert "_activeIntent" in visit and "VisitIntentTabs" in visit, "Existing task s
 
 cipa = read("cipa_management_screen.dart")
 assert "MediaQuery.sizeOf(context).width >= 960" in cipa
-assert "bottom: MediaQuery.sizeOf(context).width >= 960 ? null : const TabBar(" in cipa
+assert re.search(
+    r"bottom:\s*MediaQuery\.sizeOf\(context\)\.width\s*>=\s*960\s*"
+    r"\?\s*null\s*:\s*const\s+TabBar\(", cipa), "CIPA tab bar fallback lost"
 assert "DefaultTabController.of(tabsContext)" in cipa
 assert "AnimatedBuilder(" in cipa and "controller.animateTo(index)" in cipa
 assert "Expanded(child: pages)" in cipa
