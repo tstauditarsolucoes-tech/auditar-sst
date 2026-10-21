@@ -320,6 +320,7 @@ jobs:
           node --check advanced-operations-v380.js
           node --check receipt-print-fix-v380.js
           node --check operation-quality-v381.js
+          node ../../tests/gestao-epi-v381-smoke.cjs operation-quality-v381.js
           grep -q "Central de comprovantes" operation-quality-v381.js
           grep -q "Entrega Expressa" operation-quality-v381.js
           grep -q "Compartilhar PDF" receipt-print-fix-v380.js
