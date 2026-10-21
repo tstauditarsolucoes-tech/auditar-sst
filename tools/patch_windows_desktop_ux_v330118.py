@@ -410,15 +410,18 @@ method = """  Widget _windowsRecordRow(BackupRecordItem item) {
   }
 
 """
-s = one(s, anchor, method+anchor, "tabela backup desktop")
-s = one(
-    s, "                final item=s.records[index];\n                return Card(",
-    """                final item=s.records[index];
-                if (MediaQuery.sizeOf(context).width >= 1000) {
+matches = list(re.finditer(r"@override\s+Widget build\(BuildContext context\) \{", s))
+assert len(matches) == 1, "Montagem da tela de fotos alterada"
+s = s[:matches[0].start()] + method + s[matches[0].start():]
+row_pattern = re.compile(
+    r"(final\s+item\s*=\s*s\.records\[index\];\s*)(return\s+Card\()")
+assert len(list(row_pattern.finditer(s))) == 1, "Linha de fotografia não encontrada"
+s = row_pattern.sub(
+    lambda m: m.group(1) +
+      """if (MediaQuery.sizeOf(context).width >= 1000) {
                   return _windowsRecordRow(item);
                 }
-                return Card(""",
-    "registro e fotos desktop separados")
+                """ + m.group(2), s, count=1)
 paths["photos"].write_text(s, encoding="utf-8", newline="\n")
 
 # Current Windows release completed all preceding steps at 3.30.117+304.
