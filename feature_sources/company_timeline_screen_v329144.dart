@@ -62,9 +62,9 @@ class _CompanyTimelineScreenState extends State<CompanyTimelineScreen> {
     final seenRecordKeys = <String>{};
     for (final row in inspections) {
       final id = '${row['id'] ?? ''}'.trim();
-      if (id.isNotEmpty && !seenRecordKeys.add('vistoria:$id')) continue;
       final date = DateTime.tryParse('${row['date'] ?? ''}');
       if (date == null) continue;
+      if (id.isNotEmpty && !seenRecordKeys.add('vistoria:$id')) continue;
       result.add(_TimelineEvent(
         date: date,
         category: 'Vistorias',
@@ -126,9 +126,9 @@ class _CompanyTimelineScreenState extends State<CompanyTimelineScreen> {
 
     for (final row in actions) {
       final id = '${row['id'] ?? ''}'.trim();
-      if (id.isNotEmpty && !seenRecordKeys.add('correcao:$id')) continue;
       final completed = DateTime.tryParse('${row['completion_date'] ?? ''}');
       if (completed == null) continue;
+      if (id.isNotEmpty && !seenRecordKeys.add('correcao:$id')) continue;
       result.add(_TimelineEvent(
         date: completed,
         category: 'Correções',
