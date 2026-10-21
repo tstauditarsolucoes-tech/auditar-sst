@@ -1903,7 +1903,7 @@ jobs:
           python tools/patch_windows_desktop_ux_v330118.py "$env:APP_DIR"
           if ($LASTEXITCODE -ne 0) { throw 'Falha patch desktop Windows' }
           Push-Location "$env:APP_DIR"
-          dart format lib/screens/quick_visit_screen.dart lib/screens/cipa_management_screen.dart lib/screens/company_timeline_screen.dart lib/screens/evidence_backup_screen.dart lib/screens/login_screen.dart
+          dart format lib/screens/quick_visit_screen.dart lib/screens/cipa_management_screen.dart lib/screens/company_timeline_screen.dart lib/screens/evidence_backup_screen.dart lib/screens/login_screen.dart lib/screens/home_screen.dart
           if ($LASTEXITCODE -ne 0) { throw 'Falha formato desktop Windows' }
           Pop-Location
           python tools/test_windows_desktop_ux_v330118.py "$env:APP_DIR"
