@@ -483,19 +483,19 @@ jobs:
           unzip -p "$APK" assets/public/ca-center-v330.js | grep -q "Alertas de CA"
 
       - name: Renomear APK
-        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Campo-v3.8.0-ADAPTATIVO-ESTOQUE.apk
+        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Campo-v3.8.1-ADAPTATIVO-ESTOQUE.apk
 
       - name: Publicar APK
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: gestao-epi-campo-v3.8.0
-          name: Gestão EPI Campo v3.8.0
+          tag_name: gestao-epi-campo-v3.8.1
+          name: Gestão EPI Campo v3.8.1
           body: |
-            Gestão EPI Campo v3.8.0 adiciona perfil adaptativo por porte e por usuário, multiestoque, previsão de consumo, auditoria de divergências, lotes/recolhimento e kits por função. Também corrige o comprovante no Android com impressão nativa/Salvar como PDF, remove a imagem quebrada quando a confirmação é biométrica e melhora a leitura de QR. As funções podem ser ocultadas pelo administrador sem apagar dados.
+            Gestão EPI Campo v3.8.1 adiciona perfil adaptativo por porte e por usuário, multiestoque, previsão de consumo, auditoria de divergências, lotes/recolhimento e kits por função. Também corrige o comprovante no Android com impressão nativa/Salvar como PDF, remove a imagem quebrada quando a confirmação é biométrica e melhora a leitura de QR. As funções podem ser ocultadas pelo administrador sem apagar dados.
             Inclui EPIs em posse por trabalhador, controle de trocas por vencimento, desgaste, dano, perda e necessidade operacional, além da devolução com opção de retorno ao estoque.
             Mantidas assinatura em tela, reconhecimento facial, operação offline, sincronização, estoque, histórico e Portal do Trabalhador. As melhorias de interface são aditivas e não alteram o núcleo de sincronização.
-          files: Gestao-EPI-Campo-v3.8.0-ADAPTATIVO-ESTOQUE.apk
+          files: Gestao-EPI-Campo-v3.8.1-ADAPTATIVO-ESTOQUE.apk
           make_latest: false
           overwrite_files: true
 
@@ -512,7 +512,7 @@ jobs:
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
-          name: Gestao-EPI-Campo-v3.8.0-ADAPTATIVO-ESTOQUE
-          path: Gestao-EPI-Campo-v3.8.0-ADAPTATIVO-ESTOQUE.apk
+          name: Gestao-EPI-Campo-v3.8.1-ADAPTATIVO-ESTOQUE
+          path: Gestao-EPI-Campo-v3.8.1-ADAPTATIVO-ESTOQUE.apk
           if-no-files-found: error
           retention-days: 14
