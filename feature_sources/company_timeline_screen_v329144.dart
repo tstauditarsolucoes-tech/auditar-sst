@@ -57,7 +57,12 @@ class _CompanyTimelineScreenState extends State<CompanyTimelineScreen> {
     );
 
     final result = <_TimelineEvent>[];
+    // A mesma ID nunca aparece duas vezes; registros diferentes continuam
+    // visíveis mesmo quando compartilham título, data e número de relatório.
+    final seenRecordKeys = <String>{};
     for (final row in inspections) {
+      final id = '${row['id'] ?? ''}'.trim();
+      if (id.isNotEmpty && !seenRecordKeys.add('vistoria:$id')) continue;
       final date = DateTime.tryParse('${row['date'] ?? ''}');
       if (date == null) continue;
       result.add(_TimelineEvent(
@@ -83,6 +88,8 @@ class _CompanyTimelineScreenState extends State<CompanyTimelineScreen> {
       Widget Function() page,
     ) {
       for (final record in rows) {
+        final id = record.id.trim();
+        if (id.isNotEmpty && !seenRecordKeys.add('$category:$id')) continue;
         result.add(_TimelineEvent(
           date: record.date,
           category: category,
@@ -118,6 +125,8 @@ class _CompanyTimelineScreenState extends State<CompanyTimelineScreen> {
     );
 
     for (final row in actions) {
+      final id = '${row['id'] ?? ''}'.trim();
+      if (id.isNotEmpty && !seenRecordKeys.add('correcao:$id')) continue;
       final completed = DateTime.tryParse('${row['completion_date'] ?? ''}');
       if (completed == null) continue;
       result.add(_TimelineEvent(
@@ -246,7 +255,7 @@ class _CompanyTimelineScreenState extends State<CompanyTimelineScreen> {
           ),
           title: Text(
             event.title,
-            maxLines: 2,
+            maxLines: 4,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontWeight: FontWeight.w800),
           ),
@@ -255,7 +264,7 @@ class _CompanyTimelineScreenState extends State<CompanyTimelineScreen> {
             child: Text(
               '${event.category} • $date'
               '${event.subtitle.trim().isEmpty ? '' : '\n${event.subtitle}'}',
-              maxLines: 3,
+              maxLines: 5,
               overflow: TextOverflow.ellipsis,
             ),
           ),
