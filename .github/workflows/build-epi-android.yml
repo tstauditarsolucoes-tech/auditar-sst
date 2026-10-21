@@ -225,6 +225,34 @@ jobs:
           }
           ''', encoding='utf-8')
           PY
+          # Use dedicated PDF writer instead of printing the on-screen WebView.
+          cp native/NativePrintPlugin.java android/app/src/main/java/br/com/gestao/epi/NativePrintPlugin.java
+          python3 - <<'PY'
+          from pathlib import Path
+          manifest = Path('android/app/src/main/AndroidManifest.xml')
+          xml = manifest.read_text(encoding='utf-8')
+          if '.epi_pdf_provider' not in xml:
+              provider = '''
+              <provider
+                  android:name="androidx.core.content.FileProvider"
+                  android:authorities="br.com.gestao.epi.epi_pdf_provider"
+                  android:exported="false"
+                  android:grantUriPermissions="true">
+                  <meta-data android:name="android.support.FILE_PROVIDER_PATHS"
+                      android:resource="@xml/epi_pdf_paths" />
+              </provider>
+              '''
+              if '</application>' not in xml:
+                  raise SystemExit('AndroidManifest.xml sem application')
+              xml = xml.replace('</application>', provider + '\n</application>', 1)
+              manifest.write_text(xml, encoding='utf-8')
+          xml_dir = Path('android/app/src/main/res/xml')
+          xml_dir.mkdir(parents=True, exist_ok=True)
+          (xml_dir / 'epi_pdf_paths.xml').write_text(
+              '<paths xmlns:android="http://schemas.android.com/apk/res/android">'
+              '<cache-path name="epi-shared-pdfs" path="epi_pdfs/" />'
+              '</paths>', encoding='utf-8')
+          PY
 
       - name: Conferir módulos novos
         working-directory: auditar-epi-mobile/www
@@ -291,6 +319,9 @@ jobs:
           node --check adaptive-modules-v380.js
           node --check advanced-operations-v380.js
           node --check receipt-print-fix-v380.js
+          grep -q "Compartilhar PDF" receipt-print-fix-v380.js
+          grep -q "sharePdf" receipt-print-fix-v380.js
+          ! grep -q "nativePrint('receipt')" receipt-print-fix-v380.js
           grep -q "Perfil da conta" adaptive-modules-v380.js
           grep -q "Permissões por usuário" adaptive-modules-v380.js
           grep -q "Automático pelo porte" adaptive-modules-v380.js
@@ -360,6 +391,14 @@ jobs:
           grep -q "Mostrar QR" backend/PortalTrabalhador.html
           grep -q "Li e estou ciente" backend/PortalTrabalhador.html
 
+      - name: Conferir impressão e compartilhamento nativos
+        run: |
+          test -f auditar-epi-mobile/android/app/src/main/res/xml/epi_pdf_paths.xml
+          grep -q "epi_pdf_provider" auditar-epi-mobile/android/app/src/main/AndroidManifest.xml
+          grep -q "class ReadyPdfAdapter" auditar-epi-mobile/android/app/src/main/java/br/com/gestao/epi/NativePrintPlugin.java
+          grep -q "void sharePdf" auditar-epi-mobile/android/app/src/main/java/br/com/gestao/epi/NativePrintPlugin.java
+          grep -q "PdfDocument" auditar-epi-mobile/android/app/src/main/java/br/com/gestao/epi/NativePrintPlugin.java
+
       - name: Compilar APK
         working-directory: auditar-epi-mobile/android
         run: ./gradlew assembleDebug
@@ -425,6 +464,7 @@ jobs:
           unzip -p "$APK" assets/public/advanced-operations-v380.js | grep -q "Kits por função"
           unzip -p "$APK" assets/public/index.html | grep -q "receipt-print-fix-v380.js"
           unzip -p "$APK" assets/public/receipt-print-fix-v380.js | grep -q "NativePrint"
+          unzip -p "$APK" assets/public/receipt-print-fix-v380.js | grep -q "Compartilhar PDF"
           unzip -p "$APK" assets/public/receipt-print-fix-v380.js | grep -q "Biometria facial verificada"
           grep -q '@CapacitorPlugin(name = "NativePrint")' auditar-epi-mobile/android/app/src/main/java/br/com/gestao/epi/NativePrintPlugin.java
           grep -q 'registerPlugin(NativePrintPlugin.class)' auditar-epi-mobile/android/app/src/main/java/br/com/gestao/epi/MainActivity.java
