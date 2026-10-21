@@ -1641,9 +1641,12 @@ class OfflineReportInlineSuggestions extends StatelessWidget {
                     child: Text(
                       OfflineReasoning.explicitSafeOrUncertain(query)
                           ? 'Condição normal, corrigida ou ainda não verificada: nenhuma falha ativa sugerida.'
-                          : OfflineReasoning.has('botao|botoeira', OfflineReasoning.normalize(query))
-                              ? 'Precisa de mais detalhes: esse botão pertence a qual equipamento e qual é sua função? Confira também o nome digitado.'
-                              : 'Precisa de mais detalhes: informe o equipamento, a falha observada e a condição atual.',
+                          : OfflineReasoning.has('extintor', OfflineReasoning.normalize(query)) &&
+                                  OfflineReasoning.has('vencido|vencida|expirado|expirada', OfflineReasoning.normalize(query))
+                              ? 'Extintor com prazo informado como vencido. Identifique o equipamento e confira na etiqueta se venceu a inspeção, manutenção ou ensaio. Nenhum modelo semelhante encontrado; você pode continuar o registro.'
+                              : OfflineReasoning.has('botao|botoeira', OfflineReasoning.normalize(query))
+                                  ? 'Nenhum modelo semelhante encontrado. Identifique a máquina, a função do botão e a falha observada para melhorar a orientação; você pode continuar o registro.'
+                                  : 'Nenhum modelo semelhante encontrado. Se necessário, detalhe o equipamento e a condição observada; isso não impede salvar o registro.',
                     ),
                   ),
                 ],
