@@ -141,6 +141,7 @@ function syncHint(){
  e.textContent=navigator.onLine?'Rede disponível. Confira o status de sincronização antes de considerar os dados enviados.':'Sem rede. Registros pendentes precisam sincronizar quando houver conexão.';
 }
 function bind(){
+ if(PC)document.addEventListener('click',e=>{if(e.target.closest?.('#pcReceiptBack')){e.preventDefault();e.stopImmediatePropagation();show('opi381Proofs')}},true);
  if(PC)document.addEventListener('click',e=>{const b=e.target.closest?.('[data-pc-receipt]');if(b)setTimeout(()=>fixPcReceiptEvidence(b.dataset.pcReceipt),140)});
  document.addEventListener('click',e=>{
   const t=e.target.closest?.('[data-opi381-open],[data-opi381-receipt],[data-opi381-worker],[data-view="opi381Proofs"],[data-view="opi381Express"],[data-go="opi381Proofs"],[data-go="opi381Express"]');
