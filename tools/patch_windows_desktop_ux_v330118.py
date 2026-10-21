@@ -434,11 +434,38 @@ s = one(
     """final desktop = MediaQuery.sizeOf(context).width >= 760;
     final wideDesktop = MediaQuery.sizeOf(context).width >= 1000;""",
     "login desktop breakpoint")
-s = one(
-    s, "constraints: BoxConstraints(maxWidth: desktop ? 470 : 430),",
-    """constraints: BoxConstraints(
-                  maxWidth: wideDesktop ? 1120 : (desktop ? 470 : 430)),""",
-    "login usable width")
+# As versões montadas podem formatar ou dimensionar o cartão de login
+# de modo diferente. Preservar o formulário e substituir apenas a restrição
+# de largura do contêiner externo com busca por parênteses balanceados.
+outer_box = s.find("child: ConstrainedBox(")
+assert outer_box >= 0, "Contêiner do formulário de login ausente"
+constraint_start = s.find("constraints:", outer_box)
+assert constraint_start >= 0 and constraint_start - outer_box < 300, (
+    "Restrição da área do login não encontrada")
+box_start = s.find("BoxConstraints(", constraint_start)
+assert box_start >= 0 and box_start - constraint_start < 80, (
+    "Restrição BoxConstraints do login não encontrada")
+brace = s.find("(", box_start)
+depth = 0
+box_end = None
+for i in range(brace, len(s)):
+    if s[i] == "(":
+        depth += 1
+    elif s[i] == ")":
+        depth -= 1
+        if depth == 0:
+            box_end = i + 1
+            break
+assert box_end is not None and box_end - box_start < 300, (
+    "BoxConstraints do login inesperada")
+assert "maxWidth:" in s[box_start:box_end], (
+    "Limite de largura do login não encontrado")
+s = (
+    s[:constraint_start]
+    + "constraints: BoxConstraints(maxWidth: wideDesktop ? 1120 : "
+      "(desktop ? 470 : 430))"
+    + s[box_end:]
+)
 s = one(
     s, "child: Card(",
     """child: Row(
