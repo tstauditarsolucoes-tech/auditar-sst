@@ -70,7 +70,13 @@ function boot(){
  install();ensure();decorate();
  const nav=$('#bottomNav');if(nav){const b=$('[data-go]',nav).find(x=>/fichas/i.test(x.textContent||''));if(b)b.dataset.ficha382Start='1'}
  const captureBottom=()=>{const nav=$('#bottomNav');if(!nav)return;const b=$('[data-go]',nav).find(x=>/fichas/i.test(x.textContent||''));if(b)b.dataset.ficha382Start='1'};
+ // Captura o atalho Fichas antes do roteador antigo (que o leva a Colaboradores).
+ // Não modifica data-go de outros botões nem afeta a navegação restante.
  document.addEventListener('click',e=>{
+  const bottom=e.target.closest?.('#bottomNav button');
+  if(bottom&&/\bfichas\b/i.test(String(bottom.textContent||''))){
+    e.preventDefault();e.stopImmediatePropagation();open();return;
+  }
   const b=e.target.closest?.('[data-ficha382-start],[data-ficha382-worker],[data-ficha382-back],[data-ficha382-pdf],[data-ficha382-receipt],#ficha382From360,[data-ux-worker]');if(!b)return;
   if(b.matches('[data-ux-worker]')){workerId=b.dataset.uxWorker;setTimeout(decorate,80);return}
   if(b.id==='ficha382From360'){e.preventDefault();e.stopImmediatePropagation();if(workerId){$('#ux300Modal')?.classList.remove('open');detail(workerId)}return}
