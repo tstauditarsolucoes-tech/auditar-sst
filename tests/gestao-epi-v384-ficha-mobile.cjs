@@ -1,0 +1,18 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const base=path.join(__dirname,'..','auditar-epi');
+const sheet=fs.readFileSync(path.join(base,'worker-sheets-v382.js'),'utf8');
+const smart=fs.readFileSync(path.join(base,'mobile-smart-tables-v384.js'),'utf8');
+const old=fs.readFileSync(path.join(base,'smart-management-v350.js'),'utf8');
+new Function(sheet);new Function(smart);
+assert.ok(sheet.includes("$('#fichas382').classList.add('f382-show-detail')"),'Abrir ficha deve ativar modo detalhe');
+assert.ok(sheet.includes("$('#fichas382').classList.remove('f382-show-detail')"),'Voltar precisa restaurar lista');
+assert.match(sheet,/#fichas382\.f382-show-detail>#ficha382ListCard\{display:none/,'Lista precisa sumir no detalhe');
+assert.ok(sheet.includes("s.insertBefore(detailContainer,listCard)"),'Detalhe precisa vir acima da lista');
+assert.ok(sheet.includes("data-ficha382-list"),'Detalhe precisa ter botão voltar');
+assert.ok(sheet.includes("const b=$$('[data-go]',nav).find("),'Bootstrap não pode usar querySelector.find');
+assert.ok(smart.includes("data-smart384-label"),'Tabelas devem indicar a coluna no modo cartão');
+assert.ok(smart.includes("min-width:0;max-width:100%"),'Layout precisa caber no celular');
+assert.ok(!/localStorage\s*\.\s*setItem\s*\(/.test(smart),'Correção não pode gravar dados');
+assert.ok(!/\.movements\.\s*(push|unshift|splice)\s*\(/.test(smart),'Correção não pode alterar estoque');
+assert.ok(old.includes('function renderStock()'),'Gestão inteligente original continua intacta');
+console.log('OK v3.8.4: detalhe visível, volta à lista, cards responsivos, nenhuma escrita de estoque.');
