@@ -68,8 +68,12 @@ function decorate(){
 }
 function boot(){
  install();ensure();decorate();
- const nav=$('#bottomNav');if(nav){const b=$$('[data-go]',nav).find(x=>/fichas/i.test(x.textContent||''));if(b)b.dataset.ficha382Start='1'}
- const captureBottom=()=>{const nav=$('#bottomNav');if(!nav)return;const b=$$('[data-go]',nav).find(x=>/fichas/i.test(x.textContent||''));if(b)b.dataset.ficha382Start='1'};
+ const captureBottom=()=>{
+  const nav=$('#bottomNav');if(!nav)return;
+  const b=$('[data-go]',nav).find(x=>/fichas/i.test(String(x.textContent||'')));
+  if(b){b.dataset.ficha382Start='1';b.setAttribute?.('aria-label','Abrir fichas individuais de EPI');}
+ };
+ captureBottom();
  // Captura o atalho Fichas antes do roteador antigo (que o leva a Colaboradores).
  // Não modifica data-go de outros botões nem afeta a navegação restante.
  document.addEventListener('click',e=>{
