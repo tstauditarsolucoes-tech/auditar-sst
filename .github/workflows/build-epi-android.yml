@@ -481,7 +481,7 @@ jobs:
           unzip -p "$APK" assets/public/index.html | grep -q "operation-quality-v381.js"
           unzip -p "$APK" assets/public/index.html | grep -q "worker-sheets-v382.js"
           unzip -p "$APK" assets/public/worker-sheets-v382.js | grep -q "Ficha completa"
-          unzip -p "$APK" assets/public/worker-sheets-v382.js | grep -Fq 'const b=$('
+          unzip -p "$APK" assets/public/worker-sheets-v382.js | grep -Fq 'captureBottom'
           unzip -p "$APK" assets/public/worker-portal-share-v1.js | grep -q "Abrir Portal no navegador"
           unzip -p "$APK" assets/public/operation-quality-v381.js | grep -q "Conferência rápida"
           unzip -p "$APK" assets/public/receipt-print-fix-v380.js | grep -q "Compartilhar PDF"
