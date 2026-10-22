@@ -29,22 +29,36 @@ async function pdf(share){
 function install(){
  if($('#ficha382Css'))return;
  const st=document.createElement('style');st.id='ficha382Css';
- st.textContent='#fichas382{padding-bottom:110px}.f382-card{background:#fff;border:1px solid #dbe9e5;border-radius:16px;padding:14px;margin:11px 0}.f382-row{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid #e1eeea;border-radius:12px;padding:11px;margin:8px 0}.f382-row small{display:block;color:#627a74;font-size:12px;margin-top:5px}.f382-btn{min-height:45px;border:1px solid #bdd9d2;border-radius:11px;background:#e9f7f3;color:#0b715e;font-size:14px;font-weight:800;padding:9px 12px}.f382-btn.primary{background:#0d866f;color:#fff}.f382-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:13px 0}.f382-meta{display:grid;grid-template-columns:1fr 1fr;gap:9px}.f382-meta span{background:#f4faf8;padding:10px;border-radius:10px;word-break:break-word;font-size:13px}.f382-search{width:100%;font-size:16px;min-height:45px}.f382-note{color:#61776f;font-size:12px;line-height:1.5}#workerList .list-actions [data-ficha382-worker]{order:1}.f382-admin-actions{align-self:center;order:8;font-size:13px;color:#55766e}.f382-admin-actions summary{list-style:none;cursor:pointer;text-decoration:underline;padding:10px 5px}.f382-admin-actions [data-del-worker]{margin-top:9px;display:block}@media(max-width:450px){.f382-row{display:block}.f382-row button{width:100%;margin-top:9px}.f382-meta{grid-template-columns:1fr}}';
+ st.textContent='#fichas382{padding-bottom:110px}#fichas382.f382-show-detail>#ficha382ListCard{display:none!important}#fichas382.f382-show-detail #ficha382Details{display:block!important}#fichas382:not(.f382-show-detail) #ficha382Details{display:none!important}.f382-toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}.f382-backlist{width:100%;text-align:left;max-width:260px}.f382-card{background:#fff;border:1px solid #dbe9e5;border-radius:16px;padding:14px;margin:11px 0}.f382-row{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid #e1eeea;border-radius:12px;padding:11px;margin:8px 0}.f382-row small{display:block;color:#627a74;font-size:12px;margin-top:5px}.f382-btn{min-height:45px;border:1px solid #bdd9d2;border-radius:11px;background:#e9f7f3;color:#0b715e;font-size:14px;font-weight:800;padding:9px 12px}.f382-btn.primary{background:#0d866f;color:#fff}.f382-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:13px 0}.f382-meta{display:grid;grid-template-columns:1fr 1fr;gap:9px}.f382-meta span{background:#f4faf8;padding:10px;border-radius:10px;word-break:break-word;font-size:13px}.f382-search{width:100%;font-size:16px;min-height:45px}.f382-note{color:#61776f;font-size:12px;line-height:1.5}#workerList .list-actions [data-ficha382-worker]{order:1}.f382-admin-actions{align-self:center;order:8;font-size:13px;color:#55766e}.f382-admin-actions summary{list-style:none;cursor:pointer;text-decoration:underline;padding:10px 5px}.f382-admin-actions [data-del-worker]{margin-top:9px;display:block}@media(max-width:450px){.f382-row{display:block}.f382-row button{width:100%;margin-top:9px}.f382-meta{grid-template-columns:1fr}}';
  document.head.appendChild(st)
 }
 function ensure(){
  const main=$('main.app-shell')||$('main');if(!main)return;
  if(!$('#fichas382')){
   const s=document.createElement('section');s.className='view';s.id='fichas382';
-  s.innerHTML='<div class="view-head"><button class="back" data-ficha382-back="1">←</button><div><h2>Fichas individuais de EPI</h2><p>Consultar, imprimir e compartilhar a ficha completa.</p></div></div><div class="f382-card"><input class="f382-search" id="ficha382Query" placeholder="Buscar nome, CPF ou matrícula"><div id="ficha382List"></div></div><div id="ficha382Details"></div>';
-  main.appendChild(s);$('#ficha382Query').addEventListener('input',list);
+  s.innerHTML='<div class="view-head"><button class="back" data-ficha382-back="1">←</button><div><h2>Fichas individuais de EPI</h2><p>Consultar, imprimir e compartilhar a ficha completa.</p></div></div><div class="f382-card" id="ficha382ListCard"><input class="f382-search" id="ficha382Query" placeholder="Buscar nome, CPF ou matrícula"><div id="ficha382List"></div></div><div id="ficha382Details"></div>';
+  main.appendChild(s);
+  // O detalhe aparece antes da lista, sem exigir rolar dezenas de trabalhadores.
+  const detailContainer=$('#ficha382Details'),listCard=$('#ficha382ListCard');
+  if(detailContainer&&listCard)s.insertBefore(detailContainer,listCard);
+  $('#ficha382Query').addEventListener('input',list);
  }
  const menu=$('#moreFunctions .more323-grid')||$('#home .menu-grid');
  if(menu&&!menu.querySelector('[data-ficha382-start]')){
   const b=document.createElement('button');b.type='button';b.className=menu.classList.contains('more323-grid')?'more323-card':'menu-card';b.dataset.ficha382Start='1';b.innerHTML='<span>📑</span><b>Fichas completas</b><small>Consultar e imprimir em PDF</small>';menu.appendChild(b);
  }
 }
-function open(){ensure();$$('.view').forEach(v=>v.classList.remove('active'));$('#fichas382').classList.add('active');workerId='';$('#ficha382Details').innerHTML='';list();window.scrollTo(0,0)}
+function open(){
+ ensure();
+ $('.view').forEach(v=>v.classList.remove('active'));
+ $('#fichas382').classList.add('active');
+ $('#fichas382').classList.remove('f382-show-detail');
+ $('#ficha382Details').innerHTML='';
+ workerId='';
+ list();
+ highlightFichas();
+ window.scrollTo(0,0);
+}
 function list(){
  if(!$('#ficha382List'))return;
  const r=app(),q=norm($('#ficha382Query').value),ws=r.workers.filter(w=>w.active!==false&&(!q||norm([w.name,w.reg,w.cpf,w.role].join(' ')).includes(q))).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''))).slice(0,100);
@@ -52,10 +66,12 @@ function list(){
 }
 function detail(id){
  workerId=id;const x=current();if(!x)return toast('Trabalhador não encontrado.');
- ensure();$$('.view').forEach(v=>v.classList.remove('active'));$('#fichas382').classList.add('active');
+ ensure();$('.view').forEach(v=>v.classList.remove('active'));$('#fichas382').classList.add('active');
+ $('#fichas382').classList.add('f382-show-detail');
+ highlightFichas();
  const r=x.r,totals=new Map();x.d.forEach(d=>rows(r,d).forEach(i=>{const k=i.name+'::'+i.ca;totals.set(k,{...i,qty:i.qty+Number(totals.get(k)?.qty||0)})}));
  const cell=(label,value)=>'<span><b>'+label+'</b><div>'+esc(value||'Não informado')+'</div></span>';
- $('#ficha382Details').innerHTML='<div class="f382-card"><h2>'+esc(x.w.name)+'</h2><p>Ficha individual de EPI</p><div class="f382-meta">'+cell('Empresa',x.c.name)+cell('CPF',x.w.cpf)+cell('Matrícula',x.w.reg)+cell('Função / setor',[x.w.role,x.w.sector].filter(Boolean).join(' / '))+'</div><div class="f382-actions"><button type="button" class="f382-btn primary" data-ficha382-pdf="print">🖨️ Ficha PDF</button><button type="button" class="f382-btn" data-ficha382-pdf="share">↗ Compartilhar PDF</button></div><p class="f382-note">Quantidades abaixo representam o histórico de entregas, não necessariamente o saldo em posse após devoluções.</p><h3>EPIs registrados</h3>'+([...totals.values()].map(i=>'<div class="f382-row"><div><b>'+esc(i.name)+'</b><small>CA '+esc(i.ca||'não informado')+' • quantidade entregue '+i.qty+'</small></div></div>').join('')||'<p>Sem EPIs.</p>')+'<h3>Histórico de entregas</h3>'+(x.d.map(d=>'<div class="f382-row"><div><b>'+esc(date(d.createdAt))+'</b><small>'+esc(rows(r,d).map(i=>i.name+' x'+i.qty).join(', '))+'</small><small>'+esc(proof(d))+'</small></div><button type="button" class="f382-btn" data-ficha382-receipt="'+esc(d.id)+'">Comprovante</button></div>').join('')||'<p>Sem entregas.</p>')+'</div>';window.scrollTo(0,0)
+ $('#ficha382Details').innerHTML='<div class="f382-toolbar"><button type="button" class="f382-btn f382-backlist" data-ficha382-list="1">← Voltar à lista de fichas</button></div><div class="f382-card"><h2>'+esc(x.w.name)+'</h2><p>Ficha individual de EPI</p><div class="f382-meta">'+cell('Empresa',x.c.name)+cell('CPF',x.w.cpf)+cell('Matrícula',x.w.reg)+cell('Função / setor',[x.w.role,x.w.sector].filter(Boolean).join(' / '))+'</div><div class="f382-actions"><button type="button" class="f382-btn primary" data-ficha382-pdf="print">🖨️ Ficha PDF</button><button type="button" class="f382-btn" data-ficha382-pdf="share">↗ Compartilhar PDF</button></div><p class="f382-note">Quantidades abaixo representam o histórico de entregas, não necessariamente o saldo em posse após devoluções.</p><h3>EPIs registrados</h3>'+([...totals.values()].map(i=>'<div class="f382-row"><div><b>'+esc(i.name)+'</b><small>CA '+esc(i.ca||'não informado')+' • quantidade entregue '+i.qty+'</small></div></div>').join('')||'<p>Sem EPIs.</p>')+'<h3>Histórico de entregas</h3>'+(x.d.map(d=>'<div class="f382-row"><div><b>'+esc(date(d.createdAt))+'</b><small>'+esc(rows(r,d).map(i=>i.name+' x'+i.qty).join(', '))+'</small><small>'+esc(proof(d))+'</small></div><button type="button" class="f382-btn" data-ficha382-receipt="'+esc(d.id)+'">Comprovante</button></div>').join('')||'<p>Sem entregas.</p>')+'</div>';window.scrollTo(0,0)
 }
 function decorate(){
  const list=$('#workerList');if(list)list.querySelectorAll('.list-item').forEach(row=>{
@@ -65,6 +81,14 @@ function decorate(){
   const del=row.querySelector('[data-del-worker]');if(del&&!row.querySelector('.f382-admin-actions')){const more=document.createElement('details');more.className='f382-admin-actions';const summary=document.createElement('summary');summary.textContent='Mais opções';more.appendChild(summary);more.appendChild(del);actions.appendChild(more)}
  });
  const actions=$('#ux300Modal .ux300-actions');if(actions&&!$('#ficha382From360')){const b=document.createElement('button');b.type='button';b.id='ficha382From360';b.className='ux300-action';b.textContent='📑 Ficha completa';actions.appendChild(b)}
+}
+function highlightFichas(){
+ const nav=$('#bottomNav');if(!nav)return;
+ $('button',nav).forEach(b=>{
+  const selected=/\bfichas\b/i.test(String(b.textContent||''));
+  b.classList.toggle('active',selected);
+  if(selected)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
+ });
 }
 function boot(){
  install();ensure();decorate();
@@ -81,11 +105,12 @@ function boot(){
   if(bottom&&/\bfichas\b/i.test(String(bottom.textContent||''))){
     e.preventDefault();e.stopImmediatePropagation();open();return;
   }
-  const b=e.target.closest?.('[data-ficha382-start],[data-ficha382-worker],[data-ficha382-back],[data-ficha382-pdf],[data-ficha382-receipt],#ficha382From360,[data-ux-worker]');if(!b)return;
+  const b=e.target.closest?.('[data-ficha382-start],[data-ficha382-worker],[data-ficha382-back],[data-ficha382-list],[data-ficha382-pdf],[data-ficha382-receipt],#ficha382From360,[data-ux-worker]');if(!b)return;
   if(b.matches('[data-ux-worker]')){workerId=b.dataset.uxWorker;setTimeout(decorate,80);return}
   if(b.id==='ficha382From360'){e.preventDefault();e.stopImmediatePropagation();if(workerId){$('#ux300Modal')?.classList.remove('open');detail(workerId)}return}
   if(b.dataset.ficha382Start){e.preventDefault();e.stopImmediatePropagation();open();return}
-  if(b.dataset.ficha382Back){e.preventDefault();e.stopImmediatePropagation();$('[data-go="workers"]')?.click();return}
+  if(b.dataset.ficha382List){e.preventDefault();e.stopImmediatePropagation();open();return}
+  if(b.dataset.ficha382Back){e.preventDefault();e.stopImmediatePropagation();if($('#fichas382')?.classList.contains('f382-show-detail'))open();else $('[data-go="workers"]')?.click();return}
   if(b.dataset.ficha382Worker){e.preventDefault();e.stopImmediatePropagation();$('#ux300Modal')?.classList.remove('open');detail(b.dataset.ficha382Worker);return}
   if(b.dataset.ficha382Pdf){e.preventDefault();e.stopImmediatePropagation();pdf(b.dataset.ficha382Pdf==='share');return}
   if(b.dataset.ficha382Receipt){e.preventDefault();e.stopImmediatePropagation();const x=document.createElement('button');x.type='button';x.hidden=true;x.dataset.receipt=b.dataset.ficha382Receipt;document.body.appendChild(x);try{x.click()}finally{x.remove()}}
