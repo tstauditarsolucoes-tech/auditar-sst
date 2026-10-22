@@ -304,12 +304,14 @@ public class NativePrintPlugin extends Plugin {
         void gap(float amount) { need(amount); y += amount; }
         void title(String t) { text(t, 19, true, BRAND); }
         void section(String t) {
-            need(33);
-            gap(5);
+            need(48);
+            gap(10);
+            float top = y - 15f;
+            ink.setColor(Color.rgb(234, 247, 243));
+            canvas.drawRoundRect(new RectF(MARGIN - 8, top, PAGE_WIDTH - MARGIN + 8, top + 29), 6f, 6f, ink);
+            y += 5f;
             text(t, 12.5f, true, BRAND);
-            ink.setColor(Color.rgb(216, 229, 225));
-            canvas.drawLine(MARGIN, y, PAGE_WIDTH - MARGIN, y, ink);
-            y += 9;
+            y += 12f;
         }
         void paragraph(String t) { text(t, 11, false, INK); }
         void field(String label, String value) {
