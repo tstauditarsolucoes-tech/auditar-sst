@@ -110,7 +110,10 @@ function precheck(){
  };
 }
 function syncHint(){
- const host=PC?$('.sidebar-foot'):$('#ux300Status');if(!host)return;
+ // Android já possui status sincronizado/online no próprio topo da Home.
+ // O texto adicional estava quebrando o layout em telas estreitas.
+ if(!PC){$('#opi381Sync')?.remove();return}
+ const host=$('.sidebar-foot');if(!host)return;
  let e=$('#opi381Sync');if(!e){e=document.createElement('div');e.id='opi381Sync';e.className='opi381-status';host.appendChild(e)}
  e.textContent=navigator.onLine?'Rede disponível. Confira o status de sincronização antes de considerar os dados enviados.':'Sem rede. Registros pendentes precisam sincronizar quando houver conexão.';
 }
