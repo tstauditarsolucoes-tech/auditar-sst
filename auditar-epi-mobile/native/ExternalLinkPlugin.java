@@ -10,6 +10,25 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 @CapacitorPlugin(name = "ExternalLink")
 public class ExternalLinkPlugin extends Plugin {
     @PluginMethod
+    public void shareLink(PluginCall call) {
+        String url=call.getString("url","");
+        Uri uri;
+        try{uri=Uri.parse(url);}catch(Exception ex){call.reject("Endereço inválido.");return;}
+        if(!"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost()==null){
+            call.reject("Somente links HTTPS são permitidos.");return;
+        }
+        getActivity().runOnUiThread(()->{
+            try{
+                Intent send=new Intent(Intent.ACTION_SEND);
+                send.setType("text/plain");
+                send.putExtra(Intent.EXTRA_TEXT,call.getString("message","Portal de EPI")+"\n"+url);
+                getActivity().startActivity(Intent.createChooser(send,"Compartilhar Portal do Trabalhador"));
+                call.resolve();
+            }catch(Exception ex){call.reject("Compartilhamento não disponível",ex);}
+        });
+    }
+
+    @PluginMethod
     public void openUrl(PluginCall call) {
         String url=call.getString("url","");
         Uri uri;
