@@ -1,6 +1,7 @@
 package br.com.gestao.epi;
 
 import android.content.Intent;
+import android.content.ClipData;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -55,8 +56,9 @@ public class NativePrintPlugin extends Plugin {
     private void create(PluginCall call, boolean share) {
         JSONObject receipt = call.getObject("receipt");
         if (receipt == null || receipt.optString("worker").trim().isEmpty()
-                || receipt.optJSONArray("items") == null
-                || receipt.optJSONArray("items").length() == 0) {
+                || (!"worker_sheet".equals(receipt.optString("documentType"))
+                    && (receipt.optJSONArray("items") == null
+                      || receipt.optJSONArray("items").length() == 0))) {
             call.reject("Comprovante incompleto: abra uma entrega válida antes de gerar o PDF.");
             return;
         }
@@ -70,7 +72,8 @@ public class NativePrintPlugin extends Plugin {
                 String id = receipt.optString("deliveryId", "entrega")
                         .replaceAll("[^A-Za-z0-9_-]", "_");
                 if (id.length() > 50) id = id.substring(0, 50);
-                File output = new File(directory, "Comprovante-EPI-" + id + "-" + System.currentTimeMillis() + ".pdf");
+                String label = "worker_sheet".equals(receipt.optString("documentType")) ? "Ficha-Trabalhador-EPI-" : "Comprovante-EPI-";
+                File output = new File(directory, label + id + "-" + System.currentTimeMillis() + ".pdf");
                 int pages = generate(receipt, output);
                 if (output.length() < 700) throw new IOException("PDF não foi gerado corretamente");
                 final File pdf = output;
@@ -83,9 +86,11 @@ public class NativePrintPlugin extends Plugin {
                             Intent intent = new Intent(Intent.ACTION_SEND);
                             intent.setType("application/pdf");
                             intent.putExtra(Intent.EXTRA_STREAM, uri);
+                            intent.setClipData(ClipData.newUri(getContext().getContentResolver(), "Documento Gestão EPI", uri));
                             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                            Intent chooser = Intent.createChooser(intent, "Compartilhar comprovante de EPI");
-                            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            Intent chooser = Intent.createChooser(intent, "Compartilhar PDF de EPI");
+                            chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                            chooser.setClipData(intent.getClipData());
                             getActivity().startActivity(chooser);
                         } else {
                             PrintManager manager = (PrintManager) getActivity()
@@ -96,7 +101,7 @@ public class NativePrintPlugin extends Plugin {
                                     .setResolution(new PrintAttributes.Resolution("pdf", "PDF", 300, 300))
                                     .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
                                     .build();
-                            manager.print("Comprovante de Entrega de EPI",
+                            manager.print("worker_sheet".equals(receipt.optString("documentType")) ? "Ficha de EPI do Trabalhador" : "Comprovante de Entrega de EPI",
                                     new ReadyPdfAdapter(pdf, pageCount), attributes);
                         }
                         call.resolve();
@@ -120,6 +125,7 @@ public class NativePrintPlugin extends Plugin {
     }
 
     private static int generate(JSONObject r, File target) throws IOException {
+        if ("worker_sheet".equals(r.optString("documentType"))) return generateSheet(r, target);
         PdfDocument doc = new PdfDocument();
         Writer w = new Writer(doc);
         try {
@@ -143,11 +149,11 @@ public class NativePrintPlugin extends Plugin {
                 JSONObject x = items.optJSONObject(i);
                 if (x == null) continue;
                 String label = x.optString("name", "EPI") + "   |   Qtd.: " + x.optString("qty", "1");
-                w.text(label, 11.5f, true, INK);
+                w.text(label, 12.2f, true, INK);
                 String details = "CA: " + orMissing(x.optString("ca")) +
                         "   |   Modelo: " + orMissing(x.optString("model")) +
                         "   |   Tamanho: " + orMissing(x.optString("size"));
-                w.text(details, 9.3f, false, SECONDARY);
+                w.text(details, 10.3f, false, SECONDARY);
                 w.gap(4);
             }
             w.gap(7);
@@ -171,7 +177,7 @@ public class NativePrintPlugin extends Plugin {
                 w.field("Método", "Biometria facial verificada");
                 w.field("Compatibilidade", r.optString("similarity"));
                 w.field("Data / hora da verificação", r.optString("verifiedAt"));
-                w.field("ID da evidência", r.optString("evidenceId"));
+                w.field("ID da evidência", r.optString("evidenceId").isEmpty() ? "Não registrado neste comprovante" : r.optString("evidenceId"));
                 w.field("Hash da evidência", r.optString("evidenceHash"));
             } else {
                 w.field("Método", r.optString("method", "Assinatura eletrônica"));
@@ -201,6 +207,56 @@ public class NativePrintPlugin extends Plugin {
         } finally {
             doc.close();
         }
+    }
+
+
+    private static int generateSheet(JSONObject r, File target) throws IOException {
+        PdfDocument doc = new PdfDocument();
+        Writer w = new Writer(doc);
+        try {
+            w.title("FICHA INDIVIDUAL DE EPI");
+            w.paragraph("Histórico de fornecimento e rastreabilidade do trabalhador");
+            w.gap(12);
+            w.section("IDENTIFICAÇÃO DO TRABALHADOR");
+            w.field("Empresa", r.optString("company"));
+            w.field("CNPJ", r.optString("cnpj"));
+            w.field("Nome completo", r.optString("worker"));
+            w.field("CPF", r.optString("cpf"));
+            w.field("Matrícula", r.optString("registration"));
+            w.field("Função / setor", r.optString("roleSector"));
+            w.field("Gerado em", r.optString("date"));
+            w.gap(7);
+            w.section("EPIs REGISTRADOS NO HISTÓRICO");
+            JSONArray items = r.optJSONArray("items");
+            if(items==null || items.length()==0) w.paragraph("Nenhum EPI consta nas entregas registradas.");
+            else for(int i=0;i<items.length();i++){
+                JSONObject x=items.optJSONObject(i);if(x==null)continue;
+                w.text(x.optString("name","EPI"),12,true,INK);
+                w.text("CA: "+orMissing(x.optString("ca"))+"  |  Modelo: "+
+                    orMissing(x.optString("model"))+"  |  Tamanho: "+
+                    orMissing(x.optString("size")),10,false,SECONDARY);
+                w.text("Quantidade entregue no histórico: "+x.optString("qty","0"),10,false,INK);
+                w.gap(5);
+            }
+            w.section("MOVIMENTAÇÕES / ENTREGAS");
+            JSONArray records=r.optJSONArray("deliveries");
+            if(records==null || records.length()==0)w.paragraph("Nenhuma entrega registrada.");
+            else for(int i=0;i<records.length();i++){
+                JSONObject d=records.optJSONObject(i);if(d==null)continue;
+                w.text(d.optString("date","Data não informada")+"  •  "+d.optString("type","Entrega"),11,true,INK);
+                w.text(d.optString("items","EPI não informado"),10.5f,false,INK);
+                w.field("Motivo",d.optString("reason"));
+                w.field("Confirmado por",d.optString("method"));
+                w.field("Entregue por",d.optString("deliveredBy"));
+                w.field("ID da entrega",d.optString("id"));
+                w.gap(10);
+            }
+            w.section("ORIENTAÇÕES E OBSERVAÇÕES");
+            w.paragraph("Esta ficha registra as entregas disponíveis no sistema, podendo conter lançamentos históricos. Consulte devoluções e movimentações para confirmar os EPIs atualmente em posse. A ficha não substitui a conferência física e não constitui certificado de assinatura digital.");
+            w.finish();
+            try(FileOutputStream out=new FileOutputStream(target)){doc.writeTo(out);}
+            return w.pageCount;
+        } finally {doc.close();}
     }
 
     private static String orMissing(String value) {
@@ -246,19 +302,19 @@ public class NativePrintPlugin extends Plugin {
 
         void finish() { closePage(); }
         void gap(float amount) { need(amount); y += amount; }
-        void title(String t) { text(t, 16, true, BRAND); }
+        void title(String t) { text(t, 19, true, BRAND); }
         void section(String t) {
             need(33);
             gap(5);
-            text(t, 11, true, BRAND);
+            text(t, 12.5f, true, BRAND);
             ink.setColor(Color.rgb(216, 229, 225));
             canvas.drawLine(MARGIN, y, PAGE_WIDTH - MARGIN, y, ink);
             y += 9;
         }
-        void paragraph(String t) { text(t, 10, false, INK); }
+        void paragraph(String t) { text(t, 11, false, INK); }
         void field(String label, String value) {
             if (value == null || value.trim().isEmpty()) return;
-            text(label + ": " + value, 10, false, INK);
+            text(label + ": " + value, 10.7f, false, INK);
         }
         private void need(float height) {
             if (y + height > PAGE_HEIGHT - 55) nextPage();
