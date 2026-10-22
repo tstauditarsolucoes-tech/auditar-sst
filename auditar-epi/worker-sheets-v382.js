@@ -70,7 +70,7 @@ function boot(){
  install();ensure();decorate();
  const captureBottom=()=>{
   const nav=$('#bottomNav');if(!nav)return;
-  const b=$('[data-go]',nav).find(x=>/fichas/i.test(String(x.textContent||'')));
+  const b=$$('[data-go]',nav).find(x=>/fichas/i.test(String(x.textContent||'')));
   if(b){b.dataset.ficha382Start='1';b.setAttribute?.('aria-label','Abrir fichas individuais de EPI');}
  };
  captureBottom();
