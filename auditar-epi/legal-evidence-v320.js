@@ -95,7 +95,7 @@ async function patchReceipt(id){
       '<div class="legal-v320-item"><b>Identificador da entrega</b><span class="legal-v320-code">'+esc(evidenceId)+'</span></div>'+
       '<div class="legal-v320-item"><b>Método de confirmação</b>'+esc(methodLabel(d))+'</div>'+
       '<div class="legal-v320-item"><b>Hash de integridade da ficha • SHA-256</b><span class="legal-v320-code">'+esc(hash)+'</span></div>'+
-      '<div class="legal-v320-item"><b>Evidência biométrica</b>'+(d.biometricEvidenceId?'<span class="legal-v320-code">'+esc(d.biometricEvidenceId)+'</span>':'Não aplicável')+'</div>'+
+      '<div class="legal-v320-item"><b>Evidência biométrica</b>'+(d.biometricEvidenceId?'<span class="legal-v320-code">'+esc(d.biometricEvidenceId)+'</span>':((d.biometricVerified||d.confirmationMethod==='face-biometric')?'Verificada; ID não registrado neste comprovante':'Não aplicável'))+'</div>'+
     '</div>'+
     (d.biometricEvidenceHash?'<div><b>Hash da evidência biométrica:</b> <span class="legal-v320-code">'+esc(d.biometricEvidenceHash)+'</span></div>':'')+
     '<div class="legal-v320-note">O hash acima é calculado sobre os dados apresentados nesta ficha e suas referências de confirmação. Qualquer alteração nesses dados produz outro hash. Este registro apoia a rastreabilidade do fornecimento eletrônico de EPI e a extração de relatório; não representa certificação ICP-Brasil nem homologação por órgão público.</div>';
