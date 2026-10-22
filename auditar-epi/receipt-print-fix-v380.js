@@ -18,7 +18,7 @@ function repairReceipt(id){
      if(!sign.querySelector('.receipt-face-proof'))sign.insertAdjacentHTML('afterbegin','<div class="receipt-face-proof" aria-hidden="true">🙂</div>');
      if(line)line.innerHTML=esc(name)+'<br>Biometria facial verificada';
      if(!sign.querySelector('.receipt-face-details')){
-       const info=[Number.isFinite(Number(d.biometricSimilarity))&&Number(d.biometricSimilarity)>0?'Compatibilidade: '+Math.round(Number(d.biometricSimilarity)*100)+'%':'',d.biometricVerifiedAt?'Verificado em '+new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(new Date(d.biometricVerifiedAt)):'',d.biometricEvidenceId?'ID da evidência: '+d.biometricEvidenceId:''].filter(Boolean);
+       const info=[Number.isFinite(Number(d.biometricSimilarity))&&Number(d.biometricSimilarity)>0?'Compatibilidade: '+Math.round(Number(d.biometricSimilarity)*100)+'%':'',d.biometricVerifiedAt?'Verificado em '+new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(new Date(d.biometricVerifiedAt)):'',d.biometricEvidenceId?'ID da evidência: '+d.biometricEvidenceId:'ID da evidência não registrado'].filter(Boolean);
        if(info.length){const el=document.createElement('p');el.className='receipt-face-details';el.textContent=info.join(' • ');sign.appendChild(el)}
      }
    }else if(img){
