@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.118 Praticidade de Campo
+name: Auditar SST Windows v3.30.119 Praticidade de Campo
 # Clean rebuild v3.30.64 after protected productivity consolidation
 
 on:
@@ -15,6 +15,8 @@ on:
       - 'tools/patch_field_recurrence_v329192_v330115.py'
       - 'tools/patch_field_visual_v329193_v330116.py'
       - 'tools/patch_windows_desktop_ux_v330118.py'
+      - 'tools/patch_windows_home_productivity_v330119.py'
+      - 'tools/test_windows_home_productivity_v330119.py'
       - 'tools/test_windows_desktop_ux_v330118.py'
       - 'tools/test_screenshot_ux_v1.py'
       - 'feature_sources/field_recurrence_preview_v1.dart'
@@ -1922,11 +1924,25 @@ jobs:
             throw "Desktop nao aprovado: testes=$structureExit analise=$analyzeExit widget=$widgetExit"
           }
 
+      - name: Promover Central Executiva no desktop Windows v3.30.119
+        shell: pwsh
+        run: |
+          python tools/patch_windows_home_productivity_v330119.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha patch Home Executiva Windows' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/screens/home_screen.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha formato Home Executiva' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha analise Home Executiva' }
+          Pop-Location
+          python tools/test_windows_home_productivity_v330119.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao Home Executiva' }
+
       - name: Salvar diagnostico da interface Windows montada
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v330118-Fontes-Interface-Windows
+          name: Auditar-SST-v330119-Fontes-Interface-Windows
           path: |
             ${{ env.APP_DIR }}/lib/screens/quick_visit_screen.dart
             ${{ env.APP_DIR }}/lib/screens/cipa_management_screen.dart
@@ -1985,8 +2001,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.118-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.118-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.118-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.119-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.119-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.119-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -2001,12 +2017,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.118',
+            'AppVersion=3.30.119',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.118',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.119',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -2023,11 +2039,11 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.118.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.118.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.119.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.119.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.118-Windows-NR18-Acao
+          name: Auditar-SST-v3.30.119-Windows-NR18-Acao
           path: dist/windows/*
           retention-days: 30
 
