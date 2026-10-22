@@ -18,12 +18,23 @@ function annotate(){
   }));
  });
 }
-function boot(){
- setupCss();annotate();
+let observedRoot=null;
+function connect(){
  const root=$('#smartContent');
- if(root)new MutationObserver(annotate).observe(root,{childList:true,subtree:false});
+ if(!root)return;
+ if(root!==observedRoot){
+  new MutationObserver(annotate).observe(root,{childList:true,subtree:false});
+  observedRoot=root;
+ }
+ annotate();
+}
+function boot(){
+ setupCss();connect();
  document.addEventListener('click',e=>{
-  if(e.target.closest?.('[data-smart-tab],#smartRefresh,[data-go="smartManagementV350"]'))setTimeout(annotate,0);
+  if(e.target.closest?.('[data-smart-tab],#smartRefresh,[data-go="smartManagementV350"]')){
+   setTimeout(connect,0);
+   setTimeout(connect,120);
+  }
  });
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
