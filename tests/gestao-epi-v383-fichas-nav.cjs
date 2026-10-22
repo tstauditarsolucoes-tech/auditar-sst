@@ -1,7 +1,7 @@
 // Regressões de navegação Fichas e indicador de rede Android.
 const assert=require('node:assert/strict'),fs=require('node:fs');
-const fiche=fs.readFileSync('auditar-epi/worker-sheets-v382.js','utf8');
-const ops=fs.readFileSync('auditar-epi/operation-quality-v381.js','utf8');
+const fiche=fs.readFileSync(require('node:path').join(__dirname,'..','auditar-epi','worker-sheets-v382.js'),'utf8');
+const ops=fs.readFileSync(require('node:path').join(__dirname,'..','auditar-epi','operation-quality-v381.js'),'utf8');
 new Function(fiche);new Function(ops);
 assert.ok(fiche.includes("const b=$$('[data-go]',nav).find("),'Bootstrap Fichas precisa de querySelectorAll antes de .find()');
 assert.ok(!fiche.includes("const b=$('[data-go]',nav).find("),'querySelector().find() quebra inicialização');
