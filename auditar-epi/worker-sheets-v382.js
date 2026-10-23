@@ -50,7 +50,7 @@ function ensure(){
 }
 function open(){
  ensure();
- $('.view').forEach(v=>v.classList.remove('active'));
+ $$('.view').forEach(v=>v.classList.remove('active'));
  $('#fichas382').classList.add('active');
  $('#fichas382').classList.remove('f382-show-detail');
  $('#ficha382Details').innerHTML='';
@@ -66,7 +66,7 @@ function list(){
 }
 function detail(id){
  workerId=id;const x=current();if(!x)return toast('Trabalhador não encontrado.');
- ensure();$('.view').forEach(v=>v.classList.remove('active'));$('#fichas382').classList.add('active');
+ ensure();$$('.view').forEach(v=>v.classList.remove('active'));$('#fichas382').classList.add('active');
  $('#fichas382').classList.add('f382-show-detail');
  highlightFichas();
  const r=x.r,totals=new Map();x.d.forEach(d=>rows(r,d).forEach(i=>{const k=i.name+'::'+i.ca;totals.set(k,{...i,qty:i.qty+Number(totals.get(k)?.qty||0)})}));
@@ -84,7 +84,7 @@ function decorate(){
 }
 function highlightFichas(){
  const nav=$('#bottomNav');if(!nav)return;
- $('button',nav).forEach(b=>{
+ $$('button',nav).forEach(b=>{
   const selected=/\bfichas\b/i.test(String(b.textContent||''));
   b.classList.toggle('active',selected);
   if(selected)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
