@@ -1,4 +1,4 @@
-name: Auditar SST Windows v3.30.122 Praticidade de Campo
+name: Auditar SST Windows v3.30.123 Praticidade de Campo
 # Clean rebuild v3.30.64 after protected productivity consolidation
 
 on:
@@ -20,6 +20,9 @@ on:
       - 'tools/test_windows_admin_supervision_v330120.py'
       - 'feature_sources/admin_technician_supervision_screen_v330120.dart'
       - 'feature_sources/admin_operational_hub_screen_v330122.dart'
+      - 'feature_sources/technician_agenda_screen_v330123.dart'
+      - 'tools/patch_windows_agenda_v330123.py'
+      - 'tools/test_windows_agenda_v330123.py'
       - 'feature_sources/TechnicianSupervisionCloud_v1.gs'
       - 'tools/test_windows_home_productivity_v330119.py'
       - 'tools/test_windows_desktop_ux_v330118.py'
@@ -1929,7 +1932,7 @@ jobs:
             throw "Desktop nao aprovado: testes=$structureExit analise=$analyzeExit widget=$widgetExit"
           }
 
-      - name: Promover Central Executiva no desktop Windows v3.30.122
+      - name: Promover Central Executiva no desktop Windows v3.30.123
         shell: pwsh
         run: |
           python tools/patch_windows_home_productivity_v330119.py "$env:APP_DIR"
@@ -1943,7 +1946,7 @@ jobs:
           python tools/test_windows_home_productivity_v330119.py "$env:APP_DIR"
           if ($LASTEXITCODE -ne 0) { throw 'Falha regressao Home Executiva' }
 
-      - name: Atividade dos técnicos ADM Windows v3.30.122
+      - name: Atividade dos técnicos ADM Windows v3.30.123
         shell: pwsh
         run: |
           python tools/patch_windows_admin_supervision_v330120.py "$env:APP_DIR"
@@ -1957,11 +1960,25 @@ jobs:
           python tools/test_windows_admin_supervision_v330120.py "$env:APP_DIR"
           if ($LASTEXITCODE -ne 0) { throw 'Falha regressao ADM' }
 
+      - name: Agenda de serviços ADM e técnico Windows v3.30.123
+        shell: pwsh
+        run: |
+          python tools/patch_windows_agenda_v330123.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha integrar Agenda Windows' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/screens/technician_agenda_screen.dart lib/screens/admin_center_screen.dart lib/screens/admin_operational_hub_screen.dart lib/screens/home_screen.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha formato Agenda Windows' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha analise Agenda Windows' }
+          Pop-Location
+          python tools/test_windows_agenda_v330123.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao Agenda Windows' }
+
       - name: Salvar diagnostico da interface Windows montada
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v330122-Fontes-Interface-Windows
+          name: Auditar-SST-v330123-Fontes-Interface-Windows
           path: |
             ${{ env.APP_DIR }}/lib/screens/quick_visit_screen.dart
             ${{ env.APP_DIR }}/lib/screens/cipa_management_screen.dart
@@ -2020,8 +2037,8 @@ jobs:
             Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
           }
           $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.122-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.122-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.122-PORTATIL.sha256.txt'
+          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.123-PORTATIL.zip' -Force
+          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.123-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.123-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
         shell: pwsh
@@ -2036,12 +2053,12 @@ jobs:
             '[Setup]',
             'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
             'AppName=Auditar SST',
-            'AppVersion=3.30.122',
+            'AppVersion=3.30.123',
             'AppPublisher=Auditar Solucoes',
             'DefaultDirName={autopf}\Auditar SST',
             'DefaultGroupName=Auditar SST',
             "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.122',
+            'OutputBaseFilename=Auditar-SST-Setup-v3.30.123',
             'Compression=lzma2',
             'SolidCompression=yes',
             'WizardStyle=modern',
@@ -2058,11 +2075,11 @@ jobs:
           Set-Content $issPath $lines -Encoding UTF8
           & $iscc $issPath
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.122.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.122.sha256.txt'
+          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.123.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.123.sha256.txt'
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.30.122-Windows-NR18-Acao
+          name: Auditar-SST-v3.30.123-Windows-NR18-Acao
           path: dist/windows/*
           retention-days: 30
 
