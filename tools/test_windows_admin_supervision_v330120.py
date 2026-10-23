@@ -15,7 +15,8 @@ assert (p/'lib/screens/admin_operational_hub_screen.dart').is_file()
 assert a.count('const AdminOperationalHubScreen()')==1
 assert a.count('Criar e gerenciar contas')==1
 u=(p/'lib/screens/users_screen.dart').read_text(encoding='utf8')
-assert 'role = user?.role' in u
+assert 'AuthService.saveUser(' in u
+assert 'clientPermissions' in u, 'Missing client-specific account permissions'
 assert 'class UsersScreen extends StatefulWidget' in u
 assert 'AuthService.saveUser(' in u
 assert 'Novo usuário' in u
