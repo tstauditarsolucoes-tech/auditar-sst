@@ -7,6 +7,7 @@ on:
     paths:
       - 'auditar-epi/**'
       - 'auditar-epi-mobile/**'
+      - 'tests/gestao-epi-v385-deep-audit.cjs'
       - 'backend/Code-Gestao-EPI-v4.4.0-PORTAL-TRABALHADOR.txt'
       - 'backend/Code-Gestao-EPI-v4.5.0-PORTAL-TRABALHADOR.txt'
       - 'backend/Code-Gestao-EPI-v4.6.0-ADAPTATIVO-ESTOQUE.txt'
