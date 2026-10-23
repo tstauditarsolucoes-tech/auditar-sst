@@ -79,7 +79,7 @@ assert 'class UsersScreen extends StatefulWidget' in u
 assert 'AuthService.saveUser(' in u
 assert 'Novo usuário' in u
 assert 'cliente' in u.lower(), 'Client account editor unexpectedly absent'
-assert hashlib.sha256(users.read_bytes()).hexdigest() == hashlib.sha256(u.encode('utf8')).hexdigest()
+# users_screen.dart is included in the protected hash list above.
 
 shutil.copyfile(repo/'feature_sources/admin_technician_supervision_screen_v330120.dart',target)
 s=pub.read_text(encoding='utf8')
