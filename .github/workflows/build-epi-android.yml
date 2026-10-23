@@ -375,7 +375,7 @@ jobs:
           ! grep -q "MutationObserver" quick-epi-v325.js
           ! grep -q "MutationObserver" ca-validity-display-v326.js
           node --check sw.js
-          grep -q "gestao-epi-v322-shell" sw.js
+          grep -q "gestao-epi-v385-shell" sw.js
           grep -q "brand-login-v300.js" sw.js
           grep -q "ux-v300.js" sw.js
           grep -q "biometric-crypto-v1.js" sw.js
