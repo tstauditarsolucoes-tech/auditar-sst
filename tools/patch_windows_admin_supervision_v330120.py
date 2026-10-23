@@ -39,10 +39,62 @@ _action(
 ),
 """
 s=s[:line_start]+indent+addition.replace("\n","\n"+indent)+s[line_start:]
+# Add operational command center and direct ADM account management.
+s=s.replace("import 'client_treatment_inbox_screen.dart';",
+"""import 'client_treatment_inbox_screen.dart';
+import 'admin_operational_hub_screen.dart';""",1)
+if s.count("'Atividade dos técnicos'") != 1:
+    raise AssertionError('Admin layout changed; refusing duplicate')
+pos=s.index("'Atividade dos técnicos'")
+a=s.rfind("_action(",0,pos)
+line=s.rfind("\n",0,a)+1
+indent=s[line:a]
+assert a>=0 and not indent.strip()
+addition="""_action(
+  'Central Operacional ADM',
+  'Pendências, prazos, visitas, fotos, histórico e empresas em destaque.',
+  Icons.dashboard_customize_outlined,
+  () => _open(const AdminOperationalHubScreen()),
+),
+_action(
+  'Criar e gerenciar contas',
+  'Adicionar técnico ou ADM, definir senha, status e empresas autorizadas.',
+  Icons.person_add_alt_1_rounded,
+  () => _open(const UsersScreen()),
+),
+"""
+s=s[:line]+indent+addition.replace("\n","\n"+indent)+s[line:]
 admin.write_text(s,encoding='utf8')
+shutil.copyfile(repo/'feature_sources/admin_operational_hub_screen_v330122.dart',
+                root/'lib/screens/admin_operational_hub_screen.dart')
+# Only Windows interface hardening. GS roles continue to be validated by Central.
+users=root/'lib/screens/users_screen.dart'
+u=users.read_text(encoding='utf8')
+assert u.count('class UsersScreen extends StatefulWidget')==1
+assert u.count("role = user?.isAdmin == true ? 'admin' : 'tecnico';")==1
+# A role unknown to this editor must never silently convert to technician.
+u=u.replace("role = user?.isAdmin == true ? 'admin' : 'tecnico';",
+    "role = user?.role ?? 'tecnico';",1)
+u=u.replace("    if (name.text.trim().length < 3) {",
+    """    if (!AuthService.isAdmin || (role != 'admin' && role != 'tecnico')) {
+      setState(() => error = 'Somente o ADM pode cadastrar contas do aplicativo. '
+          'Contas de cliente são gerenciadas no Portal do Cliente.');
+      return;
+    }
+    if (name.text.trim().length < 3) {""",1)
+u=u.replace("    return Scaffold(\n      appBar: AppBar(\n        title: const Text('Usuários e acessos'),",
+    """    if (!AuthService.isAdmin) {
+      return Scaffold(appBar: AppBar(title: const Text('Usuários e acessos')),
+        body: const Center(child: Text('Acesso exclusivo ao ADM.')));
+    }
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Usuários e acessos'),""",1)
+users.write_text(u,encoding='utf8')
+
 shutil.copyfile(repo/'feature_sources/admin_technician_supervision_screen_v330120.dart',target)
 s=pub.read_text(encoding='utf8')
 assert s.count('version: 3.30.119+306')==1
-pub.write_text(s.replace('version: 3.30.119+306','version: 3.30.121+308',1),encoding='utf8')
+pub.write_text(s.replace('version: 3.30.119+306','version: 3.30.122+309',1),encoding='utf8')
 for p,h in before.items():assert hashlib.sha256((root/p).read_bytes()).hexdigest()==h,p
 print('WINDOWS_ADM_SUPERVISION_V330120_READY')
