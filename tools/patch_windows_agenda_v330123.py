@@ -37,10 +37,20 @@ h=hub.read_text(encoding='utf8')
 assert h.count("import 'quick_visit_screen.dart';")==1
 h=h.replace("import 'quick_visit_screen.dart';",
 "import 'quick_visit_screen.dart';\nimport 'technician_agenda_screen.dart';",1)
-needle="        _shortcut('NCs e prazos',"
-assert h.count(needle)==1
-h=h.replace(needle,"        _shortcut('Agenda de visitas',Icons.event_outlined,\n"
-"          ()=>_go(const TechnicianAgendaScreen())),\n"+needle,1)
+marker="'NCs e prazos'"
+assert h.count(marker)==1
+pos=h.index(marker)
+start=h.rfind("_shortcut(",0,pos)
+line=h.rfind("\n",0,start)+1
+indent=h[line:start]
+assert start>=0 and not indent.strip()
+extra="""_shortcut(
+  'Agenda de visitas',
+  Icons.event_outlined,
+  () => _go(const TechnicianAgendaScreen()),
+),
+"""
+h=h[:line]+indent+extra.replace("\n","\n"+indent)+h[line:]
 hub.write_text(h,encoding='utf8')
 s=home.read_text(encoding='utf8')
 assert s.count("import 'admin_center_screen.dart';")==1
