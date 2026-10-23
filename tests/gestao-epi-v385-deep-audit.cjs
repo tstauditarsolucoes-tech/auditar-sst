@@ -12,8 +12,8 @@ for(const required of ['worker-link.js','worker-sheets-v382.js','restore-worker-
 assert.ok(imports.indexOf('auth.js')<imports.indexOf('worker-link.js'),'Vínculo deve ser carregado depois da autenticação');
 assert.ok(imports.indexOf('worker-sheets-v382.js')<imports.indexOf('restore-worker-actions-v385.js'),'Restaurador deve ser carregado depois das fichas');
 for(const s of ['worker-link.js','worker-sheets-v382.js','restore-worker-actions-v385.js','operation-quality-v381.js','worker-portal-share-v1.js'])new Function(read(s));
-assert.ok(!fichas.includes("$('.view').forEach("),'Fichas contém querySelector().forEach() que derruba a navegação');
-assert.ok(!fichas.includes("$('button',nav).forEach("),'Fichas contém querySelector().forEach() na barra inferior');
+assert.ok(!/(?<!\$)\$\('\.view'\)\.forEach\(/.test(fichas),'Fichas contém querySelector().forEach() que derruba a navegação');
+assert.ok(!/(?<!\$)\$\('button',nav\)\.forEach\(/.test(fichas),'Fichas contém querySelector().forEach() na barra inferior');
 assert.ok(fichas.includes("$$('.view').forEach("),'Abrir ficha deve navegar entre telas');
 assert.ok(fichas.includes("$$('button',nav).forEach("),'Aba Fichas precisa de lista de botões');
 assert.ok(fichas.includes("data-ficha382-pdf") && fichas.includes('f382-show-detail'),'Ficha deve apresentar PDF e detalhe');
