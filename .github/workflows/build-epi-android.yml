@@ -3,11 +3,12 @@ name: Gerar APK Gestão EPI Campo
 on:
   workflow_dispatch:
   push:
-    branches: [main, feature/gestao-epi-biometria-evidencia-v281, feature/gestao-epi-worker-portal-v290, feature/gestao-epi-brand-login-v300, feature/gestao-epi-android-cache-hotfix-v301, feature/gestao-epi-login-refine-v302, feature/gestao-epi-quality-v310, feature/gestao-epi-legal-v320, feature/gestao-epi-android-freeze-hotfix-v321, feature/gestao-epi-android-freeze-hotfix-v322, feature/gestao-epi-android-more-hotfix-v324, feature/gestao-epi-android-invoice-import-v325, feature/gestao-epi-ca-validity-v326, feature/gestao-epi-ca-sheet-v327, feature/gestao-epi-fichas-completas-v328, feature/gestao-epi-fichas-resumidas-v329, feature/gestao-epi-central-ca-v330, feature/gestao-epi-nf-refino-v331, feature/gestao-epi-worker-card-responsive-v332, feature/gestao-epi-login-lock-v333, feature/gestao-epi-operational-center-v340, feature/gestao-epi-tst-warehouse-v350, feature/gestao-epi-flow-enhancements-v360, feature/gestao-epi-worker-portal-v450, feature/gestao-epi-adaptive-ops-v380, feature/gestao-epi-stability-v381, feature/gestao-epi-android-fichas-pdf-portal-v382, feature/gestao-epi-android-nav-fichas-v383, feature/gestao-epi-android-ficha-detail-mobile-v384, feature/gestao-epi-android-restore-audit-v385]
+    branches: [main, feature/gestao-epi-biometria-evidencia-v281, feature/gestao-epi-worker-portal-v290, feature/gestao-epi-brand-login-v300, feature/gestao-epi-android-cache-hotfix-v301, feature/gestao-epi-login-refine-v302, feature/gestao-epi-quality-v310, feature/gestao-epi-legal-v320, feature/gestao-epi-android-freeze-hotfix-v321, feature/gestao-epi-android-freeze-hotfix-v322, feature/gestao-epi-android-more-hotfix-v324, feature/gestao-epi-android-invoice-import-v325, feature/gestao-epi-ca-validity-v326, feature/gestao-epi-ca-sheet-v327, feature/gestao-epi-fichas-completas-v328, feature/gestao-epi-fichas-resumidas-v329, feature/gestao-epi-central-ca-v330, feature/gestao-epi-nf-refino-v331, feature/gestao-epi-worker-card-responsive-v332, feature/gestao-epi-login-lock-v333, feature/gestao-epi-operational-center-v340, feature/gestao-epi-tst-warehouse-v350, feature/gestao-epi-flow-enhancements-v360, feature/gestao-epi-worker-portal-v450, feature/gestao-epi-adaptive-ops-v380, feature/gestao-epi-stability-v381, feature/gestao-epi-android-fichas-pdf-portal-v382, feature/gestao-epi-android-nav-fichas-v383, feature/gestao-epi-android-ficha-detail-mobile-v384, feature/gestao-epi-android-restore-audit-v385, feature/gestao-epi-android-pdf-share-v386]
     paths:
       - 'auditar-epi/**'
       - 'auditar-epi-mobile/**'
       - 'tests/gestao-epi-v385-deep-audit.cjs'
+      - 'tests/gestao-epi-v386-pdf-share.cjs'
       - 'backend/Code-Gestao-EPI-v4.4.0-PORTAL-TRABALHADOR.txt'
       - 'backend/Code-Gestao-EPI-v4.5.0-PORTAL-TRABALHADOR.txt'
       - 'backend/Code-Gestao-EPI-v4.6.0-ADAPTATIVO-ESTOQUE.txt'
@@ -78,8 +79,8 @@ jobs:
 
           gradle = Path('android/app/build.gradle')
           gradle_text = gradle.read_text(encoding='utf-8')
-          gradle_text = re.sub(r'versionCode\s+\d+', 'versionCode 385', gradle_text, count=1)
-          gradle_text = re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "3.8.5"', gradle_text, count=1)
+          gradle_text = re.sub(r'versionCode\s+\d+', 'versionCode 386', gradle_text, count=1)
+          gradle_text = re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "3.8.6"', gradle_text, count=1)
           # Isolated Google Code Scanner integration for Android API >= 23.
           gradle_text = re.sub(r'minSdkVersion\s+(?:rootProject.ext.minSdkVersion|\d+)', 'minSdkVersion 23', gradle_text, count=1)
           if 'play-services-code-scanner:16.1.0' not in gradle_text:
@@ -322,6 +323,7 @@ jobs:
           node --check adaptive-modules-v380.js
           node --check advanced-operations-v380.js
           node --check receipt-print-fix-v380.js
+          node ../../tests/gestao-epi-v386-pdf-share.cjs
           node --check operation-quality-v381.js
           node --check worker-sheets-v382.js
           node --check worker-link.js
@@ -375,7 +377,7 @@ jobs:
           ! grep -q "MutationObserver" quick-epi-v325.js
           ! grep -q "MutationObserver" ca-validity-display-v326.js
           node --check sw.js
-          grep -q "gestao-epi-v385-shell" sw.js
+          grep -q "gestao-epi-v386-shell" sw.js
           grep -q "brand-login-v300.js" sw.js
           grep -q "ux-v300.js" sw.js
           grep -q "biometric-crypto-v1.js" sw.js
@@ -414,6 +416,9 @@ jobs:
           grep -q "epi_pdf_provider" auditar-epi-mobile/android/app/src/main/AndroidManifest.xml
           grep -q "class ReadyPdfAdapter" auditar-epi-mobile/android/app/src/main/java/br/com/gestao/epi/NativePrintPlugin.java
           grep -q "void sharePdf" auditar-epi-mobile/android/app/src/main/java/br/com/gestao/epi/NativePrintPlugin.java
+          grep -q "void savePdf" auditar-epi-mobile/android/app/src/main/java/br/com/gestao/epi/NativePrintPlugin.java
+          grep -q "ACTION_CREATE_DOCUMENT" auditar-epi-mobile/android/app/src/main/java/br/com/gestao/epi/NativePrintPlugin.java
+          grep -q "grantUriPermission" auditar-epi-mobile/android/app/src/main/java/br/com/gestao/epi/NativePrintPlugin.java
           grep -q 'generateSheet' auditar-epi-mobile/android/app/src/main/java/br/com/gestao/epi/NativePrintPlugin.java
           grep -q 'class ExternalLinkPlugin' auditar-epi-mobile/android/app/src/main/java/br/com/gestao/epi/ExternalLinkPlugin.java
           grep -q 'registerPlugin(ExternalLinkPlugin.class)' auditar-epi-mobile/android/app/src/main/java/br/com/gestao/epi/MainActivity.java
@@ -490,7 +495,7 @@ jobs:
           unzip -p "$APK" assets/public/index.html | grep -q "restore-worker-actions-v385.js"
           unzip -p "$APK" assets/public/worker-link.js | grep -q "Alterar vínculo"
           unzip -p "$APK" assets/public/restore-worker-actions-v385.js | grep -q "Resumo 360"
-          unzip -p "$APK" assets/public/sw.js | grep -q "gestao-epi-v385-shell"
+          unzip -p "$APK" assets/public/sw.js | grep -q "gestao-epi-v386-shell"
           unzip -p "$APK" assets/public/index.html | grep -q "mobile-smart-tables-v384.js"
           unzip -p "$APK" assets/public/worker-sheets-v382.js | grep -q "f382-show-detail"
           unzip -p "$APK" assets/public/mobile-smart-tables-v384.js | grep -q "data-smart384-label"
@@ -499,6 +504,8 @@ jobs:
           unzip -p "$APK" assets/public/worker-portal-share-v1.js | grep -q "Abrir Portal no navegador"
           unzip -p "$APK" assets/public/operation-quality-v381.js | grep -q "Conferência rápida"
           unzip -p "$APK" assets/public/receipt-print-fix-v380.js | grep -q "Compartilhar PDF"
+          unzip -p "$APK" assets/public/receipt-print-fix-v380.js | grep -q "Salvar PDF no aparelho"
+          unzip -p "$APK" assets/public/worker-sheets-v382.js | grep -q "Salvar PDF"
           unzip -p "$APK" assets/public/receipt-print-fix-v380.js | grep -q "Biometria facial verificada"
           grep -q '@CapacitorPlugin(name = "NativePrint")' auditar-epi-mobile/android/app/src/main/java/br/com/gestao/epi/NativePrintPlugin.java
           grep -q 'registerPlugin(NativePrintPlugin.class)' auditar-epi-mobile/android/app/src/main/java/br/com/gestao/epi/MainActivity.java
@@ -511,19 +518,19 @@ jobs:
           unzip -p "$APK" assets/public/ca-center-v330.js | grep -q "Alertas de CA"
 
       - name: Renomear APK
-        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Campo-v3.8.5-ADAPTATIVO-ESTOQUE.apk
+        run: cp auditar-epi-mobile/android/app/build/outputs/apk/debug/app-debug.apk Gestao-EPI-Campo-v3.8.6-ADAPTATIVO-ESTOQUE.apk
 
       - name: Publicar APK
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: gestao-epi-campo-v3.8.5
-          name: Gestão EPI Campo v3.8.5
+          tag_name: gestao-epi-campo-v3.8.6
+          name: Gestão EPI Campo v3.8.6
           body: |
-            Gestão EPI Campo v3.8.5 adiciona perfil adaptativo por porte e por usuário, multiestoque, previsão de consumo, auditoria de divergências, lotes/recolhimento e kits por função. Também corrige o comprovante no Android com impressão nativa/Salvar como PDF, remove a imagem quebrada quando a confirmação é biométrica e melhora a leitura de QR. As funções podem ser ocultadas pelo administrador sem apagar dados.
+            Gestão EPI Campo v3.8.6 adiciona perfil adaptativo por porte e por usuário, multiestoque, previsão de consumo, auditoria de divergências, lotes/recolhimento e kits por função. Também corrige o comprovante no Android com impressão nativa/Salvar como PDF, remove a imagem quebrada quando a confirmação é biométrica e melhora a leitura de QR. As funções podem ser ocultadas pelo administrador sem apagar dados.
             Inclui EPIs em posse por trabalhador, controle de trocas por vencimento, desgaste, dano, perda e necessidade operacional, além da devolução com opção de retorno ao estoque.
             Mantidas assinatura em tela, reconhecimento facial, operação offline, sincronização, estoque, histórico e Portal do Trabalhador. As melhorias de interface são aditivas e não alteram o núcleo de sincronização.
-          files: Gestao-EPI-Campo-v3.8.5-ADAPTATIVO-ESTOQUE.apk
+          files: Gestao-EPI-Campo-v3.8.6-ADAPTATIVO-ESTOQUE.apk
           make_latest: false
           overwrite_files: true
 
@@ -540,7 +547,7 @@ jobs:
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
-          name: Gestao-EPI-Campo-v3.8.5-ADAPTATIVO-ESTOQUE
-          path: Gestao-EPI-Campo-v3.8.5-ADAPTATIVO-ESTOQUE.apk
+          name: Gestao-EPI-Campo-v3.8.6-ADAPTATIVO-ESTOQUE
+          path: Gestao-EPI-Campo-v3.8.6-ADAPTATIVO-ESTOQUE.apk
           if-no-files-found: error
           retention-days: 14
