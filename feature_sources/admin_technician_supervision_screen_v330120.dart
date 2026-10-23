@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../brand.dart';
 import '../database.dart';
 import '../services/auth_service.dart';
@@ -69,6 +70,28 @@ class _AdminTechnicianSupervisionScreenState extends State<AdminTechnicianSuperv
     if(kind=='logout')return 'Saída do aplicativo';
     return (names[e['entityType']]??'Registro')+(kind=='record_delete'?' excluído':' sincronizado');
   }
+  String productivity(Map<String,dynamic> t) {
+    final p=t['productivity'];
+    if(p is! Map)return 'Sem indicadores no período';
+    int n(String k){final v=p[k];return v is num?v.toInt():0;}
+    return 'Vistorias '+n('inspections').toString()+' · NCs '+
+      n('nonConformities').toString()+' · Ações '+
+      n('actionPlans').toString()+' · Fotos '+n('photos').toString();
+  }
+  Future<void> copyReport() async {
+    if(!allowed)return;
+    final report=<String>[
+      'Auditar SST | Atividades da equipe',
+      'Período: '+days.toString()+' dia(s)',
+      'Eventos sincronizados; não comprova número de serviços distintos nem backup das fotos.',
+      for(final t in technicians)
+        (t['name']??'Técnico').toString()+' — '+(t['status']??'').toString()+
+        ' — '+ago(t['minutesSinceActivity'])+' — '+productivity(t)
+    ].join('\\n');
+    await Clipboard.setData(ClipboardData(text:report));
+    if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content:Text('Resumo copiado para conferência.')));
+  }
   Widget tech(Map<String,dynamic> t){
     final id=(t['id']??'').toString(),status=(t['status']??'').toString();
     final current=id==selectedId;
@@ -77,7 +100,7 @@ class _AdminTechnicianSupervisionScreenState extends State<AdminTechnicianSuperv
       leading:CircleAvatar(backgroundColor:status=='Ativo recentemente'?const Color(0xffd9f5e5):const Color(0xffedf1f5),
         child:Icon(Icons.engineering_outlined,color:status=='Ativo recentemente'?const Color(0xff18804a):AuditarBrand.navy)),
       title:Text((t['name']??'Técnico').toString(),style:const TextStyle(fontWeight:FontWeight.w700)),
-      subtitle:Text(status+' · '+ago(t['minutesSinceActivity'])+'\nÚltima atividade: '+stamp(t['lastActivityAt']),
+      subtitle:Text(status+' · '+ago(t['minutesSinceActivity'])+'\nÚltima atividade: '+stamp(t['lastActivityAt'])+'\n'+productivity(t),
         style:const TextStyle(fontSize:12)),
       isThreeLine:true,trailing:Icon(current?Icons.check_circle:Icons.chevron_right)));
   }
@@ -124,6 +147,8 @@ class _AdminTechnicianSupervisionScreenState extends State<AdminTechnicianSuperv
           Wrap(spacing:14,runSpacing:8,crossAxisAlignment:WrapCrossAlignment.center,children:[
             SizedBox(width:310,child:TextField(onChanged:(v)=>setState(()=>search=v),
               decoration:const InputDecoration(labelText:'Buscar técnico',prefixIcon:Icon(Icons.search),border:OutlineInputBorder()))),
+            OutlinedButton.icon(onPressed:technicians.isEmpty?null:copyReport,
+              icon:const Icon(Icons.copy_outlined),label:const Text('Copiar resumo')),
             DropdownButton<int>(value:days,items:const [
               DropdownMenuItem(value:1,child:Text('24 horas')),DropdownMenuItem(value:7,child:Text('7 dias')),
               DropdownMenuItem(value:30,child:Text('30 dias')),DropdownMenuItem(value:90,child:Text('90 dias'))],

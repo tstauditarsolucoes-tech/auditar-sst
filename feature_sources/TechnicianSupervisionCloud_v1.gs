@@ -47,24 +47,33 @@ function technicianSupervisionV1_(request) {
       platforms:platforms[u.id]?Object.keys(platforms[u.id]):[]};
   }).sort((a,b)=>String(b.lastActivityAt).localeCompare(String(a.lastActivityAt)));
   const logs=ss.getSheetByName(AUTH_AUDIT_SHEET),events=[];
+  const counts=Object.create(null);
+  users.forEach(u=>{counts[u.id]={inspections:0,nonConformities:0,actionPlans:0,photos:0,other:0};});
   if(logs&&logs.getLastRow()>1){
     const last=logs.getLastRow(),start=Math.max(2,last-9999);
     const rows=logs.getRange(start,1,last-start+1,10).getValues();
     const permitted=['login','logout','record_sync','record_delete'];
     const types=['inspections','non_conformities','action_plans','sst_records',
       'evidence_photos','completion_photos','training_controls','workers','sectors','worksites'];
-    for(let i=rows.length-1;i>=0&&events.length<limit;i--){
+    for(let i=rows.length-1;i>=0;i--){
       const r=rows[i],id=String(r[1]||''),at=when(r[0]),action=String(r[3]||'');
       if(!Object.prototype.hasOwnProperty.call(lookup,id)||!at||
          Date.parse(at)<minimum||Date.parse(at)>now+60000||
          permitted.indexOf(action)<0)continue;
       const entity=String(r[4]||'');
       if((action==='record_sync'||action==='record_delete')&&types.indexOf(entity)<0)continue;
-      events.push({at:at,userId:id,userName:String(lookup[id].name||'Técnico').slice(0,120),
+      if(action==='record_sync'){
+        const key=entity==='inspections'?'inspections':entity==='non_conformities'?
+          'nonConformities':entity==='action_plans'?'actionPlans':
+          entity==='evidence_photos'||entity==='completion_photos'?'photos':'other';
+        counts[id][key]++;
+      }
+      if(events.length<limit)events.push({at:at,userId:id,userName:String(lookup[id].name||'Técnico').slice(0,120),
         action:action,entityType:entity,companyId:String(r[6]||'').slice(0,150),
         platform:String(r[8]||'').slice(0,25)});
     }
   }
+  techs.forEach(t=>{t.productivity=counts[t.id];});
   return {ok:true,generatedAt:new Date(now).toISOString(),technicians:techs,events:events,
     summary:{technicians:techs.length,recent:techs.filter(x=>x.status==='Ativo recentemente').length},
     info:'Status aproximado pela última chamada autenticada. Histórico somente de registros sincronizados.'};
