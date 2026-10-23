@@ -19,7 +19,7 @@ assert.ok(fichas.includes("$$('button',nav).forEach("),'Aba Fichas precisa de li
 assert.ok(fichas.includes("data-ficha382-pdf") && fichas.includes('f382-show-detail'),'Ficha deve apresentar PDF e detalhe');
 assert.ok(link.includes('Alterar vínculo') && link.includes('existingIds') && link.includes('cardId'),'Vínculo deve ter edição e identificação segura');
 assert.ok(restore.includes('[data-bio-worker]')&&restore.includes('[data-worker-portal-share]')&&restore.includes('[data-ux-worker]')&&restore.includes('[data-ficha382-worker]'),'Botões principais não podem desaparecer dos cartões');
-assert.ok(read('sw.js').includes("gestao-epi-v385-shell"),'Cache offline antigo pode ocultar versões de JS');
+assert.ok(read('sw.js').includes("gestao-epi-v386-shell"),'Cache offline antigo pode ocultar versões de JS');
 assert.ok(!/localStorage\s*\.\s*(?:setItem|removeItem|clear)\s*\(/.test(restore),'Restaurador não deve alterar dados');
 assert.ok(!/\.movements\s*\.\s*(?:push|unshift|splice)\s*\(/.test(restore),'Restaurador não pode mexer no estoque');
 assert.ok(!fs.existsSync(path.join(root,'CommercialExtensions.gs')),'Não reintroduzir CommercialExtensions.gs');
