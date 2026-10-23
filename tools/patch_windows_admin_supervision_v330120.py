@@ -58,7 +58,7 @@ addition="""_action(
 ),
 _action(
   'Criar e gerenciar contas',
-  'Adicionar técnico ou ADM, definir senha, status e empresas autorizadas.',
+  'Criar técnico, cliente ou ADM, definir senha e empresas autorizadas.',
   Icons.person_add_alt_1_rounded,
   () => _open(const UsersScreen()),
 ),
@@ -71,14 +71,16 @@ shutil.copyfile(repo/'feature_sources/admin_operational_hub_screen_v330122.dart'
 users=root/'lib/screens/users_screen.dart'
 u=users.read_text(encoding='utf8')
 assert u.count('class UsersScreen extends StatefulWidget')==1
-assert u.count("role = user?.isAdmin == true ? 'admin' : 'tecnico';")==1
-# A role unknown to this editor must never silently convert to technician.
-u=u.replace("role = user?.isAdmin == true ? 'admin' : 'tecnico';",
-    "role = user?.role ?? 'tecnico';",1)
+# This file was already modernized by patch_client_accounts_ui_v329106.py:
+# client roles MUST remain creatable and editable by ADM.
+assert u.count("role = user?.role ?? 'tecnico';")==1, (
+    'Expected previously installed client-aware user editor')
+assert u.count("DropdownMenuItem(value: 'cliente'")==1, (
+    'Client account registration must remain available')
 u=u.replace("    if (name.text.trim().length < 3) {",
-    """    if (!AuthService.isAdmin || (role != 'admin' && role != 'tecnico')) {
-      setState(() => error = 'Somente o ADM pode cadastrar contas do aplicativo. '
-          'Contas de cliente são gerenciadas no Portal do Cliente.');
+    """    if (!AuthService.isAdmin ||
+        (role != 'admin' && role != 'tecnico' && role != 'cliente')) {
+      setState(() => error = 'Somente o ADM pode cadastrar contas e editar permissões.');
       return;
     }
     if (name.text.trim().length < 3) {""",1)

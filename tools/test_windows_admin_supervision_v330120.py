@@ -16,4 +16,6 @@ assert a.count('const AdminOperationalHubScreen()')==1
 assert a.count('Criar e gerenciar contas')==1
 u=(p/'lib/screens/users_screen.dart').read_text(encoding='utf8')
 assert 'role = user?.role' in u
-assert 'Contas de cliente são gerenciadas' in u
+assert "role != 'cliente'" in u
+assert "DropdownMenuItem(value: 'cliente'" in u
+assert 'Somente o ADM pode cadastrar contas' in u
