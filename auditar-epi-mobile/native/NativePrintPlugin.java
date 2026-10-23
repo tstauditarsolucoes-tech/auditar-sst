@@ -217,13 +217,10 @@ public class NativePrintPlugin extends Plugin {
             for (int i = 0; i < items.length(); i++) {
                 JSONObject x = items.optJSONObject(i);
                 if (x == null) continue;
-                String label = x.optString("name", "EPI") + "   |   Qtd.: " + x.optString("qty", "1");
-                w.text(label, 12.2f, true, INK);
                 String details = "CA: " + orMissing(x.optString("ca")) +
-                        "   |   Modelo: " + orMissing(x.optString("model")) +
-                        "   |   Tamanho: " + orMissing(x.optString("size"));
-                w.text(details, 10.3f, false, SECONDARY);
-                w.gap(4);
+                        "  •  Modelo: " + orMissing(x.optString("model")) +
+                        "  •  Tamanho: " + orMissing(x.optString("size"));
+                w.itemRow(x.optString("name","EPI"), x.optString("qty","1"), details);
             }
             w.gap(7);
             w.section("REGISTRO DA ENTREGA");
@@ -300,12 +297,10 @@ public class NativePrintPlugin extends Plugin {
             if(items==null || items.length()==0) w.paragraph("Nenhum EPI consta nas entregas registradas.");
             else for(int i=0;i<items.length();i++){
                 JSONObject x=items.optJSONObject(i);if(x==null)continue;
-                w.text(x.optString("name","EPI"),12,true,INK);
-                w.text("CA: "+orMissing(x.optString("ca"))+"  |  Modelo: "+
-                    orMissing(x.optString("model"))+"  |  Tamanho: "+
-                    orMissing(x.optString("size")),10,false,SECONDARY);
-                w.text("Quantidade entregue no histórico: "+x.optString("qty","0"),10,false,INK);
-                w.gap(5);
+                w.itemRow(x.optString("name","EPI"),x.optString("qty","0"),
+                    "CA: "+orMissing(x.optString("ca"))+
+                    "  •  Modelo: "+orMissing(x.optString("model"))+
+                    "  •  Tamanho: "+orMissing(x.optString("size")));
             }
             w.section("MOVIMENTAÇÕES / ENTREGAS");
             JSONArray records=r.optJSONArray("deliveries");
@@ -338,92 +333,154 @@ public class NativePrintPlugin extends Plugin {
         private PdfDocument.Page page;
         private Canvas canvas;
         private float y;
-        private int pageCount = 0;
+        private int pageCount;
+        private String documentTitle = "DOCUMENTO DE EPI";
+        private final int TITLE = Color.rgb(27, 49, 46);
+        private final int BG = Color.rgb(239, 248, 245);
+        private final int RULE = Color.rgb(218, 232, 227);
 
         Writer(PdfDocument document) {
             doc = document;
             nextPage();
         }
 
+        private void drawString(String txt, float x, float baseline, float fontSize, boolean bold, int color) {
+            ink.setTypeface(Typeface.create("sans-serif",
+                bold ? Typeface.BOLD : Typeface.NORMAL));
+            ink.setTextSize(fontSize);
+            ink.setColor(color);
+            ink.setStyle(Paint.Style.FILL);
+            canvas.drawText(txt, x, baseline, ink);
+        }
+
         private void nextPage() {
             if (page != null) closePage();
             pageCount++;
-            page = doc.startPage(new PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, pageCount).create());
+            page = doc.startPage(new PdfDocument.PageInfo.Builder(PAGE_WIDTH,PAGE_HEIGHT,pageCount).create());
             canvas = page.getCanvas();
             canvas.drawColor(Color.WHITE);
-            y = MARGIN + 12;
-            ink.setColor(BRAND);
-            ink.setStrokeWidth(2.6f);
-            canvas.drawLine(MARGIN, 32, PAGE_WIDTH - MARGIN, 32, ink);
-            ink.setStrokeWidth(1);
+            ink.setColor(Color.rgb(8, 100, 84));
+            canvas.drawRect(0, 0, PAGE_WIDTH, 79, ink);
+            drawString("GESTÃO EPI", MARGIN, 38, 18, true, Color.WHITE);
+            drawString("CONTROLE E RASTREABILIDADE DE EQUIPAMENTOS", MARGIN, 57, 9.2f, false, Color.WHITE);
+            drawString("DOCUMENTO ELETRÔNICO", PAGE_WIDTH-MARGIN-119, 38, 8, true, Color.WHITE);
+            y = 109;
         }
 
         private void closePage() {
             if (page == null) return;
-            ink.setTypeface(Typeface.DEFAULT);
-            ink.setTextSize(8);
-            ink.setColor(SECONDARY);
-            canvas.drawText("Gestão EPI - comprovante eletrônico", MARGIN, PAGE_HEIGHT - 24, ink);
-            canvas.drawText("Página " + pageCount, PAGE_WIDTH - MARGIN - 47, PAGE_HEIGHT - 24, ink);
+            ink.setColor(RULE);
+            ink.setStrokeWidth(1);
+            canvas.drawLine(MARGIN, PAGE_HEIGHT-47, PAGE_WIDTH-MARGIN, PAGE_HEIGHT-47, ink);
+            drawString("Gestão EPI  •  "+documentTitle, MARGIN, PAGE_HEIGHT-30, 8.2f, false, SECONDARY);
+            drawString("PÁGINA "+pageCount, PAGE_WIDTH-MARGIN-49, PAGE_HEIGHT-30, 8.2f, true, SECONDARY);
             doc.finishPage(page);
             page = null;
         }
 
-        void finish() { closePage(); }
-        void gap(float amount) { need(amount); y += amount; }
-        void title(String t) { text(t, 19, true, BRAND); }
-        void section(String t) {
-            need(48);
-            gap(10);
-            float top = y - 15f;
-            ink.setColor(Color.rgb(234, 247, 243));
-            canvas.drawRoundRect(new RectF(MARGIN - 8, top, PAGE_WIDTH - MARGIN + 8, top + 29), 6f, 6f, ink);
-            y += 5f;
-            text(t, 12.5f, true, BRAND);
-            y += 12f;
-        }
-        void paragraph(String t) { text(t, 11, false, INK); }
-        void field(String label, String value) {
-            if (value == null || value.trim().isEmpty()) return;
-            text(label + ": " + value, 10.7f, false, INK);
-        }
         private void need(float height) {
-            if (y + height > PAGE_HEIGHT - 55) nextPage();
+            if (y+height > PAGE_HEIGHT-69) nextPage();
         }
-        void text(String source, float size, boolean bold, int color) {
-            if (source == null) return;
-            ink.setTypeface(bold ? Typeface.create("sans-serif", Typeface.BOLD) :
-                    Typeface.create("sans-serif", Typeface.NORMAL));
+
+        void finish() {closePage();}
+        void gap(float amount) {need(amount);y += amount;}
+
+        void title(String value) {
+            documentTitle=value;
+            text(value, 17.5f, true, TITLE);
+        }
+
+        void section(String value) {
+            need(53);
+            y += 10;
+            float top=y-15;
+            ink.setColor(BG);
+            canvas.drawRoundRect(new RectF(MARGIN,top,PAGE_WIDTH-MARGIN,top+29),6,6,ink);
+            ink.setColor(BRAND);
+            canvas.drawRoundRect(new RectF(MARGIN,top,MARGIN+4,top+29),2,2,ink);
+            drawString(value, MARGIN+14, top+19, 11.5f, true, BRAND);
+            y=top+40;
+        }
+
+        void paragraph(String value) {text(value,11f,false,INK);}
+
+        // Fields have fixed label and flowing value columns. Long IDs, names and
+        // hashes wrap to a second line without clipping outside the printable area.
+        void field(String name,String value) {
+            if(value == null || value.trim().isEmpty())return;
+            need(25);
+            float previous=y;
+            y += 3;
+            drawString(name.toUpperCase(new Locale("pt","BR")), MARGIN+2, y, 9f, true, SECONDARY);
+            float startX=MARGIN+168;
+            float width=PAGE_WIDTH-MARGIN-startX-3;
+            y=drawWrapped(value,startX,y,width,10.5f,INK,false,14.7f);
+            y += 7;
+            ink.setColor(Color.rgb(237,243,241));
+            canvas.drawLine(MARGIN, y-3, PAGE_WIDTH-MARGIN,y-3,ink);
+        }
+
+        void itemRow(String name,String qty,String details) {
+            need(65);
+            float y0=y;
+            ink.setColor(Color.rgb(247,250,249));
+            canvas.drawRoundRect(new RectF(MARGIN,y0-8,PAGE_WIDTH-MARGIN,y0+50),6,6,ink);
+            y=drawWrapped(name,MARGIN+12,y0+11,PAGE_WIDTH-2*MARGIN-124,12f,TITLE,true,14.8f);
+            drawString("QTDE. "+qty,PAGE_WIDTH-MARGIN-90,y0+11,10.4f,true,BRAND);
+            y=Math.max(y,y0+28);
+            y=drawWrapped(details,MARGIN+12,y,PAGE_WIDTH-2*MARGIN-26,9.5f,SECONDARY,false,13f);
+            y=Math.max(y+10,y0+62);
+        }
+
+        // Unlike the previous one-line implementation, this supports long
+        // hashes, identifiers, accented names and paragraphs without clipping.
+        private float drawWrapped(String source,float x,float baseline,float maxWidth,
+                                  float size,int color,boolean bold,float lineHeight) {
+            if(source == null)return baseline;
+            ink.setTypeface(Typeface.create("sans-serif",bold?Typeface.BOLD:Typeface.NORMAL));
             ink.setTextSize(size);
-            ink.setColor(color);
-            float width = PAGE_WIDTH - 2f * MARGIN;
-            float lineHeight = size * 1.47f;
-            String remaining = source.replace('\r', ' ').replace('\n', ' ').trim();
-            while (!remaining.isEmpty()) {
-                int best = remaining.length();
-                while (best > 1 && ink.measureText(remaining, 0, best) > width) best--;
-                if (best < remaining.length() && best > 1) {
-                    int lastSpace = remaining.lastIndexOf(' ', best);
-                    if (lastSpace > best / 2) best = lastSpace;
+            String remaining=source.replace('\r',' ').replace('\n',' ').trim();
+            float current=baseline;
+            while(!remaining.isEmpty()) {
+                int count=remaining.length();
+                while(count>1 && ink.measureText(remaining,0,count)>maxWidth)count--;
+                if(count<remaining.length() && count>2) {
+                    int space=remaining.lastIndexOf(' ',count);
+                    if(space > Math.max(2,count/3))count=space;
                 }
-                String line = remaining.substring(0, best).trim();
-                if (line.isEmpty()) break;
-                need(lineHeight);
-                canvas.drawText(line, MARGIN, y, ink);
-                y += lineHeight;
-                remaining = remaining.substring(best).trim();
+                String line=remaining.substring(0,count).trim();
+                if(line.isEmpty())break;
+                if(current>PAGE_HEIGHT-80) {
+                    y=current;
+                    nextPage();
+                    current=y;
+                }
+                drawString(line,x,current,size,bold,color);
+                remaining=remaining.substring(count).trim();
+                current += lineHeight;
             }
+            return current;
         }
+
+        void text(String value,float size,boolean bold,int color) {
+            if(value==null||value.trim().isEmpty())return;
+            need(size+8);
+            y=drawWrapped(value,MARGIN+2,y,PAGE_WIDTH-2*MARGIN-4,size,color,bold,size*1.42f);
+            y+=3;
+        }
+
         void signature(Bitmap image) {
-            float maxW = 340f, maxH = 78f;
-            float scale = Math.min(maxW / image.getWidth(), maxH / image.getHeight());
-            float width = Math.max(1f, image.getWidth() * scale);
-            float height = Math.max(1f, image.getHeight() * scale);
-            need(height + 20);
+            if(image==null||image.getWidth()<=0||image.getHeight()<=0)return;
+            float maxW=340,maxH=84;
+            float scale=Math.min(maxW/image.getWidth(),maxH/image.getHeight());
+            float width=image.getWidth()*scale,height=image.getHeight()*scale;
+            need(height+29);
             ink.setColor(Color.WHITE);
-            canvas.drawBitmap(image, null,
-                    new RectF(MARGIN + 12f, y, MARGIN + 12f + width, y + height), ink);
-            y += height + 8;
+            canvas.drawBitmap(image,null,new RectF(MARGIN+10,y,MARGIN+10+width,y+height),ink);
+            y+=height+12;
+            ink.setColor(RULE);
+            canvas.drawLine(MARGIN+10,y,PAGE_WIDTH-MARGIN-10,y,ink);
+            y+=13;
         }
     }
 
