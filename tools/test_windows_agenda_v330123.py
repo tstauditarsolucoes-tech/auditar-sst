@@ -10,8 +10,15 @@ assert home.count("title: 'Minha agenda'")==1
 assert home.count('const TechnicianAgendaScreen()')==1
 assert admin.count('Agenda e distribuição de serviços')==1
 assert hub.count('Agenda de visitas')==1
-for marker in ["'action':'agenda_tecnicos_v1'","AuthService.isSignedIn",
- "'operation':'create'","'operation':'status'","'operation':'list'"]:
- assert marker in agenda,marker
+import re
+assert 'AuthService.isSignedIn' in agenda
+for field, value in [
+    ('action', 'agenda_tecnicos_v1'),
+    ('operation', 'create'),
+    ('operation', 'status'),
+    ('operation', 'list'),
+]:
+    pattern = rf"['\\\"]{field}['\\\"]\\s*:\\s*['\\\"]{value}['\\\"]"
+    assert re.search(pattern, agenda), (field, value)
 assert 'version: 3.30.123+310' in (root/'pubspec.yaml').read_text(encoding='utf8')
 print('AGENDA_WINDOWS_330123_REGRESSION_OK')
