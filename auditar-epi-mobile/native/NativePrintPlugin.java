@@ -294,7 +294,7 @@ public class NativePrintPlugin extends Plugin {
             w.gap(7);
             w.section("EPIs REGISTRADOS NO HISTÓRICO");
             JSONArray items = r.optJSONArray("items");
-            if(items==null || items.length()==0) w.paragraph("Nenhum EPI consta nas entregas registradas.");
+            if(items==null || items.length()==0) w.paragraph("Nenhum EPI foi localizado para o ID deste trabalhador nos dados disponíveis neste aparelho. Confira a sincronização e o cadastro antes de emitir uma ficha definitiva.");
             else for(int i=0;i<items.length();i++){
                 JSONObject x=items.optJSONObject(i);if(x==null)continue;
                 w.itemRow(x.optString("name","EPI"),x.optString("qty","0"),
@@ -304,7 +304,7 @@ public class NativePrintPlugin extends Plugin {
             }
             w.section("MOVIMENTAÇÕES / ENTREGAS");
             JSONArray records=r.optJSONArray("deliveries");
-            if(records==null || records.length()==0)w.paragraph("Nenhuma entrega registrada.");
+            if(records==null || records.length()==0)w.paragraph("Não há entregas associadas ao ID deste trabalhador nos registros consultados neste aparelho. Não significa necessariamente ausência de entregas em outros dispositivos.");
             else for(int i=0;i<records.length();i++){
                 JSONObject d=records.optJSONObject(i);if(d==null)continue;
                 w.text(d.optString("date","Data não informada")+"  •  "+d.optString("type","Entrega"),11,true,INK);
