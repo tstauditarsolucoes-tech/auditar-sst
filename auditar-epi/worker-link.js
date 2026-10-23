@@ -19,7 +19,7 @@
   function load(){try{return JSON.parse(localStorage.getItem(APP_KEY)||'{}');}catch{return {};}}
   function save(root){localStorage.setItem(APP_KEY,JSON.stringify(root));document.dispatchEvent(new CustomEvent('auditar-epi-data-changed'));}
   function toast(msg){const el=$('#toast');if(!el)return alert(msg);el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2400);}
-  function roleAllowsQuick(){const r=document.body.dataset.epiRole;return !r||r==='admin'||r==='campo';}
+  function roleAllowsQuick(){const r=String(window.GestaoEpiAuth?.user?.()?.role||document.body.dataset.epiRole||'');return r==='admin'||r==='campo';}
 
   function ensureStyles(){
     if($('#'+STYLE_ID))return;
@@ -87,7 +87,7 @@
       if(item.dataset.workerLinkDone==='1')return;
       const name=item.querySelector('.list-main b')?.textContent?.trim()||'';const small=item.querySelector('.list-main small')?.textContent||'';
       const cardId=item.querySelector('[data-del-worker]')?.dataset.delWorker;const w=workers.find(x=>String(x.id)===String(cardId));if(!w)return;
-      item.dataset.workerLinkDone='1';const wrap=document.createElement('div');wrap.innerHTML=`<span class="worker-link-badge">${esc(label(w.linkType))}</span><button class="worker-link-edit" type="button">Alterar vínculo</button>`;const main=item.querySelector('.list-main');main?.appendChild(wrap);wrap.querySelector('button').onclick=()=>{const d=editModal();d.dataset.workerId=w.id;$('#ewName').textContent=w.name;$('#ewLink').value=w.linkType||'employee';d.classList.add('open');};
+      item.dataset.workerLinkDone='1';const wrap=document.createElement('div');wrap.innerHTML=`<span class="worker-link-badge">${esc(label(w.linkType))}</span>${roleAllowsQuick()?'<button class="worker-link-edit" type="button">Alterar vínculo</button>':''}`;const main=item.querySelector('.list-main');main?.appendChild(wrap);if(wrap.querySelector('button'))wrap.querySelector('button').onclick=()=>{if(!roleAllowsQuick())return toast('Sem permissão para alterar vínculo.');const d=editModal();d.dataset.workerId=w.id;$('#ewName').textContent=w.name;$('#ewLink').value=w.linkType||'employee';d.classList.add('open');};
     });
   }
 
@@ -100,6 +100,6 @@
     const box=$('#receiptContent');if(!box||box.querySelector('[data-worker-link-meta]')||!lastReceiptWorkerId)return;const root=load(),w=(root.workers||[]).find(x=>x.id===lastReceiptWorkerId);if(!w)return;const meta=box.querySelector('.receipt-meta');if(!meta)return;const div=document.createElement('div');div.dataset.workerLinkMeta='1';div.innerHTML=`<b>Vínculo</b><br>${esc(label(w.linkType))}`;meta.appendChild(div);
   }
 
-  function init(){ensureStyles();injectWorkerField();injectQuickButton();captureReceiptWorker();renderWorkerBadges();const list=$('#workerList');if(list)new MutationObserver(renderWorkerBadges).observe(list,{childList:true,subtree:true});document.addEventListener('gestao-epi-auth-ready',()=>setTimeout(injectQuickButton,50));}
+  function init(){ensureStyles();injectWorkerField();injectQuickButton();captureReceiptWorker();renderWorkerBadges();const list=$('#workerList');if(list)new MutationObserver(renderWorkerBadges).observe(list,{childList:true,subtree:true});document.addEventListener('gestao-epi-auth-ready',()=>setTimeout(()=>{injectQuickButton();const list=$('#workerList');list?.querySelectorAll('.list-item').forEach(row=>{row.dataset.workerLinkDone='';row.querySelector('.worker-link-badge')?.parentElement?.remove();});renderWorkerBadges();},50));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
