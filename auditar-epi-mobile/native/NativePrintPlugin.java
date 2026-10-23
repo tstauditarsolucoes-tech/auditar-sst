@@ -2,6 +2,15 @@ package br.com.gestao.epi;
 
 import android.content.Intent;
 import android.content.ClipData;
+import android.app.Activity;
+import android.content.pm.ResolveInfo;
+import android.content.pm.PackageManager;
+import androidx.activity.result.ActivityResult;
+import com.getcapacitor.annotation.ActivityCallback;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -42,18 +51,20 @@ public class NativePrintPlugin extends Plugin {
     private static final int SECONDARY = Color.rgb(66, 96, 91);
     private static final int BRAND = Color.rgb(12, 120, 101);
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
+    private final ConcurrentHashMap<String, File> pendingSavePdf = new ConcurrentHashMap<>();
 
     @PluginMethod
     public void print(PluginCall call) {
-        create(call, false);
+        create(call, "print");
     }
 
     @PluginMethod
-    public void sharePdf(PluginCall call) {
-        create(call, true);
-    }
+    public void sharePdf(PluginCall call) { create(call, "share"); }
 
-    private void create(PluginCall call, boolean share) {
+    @PluginMethod
+    public void savePdf(PluginCall call) { create(call, "save"); }
+
+    private void create(PluginCall call, String action) {
         JSONObject receipt = call.getObject("receipt");
         if (receipt == null || receipt.optString("worker").trim().isEmpty()
                 || (!"worker_sheet".equals(receipt.optString("documentType"))
@@ -80,18 +91,45 @@ public class NativePrintPlugin extends Plugin {
                 final int pageCount = pages;
                 MAIN.post(() -> {
                     try {
-                        if (share) {
-                            Uri uri = FileProvider.getUriForFile(getContext(),
+                        if ("share".equals(action)) {
+                            try {
+                                Uri uri = FileProvider.getUriForFile(getContext(),
                                     getContext().getPackageName() + ".epi_pdf_provider", pdf);
-                            Intent intent = new Intent(Intent.ACTION_SEND);
-                            intent.setType("application/pdf");
-                            intent.putExtra(Intent.EXTRA_STREAM, uri);
-                            intent.setClipData(ClipData.newUri(getContext().getContentResolver(), "Documento Gestão EPI", uri));
-                            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                            Intent chooser = Intent.createChooser(intent, "Compartilhar PDF de EPI");
-                            chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                            chooser.setClipData(intent.getClipData());
-                            getActivity().startActivity(chooser);
+                                Intent send = new Intent(Intent.ACTION_SEND);
+                                send.setType("application/pdf");
+                                send.putExtra(Intent.EXTRA_STREAM, uri);
+                                send.setClipData(ClipData.newUri(getContext().getContentResolver(),
+                                    "Documento Gestão EPI", uri));
+                                send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                                // Explicit URI grants for the receivers prevent Android OEM
+                                // chooser implementations from losing content permissions.
+                                List<ResolveInfo> receivers = getContext().getPackageManager()
+                                    .queryIntentActivities(send, PackageManager.MATCH_DEFAULT_ONLY);
+                                for (ResolveInfo receiver : receivers) {
+                                    if (receiver.activityInfo != null) {
+                                        getContext().grantUriPermission(receiver.activityInfo.packageName,
+                                            uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                                    }
+                                }
+                                Intent chooser = Intent.createChooser(send, "Compartilhar documento PDF");
+                                chooser.setClipData(send.getClipData());
+                                chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                                getActivity().startActivity(chooser);
+                                call.resolve();
+                            } catch (Exception error) {
+                                call.reject("Falha ao compartilhar PDF ("+
+                                    error.getClass().getSimpleName()+"): "+safeMessage(error),
+                                    "PDF_SHARE_FAILED", error);
+                            }
+                            return;
+                        } else if ("save".equals(action)) {
+                            Intent document = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                            document.addCategory(Intent.CATEGORY_OPENABLE);
+                            document.setType("application/pdf");
+                            document.putExtra(Intent.EXTRA_TITLE, pdf.getName());
+                            pendingSavePdf.put(call.getCallbackId(), pdf);
+                            startActivityForResult(call, document, "onPdfSaved");
+                            return;
                         } else {
                             PrintManager manager = (PrintManager) getActivity()
                                     .getSystemService(android.content.Context.PRINT_SERVICE);
@@ -106,13 +144,44 @@ public class NativePrintPlugin extends Plugin {
                         }
                         call.resolve();
                     } catch (Exception error) {
-                        call.reject(share ? "Falha ao compartilhar PDF" : "Falha ao abrir impressão", error);
+                        call.reject("Falha ao imprimir ou salvar PDF: "+safeMessage(error), error);
                     }
                 });
             } catch (Exception error) {
                 MAIN.post(() -> call.reject("Falha ao gerar o PDF do comprovante: " + error.getMessage(), error));
             }
         }, "epi-pdf-export").start();
+    }
+
+    @ActivityCallback
+    private void onPdfSaved(PluginCall call, ActivityResult result) {
+        if (call == null) return;
+        File pdf = pendingSavePdf.remove(call.getCallbackId());
+        if (result.getResultCode() != Activity.RESULT_OK || result.getData() == null) {
+            call.reject("Salvamento cancelado.");return;
+        }
+        Uri destination = result.getData().getData();
+        if (pdf == null || destination == null) {
+            call.reject("Arquivo PDF temporário indisponível.");return;
+        }
+        new Thread(() -> {
+            try (InputStream in = new FileInputStream(pdf);
+                 OutputStream out = getContext().getContentResolver().openOutputStream(destination)) {
+                if (out == null) throw new IOException("Não foi possível abrir o destino");
+                byte[] buf = new byte[8192];int n;
+                while ((n = in.read(buf)) >= 0) out.write(buf, 0, n);
+                out.flush();
+                MAIN.post(() -> call.resolve());
+            } catch (Exception err) {
+                MAIN.post(() -> call.reject("Falha ao salvar PDF: "+safeMessage(err), err));
+            }
+        }, "epi-pdf-save").start();
+    }
+
+    private static String safeMessage(Throwable error) {
+        if (error == null) return "Erro desconhecido";
+        String message = error.getMessage();
+        return message == null || message.trim().isEmpty() ? error.getClass().getSimpleName() : message;
     }
 
     private static void prune(File directory) {
