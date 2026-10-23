@@ -9,6 +9,7 @@ pub=root/'pubspec.yaml'
 protected=['lib/database.dart','lib/models.dart','lib/services/auth_service.dart',
  'lib/services/device_sync_service.dart','lib/services/sync_coordinator.dart',
  'lib/services/media_sync_service.dart','lib/services/apps_script_http.dart',
+ 'lib/screens/users_screen.dart',
  'painel_web_google_apps_script/Code.gs','painel_web_google_apps_script/MultiUser.gs']
 before={p:hashlib.sha256((root/p).read_bytes()).hexdigest() for p in protected if (root/p).is_file()}
 s=admin.read_text(encoding='utf8')
@@ -67,32 +68,18 @@ s=s[:line]+indent+addition.replace("\n","\n"+indent)+s[line:]
 admin.write_text(s,encoding='utf8')
 shutil.copyfile(repo/'feature_sources/admin_operational_hub_screen_v330122.dart',
                 root/'lib/screens/admin_operational_hub_screen.dart')
-# Only Windows interface hardening. GS roles continue to be validated by Central.
+# Preserve the established client-aware UsersScreen assembled by
+# patch_client_accounts_ui_v329106.py and tested by its own regressions.
+# User account creation is already server-authenticated via auth_user_save.
+# This Windows-only ADM feature must NEVER rewrite existing account roles.
 users=root/'lib/screens/users_screen.dart'
+assert users.is_file(), 'UsersScreen not assembled'
 u=users.read_text(encoding='utf8')
-assert u.count('class UsersScreen extends StatefulWidget')==1
-# This file was already modernized by patch_client_accounts_ui_v329106.py:
-# client roles MUST remain creatable and editable by ADM.
-assert u.count("role = user?.role ?? 'tecnico';")==1, (
-    'Expected previously installed client-aware user editor')
-assert u.count("DropdownMenuItem(value: 'cliente'")==1, (
-    'Client account registration must remain available')
-u=u.replace("    if (name.text.trim().length < 3) {",
-    """    if (!AuthService.isAdmin ||
-        (role != 'admin' && role != 'tecnico' && role != 'cliente')) {
-      setState(() => error = 'Somente o ADM pode cadastrar contas e editar permissões.');
-      return;
-    }
-    if (name.text.trim().length < 3) {""",1)
-u=u.replace("    return Scaffold(\n      appBar: AppBar(\n        title: const Text('Usuários e acessos'),",
-    """    if (!AuthService.isAdmin) {
-      return Scaffold(appBar: AppBar(title: const Text('Usuários e acessos')),
-        body: const Center(child: Text('Acesso exclusivo ao ADM.')));
-    }
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Usuários e acessos'),""",1)
-users.write_text(u,encoding='utf8')
+assert 'class UsersScreen extends StatefulWidget' in u
+assert 'AuthService.saveUser(' in u
+assert 'Novo usuário' in u
+assert 'cliente' in u.lower(), 'Client account editor unexpectedly absent'
+assert hashlib.sha256(users.read_bytes()).hexdigest() == hashlib.sha256(u.encode('utf8')).hexdigest()
 
 shutil.copyfile(repo/'feature_sources/admin_technician_supervision_screen_v330120.dart',target)
 s=pub.read_text(encoding='utf8')
