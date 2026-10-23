@@ -90,11 +90,11 @@ function documentData(){
  };
 }
 function setPdfBusy(value){
- for(const el of ['#btnPrint','#btnShareReceiptPdf']){
+ for(const el of ['#btnPrint','#btnShareReceiptPdf','#btnSaveReceiptPdf']){
   const button=$(el);if(!button)continue;button.disabled=value;button.setAttribute('aria-busy',value?'true':'false');
  }
 }
-async function exportReceiptPdf(share=false){
+async function exportReceiptPdf(mode='print'){
  if(!window.Capacitor?.isNativePlatform?.()) {
    toast('A geração e o compartilhamento nativos de PDF estão disponíveis no aplicativo Android.');
    return;
@@ -105,36 +105,48 @@ async function exportReceiptPdf(share=false){
    receipt=documentData();
  }catch(error){toast(error?.message||'Não foi possível montar o comprovante.');return}
  const plugin=nativePrintPlugin();
- const fn=share?'sharePdf':'print';
+ const fn=mode==='share'?'sharePdf':mode==='save'?'savePdf':'print';
  if(typeof plugin?.[fn]!=='function'){
-   toast('Atualize o aplicativo Android para usar '+(share?'Compartilhar PDF.':'Imprimir PDF.'));
+   toast('Atualize o aplicativo Android para gerar ou compartilhar PDF.');
    return;
  }
  setPdfBusy(true);
  try{
    await plugin[fn]({receipt,jobName:'Comprovante de Entrega de EPI'});
  }catch(error){
-   toast('Erro ao gerar PDF: '+String(error?.message||'verifique o registro').slice(0,110));
+   const why=String(error?.message||'Falha desconhecida').slice(0,130);
+   toast((mode==='share'?'Não foi possível compartilhar. Tente Salvar PDF. ':'Falha ao gerar PDF. ')+why);
  }finally{
    setPdfBusy(false);
  }
 }
 function shareButton(){
- if($('#btnShareReceiptPdf')||!$('#btnPrint'))return;
+ if(!$('#btnPrint'))return;
+ if($('#btnShareReceiptPdf')&&$('#btnSaveReceiptPdf'))return;
  const button=document.createElement('button');
  button.id='btnShareReceiptPdf';
  button.type='button';
  button.className='secondary';
  button.textContent='↗ Compartilhar PDF';
  button.setAttribute('aria-label','Compartilhar comprovante de entrega em PDF');
- $('#btnPrint').insertAdjacentElement('afterend',button);
+ if(!$('#btnShareReceiptPdf'))$('#btnPrint').insertAdjacentElement('afterend',button);
+ if(!$('#btnSaveReceiptPdf')){
+   const save=document.createElement('button');
+   save.id='btnSaveReceiptPdf';
+   save.type='button';
+   save.className='secondary';
+   save.textContent='↓ Salvar PDF no aparelho';
+   save.setAttribute('aria-label','Salvar comprovante PDF escolhendo pasta');
+   $('#btnShareReceiptPdf').insertAdjacentElement('afterend',save);
+ }
 }
 
 function bindPrint(){
  document.addEventListener('click',e=>{
    const r=e.target.closest?.('[data-receipt]');if(r){currentReceiptId=r.dataset.receipt;setTimeout(()=>repairReceipt(currentReceiptId),80)}
-   if(e.target.closest?.('#btnPrint')){e.preventDefault();e.stopImmediatePropagation();exportReceiptPdf(false)}
-   if(e.target.closest?.('#btnShareReceiptPdf')){e.preventDefault();e.stopImmediatePropagation();exportReceiptPdf(true)}
+   if(e.target.closest?.('#btnPrint')){e.preventDefault();e.stopImmediatePropagation();exportReceiptPdf('print')}
+   if(e.target.closest?.('#btnShareReceiptPdf')){e.preventDefault();e.stopImmediatePropagation();exportReceiptPdf('share')}
+   if(e.target.closest?.('#btnSaveReceiptPdf')){e.preventDefault();e.stopImmediatePropagation();exportReceiptPdf('save')}
    if(e.target.closest?.('#flow360PrintReport')){e.preventDefault();e.stopImmediatePropagation();try{window.print()}catch(_){toast('Não foi possível imprimir este relatório.')}}
    if(e.target.closest?.('#btnSaveDelivery'))setTimeout(()=>{enrichNewest();if($('#receipt')?.classList.contains('active')){const id=data().deliveries?.[0]?.id||'';if(id){currentReceiptId=id;repairReceipt(id)}}},220);
  },true);
