@@ -37,7 +37,7 @@
     const lab=document.createElement('label');lab.innerHTML=`Tipo de vínculo<select id="workerLinkType">${optionsHtml('employee')}</select>`;
     if(btn)form.insertBefore(lab,btn);else form.appendChild(lab);
     form.addEventListener('submit',()=>{
-      pendingWorker={companyId:$('#workerCompany')?.value||'',name:($('#workerName')?.value||'').trim(),cpf:($('#workerCpf')?.value||'').trim(),linkType:$('#workerLinkType')?.value||'employee'};
+      pendingWorker={companyId:$('#workerCompany')?.value||'',name:($('#workerName')?.value||'').trim(),cpf:($('#workerCpf')?.value||'').trim(),linkType:$('#workerLinkType')?.value||'employee',existingIds:new Set((load().workers||[]).map(w=>String(w.id)))};
       setTimeout(applyPendingWorker,40);
     },true);
   }
@@ -45,7 +45,7 @@
   function applyPendingWorker(){
     if(!pendingWorker)return;
     const root=load();root.workers=Array.isArray(root.workers)?root.workers:[];
-    const rows=root.workers.filter(w=>w.companyId===pendingWorker.companyId&&String(w.name||'').trim()===pendingWorker.name);
+    const rows=root.workers.filter(w=>!pendingWorker.existingIds?.has(String(w.id))&&w.companyId===pendingWorker.companyId&&String(w.name||'').trim()===pendingWorker.name);
     const w=rows.sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')))[0];
     if(w){w.linkType=pendingWorker.linkType;w.updatedAt=now();save(root);renderWorkerBadges();}
     pendingWorker=null;
@@ -86,7 +86,7 @@
     list.querySelectorAll('.list-item').forEach(item=>{
       if(item.dataset.workerLinkDone==='1')return;
       const name=item.querySelector('.list-main b')?.textContent?.trim()||'';const small=item.querySelector('.list-main small')?.textContent||'';
-      const w=workers.find(x=>String(x.name||'').trim()===name&&small.includes((root.companies||[]).find(c=>c.id===x.companyId)?.name||''));if(!w)return;
+      const cardId=item.querySelector('[data-del-worker]')?.dataset.delWorker;const w=workers.find(x=>String(x.id)===String(cardId));if(!w)return;
       item.dataset.workerLinkDone='1';const wrap=document.createElement('div');wrap.innerHTML=`<span class="worker-link-badge">${esc(label(w.linkType))}</span><button class="worker-link-edit" type="button">Alterar vínculo</button>`;const main=item.querySelector('.list-main');main?.appendChild(wrap);wrap.querySelector('button').onclick=()=>{const d=editModal();d.dataset.workerId=w.id;$('#ewName').textContent=w.name;$('#ewLink').value=w.linkType||'employee';d.classList.add('open');};
     });
   }
