@@ -208,6 +208,11 @@ class OfflineSstDeepCatalog {
     final s=normalize(description);
     if (s.length<6 || s.length>3000) return const [];
     if (RegExp(r'\b(nao verificado|nao confirmado|talvez|suspeita|ja corrigido|regularizado|funcionando normalmente|sem irregularidade)\b').hasMatch(s)) return const [];
+    // Não trazer como pendente uma condição que o próprio relato informa já
+    // ter sido corrigida, reparada, substituída ou regularizada.
+    if (RegExp(r'\b(corrigid[oa]s?|regularizad[oa]s?|reparad[oa]s?|resolvid[oa]s?|substituid[oa]s?)\b').hasMatch(s)) {
+      return const [];
+    }
     if (RegExp(r'\bnao (?:esta |foi |se encontra )?(?:vencido|vencida|quebrado|inoperante|obstruido|bloqueado|danificado)\b').hasMatch(s)) return const [];
     return entries.where((e) =>
       RegExp(e['entityRegex']!).hasMatch(s) &&

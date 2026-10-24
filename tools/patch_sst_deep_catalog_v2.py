@@ -60,7 +60,8 @@ method="""  Future<void> _browseCatalog(BuildContext context) async {
         final matches=OfflineSstDeepCatalog.browse(
           standard:selected,search:search.text);
         return SafeArea(child:SizedBox(
-          height:MediaQuery.of(innerContext).size.height*.8,
+          height:(MediaQuery.of(innerContext).size.height -
+            MediaQuery.of(innerContext).viewInsets.bottom)*.78,
           child:Center(child:ConstrainedBox(
             constraints:const BoxConstraints(maxWidth:760),
             child:Padding(padding:const EdgeInsets.all(12),

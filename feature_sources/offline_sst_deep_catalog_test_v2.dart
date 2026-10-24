@@ -31,6 +31,8 @@ void main() {
     expect(OfflineSstDeepCatalog.matches('Extintor não está vencido'),isEmpty);
     expect(OfflineSstDeepCatalog.matches('Extintor funcionando normalmente'),isEmpty);
     expect(OfflineSstDeepCatalog.matches('Máquina com proteção instalada'),isEmpty);
+    expect(OfflineSstDeepCatalog.matches('Cadeira sem encosto, já corrigida'),isEmpty);
+    expect(OfflineSstDeepCatalog.matches('EPI danificado, já substituído'),isEmpty);
   });
   test('NR-17: reconhece ergonomia e evita NC sem falha descrita', () {
     expect(OfflineSstDeepCatalog.matches('Cadeira sem encosto').any((e)=>e['nr']=='NR-17'),isTrue);
