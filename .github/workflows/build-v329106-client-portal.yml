@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.196 Biblioteca Ampliada
+name: Auditar SST Android v3.29.197 Biblioteca NRs
 # Clean rebuild v3.29.145 after protected productivity consolidation
 # Rebuild v3.29.113 logo recovery
 
@@ -20,6 +20,9 @@ on:
       - 'tools/patch_android_agenda_v329195.py'
       - 'tools/test_android_agenda_v329195.py'
       - 'tools/patch_sst_library_v1.py'
+      - 'tools/patch_sst_deep_catalog_v2.py'
+      - 'feature_sources/offline_sst_deep_catalog_v2.dart'
+      - 'feature_sources/offline_sst_deep_catalog_test_v2.dart'
       - 'feature_sources/offline_sst_expanded_catalog_v1.dart'
       - 'feature_sources/offline_sst_expanded_catalog_test_v1.dart'
       - 'tools/patch_report_pdf_emphasis_v1.py'
@@ -1575,13 +1578,15 @@ jobs:
         run: |
           set -euo pipefail
           python3 tools/patch_sst_library_v1.py "$APP_DIR" android
+          python3 tools/patch_sst_deep_catalog_v2.py "$APP_DIR" android
+          cp feature_sources/offline_sst_deep_catalog_test_v2.dart "$APP_DIR/test/offline_sst_deep_catalog_test.dart"
           python3 tools/patch_report_pdf_emphasis_v1.py "$APP_DIR" android
           cp feature_sources/report_pdf_emphasis_scope_test_v1.dart "$APP_DIR/test/report_pdf_emphasis_scope_test.dart"
           cp feature_sources/offline_sst_expanded_catalog_test_v1.dart "$APP_DIR/test/offline_sst_expanded_catalog_test.dart"
           cd "$APP_DIR"
-          dart format lib/services/offline_sst_expanded_catalog_v1.dart lib/services/report_pdf_emphasis_scope.dart lib/services/auditar_standard3_pdf_service.dart lib/widgets/offline_report_inline_suggestions.dart lib/screens/manager_reports_screen.dart lib/screens/report_screen.dart test/offline_sst_expanded_catalog_test.dart test/report_pdf_emphasis_scope_test.dart
+          dart format lib/services/offline_sst_deep_catalog_v2.dart lib/services/offline_sst_expanded_catalog_v1.dart lib/services/report_pdf_emphasis_scope.dart lib/services/auditar_standard3_pdf_service.dart lib/widgets/offline_report_inline_suggestions.dart lib/screens/manager_reports_screen.dart lib/screens/report_screen.dart test/offline_sst_expanded_catalog_test.dart test/offline_sst_deep_catalog_test.dart test/report_pdf_emphasis_scope_test.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
-          flutter test test/offline_sst_expanded_catalog_test.dart test/report_pdf_emphasis_scope_test.dart test/offline_report_inline_suggestions_field_test.dart
+          flutter test test/offline_sst_deep_catalog_test.dart test/offline_sst_expanded_catalog_test.dart test/offline_sst_deep_catalog_test.dart test/report_pdf_emphasis_scope_test.dart test/offline_report_inline_suggestions_field_test.dart
 
       - name: Inventario de navegação e rotas do aplicativo montado
         run: |
@@ -1667,12 +1672,12 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.196-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.196-Android.apk > dist/Auditar-SST-v3.29.196-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.197-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.197-Android.apk > dist/Auditar-SST-v3.29.197-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.196-Android-Biblioteca-Ampliada
+          name: Auditar-SST-v3.29.197-Android-Biblioteca-Ampliada
           path: dist/*
           retention-days: 30
 
