@@ -5,11 +5,15 @@ on:
     paths:
       - 'feature_sources/OperationalAgendaV1.gs'
       - 'tools/test_operational_agenda_v1.cjs'
+      - 'feature_sources/TechnicianSupervisionCloud_v1.gs'
+      - 'tools/test_technician_supervision_v1.cjs'
       - '.github/workflows/validate-operational-agenda.yml'
   pull_request:
     paths:
       - 'feature_sources/OperationalAgendaV1.gs'
       - 'tools/test_operational_agenda_v1.cjs'
+      - 'feature_sources/TechnicianSupervisionCloud_v1.gs'
+      - 'tools/test_technician_supervision_v1.cjs'
       - '.github/workflows/validate-operational-agenda.yml'
   workflow_dispatch:
 permissions:
@@ -25,5 +29,9 @@ jobs:
           node-version: '22'
       - name: Verificar sintaxe do módulo aditivo
         run: node --check --input-type=commonjs < feature_sources/OperationalAgendaV1.gs
+      - name: Verificar sintaxe da supervisao
+        run: node --check --input-type=commonjs < feature_sources/TechnicianSupervisionCloud_v1.gs
+      - name: Testar supervisao ADM e isolamento
+        run: node tools/test_technician_supervision_v1.cjs
       - name: Testar permissoes, idempotencia e historico
         run: node tools/test_operational_agenda_v1.cjs

@@ -36,7 +36,7 @@ function technicianSupervisionV1_(request) {
   }
   const techs=users.map(u=>{
     const lastSeen=seen[u.id]||'',lastLogin=when(u.lastLoginAt);
-    const last=lastSeen||lastLogin;
+    const last=lastSeen&&lastLogin?(lastSeen>lastLogin?lastSeen:lastLogin):(lastSeen||lastLogin);
     const minutes=last?Math.max(0,Math.floor((now-Date.parse(last))/60000)):null;
     const recent=u.active===true&&lastSeen&&now-Date.parse(lastSeen)<=900000;
     return {id:u.id,name:String(u.name||'Técnico').slice(0,120),

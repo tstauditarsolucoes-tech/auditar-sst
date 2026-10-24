@@ -92,7 +92,13 @@ function agendaTecnicosV1_(request) {
           message:'Técnico sem autorização para esta empresa.'};
       if(!requestId)return {ok:false,code:'REQUEST_ID_REQUIRED'};
       const duplicate=current.find(r=>String(r[12])===requestId&&String(r[8])===actor.id);
-      if(duplicate)return {ok:true,task:agendaV1Public_(duplicate),idempotent:true};
+      if(duplicate){
+        const columns=[1,2,3,4,5,6],expected=[companyId,techId,title,description,when,due];
+        if(columns.some((col,i)=>String(duplicate[col]||'')!==String(expected[i]||'')))
+          return {ok:false,code:'IDEMPOTENCY_CONFLICT',
+            message:'Identificador de solicitação já usado com dados diferentes.'};
+        return {ok:true,task:agendaV1Public_(duplicate),idempotent:true};
+      }
       const now=new Date().toISOString();
       const row=[Utilities.getUuid(),companyId,techId,title,description,when,due,
         'planned',actor.id,now,now,'',requestId];
