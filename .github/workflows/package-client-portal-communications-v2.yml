@@ -1,0 +1,59 @@
+name: Auditar SST - pacote do Painel Cliente comunicacao V2
+
+on:
+  push:
+    branches: [feature/client-panel-permissions-v329106]
+    paths:
+      - 'tools/package_client_portal_communications_v2.py'
+      - 'feature_sources/ClientPortalTreatments_v1.gs'
+      - 'feature_sources/client_treatment_portal_ui_v1.js'
+      - 'feature_sources/client_treatment_portal_ui_v1.css'
+      - 'tools/test_client_treatment_ui_v2.js'
+      - '.github/workflows/package-client-portal-communications-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  package-portal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Backend permission and communication tests
+        run: |
+          set -euo pipefail
+          node tools/test_client_treatments_v1.js
+          node tools/test_client_treatment_ui_v2.js
+      - name: Download previous successful assembled portal (not production)
+        uses: actions/download-artifact@v4
+        with:
+          name: Auditar-SST-v3.29.193-Android-NR18-Acao
+          run-id: 39475359157
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/previous
+      - name: Build isolated reviewed portal candidate
+        run: |
+          set -euo pipefail
+          python3 tools/package_client_portal_communications_v2.py \
+            "${{ runner.temp }}/previous" \
+            dist/Painel-Cliente-Comunicacao-V2
+      - name: Upload manual-review package only
+        uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-Painel-Cliente-Comunicacao-V2-CANDIDATO
+          path: |
+            dist/AUDITAR-SST-PAINEL-CLIENTE-COMUNICACAO-V2-CANDIDATO.zip
+            dist/Painel-Cliente-Comunicacao-V2/LEIA-ANTES-DE-INSTALAR.txt
+            dist/Painel-Cliente-Comunicacao-V2/SHA256.txt
+          retention-days: 30

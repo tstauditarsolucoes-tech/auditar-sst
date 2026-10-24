@@ -1,0 +1,25 @@
+name: Diagnosticar patch Ronda
+on:
+  push:
+    branches: [feature/client-panel-permissions-v329106]
+    paths: ['.github/workflows/diag-ronda-ui-source.yml']
+permissions:
+  contents: read
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          mkdir -p diagnostics
+          python - <<'PY'
+          import base64,gzip
+          from pathlib import Path
+          src=Path('build_sources/v3.29.118-ronda-reports/patch_ronda_ui_v329118.py.gz.b64').read_text().strip()
+          Path('diagnostics/patch_ronda_ui_v329118.py').write_bytes(gzip.decompress(base64.b64decode(src)))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Ronda-Patch-Fonte-Diagnostico
+          path: diagnostics/patch_ronda_ui_v329118.py
+          retention-days: 1

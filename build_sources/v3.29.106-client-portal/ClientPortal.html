@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Área do Cliente • Auditar SST</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:#20304e;background:#f2f5fa}
+*{box-sizing:border-box}body{margin:0}.hidden{display:none!important}
+header{background:linear-gradient(110deg,#142d57,#235e79);color:#fff;padding:19px max(18px,calc((100vw - 1100px)/2));display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+header strong{font-size:20px}header small{opacity:.88}.wrap{max-width:1100px;padding:22px 16px 70px;margin:0 auto}
+.panel{background:#fff;border:1px solid #e3e9f3;border-radius:17px;padding:22px;box-shadow:0 8px 25px #1b365e09;margin-bottom:16px}
+.login{max-width:430px;margin:48px auto}h1{font-size:23px;margin:0 0 8px}h2{font-size:18px;margin:0 0 12px}h3{font-size:15px;margin:0 0 8px}
+label{display:block;font-weight:650;font-size:13px;margin:15px 0 6px}input,textarea,select{width:100%;padding:12px;border:1px solid #bdc9da;border-radius:10px;background:#fff;font:inherit;color:#1c2c47}input:focus,textarea:focus,select:focus{outline:2px solid #7cb7c6}
+button{border:0;border-radius:11px;padding:12px 16px;background:#176b68;color:#fff;font:inherit;font-weight:700;cursor:pointer}button:disabled{opacity:.55;cursor:wait}
+button.secondary{color:#234365;background:#e8eff7}button.warn{background:#b25d21}
+.row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.muted{color:#677991;font-size:13px}.error{color:#a32222}.ok{color:#167054}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px}.metric{padding:15px;background:#f6f9fc;border-radius:12px;border:1px solid #e6edf5}
+.metric strong{display:block;font-size:25px;color:#1b5671}.metric span{font-size:12px;color:#5f7188}
+.entry{border-top:1px solid #e6edf5;padding:14px 0}.entry:first-child{border-top:0}.entry p{margin:7px 0;white-space:pre-wrap}
+.badge{display:inline-block;background:#e7f3f0;color:#136959;border-radius:999px;padding:4px 9px;font-weight:700;font-size:11px}
+.columns{display:grid;grid-template-columns:repeat(auto-fit,minmax(285px,1fr));gap:14px}.tabbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:13px}.tabbar button{background:#e8eff7;color:#244460}.tabbar button.active{background:#1b5e6e;color:#fff}
+.notice{padding:11px 13px;border-radius:10px;background:#f6f5e9;font-size:13px;color:#514a26;margin:10px 0}
+.photo-preview{max-width:240px;max-height:180px;border-radius:8px}.section-title{margin:18px 0 9px}
+@media(max-width:500px){header{padding:16px}.wrap{padding:13px 10px}.panel{padding:17px}.login{margin:22px auto}}
+
+/* portal-training-filters-v329140 */
+.training-filters{display:grid;grid-template-columns:minmax(190px,1.5fr) minmax(140px,1fr) minmax(130px,.8fr);gap:9px;margin:11px 0 5px}
+.training-filters input,.training-filters select{width:100%;min-width:0;padding:9px 10px;font-size:12px}
+@media(max-width:700px){.training-filters{grid-template-columns:1fr}.worker-table th:nth-child(4),.worker-table td:nth-child(4){display:none}}
+/* executive-compact-v329137 */
+.exec-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:14px}
+.exec-company{font-size:24px;margin:0;color:#17324e}.exec-kicker{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#6b8295}
+.update-chip{display:inline-flex;align-items:center;gap:7px;background:#edf7f4;color:#176d61;border:1px solid #d8ebe6;border-radius:999px;padding:7px 10px;font-size:11px;font-weight:750}
+.exec-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}
+.exec-card{border:1px solid #e3eaf2;background:#f9fbfd;border-radius:14px;padding:14px;min-height:92px}
+.exec-card strong{display:block;font-size:27px;line-height:1;color:#173f5b;margin:6px 0}.exec-card span{font-size:11px;color:#607487}
+.exec-card.alert strong{color:#b34848}.exec-card.good strong{color:#19715e}.exec-card.warn strong{color:#9b6a18}
+.section-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(270px,.75fr);gap:14px;margin-top:14px}
+.compact-box{border:1px solid #e3eaf2;border-radius:14px;padding:15px;background:#fff}
+.compact-box h3{font-size:14px;margin-bottom:10px}.compact-note{font-size:11px;color:#718397}
+.kanban{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:9px;overflow:auto;padding-bottom:3px}
+.kanban-col{background:#f6f8fb;border:1px solid #e5eaf1;border-radius:12px;padding:10px;min-height:120px}
+.kanban-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#587087;display:flex;justify-content:space-between;gap:8px;margin-bottom:8px}
+.k-card{background:#fff;border:1px solid #e2e8ef;border-radius:10px;padding:10px;margin-bottom:7px;box-shadow:0 2px 6px rgba(22,47,75,.04)}
+.k-card:last-child{margin-bottom:0}.k-card b{font-size:12px;display:block;color:#223a55}.k-card small{display:block;margin-top:5px;color:#718397;line-height:1.35}
+.pill-row{display:flex;gap:7px;flex-wrap:wrap}.mini-pill{background:#f3f7fb;border:1px solid #e1e8f0;border-radius:999px;padding:6px 9px;font-size:11px;color:#4e657b}
+.training-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.training-stat{border:1px solid #e4eaf1;border-radius:11px;padding:11px;background:#fbfcfe}
+.training-stat strong{display:block;font-size:20px;color:#1f566f}.training-stat span{font-size:10.5px;color:#687b8e}
+.activity-toggle{margin-top:12px}.activity-toggle summary{cursor:pointer;font-size:12px;font-weight:750;color:#37526b}
+.record-line{padding:10px 0;border-top:1px solid #edf1f5}.record-line:first-child{border-top:0}.record-line b{font-size:12px}.record-line small{display:block;color:#748598;margin-top:3px}
+.auto-dot{width:7px;height:7px;border-radius:50%;background:#20a36e;display:inline-block}
+@media(max-width:900px){.exec-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.section-grid{grid-template-columns:1fr}.kanban{grid-template-columns:repeat(4,220px)}}
+@media(max-width:500px){.exec-company{font-size:21px}.exec-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.exec-card{min-height:82px;padding:12px}.exec-card strong{font-size:23px}}
+
+
+.highlight-action{outline:3px solid #55b29b;outline-offset:2px;transition:outline-color .2s}
+.k-card .manager-btn{width:100%;padding:7px 9px}
+@media(prefers-reduced-motion:reduce){.highlight-action{transition:none}}
+/* executive-actionable-v329138 */
+.attention-strip{border:1px solid #e6e8df;background:#fffdf6;border-radius:14px;padding:13px 15px;margin:10px 0 14px}
+.attention-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px}
+.attention-head b{font-size:13px;color:#374454}.attention-list{display:flex;gap:8px;flex-wrap:wrap}
+.attention-item{font-size:11px;border-radius:999px;padding:7px 10px;background:#fff;border:1px solid #e9e6d9;color:#5a5660}
+.attention-item.urgent{border-color:#eed1d1;color:#9a3b3b;background:#fff7f7}
+.attention-item.warn{border-color:#ebdfba;color:#8a6515;background:#fffaf0}
+.drill{margin-top:12px;border-top:1px solid #edf1f5;padding-top:11px}
+.drill summary{cursor:pointer;font-size:12px;font-weight:780;color:#31506b;list-style:none}
+.drill summary::-webkit-details-marker{display:none}
+.drill summary:after{content:"›";float:right;color:#7890a4;font-size:18px;line-height:14px}
+.drill[open] summary:after{transform:rotate(90deg)}
+.worker-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:11px}
+.worker-table th,.worker-table td{text-align:left;padding:8px 6px;border-bottom:1px solid #edf1f5;vertical-align:top}
+.worker-table th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#74889a}
+.status-dot{display:inline-block;border-radius:999px;padding:4px 7px;background:#f6f7f9;color:#516373;font-size:10px;font-weight:750}
+.status-dot.bad{background:#fff0f0;color:#a24040}.status-dot.warn{background:#fff7e8;color:#94670e}.status-dot.good{background:#edf8f4;color:#16705d}
+.improvement-card{border:1px solid #e4eaf1;border-radius:12px;padding:13px;margin-top:9px;background:#fff}
+.improvement-card h4{font-size:13px;margin:0 0 7px;color:#243d57}.improvement-card p{margin:6px 0;font-size:11.5px;line-height:1.5;color:#53677c}
+.improvement-card .label{display:block;margin-top:8px;font-size:9.5px;font-weight:850;letter-spacing:.07em;text-transform:uppercase;color:#7b8c9e}
+.norma-box{background:#f4f8fb;border-left:3px solid #2b6880;padding:8px 10px;border-radius:0 8px 8px 0;margin-top:8px;font-size:11px;color:#314f66}
+.report-ribbon{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.report-mini{border:1px solid #e5eaf0;border-radius:11px;padding:11px;background:#fafcfd;min-height:74px}
+.report-mini b{font-size:11.5px;color:#29445d;display:block}.report-mini small{font-size:10px;color:#788b9d;display:block;margin-top:5px}
+@media(max-width:700px){.worker-table th:nth-child(2),.worker-table td:nth-child(2){display:none}.report-ribbon{grid-template-columns:1fr}}
+
+
+/* manager-practical-v329139 */
+.manager-btn{font-size:11px;border-radius:9px;padding:9px 11px}
+.manager-tools{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin:12px 0}
+.manager-tools input{max-width:330px;font-size:12px;padding:9px 10px}
+.manager-total{font-size:11px;color:#728497}
+.manager-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.manager-actions button{font-size:11px;padding:9px 12px}
+.manager-photo-form{margin-top:10px;padding:12px;border:1px solid #d7e9e5;border-radius:10px;background:#f8fcfa}
+.manager-photo-form label{font-size:11px;margin:10px 0 4px}
+.manager-photo-form textarea{font-size:12px}
+.improvement-card .norma-box{font-weight:650}
+.report-mini button{margin-top:10px;font-size:11px;padding:8px 10px}
+.document-note{color:#7a8795;font-size:10px;margin-top:9px}
+#printPlan{display:none}
+@media print{
+ @page{size:A4;margin:15mm}
+ body>*:not(#printPlan){display:none!important}
+ #printPlan{display:block!important;font:11pt/1.42 Arial,sans-serif;color:#172738;background:#fff}
+ #printPlan.hidden{display:none!important}
+ #printPlan h1{font-size:19pt;color:#173e50;margin:0 0 8pt}
+ #printPlan h2{font-size:12pt;margin:16pt 0 5pt}
+ #printPlan .print-item{break-inside:avoid;border-top:1px solid #d8dde2;padding:9pt 0}
+ #printPlan .print-item p{margin:4pt 0}
+ #printPlan small{color:#4c5560}
+}
+
+/* auditar-dashboard-identity-v329141 | Somente visual, sem alterar dados ou acesso. */
+#login .auditar-brand-mark.auditar-official-mark{width:160px;height:72px;flex-basis:160px;background:#fff;border-radius:13px;box-shadow:0 3px 14px #091f3129;overflow:hidden;padding:5px 8px}
+#login .auditar-login-official-logo{width:100%;height:100%;object-fit:contain;display:block}
+#login .auditar-brand-lockup:has(.auditar-official-mark) .auditar-brand-name,#login .auditar-mobile-brand:has(.auditar-official-mark) .auditar-brand-name{display:none}
+@media(max-width:760px){#login .auditar-brand-mark.auditar-official-mark{width:166px;height:75px;flex-basis:166px}}
+:root{--auditar-navy:#112d47;--auditar-blue:#1b3e64;--auditar-green:#098d43}
+body:has(#dashboard:not(.hidden)){background:linear-gradient(180deg,#eaf1f8 0,#f4f7fa 360px,#f5f7fb 100%);color:#19344c}
+body:has(#dashboard:not(.hidden)) .wrap{max-width:1320px;padding:25px 20px 45px}
+.auditar-app-header{background:linear-gradient(105deg,#102a42,#194565 72%,#145b60);border-bottom:4px solid var(--auditar-green);box-shadow:0 4px 16px #132f4921;padding:13px max(20px,calc((100vw - 1280px)/2));gap:22px}
+.auditar-brand-shell{display:flex;align-items:center;gap:15px;min-width:0}
+.auditar-brand-frame{background:#fff;display:flex;align-items:center;justify-content:center;width:172px;height:62px;border-radius:13px;padding:6px 11px;flex:none;box-shadow:0 3px 12px #0b223123}
+.auditar-official-logo{display:block;width:100%;height:100%;object-fit:contain}
+.auditar-header-caption{display:flex;flex-direction:column;gap:4px}
+.auditar-header-caption b{font-size:16px;letter-spacing:.025em}
+.auditar-header-caption small{font-size:11px;color:#cfe4e9;opacity:1}
+.auditar-header-actions{display:flex;align-items:center;gap:14px}
+.auditar-header-trust{font-size:11px;color:#d3ede8;border:1px solid #ffffff30;padding:7px 11px;border-radius:999px}
+.auditar-app-header #logout{background:#ffffffed;color:#143a4b;font-size:12px;padding:9px 15px}
+.auditar-portal-footer{max-width:1280px;margin:0 auto;padding:8px 20px 30px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:11px;color:#64798b}
+.auditar-portal-footer strong{color:var(--auditar-green)}
+body:has(#login:not(.hidden)) .auditar-portal-footer{display:none}
+#dashboard>.panel.row{background:transparent;border:0;box-shadow:none;padding:4px 1px 12px;margin-bottom:0}
+#dashboard>.panel.row h1{font-size:25px;letter-spacing:-.035em;color:#17354d}
+#dashboard #welcome{font-size:12px}
+#dashboard #refresh{padding:9px 13px;font-size:11px;border:1px solid #d8e3ec;background:#fff}
+#dashboard #status{min-height:17px;margin:0 0 14px;font-size:11px}
+.portal-company{border:1px solid #dde7ef;box-shadow:0 20px 44px #1737520c;border-radius:21px;padding:23px}
+.portal-company .exec-head{background:linear-gradient(105deg,#11314e,#20516a 75%,#176a60);padding:21px 24px;border-radius:15px;align-items:center;margin:0 0 15px;position:relative;overflow:hidden}
+.portal-company .exec-head:after{content:"";position:absolute;right:-60px;bottom:-115px;width:250px;height:250px;border:1px solid #ffffff26;border-radius:50%;pointer-events:none}
+.portal-company .exec-company{font-size:25px;color:#fff;overflow-wrap:anywhere;margin:3px 0 0}
+.portal-company .exec-kicker{color:#9cdec0}
+.portal-company .update-chip{background:#ffffff19;color:#f1fff9;border-color:#ffffff3d;max-width:100%;font-size:10.5px}
+.portal-company .auto-dot{background:#64e7a7;box-shadow:0 0 0 3px #62daa820}
+.portal-company .exec-metrics{gap:12px;margin:13px 0}
+.portal-company .exec-card{min-height:116px;padding:18px 18px 14px;background:#fff;border:1px solid #e1e8f0;border-radius:15px;box-shadow:0 4px 14px #142c4507;border-top:3px solid #8baec3}
+.portal-company .exec-card.alert{border-top-color:#c55a61;background:linear-gradient(150deg,#fff,#fff9f9)}
+.portal-company .exec-card.warn{border-top-color:#d0a84e;background:linear-gradient(150deg,#fff,#fffcf6)}
+.portal-company .exec-card.good{border-top-color:#1c9b67;background:linear-gradient(150deg,#fff,#f6fdf9)}
+.portal-company .exec-card span{display:block;font-size:12px;color:#4d647a;font-weight:680}
+.portal-company .exec-card strong{font-size:33px;letter-spacing:-.045em;margin:13px 0 0;font-variant-numeric:tabular-nums}
+.metric-hint{display:block;margin-top:5px;font-size:9.5px;color:#70879a}
+.portal-company .attention-strip{border:1px solid #f0e0b4;background:linear-gradient(115deg,#fffdf6,#fffbef);padding:14px 18px;margin:17px 0}
+.portal-company .attention-head b{font-size:13px;color:#354459}
+.portal-company .attention-item{font-size:11px}
+.portal-company .section-grid{grid-template-columns:minmax(0,1.35fr) minmax(300px,.85fr);gap:15px;margin-top:15px;align-items:start}
+.portal-company .compact-box{min-width:0;border:1px solid #e0e9f1;box-shadow:0 3px 13px #193d5507;border-radius:16px;padding:19px}
+.section-eyebrow{font-size:10px;letter-spacing:.13em;font-weight:850;color:#108854;margin-bottom:4px}
+.portal-company .compact-box h3{font-size:16px;color:#193c55;letter-spacing:-.02em;margin:0 0 15px}
+.portal-company .kanban{grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible;gap:11px}
+.portal-company .kanban-col{min-width:0;min-height:123px;background:#f7f9fc;border:1px solid #e3ebf2;border-radius:12px;padding:13px}
+.portal-company .kanban-col:nth-child(1){border-top:3px solid #a9bccf}
+.portal-company .kanban-col:nth-child(2){border-top:3px solid #639ab7}
+.portal-company .kanban-col:nth-child(3){border-top:3px solid #d5b15d}
+.portal-company .kanban-col:nth-child(4){border-top:3px solid #54ab86}
+.portal-company .kanban-title{font-size:10px;letter-spacing:.045em;line-height:1.4}
+.portal-company .kanban-title span:last-child{background:#fff;border:1px solid #e1e8ef;min-width:25px;text-align:center;border-radius:999px;padding:2px 7px;font-size:11px}
+.kanban-empty{padding:10px 2px;font-size:11px;color:#7c8fa0;line-height:1.5}
+.portal-company .k-card{border-radius:9px;box-shadow:none}
+.portal-company .training-grid{gap:9px}
+.portal-company .training-stat{min-height:77px;padding:12px;background:#f8fafc}
+.portal-company .training-stat strong{font-size:25px;line-height:1.15}
+.portal-company .training-stat span{font-size:11px}
+.portal-company .training-stat:nth-child(2) strong,.portal-company .training-stat:nth-child(4) strong{color:#ad4d47}
+.portal-company .pill-row{border-top:1px solid #edf1f5;padding-top:12px}
+.portal-company .mini-pill{font-size:10.5px;background:#edf6f7}
+.portal-company .drill,.portal-company .activity-toggle{border:1px solid #e2e9f1;background:#fff;border-radius:13px;margin-top:11px;padding:0;overflow:hidden}
+.portal-company .drill summary,.portal-company .activity-toggle summary{display:block;padding:15px 17px;font-size:12.5px;font-weight:800;list-style:none;color:#29455f;cursor:pointer}
+.portal-company .drill summary:after{content:"+";font-size:17px;line-height:1;color:#1a8666}
+.portal-company .drill[open] summary:after{content:"−";transform:none}
+.portal-company .activity-toggle summary::after{content:"+";float:right;color:#1a8666;font-size:17px}
+.portal-company .activity-toggle[open] summary::after{content:"−"}
+.portal-company .drill> :not(summary),.portal-company .activity-toggle> :not(summary){margin-left:17px;margin-right:17px}
+.portal-company .drill>.improvement-card{margin-top:11px;margin-bottom:11px}
+.portal-company .drill>.manager-tools{margin-top:0;padding-top:11px}
+.portal-company .activity-toggle>.record-line{padding:12px 0}
+.portal-company .improvement-card{border-left:3px solid #1b9671}
+.portal-company .manager-btn{border-radius:8px}
+.portal-company .worker-table{margin-bottom:12px}
+.portal-company .record-line b{color:#27465f}
+@media(max-width:900px){.portal-company .section-grid{grid-template-columns:1fr}.auditar-header-trust{display:none}}
+@media(max-width:640px){
+ body:has(#dashboard:not(.hidden)) .wrap{padding:13px 10px 25px}
+ .auditar-app-header{padding:10px 13px}
+ .auditar-brand-frame{width:123px;height:48px;padding:5px 6px}
+ .auditar-header-caption b{font-size:13px}
+ .auditar-header-caption small{font-size:9px}
+ .auditar-app-header #logout{font-size:11px;padding:8px}
+ .portal-company{padding:12px;border-radius:16px}
+ .portal-company .exec-head{padding:17px 15px}
+ .portal-company .exec-company{font-size:20px}
+ .portal-company .update-chip{font-size:9.5px;line-height:1.4}
+ .portal-company .exec-metrics{gap:8px}
+ .portal-company .exec-card{padding:12px;min-height:103px}
+ .portal-company .exec-card strong{font-size:27px}
+ .portal-company .compact-box{padding:13px}
+ .portal-company .kanban{grid-template-columns:1fr}
+ .portal-company .kanban-col{min-height:0}
+ .auditar-portal-footer{padding:7px 15px 24px}
+}
+@media print{.auditar-app-header,.auditar-portal-footer{display:none!important}}
+
+</style>
+</head>
+<body>
+<header class="auditar-app-header">
+ <div class="auditar-brand-shell">
+  <span class="auditar-brand-frame"><img id="auditarOfficialLogo" class="auditar-official-logo" alt="Auditar Soluções — Medicina Ocupacional e Segurança do Trabalho" src="data:image/png;base64,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"></span>
+  <span class="auditar-header-caption"><b>Auditar SST</b><small>Área do Cliente · Painel Gerencial</small></span>
+ </div>
+ <div class="auditar-header-actions"><span class="auditar-header-trust">Acesso individual por empresa</span><button id="logout" class="secondary hidden" type="button">Sair da conta</button></div>
+</header>
+<main class="wrap">
+<section class="panel login" id="login">
+ <h1>Acesso individual</h1>
+ <p class="muted">Utilize o e-mail e a senha fornecidos pela Auditar. Você verá somente as informações liberadas para sua empresa.</p>
+ <form id="loginForm">
+  <label for="email">E-mail</label><input id="email" type="email" required autocomplete="username">
+  <label for="password">Senha</label><input id="password" type="password" required autocomplete="current-password">
+  <p id="loginError" class="error" role="alert"></p><button id="enter" type="submit">Entrar</button>
+ </form>
+</section>
+<section id="dashboard" class="hidden">
+ <div class="panel row"><div><h1>Painel Gerencial de SST</h1><span id="welcome" class="muted"></span></div><button id="refresh" class="secondary" type="button">Atualizar</button></div>
+ <p id="status" role="status"></p>
+ <div id="companies"></div>
+</section>
+</main>
+<footer class="auditar-portal-footer"><span><strong>Auditar Soluções</strong> · Medicina Ocupacional e Segurança do Trabalho</span><span>Seu painel de acompanhamento em SST</span></footer>
+<section id="printPlan" class="hidden" aria-hidden="true"></section>
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+/* Apply the same supplied Auditar brand to web login and dashboard. */
+function applyOfficialAuditarBrand(){
+ const source=$('auditarOfficialLogo');
+ if(!source||!source.getAttribute('src'))return;
+ document.querySelectorAll('.auditar-brand-mark').forEach(mark=>{
+  const brand=source.cloneNode(false);
+  brand.removeAttribute('id');
+  brand.className='auditar-login-official-logo';
+  brand.alt='Auditar Soluções';
+  mark.replaceChildren(brand);
+  mark.classList.add('auditar-official-mark');
+ });
+}
+applyOfficialAuditarBrand();
+let token=sessionStorage.getItem('auditar_client_portal_session')||'';
+let current=null;
+const trainingFilters=Object.create(null);
+const text=(tag,value,cls)=>{const e=document.createElement(tag);e.textContent=String(value==null?'':value);if(cls)e.className=cls;return e;};
+function call(name,args,onSuccess,onFailure){
+ const runner=google.script.run.withSuccessHandler(onSuccess).withFailureHandler(
+  err=>onFailure&&onFailure(err&&err.message?err.message:'Falha na comunicação.'));
+ runner[name].apply(runner,args);
+}
+function setMessage(value, bad){
+ const el=$('status');el.textContent=value||'';el.className=bad?'error':'muted';
+}
+function showLogin(message){
+ token='';current=null;sessionStorage.removeItem('auditar_client_portal_session');
+ $('dashboard').classList.add('hidden');$('logout').classList.add('hidden');$('login').classList.remove('hidden');
+ $('loginError').textContent=message||'';
+}
+function showDashboard(){
+ $('login').classList.add('hidden');$('dashboard').classList.remove('hidden');$('logout').classList.remove('hidden');
+}
+let portalLoading=false;
+function load(silent=false){
+ if(!token)return showLogin('');
+ if(portalLoading)return;
+ if(silent&&document.querySelector('.manager-photo-form'))return;
+ portalLoading=true;
+ if(!silent)setMessage('Carregando informações…');
+ const expanded=new Set([...document.querySelectorAll('details[data-portal-key][open]')].map(e=>e.dataset.portalKey));
+ const requestedToken=token;
+ call('clientPortalData',[token],res=>{
+  portalLoading=false;
+  if(token!==requestedToken)return;
+  if(!res||!res.ok)return showLogin(res&&res.message||'Sessão expirada.');
+  current=res;showDashboard();$('welcome').textContent=res.user.name+' • '+(res.user.role==='cliente'?'Empresa cliente':'Auditar');
+  $('companies').replaceChildren();
+  if(!res.companies.length){$('companies').append(text('p','Nenhuma empresa com painel publicado está disponível.','notice'));}
+  res.companies.forEach(renderCompany);
+  document.querySelectorAll('details[data-portal-key]').forEach(e=>{if(expanded.has(e.dataset.portalKey))e.open=true;});
+  setMessage('Última consulta: '+new Date().toLocaleTimeString('pt-BR')+' • Atualização automática ativa');
+ },err=>{portalLoading=false;if(requestedToken===token)setMessage(err,true);});
+}
+function safeNum(value,fallback){
+ if(value===null||value===undefined||value==='')return fallback==null?null:fallback;
+ const n=Number(value);return Number.isFinite(n)?n:(fallback==null?null:fallback);
+}
+function formatPortalDate(value){
+ const raw=String(value||'').trim();if(!raw)return 'não informada';
+ const d=new Date(raw);if(Number.isNaN(d.getTime()))return raw;
+ return d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function statusBucket(row){
+ const status=String(row.status||'').toLowerCase();
+ if(/aguard|verifica|confer|evid[eê]ncia/.test(status))return 'verify';
+ if(/n[aã]o[ _-]+(?:concl|resol)/.test(status))return 'todo';
+ if(/concl|resol|feito|final/.test(status))return 'done';
+ if(/andamento|execu|tratamento|iniciado/.test(status))return 'doing';
+ return 'todo';
+}
+function dueDateEndOfDay(value){
+ const raw=String(value||'').trim();
+ if(!raw)return null;
+ const br=raw.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+ const iso=raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+ let year,month,day;
+ if(br){day=Number(br[1]);month=Number(br[2]);year=Number(br[3]);}
+ else if(iso){year=Number(iso[1]);month=Number(iso[2]);day=Number(iso[3]);}
+ else return null;
+ const date=new Date(year,month-1,day,23,59,59,999);
+ return date.getFullYear()===year&&date.getMonth()===month-1&&date.getDate()===day?date.getTime():null;
+}
+function renderKanban(actions,company){
+ const wrap=text('div','','kanban');
+ const defs=[['todo','A fazer'],['doing','Em andamento'],['verify','Aguardando verificação'],['done','Concluído']];
+ defs.forEach(def=>{
+  const all=(actions||[]).filter(r=>statusBucket(r)===def[0]);
+  const rows=all.slice(0,5);
+  const col=text('div','','kanban-col');const title=text('div','','kanban-title');
+  title.append(text('span',def[1]),text('span',all.length));col.append(title);
+  if(!rows.length)col.append(text('div','Nenhuma ação nesta etapa','kanban-empty'));
+  rows.forEach(row=>{
+   const card=text('div','','k-card');card.append(text('b',row.title||row.description||'Ação'));
+   const due=dueDateEndOfDay(row.dueDate);
+   const overdue=due!==null&&due<Date.now()&&statusBucket(row)!=='done';
+   const meta=[row.sector,row.responsible,row.dueDate?'Prazo '+row.dueDate:''].filter(Boolean).join(' • ');
+   if(meta)card.append(text('small',meta));
+   if(overdue)card.append(text('span','Prazo vencido','status-dot bad'));
+   const more=text('button','Ver providência','secondary manager-btn');more.type='button';
+   more.style.marginTop='8px';more.onclick=()=>openImprovementFromKanban(company,row);
+   card.append(more);col.append(card);
+  });
+  wrap.append(col);
+ });
+ return wrap;
+}
+function openImprovementFromKanban(company,row){
+ const plan=[...document.querySelectorAll('details[data-portal-key]')]
+  .find(item=>item.dataset.portalKey===company.id+':plan');
+ if(!plan){setMessage('Plano de melhorias indisponível nesta publicação.',true);return;}
+ plan.open=true;
+ const ids=[String(row.id||''),String(row.ncCode||'')].filter(Boolean);
+ const card=[...plan.querySelectorAll('.improvement-card')]
+  .find(item=>ids.includes(item.dataset.ncId));
+ (card||plan).scrollIntoView({behavior:'smooth',block:'start'});
+ if(card){card.classList.add('highlight-action');setTimeout(()=>card.classList.remove('highlight-action'),2200);}
+}
+function renderTrainingAndDds(company){
+ const side=text('div','','compact-box capacitacao-box');
+ side.append(text('div','TREINAMENTOS E DDS','section-eyebrow'),text('h3','Capacitação e DDS'));
+ const ts=company.trainingSummary||{},dds=company.ddsSummary||{};
+ const tg=text('div','','training-grid');
+ [['Em dia',ts.current],['Vencidos',ts.expired],['Pendentes',ts.pending],['Sem registro',ts.missing]].forEach(pair=>{
+  const box=text('div','','training-stat');box.append(text('strong',pair[1]==null?'—':pair[1]),text('span',pair[0]));tg.append(box);
+ });
+ side.append(tg);
+ const pills=text('div','','pill-row');pills.style.marginTop='10px';
+ pills.append(text('span','DDS no mês: '+(dds.month==null?'—':dds.month),'mini-pill'),
+              text('span','DDS no ano: '+(dds.year==null?'—':dds.year),'mini-pill'),
+              text('span','Participações: '+(dds.participations==null?'—':dds.participations),'mini-pill'));
+ side.append(pills);
+ const recent=(dds.recent||[]).slice(0,5);
+ if(recent.length){
+  const details=document.createElement('details');details.className='activity-toggle';
+  details.append(text('summary','Últimos DDS'));
+  recent.forEach(item=>{
+   const line=text('div','','record-line');line.append(text('b',item.title||'DDS'),
+    text('small',[item.date,item.participants+' participante(s)',
+      (item.photos||[]).length+' foto(s)',(item.paper||[]).length+' ficha(s)'].join(' • ')));
+   details.append(line);
+  });side.append(details);
+ }
+ return side;
+}
+function renderRecentRecords(shell,company){
+ const details=document.createElement('details');details.className='activity-toggle';
+ details.append(text('summary','Relatórios, vistorias e registros recentes'));
+ const rows=[...(company.reports||[]).slice(0,4),...(company.inspections||[]).slice(0,4)];
+ if(!rows.length)return;
+ rows.forEach(row=>{
+  const line=text('div','','record-line');line.append(text('b',row.title||'Registro'),
+   text('small',[row.date,row.status,row.sector].filter(Boolean).join(' • ')));details.append(line);
+ });
+ shell.append(details);
+}
+
+function trainingStatusClass(value){
+ const s=String(value||'').toLowerCase();
+ if(/a vencer|vence em|aten/.test(s))return 'warn';
+ if(/vencid|sem registro|pend/.test(s))return 'bad';
+ return 'good';
+}
+function renderExecutiveAttention(company){
+ const summary=company.summary||{},training=company.trainingSummary||{};
+ const strip=text('div','','attention-strip');const head=text('div','','attention-head');
+ head.append(text('b','Precisa da sua atenção'),text('span','Somente o essencial','compact-note'));strip.append(head);
+ const list=text('div','','attention-list');let count=0;
+ const add=(label,value,cls)=>{if(value==null||Number(value)<=0)return;list.append(text('span',label+': '+value,'attention-item '+(cls||'')));count++;};
+ add('Ações vencidas',summary.overdueActions,'urgent');
+ add('Treinamentos vencidos',training.expired,'urgent');
+ add('Sem registro',training.missing,'warn');
+ const high=(company.nonConformities||[]).filter(r=>/alta|cr[ií]tica|imediata/i.test(String(r.priority||''))).length;
+ add('Problemas prioritários',high,'warn');
+ if(!count)list.append(text('span','Nenhuma prioridade crítica publicada no momento.','attention-item'));
+ strip.append(list);return strip;
+}
+function renderTrainingWorkers(company){
+ const rows=company.trainingPendingWorkers||[];
+ const details=document.createElement('details');details.className='drill';
+ details.dataset.portalKey=company.id+':training-workers';
+ details.append(text('summary','Trabalhadores com treinamentos pendentes ('+rows.length+')'));
+ if(!rows.length){
+  details.append(text('p',company.trainingMissingCount>0?
+   'Existem treinamentos sem registro, mas a relação nominal ainda não foi publicada.':
+   'Nenhuma pendência nominal publicada para consulta.','compact-note'));
+  return details;
+ }
+ const saved=trainingFilters[company.id]||{query:'',sector:'',status:''};
+ const bar=text('div','','training-filters');
+ const search=document.createElement('input');search.type='search';
+ search.placeholder='Buscar trabalhador ou treinamento';
+ search.setAttribute('aria-label','Buscar por trabalhador ou treinamento');
+ search.value=saved.query||'';
+ const option=(select,value,label)=>{const el=document.createElement('option');el.value=value;el.textContent=label;select.append(el);};
+ const sector=document.createElement('select');sector.setAttribute('aria-label','Filtrar pendências por setor');
+ option(sector,'','Todos os setores');
+ [...new Set(rows.map(item=>String(item.sector||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'))
+  .forEach(name=>option(sector,name,name));
+ sector.value=[...sector.options].some(item=>item.value===saved.sector)?saved.sector:'';
+ const status=document.createElement('select');status.setAttribute('aria-label','Filtrar pendências por situação');
+ [['','Todas as situações'],['Sem registro','Sem registro'],['Vencido','Vencidos'],['Pendente','Pendentes']].forEach(pair=>option(status,pair[0],pair[1]));
+ status.value=saved.status||'';
+ const count=text('span','','manager-total');bar.append(search,sector,status);details.append(bar,count);
+ const table=document.createElement('table');table.className='worker-table';
+ const thead=document.createElement('thead'),tr=document.createElement('tr');
+ ['Trabalhador','Setor / função','Treinamento','Vencimento','Situação'].forEach(v=>tr.append(text('th',v)));
+ thead.append(tr);table.append(thead);
+ const tbody=document.createElement('tbody');table.append(tbody);details.append(table);
+ function draw(){
+  const q=search.value.toLocaleLowerCase('pt-BR').trim();
+  trainingFilters[company.id]={query:search.value,sector:sector.value,status:status.value};
+  const filtered=rows.filter(item=>
+   (!q||[item.worker,item.sector,item.training].some(v=>String(v||'').toLocaleLowerCase('pt-BR').includes(q)))&&
+   (!sector.value||item.sector===sector.value)&&(!status.value||item.status===status.value));
+  tbody.replaceChildren();
+  filtered.slice(0,80).forEach(item=>{
+   const row=document.createElement('tr');
+   row.append(text('td',item.worker||'—'),text('td',item.sector||'—'),
+    text('td',item.training||'—'),text('td',item.dueDate||'—'));
+   const badge=text('span',item.status||'Sem registro','status-dot '+trainingStatusClass(item.status));
+   const cell=document.createElement('td');cell.append(badge);row.append(cell);tbody.append(row);
+  });
+  count.textContent=filtered.length+' pendência(s)'+(filtered.length>80?' • exibindo 80':'');
+  if(!filtered.length){
+   const row=document.createElement('tr'),cell=document.createElement('td');
+   cell.colSpan=5;cell.textContent='Nenhuma pendência corresponde aos filtros.';
+   row.append(cell);tbody.append(row);
+  }
+ }
+ search.oninput=draw;sector.onchange=draw;status.onchange=draw;draw();
+ return details;
+}
+function managerOpenProblems(company){
+ return (company.nonConformities||[]).filter(row=>statusBucket(row)!=='done')
+  .sort((a,b)=>{
+   const priority=v=>/cr[ií]tic|imediat/.test(v)?0:/alta/.test(v)?1:/m[eé]dia/.test(v)?2:3;
+   const p=priority(String(a.priority||'').toLowerCase())-priority(String(b.priority||'').toLowerCase());
+   return p||String(a.dueDate||'9999').localeCompare(String(b.dueDate||'9999'));
+  });
+}
+function printManagerPlan(company,rows){
+ const target=$('printPlan');target.replaceChildren();target.classList.remove('hidden');
+ target.removeAttribute('aria-hidden');
+ target.append(text('h1','O que sua empresa precisa resolver'),
+  text('p','Plano de melhorias • Auditar SST'),
+  text('p','Empresa: '+company.name+' • Publicado em: '+formatPortalDate(company.updatedAt)));
+ if(!rows.length)target.append(text('p','Nenhuma pendência publicada para este período.'));
+ rows.forEach((row,index)=>{
+  const item=text('section','','print-item');item.append(text('h2',(index+1)+'. '+(row.title||'Providência')));
+  const line=(label,value)=>item.append(text('p',label+': '+(value||'Não informado no registro.')));
+  line('Problema encontrado',row.description);
+  line('O que precisa ser feito',row.action||row.recommendation);
+  line('Base normativa',row.normative?(row.normative+(row.normativeItem?' • Item '+row.normativeItem:'')):'Não informada; confirmar com a Auditar.');
+  line('Responsável',row.responsible);line('Prazo',row.dueDate);
+  line('Como comprovar','Envie a foto da correção e os documentos solicitados pela Auditar, quando aplicável.');
+  target.append(item);
+ });
+ target.append(text('small','As correções devem ser verificadas pela Auditar antes do encerramento técnico.'));
+ window.print();
+}
+window.addEventListener('afterprint',()=>{
+ const target=$('printPlan');target.classList.add('hidden');target.setAttribute('aria-hidden','true');
+});
+function renderImprovementPlan(company){
+ const details=document.createElement('details');details.className='drill';
+ details.dataset.portalKey=company.id+':plan';
+ const source=managerOpenProblems(company);
+ details.append(text('summary','O que precisamos resolver? ('+source.length+')'));
+ if(!source.length){details.append(text('p','Nenhuma providência pendente nesta publicação.','compact-note'));return details;}
+ const tools=text('div','','manager-tools');
+ tools.append(text('span','Instruções simples, prazo e base normativa','manager-total'));
+ const print=text('button','Imprimir / salvar plano em PDF','secondary manager-btn');print.type='button';
+ print.onclick=()=>printManagerPlan(company,source);tools.append(print);details.append(tools);
+ source.slice(0,12).forEach((row,index)=>{
+  const card=text('div','','improvement-card');card.dataset.ncId=row.id||'';
+  card.append(text('h4',(index+1)+'. '+(row.title||row.description||'Providência')));
+  if(row.description){card.append(text('span','O que encontramos','label'),text('p',row.description));}
+  const action=row.action||row.recommendation;
+  card.append(text('span','O que precisa ser feito','label'),
+    text('p',action||'Orientação específica ainda não publicada. Consulte a Auditar.'));
+  card.append(text('div','Base normativa: '+(row.normative?
+   row.normative+(row.normativeItem?' • Item '+row.normativeItem:''):
+   'Não informada no registro. Consulte a Auditar.'),'norma-box'));
+  const meta=[row.responsible?'Responsável: '+row.responsible:'',
+   row.dueDate?'Prazo: '+row.dueDate:'',row.priority?'Prioridade: '+row.priority:''].filter(Boolean).join(' • ');
+  if(meta)card.append(text('p',meta,'compact-note'));
+  if(row.recurrence)card.append(text('span','Problema encontrado novamente','status-dot warn'));
+  if(company.permissions&&company.permissions.enviarEvidencia&&row.id){
+   const actions=text('div','','manager-actions');
+   const send=text('button','Enviar foto da correção','secondary manager-btn');send.type='button';
+   send.onclick=()=>showEvidenceForm(card,company.id,row.id,send);actions.append(send);card.append(actions);
+  }
+  details.append(card);
+ });
+ if(source.length>12)details.append(text('p','Mostrando as 12 primeiras providências. O plano para impressão inclui todas as publicadas.','compact-note'));
+ return details;
+}
+function downloadPublishedReport(company,report,button){
+ button.disabled=true;const initial=button.textContent;button.textContent='Preparando PDF…';
+ call('clientPortalReportPdf',[token,company.id,report.id],res=>{
+  button.disabled=false;button.textContent=initial;
+  if(!res||!res.ok){setMessage(res&&res.message||'Arquivo indisponível.',true);return;}
+  try{
+   const binary=atob(res.base64);const bytes=new Uint8Array(binary.length);
+   for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+   const url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
+   const anchor=document.createElement('a');anchor.href=url;anchor.download=res.fileName||'Relatorio_Auditar.pdf';
+   document.body.append(anchor);anchor.click();anchor.remove();
+   setTimeout(()=>URL.revokeObjectURL(url),60000);
+   setMessage('PDF preparado para baixar.');
+  }catch(_){setMessage('Não foi possível preparar o PDF neste navegador.',true);}
+ },err=>{button.disabled=false;button.textContent=initial;setMessage(err,true);});
+}
+function renderReportHighlights(company){
+ const details=document.createElement('details');details.className='drill';
+ details.dataset.portalKey=company.id+':reports';
+ const rows=company.reports||[];
+ details.append(text('summary','Relatórios publicados ('+rows.length+')'));
+ if(!rows.length){details.append(text('p','Os PDFs aparecerão aqui após publicação pela Auditar.','compact-note'));return details;}
+ const grid=text('div','','report-ribbon');
+ function add(rows,holder){
+  rows.forEach(r=>{
+   const c=text('div','','report-mini');
+   c.append(text('b',r.title||'Relatório técnico'),
+    text('small',[r.date,r.status].filter(Boolean).join(' • ')));
+   if(r.hasPdf&&r.id){
+    const open=text('button','Baixar PDF','secondary manager-btn');open.type='button';
+    open.onclick=()=>downloadPublishedReport(company,r,open);c.append(open);
+   }else c.append(text('div','Arquivo ainda não disponível para abrir no painel.','document-note'));
+   holder.append(c);
+  });
+ }
+ add(rows.slice(0,3),grid);details.append(grid);
+ if(rows.length>3){
+  const more=document.createElement('details');more.className='activity-toggle';
+  more.append(text('summary','Ver todos os relatórios ('+rows.length+')'));
+  const full=text('div','','report-ribbon');add(rows.slice(3),full);more.append(full);details.append(more);
+ }
+ return details;
+}
+function renderCompany(company){
+ const shell=text('section','','panel portal-company');
+ const head=text('div','','exec-head');const left=text('div');
+ left.append(text('div','Empresa acompanhada','exec-kicker'),text('h2',company.name,'exec-company'));
+ const updated=text('span','','update-chip');updated.append(text('span','','auto-dot'),text('span','Última publicação da Auditar: '+formatPortalDate(company.updatedAt)));
+ head.append(left,updated);shell.append(head);
+ const summary=company.summary||{},training=company.trainingSummary||{};
+ const metrics=text('div','','exec-metrics');
+ const hasConformityBase=(safeNum(summary.total)>0 || safeNum(summary.inspections)>0);
+ const metricData=[
+  ['Problemas em aberto',safeNum(summary.openNcs), ''],
+  ['Ações vencidas',safeNum(summary.overdueActions), 'alert'],
+  ['Treinamentos vencidos',safeNum(training.expired), 'warn'],
+  ['Conformidade',hasConformityBase?safeNum(summary.conformity):null, 'good','%']
+ ];
+ metricData.forEach((m,i)=>{const c=text('div','',('exec-card '+m[2]).trim());c.append(text('span',m[0]),text('strong',m[1]==null?'—':m[1]+(m[3]||'')));if(i===3&&!hasConformityBase)c.append(text('small','Aguardando dados da vistoria','metric-hint'));metrics.append(c);});
+ shell.append(metrics);
+ shell.append(renderExecutiveAttention(company));
+ const grid=text('div','','section-grid');const main=text('div','','compact-box providencias-box');
+ main.append(text('div','PLANO DE AÇÃO','section-eyebrow'),text('h3','Acompanhamento das providências'));
+ const actions=company.actions||[];main.append(renderKanban(actions,company));
+ if(actions.length>24)main.append(text('div','Mostrando as ações mais recentes por etapa.','compact-note'));
+ grid.append(main,renderTrainingAndDds(company));shell.append(grid);
+ if(company.permissions&&company.permissions.indicadores)shell.append(renderTrainingWorkers(company));
+ renderRecentRecords(shell,company);
+ shell.append(renderImprovementPlan(company));
+ shell.append(renderReportHighlights(company));
+ if(company.permissions&&company.permissions.naoConformidades){
+  const nc=document.createElement('details');nc.className='activity-toggle';
+  const rows=(company.nonConformities||[]);
+  nc.append(text('summary','Problemas encontrados ('+rows.length+')'));
+  rows.slice(0,20).forEach(row=>{
+   const line=text('div','','record-line');line.append(text('b',row.title||row.description||'Não conformidade'),
+    text('small',[row.sector,row.status,row.priority].filter(Boolean).join(' • ')));nc.append(line);
+  });shell.append(nc);
+ }
+ if(company.permissions&&company.permissions.enviarEvidencia&&current.user.role==='cliente')
+  shell.append(renderMyEvidence(company));
+ if(current.user.role!=='cliente')renderQueue(shell,company);
+ $('companies').append(shell);
+}
+function renderList(shell,title,rows,company){
+ const details=document.createElement('details');details.style.marginTop='18px';
+ const summary=text('summary',title+' ('+rows.length+')');summary.style.fontWeight='750';summary.style.cursor='pointer';details.append(summary);
+ if(!rows.length)details.append(text('p','Nenhum registro liberado no momento.','muted'));
+ rows.forEach(row=>{
+  const e=text('div','','entry');e.append(text('h3',row.title||row.description||'Registro'));
+  const meta=[row.sector,row.date,row.status,row.priority].filter(Boolean).join(' • ');if(meta)e.append(text('div',meta,'muted'));
+  if(row.description)e.append(text('p',row.description));if(row.recommendation)e.append(text('p','Recomendação: '+row.recommendation));
+  if(row.dueDate)e.append(text('div','Prazo: '+row.dueDate,'muted'));
+  if(row.responsible)e.append(text('div','Responsável: '+row.responsible,'muted'));
+  if(row.action)e.append(text('p','Ação: '+row.action));
+  if(title==='Não conformidades'&&company.permissions.enviarEvidencia&&row.id){
+   const button=text('button','Enviar evidência','secondary');button.type='button';
+   button.onclick=()=>showEvidenceForm(e,company.id,row.id,button);e.append(button);
+  }
+  details.append(e);
+ });
+ shell.append(details);
+}
+function showEvidenceForm(e,companyId,ncId,button){
+ button.disabled=true;const form=text('form');form.append(text('label','Descrição da correção'));
+ const note=document.createElement('textarea');note.rows=3;note.maxLength=1000;note.required=false;note.placeholder='Conte o que foi feito e, se possível, por quem.';form.className='manager-photo-form';form.append(note);
+ form.append(text('label','Fotografia (opcional, até 2 MB)'));
+ const photo=document.createElement('input');photo.type='file';photo.accept='image/jpeg,image/png,image/webp';form.append(photo);
+ const message=text('p','','muted');const submit=text('button','Enviar para validação');submit.type='submit';form.append(message,submit);
+ form.onsubmit=evt=>{
+  evt.preventDefault();submit.disabled=true;message.textContent='Enviando…';
+  const file=photo.files&&photo.files[0];if(file&&file.size>2000000){
+   message.textContent='Fotografia maior que 2 MB.';submit.disabled=false;return;
+  }
+  const send=image=>call('clientPortalSubmitEvidence',[token,companyId,ncId,note.value,image],res=>{
+   message.textContent=res&&res.message||'Não foi possível enviar.';
+   message.className=res&&res.ok?'ok':'error';submit.disabled=!!(res&&res.ok);
+  },err=>{message.textContent=err;message.className='error';submit.disabled=false;});
+  if(!file)return send(null);
+  const reader=new FileReader();
+  reader.onerror=()=>{message.textContent='Erro ao ler a fotografia.';submit.disabled=false;};
+  reader.onload=()=>{
+   const raw=String(reader.result||'');send({mimeType:file.type,base64:raw.split(',')[1]||''});
+  };
+  reader.readAsDataURL(file);
+ };
+ e.append(form);
+}
+function renderMyEvidence(company){
+ const details=document.createElement('details');details.className='drill';
+ details.dataset.portalKey=company.id+':my-evidence';
+ details.append(text('summary','Minhas correções enviadas'));
+ const btn=text('button','Consultar envios','secondary manager-btn');btn.type='button';
+ const area=text('div');details.append(btn,area);
+ btn.onclick=()=>{
+  btn.disabled=true;area.replaceChildren(text('p','Carregando…','muted'));
+  call('clientPortalMyEvidence',[token,company.id],res=>{
+   btn.disabled=false;area.replaceChildren();
+   if(!res||!res.ok){area.append(text('p',res&&res.message||'Não foi possível consultar.','error'));return;}
+   const labels={PENDENTE_VALIDACAO:'Aguardando conferência da Auditar',
+    VALIDADA:'Evidência conferida pela Auditar',REJEITADA:'Precisa de complemento'};
+   if(!(res.evidences||[]).length)area.append(text('p','Você ainda não enviou correções pelo painel.','compact-note'));
+   (res.evidences||[]).forEach(row=>{
+    const line=text('div','','record-line');
+    line.append(text('b','Problema: '+row.ncId),
+     text('small',[formatPortalDate(row.date),labels[row.status]||row.status].filter(Boolean).join(' • ')));
+    if(row.note)line.append(text('p',row.note));
+    if(row.hasPhoto){
+     const view=text('button','Ver foto enviada','secondary manager-btn');view.type='button';
+     view.onclick=()=>{
+      view.disabled=true;
+      call('clientPortalEvidencePhoto',[token,row.id],image=>{
+       view.disabled=false;
+       if(!image||!image.ok){line.append(text('p',image&&image.message||'Foto indisponível.','error'));return;}
+       const img=document.createElement('img');img.className='photo-preview';
+       img.alt='Fotografia da correção enviada';img.src='data:'+image.mimeType+';base64,'+image.base64;
+       line.append(img);view.remove();
+      },err=>{view.disabled=false;line.append(text('p',err,'error'));});
+     };line.append(view);
+    }
+    area.append(line);
+   });
+  },err=>{btn.disabled=false;area.replaceChildren(text('p',err,'error'));});
+ };
+ return details;
+}
+function renderQueue(shell,company){
+ const details=document.createElement('details');details.style.marginTop='18px';
+ details.append(text('summary','Evidências aguardando validação'));
+ const btn=text('button','Carregar evidências','secondary');btn.type='button';
+ const area=text('div');details.append(btn,area);shell.append(details);
+ btn.onclick=()=>{btn.disabled=true;area.replaceChildren(text('p','Carregando…','muted'));
+  call('clientPortalEvidenceQueue',[token,company.id],res=>{
+   btn.disabled=false;area.replaceChildren();
+   if(!res||!res.ok){area.append(text('p',res&&res.message||'Erro.','error'));return;}
+   if(!res.evidences.length)area.append(text('p','Nenhuma evidência enviada.','muted'));
+   res.evidences.forEach(evidence=>{
+    const box=text('div','','entry');box.append(text('h3','NC: '+evidence.ncId),
+    text('p',evidence.note||'Fotografia enviada.'),text('div',evidence.date+' • '+evidence.status,'muted'));
+    if(evidence.hasPhoto){
+     const view=text('button','Ver fotografia','secondary');view.type='button';view.onclick=()=>call('clientPortalEvidencePhoto',[token,evidence.id],res=>{
+      if(!res||!res.ok)return box.append(text('p',res&&res.message||'Foto indisponível.','error'));
+      const img=document.createElement('img');img.className='photo-preview';img.alt='Evidência de correção';
+      img.src='data:'+res.mimeType+';base64,'+res.base64;box.append(img);
+     },err=>box.append(text('p',err,'error')));box.append(view);
+    }
+    if(evidence.status==='PENDENTE_VALIDACAO'){
+     const buttons=text('div','','row');
+     ['VALIDADA','REJEITADA'].forEach(choice=>{
+      const b=text('button',choice==='VALIDADA'?'Validar evidência':'Rejeitar evidência',choice==='VALIDADA'?'':'warn');b.type='button';
+      b.onclick=()=>{b.disabled=true;call('clientPortalReviewEvidence',[token,evidence.id,choice],res=>{
+       if(res&&res.ok)btn.click();else{b.disabled=false;box.append(text('p',res&&res.message||'Erro.','error'));}
+      },err=>{b.disabled=false;box.append(text('p',err,'error'));});};buttons.append(b);
+     });box.append(buttons);
+    }area.append(box);
+   });
+  },err=>{btn.disabled=false;area.replaceChildren(text('p',err,'error'));});
+ };
+}
+$('loginForm').onsubmit=event=>{
+ event.preventDefault();$('enter').disabled=true;$('loginError').textContent='';
+ call('clientPortalLogin',[$('email').value,$('password').value],res=>{
+  $('enter').disabled=false;$('password').value='';
+  if(!res||!res.ok){$('loginError').textContent=res&&res.message||'Não foi possível entrar.';return;}
+  token=res.token;sessionStorage.setItem('auditar_client_portal_session',token);load();
+ },err=>{$('enter').disabled=false;$('loginError').textContent=err;});
+};
+$('refresh').onclick=load;
+$('logout').onclick=()=>{const old=token;showLogin('');call('clientPortalLogout',[old],()=>{},()=>{});};
+let autoRefreshTimer=null;
+function armAutoRefresh(){
+ if(autoRefreshTimer)clearInterval(autoRefreshTimer);
+ autoRefreshTimer=setInterval(()=>{
+  if(token&&current&&current.user&&current.user.role==='cliente'&&!document.hidden)load(true);
+ },60000);
+}
+document.addEventListener('visibilitychange',()=>{
+ if(!document.hidden&&token&&current&&current.user&&current.user.role==='cliente')load(true);
+});
+window.addEventListener('focus',()=>{
+ if(token&&current&&current.user&&current.user.role==='cliente')load(true);
+});
+armAutoRefresh();
+if(token)load();
+})();
+</script>
+</body>
+</html>
