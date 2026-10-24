@@ -85,8 +85,13 @@ for label,value in [
  m=pattern(m,rx,lambda x:'(highlightRecommendations ? _emphasisLine'+x.group(0)[5:]+' : '+x.group(0)+')')
 m=pattern(m,r'bool includePhotos\s*=\s*true\s*;',
     lambda x:x.group(0)+'\n  bool highlightRecommendations = false;')
-m=pattern(m,r'includePhotos:\s*includePhotos,\s*search:\s*specificSearch\)',
-    lambda x:'includePhotos: includePhotos,\n          highlightRecommendations: highlightRecommendations,\n          search: specificSearch)')
+# Liga a opção visual somente quando se identifica o ponto de geração do PDF.
+# Em versões com chamada diferente, não exibe uma caixa inoperante.
+callPattern=r'includePhotos:\\s*includePhotos\\s*,'
+calls=list(re.finditer(callPattern,m))
+linked=len(calls)==1
+if linked:
+ m=pattern(m,callPattern,lambda x:x.group(0)+'\\n          highlightRecommendations: highlightRecommendations,')
 label="'Incluir fotografias disponíveis'"
 pos=m.index(label)
 anchor=m.rfind('SwitchListTile.adaptive(',0,pos)
@@ -102,7 +107,10 @@ addition="""SwitchListTile.adaptive(
   onChanged: busy ? null : (v) => setState(() => highlightRecommendations = v),
 ),
 """
-m=m[:start]+indent+addition.replace('\n','\n'+indent)+m[start:]
+if linked:
+ m=m[:start]+indent+addition.replace('\n','\n'+indent)+m[start:]
+else:
+ print('PDF_MANAGER_HIGHLIGHT_UI_SKIPPED_CALL_NOT_FOUND')
 manager.write_text(m,encoding='utf8',newline='\n')
 pub=root/'pubspec.yaml'
 current=pub.read_text(encoding='utf8')

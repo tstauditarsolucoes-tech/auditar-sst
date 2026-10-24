@@ -3,11 +3,11 @@ import 'package:auditar_sst/services/offline_sst_deep_catalog_v2.dart';
 import 'package:auditar_sst/widgets/offline_report_inline_suggestions.dart';
 
 void main() {
-  test('acervo detalhado: 122 casos, sem duplicidade e cobertura de NRs', () {
+  test('acervo detalhado: 145 casos, sem duplicidade e cobertura de NRs', () {
     final all=OfflineSstDeepCatalog.entries;
-    expect(all.length,122);
-    expect(all.map((e)=>e['id']).toSet().length,122);
-    for(final nr in ['NR-12','NR-06','NR-18','NR-23','NR-31','NR-35']) {
+    expect(all.length,145);
+    expect(all.map((e)=>e['id']).toSet().length,145);
+    for(final nr in ['NR-12','NR-06','NR-17','NR-18','NR-23','NR-31','NR-35']) {
       expect(all.where((e)=>e['nr']==nr).length,greaterThanOrEqualTo(15));
     }
     for(final item in all) {
@@ -31,6 +31,11 @@ void main() {
     expect(OfflineSstDeepCatalog.matches('Extintor não está vencido'),isEmpty);
     expect(OfflineSstDeepCatalog.matches('Extintor funcionando normalmente'),isEmpty);
     expect(OfflineSstDeepCatalog.matches('Máquina com proteção instalada'),isEmpty);
+  });
+  test('NR-17: reconhece ergonomia e evita NC sem falha descrita', () {
+    expect(OfflineSstDeepCatalog.matches('Cadeira sem encosto').any((e)=>e['nr']=='NR-17'),isTrue);
+    expect(OfflineSstDeepCatalog.matches('Cadeira com encosto adequado'),isEmpty);
+    expect(OfflineSstDeepCatalog.matches('Trabalho em pé sem alternância').any((e)=>e['nr']=='NR-17'),isTrue);
   });
   test('identifica máquinas e campo agrícola', () {
     expect(OfflineSstDeepCatalog.matches('Roçadeira sem proteção')

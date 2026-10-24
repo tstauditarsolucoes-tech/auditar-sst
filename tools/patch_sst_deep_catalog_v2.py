@@ -53,7 +53,7 @@ s=pattern(s,r'if\s*\(_clearlyCompliant\(normalized\)\)\s*return const \[\];',
 method="""  Future<void> _browseCatalog(BuildContext context) async {
     final search = TextEditingController();
     var selected = 'Todas';
-    const areas = <String>['Todas','NR-12','NR-06','NR-18','NR-23','NR-31','NR-35','Outras'];
+    const areas = <String>['Todas','NR-12','NR-06','NR-17','NR-18','NR-23','NR-31','NR-35','Outras'];
     await showModalBottomSheet<void>(
       context:context,isScrollControlled:true,showDragHandle:true,
       builder:(modalContext)=>StatefulBuilder(builder:(innerContext,refresh) {
