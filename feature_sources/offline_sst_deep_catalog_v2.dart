@@ -157,6 +157,51 @@ class OfflineSstDeepCatalog {
     return s.replaceAll(RegExp(r'[^a-z0-9\s]'),' ').replaceAll(RegExp(r'\s+'),' ').trim();
   }
 
+
+  /// Pesquisa rápida para vistoria: palavras em qualquer ordem, sem rede/IA.
+  /// Nunca tipifica automaticamente uma não conformidade.
+  static List<Map<String,String>> browse({
+    String standard='Todas',
+    String search='',
+    int limit=150,
+  }) {
+    if(limit<=0) return const [];
+    const highlighted=<String>['NR-12','NR-06','NR-17','NR-18','NR-23','NR-31','NR-35'];
+    const ignored=<String>{'a','as','o','os','um','uma','de','da','das',
+      'do','dos','em','no','na','nos','nas','com','para','por','e'};
+    final input=normalize(search);
+    final tokens=input.split(' ').where((part)=>
+       part.isNotEmpty && !ignored.contains(part)).toList(growable:false);
+    final candidates=entries.where((item) {
+      final nr=item['nr'] ?? '';
+      if(standard!='Todas' &&
+        !(standard=='Outras' ? !highlighted.contains(nr) : nr==standard)) {
+        return false;
+      }
+      final haystack=normalize(
+        (item['title'] ?? '')+' '+(item['description'] ?? '')+' '+
+        (item['risk'] ?? '')+' '+(item['recommendation'] ?? '')+' '+nr);
+      return tokens.every((token)=>haystack.contains(token));
+    }).toList();
+    int score(Map<String,String> item) {
+      final title=normalize(item['title'] ?? '');
+      var total=(input.isNotEmpty && title.contains(input)) ? 30 : 0;
+      for(final token in tokens) {
+        if(title.split(' ').contains(token)) {
+          total+=10;
+        } else if(title.contains(token)) {
+          total+=6;
+        }
+      }
+      return total;
+    }
+    candidates.sort((a,b) {
+      final byScore=score(b).compareTo(score(a));
+      return byScore!=0 ? byScore : (a['title'] ?? '').compareTo(b['title'] ?? '');
+    });
+    return candidates.take(limit).toList(growable:false);
+  }
+
   /// Exige que equipamento/tema E a falha estejam explícitos no relato.
   /// Quando a ocorrência estiver regularizada ou não confirmada, não propõe NC.
   static List<Map<String,String>> matches(String description) {

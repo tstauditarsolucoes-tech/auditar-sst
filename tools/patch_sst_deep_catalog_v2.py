@@ -57,17 +57,8 @@ method="""  Future<void> _browseCatalog(BuildContext context) async {
     await showModalBottomSheet<void>(
       context:context,isScrollControlled:true,showDragHandle:true,
       builder:(modalContext)=>StatefulBuilder(builder:(innerContext,refresh) {
-        final searchText=OfflineSstDeepCatalog.normalize(search.text);
-        final matches=OfflineSstDeepCatalog.entries.where((item) {
-          final nr=item['nr'] ?? '';
-          final inArea=selected=='Todas'||(selected=='Outras'
-             ? !areas.contains(nr):selected==nr);
-          if(!inArea) return false;
-          if(searchText.isEmpty) return true;
-          return OfflineSstDeepCatalog.normalize(
-            (item['title'] ?? '')+' '+(item['description'] ?? '')+' '+
-            nr+' '+(item['recommendation'] ?? '')).contains(searchText);
-        }).toList();
+        final matches=OfflineSstDeepCatalog.browse(
+          standard:selected,search:search.text);
         return SafeArea(child:SizedBox(
           height:MediaQuery.of(innerContext).size.height*.8,
           child:Center(child:ConstrainedBox(

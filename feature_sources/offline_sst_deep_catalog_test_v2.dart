@@ -37,6 +37,24 @@ void main() {
     expect(OfflineSstDeepCatalog.matches('Cadeira com encosto adequado'),isEmpty);
     expect(OfflineSstDeepCatalog.matches('Trabalho em pé sem alternância').any((e)=>e['nr']=='NR-17'),isTrue);
   });
+  test('busca de vistoria ignora a ordem das palavras', () {
+    final items=OfflineSstDeepCatalog.browse(search:'vencida inspecao extintor');
+    expect(items.any((e)=>e['id']=='deep-nr23-inspecao-venc'),isTrue);
+    expect(OfflineSstDeepCatalog.browse(search:'extintor com inspeção vencida')
+      .any((e)=>e['id']=='deep-nr23-inspecao-venc'),isTrue);
+  });
+  test('filtro por NR evita mistura de modelos', () {
+    final nr17=OfflineSstDeepCatalog.browse(standard:'NR-17',search:'cadeira encosto');
+    expect(nr17,isNotEmpty);
+    expect(nr17.every((e)=>e['nr']=='NR-17'),isTrue);
+    final others=OfflineSstDeepCatalog.browse(standard:'Outras');
+    expect(others.any((e)=>e['nr']=='NR-12'),isFalse);
+    expect(others.any((e)=>e['nr']=='NR-17'),isFalse);
+  });
+  test('busca vazia lista sugestões sem bloquear a vistoria', () {
+    expect(OfflineSstDeepCatalog.browse(standard:'NR-17').length,greaterThan(20));
+    expect(OfflineSstDeepCatalog.browse(limit:0),isEmpty);
+  });
   test('identifica máquinas e campo agrícola', () {
     expect(OfflineSstDeepCatalog.matches('Roçadeira sem proteção')
        .any((e)=>e['nr']=='NR-31'),isTrue);
