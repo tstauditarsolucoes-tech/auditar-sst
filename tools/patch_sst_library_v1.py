@@ -84,6 +84,11 @@ new=old+"""              SwitchListTile.adaptive(
 """
 m=replace_one(m,old,new)
 manager.write_text(m,encoding='utf8',newline='\n')
+pub=root/'pubspec.yaml'
+current=pub.read_text(encoding='utf8')
+old,new=('3.29.195+337','3.29.196+338') if sys.argv[2]=='android' else ('3.30.123+310','3.30.124+311')
+current=replace_one(current,'version: '+old,'version: '+new)
+pub.write_text(current,encoding='utf8',newline='\n')
 for path,digest in before.items():
  assert hashlib.sha256((root/path).read_bytes()).hexdigest()==digest,path
 print('LIBRARY_MORE_OPTIONS_AND_OPTIONAL_MANAGER_PDF_EMPHASIS_OK')

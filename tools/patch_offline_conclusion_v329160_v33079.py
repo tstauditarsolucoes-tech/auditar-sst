@@ -69,17 +69,23 @@ if "Future<void> _generateRoundConclusionOffline()" not in round_screen:
         raise RuntimeError("fallback de conclusao da Ronda nao localizado")
 
     methods = r'''  String _buildOfflineRoundConclusion() {
+    final total = roundRecords.length;
+    final pendentes = _nonConformities;
+    final boasPraticas = _conformities;
+    if (total == 0) {
+      return 'Não há registros suficientes nesta ronda para gerar uma conclusão técnica.';
+    }
     final parts = <String>[
-      'Durante a vistoria na empresa ${widget.company.name}, foram registrados ${roundRecords.length} achado(s), sendo $_nonConformities não conformidade(s) e $_conformities conformidade(s)/boa(s) prática(s).',
+      'Durante a vistoria na empresa ${widget.company.name}, foram registrados $total achado(s), sendo $pendentes não conformidade(s) e $boasPraticas conformidade(s) ou boa(s) prática(s).',
       if (_highCritical > 0)
-        'Foram identificados $_highCritical registro(s) de prioridade alta ou crítica, que devem receber tratamento prioritário.',
+        'Foram identificados $_highCritical registro(s) de prioridade alta ou crítica; a ordem de tratamento deve considerar a exposição real observada.',
       if (_recurringCount > 0)
-        'Também foram sinalizados $_recurringCount problema(s) com possível recorrência, recomendando-se verificar a eficácia das correções anteriores.',
-      if (_nonConformities > 0)
-        'Recomenda-se executar as correções descritas, definir responsáveis e prazos e registrar evidências da regularização.',
-      if (_nonConformities == 0 && _conformities > 0)
-        'As condições conformes e boas práticas registradas devem ser mantidas e acompanhadas nas próximas verificações.',
-      'O acompanhamento posterior deverá verificar a execução e a eficácia das medidas registradas nesta vistoria.',
+        'Existem $_recurringCount indicação(ões) de possível recorrência, cuja confirmação depende de verificar a eficácia das medidas anteriores.',
+      if (pendentes > 0)
+        'As recomendações específicas dos itens não conformes devem orientar responsáveis, prazos e evidências das correções.',
+      if (pendentes == 0)
+        'Não foram registradas não conformidades nesta ronda; isso se limita aos itens efetivamente examinados e não dispensa o acompanhamento preventivo.',
+      'A regularização somente pode ser confirmada em verificação posterior pela equipe responsável.',
     ];
     return parts.join(' ');
   }
@@ -191,19 +197,22 @@ if "Future<void> _generateOfflineInspectionConclusion()" not in report:
     methods = r'''  String _buildOfflineInspectionConclusion() {
     final applicable = conformes + naoConformes + parciais;
     final total = applicable + na;
-    final conformity = applicable == 0
-        ? 0
-        : ((conformes * 100) / applicable).round();
-
-    if (naoConformes == 0 && parciais == 0) {
-      return 'Na data da vistoria, foram registrados $total item(ns), sem não conformidades ou situações parciais entre os critérios aplicáveis. Recomenda-se manter os controles existentes, as boas práticas observadas e o acompanhamento preventivo das condições avaliadas.';
+    if (total == 0 || applicable == 0) {
+      return 'Não há resultados aplicáveis suficientes para estabelecer conclusão de conformidade. Confira os registros e a aplicabilidade antes da emissão.';
     }
-
+    final conformity = ((conformes * 100) / applicable).round();
     final parts = <String>[
-      'A vistoria registrou $naoConformes não conformidade(s) e $parciais item(ns) parcial(is), com índice de conformidade de $conformity% entre os critérios aplicáveis.',
-      'Recomenda-se executar as correções descritas no relatório, definir responsáveis e prazos e manter registro das evidências de regularização.',
-      'Os itens pendentes devem ser verificados em acompanhamento posterior para confirmar a execução e a eficácia das medidas adotadas.',
-      'Este relatório retrata as condições observadas na data da vistoria e não representa confirmação de regularização posterior.',
+      'A vistoria registrou $total item(ns): $conformes conforme(s), $naoConformes não conforme(s), $parciais parcialmente conforme(s) e $na não aplicável(is).',
+      'O índice descritivo de conformidade integral entre itens aplicáveis é $conformity%. Esse índice não substitui a avaliação da gravidade dos riscos.',
+      if (naoConformes > 0)
+        'As $naoConformes não conformidade(s) exigem tratamento conforme a recomendação e a prioridade de cada achado.',
+      if (parciais > 0)
+        'Os $parciais item(ns) parcialmente conforme(s) demandam complementação das medidas e nova verificação.',
+      if (naoConformes == 0 && parciais == 0)
+        'Não foram registradas pendências entre os itens aplicáveis avaliados. Esse resultado não comprova condições que não foram inspecionadas.',
+      if (naoConformes > 0 || parciais > 0)
+        'Recomenda-se estabelecer responsáveis, prazos e evidências para executar as correções e verificar sua eficácia.',
+      'Esta conclusão se limita à data e aos dados registrados e deve ser revisada pelo técnico antes da emissão.',
     ];
     return parts.join(' ');
   }
