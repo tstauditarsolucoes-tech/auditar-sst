@@ -69,8 +69,8 @@ for label,expr in [
  m=replace_one(m,old,new)
 m=replace_one(m,"  bool includePhotos = true;",
 "  bool includePhotos = true;\n  bool highlightRecommendations = false;")
-m=replace_one(m,"          includePhotos: includePhotos,\n          search: specificSearch,",
-"          includePhotos: includePhotos,\n          highlightRecommendations: highlightRecommendations,\n          search: specificSearch,")
+m=replace_one(m,"          includePhotos: includePhotos,\n          search: specificSearch);",
+"          includePhotos: includePhotos,\n          highlightRecommendations: highlightRecommendations,\n          search: specificSearch);")
 old="""                onChanged: busy ? null : (v) => setState(() => includePhotos = v),
               ),
 """
