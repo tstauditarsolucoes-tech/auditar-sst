@@ -77,6 +77,11 @@ for label,value in [
 ]:
  rx=(r'_line\(\s*'+re.escape("'"+label+"'")+r'\s*,\s*_short\(\s*value\(\s*'
       +value[0]+r'\s*,\s*'+re.escape("'"+value[1]+"'")+r'\s*\)\s*\)\s*\)')
+ matches=list(re.finditer(rx,m,re.S))
+ if label=='Ação necessária' and not matches:
+  # Algumas versões já tratam a ação em um renderer separado.
+  continue
+ assert len(matches)==1,(label,len(matches))
  m=pattern(m,rx,lambda x:'(highlightRecommendations ? _emphasisLine'+x.group(0)[5:]+' : '+x.group(0)+')')
 m=pattern(m,r'bool includePhotos\s*=\s*true\s*;',
     lambda x:x.group(0)+'\n  bool highlightRecommendations = false;')

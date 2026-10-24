@@ -131,7 +131,7 @@ class OfflineSstDeepCatalog {
     var s=value.toLowerCase();
     const accents={'á':'a','à':'a','â':'a','ã':'a','é':'e','ê':'e','í':'i','ó':'o','ô':'o','õ':'o','ú':'u','ç':'c'};
     accents.forEach((a,b)=>s=s.replaceAll(a,b));
-    return s.replaceAll(RegExp(r'[^a-z0-9\\s]'),' ').replaceAll(RegExp(r'\\s+'),' ').trim();
+    return s.replaceAll(RegExp(r'[^a-z0-9\s]'),' ').replaceAll(RegExp(r'\s+'),' ').trim();
   }
 
   /// Exige que equipamento/tema E a falha estejam explícitos no relato.
