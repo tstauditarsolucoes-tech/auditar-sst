@@ -18,7 +18,7 @@ for field, value in [
     ('operation', 'status'),
     ('operation', 'list'),
 ]:
-    pattern = rf"['\\\"]{field}['\\\"]\\s*:\\s*['\\\"]{value}['\\\"]"
+    pattern = rf'''[\'"]{re.escape(field)}[\'"]\s*:\s*[\'"]{re.escape(value)}[\'"]'''
     assert re.search(pattern, agenda), (field, value)
 assert 'version: 3.30.123+310' in (root/'pubspec.yaml').read_text(encoding='utf8')
 print('AGENDA_WINDOWS_330123_REGRESSION_OK')
