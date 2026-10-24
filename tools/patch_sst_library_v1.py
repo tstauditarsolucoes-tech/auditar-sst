@@ -87,11 +87,11 @@ m=pattern(m,r'bool includePhotos\s*=\s*true\s*;',
     lambda x:x.group(0)+'\n  bool highlightRecommendations = false;')
 # Liga a opção visual somente quando se identifica o ponto de geração do PDF.
 # Em versões com chamada diferente, não exibe uma caixa inoperante.
-callPattern=r'includePhotos:\\s*includePhotos\\s*,'
+callPattern=r'includePhotos:\s*includePhotos\s*,'
 calls=list(re.finditer(callPattern,m))
 linked=len(calls)==1
 if linked:
- m=pattern(m,callPattern,lambda x:x.group(0)+'\\n          highlightRecommendations: highlightRecommendations,')
+ m=pattern(m,callPattern,lambda x:x.group(0)+'\n          highlightRecommendations: highlightRecommendations,')
 label="'Incluir fotografias disponíveis'"
 pos=m.index(label)
 anchor=m.rfind('SwitchListTile.adaptive(',0,pos)
