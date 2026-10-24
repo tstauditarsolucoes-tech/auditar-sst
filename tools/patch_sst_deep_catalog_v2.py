@@ -128,7 +128,11 @@ s=s[:build]+method+s[build:]
 s=pattern(s,r'if\s*\(query\.trim\(\)\.length\s*<\s*3\)\s*return const SizedBox\.shrink\(\);',
  'if (query.trim().length < 3) return _browseButton(context);')
 s=pattern(s,r'if\s*\(hidden\.isNotEmpty\)\s*\n\s*TextButton\.icon\(',
- """_browseButton(context),
+ """IconButton(
+                      tooltip:'Consultar biblioteca por NR',
+                      onPressed:()=>_browseCatalog(context),
+                      icon:const Icon(Icons.menu_book_outlined),
+                    ),
                     if (hidden.isNotEmpty)
                       TextButton.icon(""")
 s=pattern(s,r'const Icon\(Icons\.search_off_rounded,\s*size:\s*18\),',
