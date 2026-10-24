@@ -1,94 +1,108 @@
 #!/usr/bin/env python3
-"""Amplia sugestões offline e adiciona realce OPCIONAL nos PDFs gerenciais."""
+"""Ampliação aditiva da biblioteca offline e ênfase opcional no PDF gerencial."""
 from pathlib import Path
-import hashlib,shutil,sys
+import hashlib,re,shutil,sys
+assert len(sys.argv)==3 and sys.argv[2] in ('android','windows')
 root=Path(sys.argv[1]);repo=Path(__file__).resolve().parents[1]
-assert len(sys.argv)>2 and sys.argv[2] in ('android','windows')
-protected=['lib/database.dart','lib/models.dart','lib/services/auth_service.dart',
+protected=[
+ 'lib/database.dart','lib/models.dart','lib/services/auth_service.dart',
  'lib/services/device_sync_service.dart','lib/services/sync_coordinator.dart',
  'lib/services/media_sync_service.dart','lib/services/drive_service.dart',
  'lib/services/apps_script_http.dart','lib/services/ai_assistant_service.dart',
  'painel_web_google_apps_script/Code.gs','painel_web_google_apps_script/MultiUser.gs',
  'painel_web_google_apps_script/ClientPortal.gs','painel_web_google_apps_script/ClientPortal.html']
 before={p:hashlib.sha256((root/p).read_bytes()).hexdigest() for p in protected if (root/p).exists()}
-def replace_one(src,old,new):
- assert src.count(old)==1,(old,src.count(old))
- return src.replace(old,new,1)
+def exactly(src,old,new):
+    n=src.count(old)
+    assert n==1,(old,n)
+    return src.replace(old,new,1)
+def pattern(src,rx,fn):
+    matches=list(re.finditer(rx,src,re.S))
+    assert len(matches)==1,(rx,len(matches))
+    m=matches[0]
+    return src[:m.start()]+fn(m)+src[m.end():]
+
 widget=root/'lib/widgets/offline_report_inline_suggestions.dart'
 manager=root/'lib/screens/manager_reports_screen.dart'
-assert widget.exists() and manager.exists()
+assert widget.is_file() and manager.is_file()
 dest=root/'lib/services/offline_sst_expanded_catalog_v1.dart'
 assert not dest.exists()
 shutil.copyfile(repo/'feature_sources/offline_sst_expanded_catalog_v1.dart',dest)
+
 s=widget.read_text(encoding='utf8')
-s=replace_one(s,"import '../services/offline_reasoning.dart';",
+s=exactly(s,"import '../services/offline_reasoning.dart';",
 "import '../services/offline_reasoning.dart';\nimport '../services/offline_sst_expanded_catalog_v1.dart';")
-added="""  static final List<OfflineInlineSuggestion> _expanded = [
-    for (final item in OfflineSstExpandedCatalog.entries)
+newCatalog="""  static final List<OfflineInlineSuggestion> _expanded = [
+    for(final item in OfflineSstExpandedCatalog.entries)
       OfflineInlineSuggestion(
-        id: item['id']!, title: item['title']!, description: item['description']!,
-        risk: item['risk']!, possibleConsequence: item['possibleConsequence']!,
-        recommendation: item['recommendation']!, priority: item['priority']!,
-        source: 'auditar_seed'),
+        id:item['id']!, title:item['title']!, description:item['description']!,
+        risk:item['risk']!, possibleConsequence:item['possibleConsequence']!,
+        recommendation:item['recommendation']!, priority:item['priority']!,
+        source:'auditar_seed'),
   ];
 
 """
-s=replace_one(s,"  static const _fallback = <OfflineInlineSuggestion>[",added+"  static const _fallback = <OfflineInlineSuggestion>[")
-s=replace_one(s,"      ..._fallback,\n      ...await _learnedSuggestions(),",
-"      ..._fallback,\n      ..._expanded,\n      ...await _learnedSuggestions(),")
-s=replace_one(s,"    int limit = 3,","    int limit = 6,")
-s=replace_one(s,"  static List<OfflineInlineSuggestion> get fallbackForTesting => _fallback;",
-"  static List<OfflineInlineSuggestion> get fallbackForTesting => [..._fallback, ..._expanded];")
-s=replace_one(s,"    final ranked = _fallback\n",
-"    final ranked = <OfflineInlineSuggestion>[..._fallback, ..._expanded]\n")
+s=pattern(s,r'(?m)^(\s*)static const _fallback = <OfflineInlineSuggestion>\[',
+    lambda m: newCatalog+m.group(0))
+s=pattern(s,r'\.\.\._fallback,\s*\.\.\.await _learnedSuggestions\(\),',
+    lambda m:"..._fallback,\n      ..._expanded,\n      ...await _learnedSuggestions(),")
+s=pattern(s,r'int limit\s*=\s*3,',lambda m:'int limit = 6,')
+s=pattern(s,r'static List<OfflineInlineSuggestion> get fallbackForTesting\s*=>\s*_fallback\s*;',
+    lambda m:'static List<OfflineInlineSuggestion> get fallbackForTesting => [..._fallback, ..._expanded];')
+s=pattern(s,r'final ranked\s*=\s*_fallback(?=\s*\.map)',
+    lambda m:'final ranked = <OfflineInlineSuggestion>[..._fallback, ..._expanded]')
 widget.write_text(s,encoding='utf8',newline='\n')
+
 m=manager.read_text(encoding='utf8')
 helper="""  static pw.Widget _emphasisLine(String label, String data) => pw.Container(
     margin: const pw.EdgeInsets.only(bottom:5),
     padding: const pw.EdgeInsets.symmetric(horizontal:9,vertical:7),
-    decoration: pw.BoxDecoration(color:pale,
-      border: pw.Border(left: pw.BorderSide(color:green,width:3))),
-    child: pw.RichText(text:pw.TextSpan(children:[
+    decoration: pw.BoxDecoration(
+      color:pale, border: pw.Border(left:pw.BorderSide(color:green,width:3))),
+    child:pw.RichText(text:pw.TextSpan(children:[
       pw.TextSpan(text:'$label  ',style:pw.TextStyle(
-        fontSize:9,color:navy,fontWeight:pw.FontWeight.bold)),
+        color:navy,fontSize:9,fontWeight:pw.FontWeight.bold)),
       pw.TextSpan(text:data.isEmpty?'Não informado':data,
-        style:pw.TextStyle(fontSize:9,color:navy,fontWeight:pw.FontWeight.bold)),
+        style:pw.TextStyle(color:navy,fontSize:9,fontWeight:pw.FontWeight.bold)),
     ])),
   );
 """
-m=replace_one(m,"  static pw.Widget _section(String title) =>",helper+"  static pw.Widget _section(String title) =>")
-m=replace_one(m,"    required bool includePhotos,\n    String search = '',",
-"    required bool includePhotos,\n    bool highlightRecommendations = false,\n    String search = '',")
-for label,expr in [
- ('Correção recomendada',"_short(value(nc, 'recommendation'))"),
- ('Plano de ação',"_short(value(action, 'corrective_action'))"),
- ('Ação necessária',"_short(value(action, 'corrective_action'))"),
+m=pattern(m,r'(?m)^\s*static pw.Widget _section\(',lambda x:helper+x.group(0))
+m=pattern(m,r'required bool includePhotos,\s*String search\s*=\s*'+"''"+r',',
+    lambda x:"required bool includePhotos,\n    bool highlightRecommendations = false,\n    String search = '',")
+for label,value in [
+ ('Correção recomendada',('nc','recommendation')),
+ ('Plano de ação',('action','corrective_action')),
+ ('Ação necessária',('action','corrective_action')),
 ]:
- old=f"_line('{label}', {expr})"
- new=f"(highlightRecommendations ? _emphasisLine('{label}', {expr}) : _line('{label}', {expr}))"
- m=replace_one(m,old,new)
-m=replace_one(m,"  bool includePhotos = true;",
-"  bool includePhotos = true;\n  bool highlightRecommendations = false;")
-m=replace_one(m,"          includePhotos: includePhotos,\n          search: specificSearch);",
-"          includePhotos: includePhotos,\n          highlightRecommendations: highlightRecommendations,\n          search: specificSearch);")
-old="""                onChanged: busy ? null : (v) => setState(() => includePhotos = v),
-              ),
+ rx=(r'_line\(\s*'+re.escape("'"+label+"'")+r'\s*,\s*_short\(\s*value\(\s*'
+      +value[0]+r'\s*,\s*'+re.escape("'"+value[1]+"'")+r'\s*\)\s*\)\s*\)')
+ m=pattern(m,rx,lambda x:'(highlightRecommendations ? _emphasisLine'+x.group(0)[5:]+' : '+x.group(0)+')')
+m=pattern(m,r'bool includePhotos\s*=\s*true\s*;',
+    lambda x:x.group(0)+'\n  bool highlightRecommendations = false;')
+m=pattern(m,r'includePhotos:\s*includePhotos,\s*search:\s*specificSearch\)',
+    lambda x:'includePhotos: includePhotos,\n          highlightRecommendations: highlightRecommendations,\n          search: specificSearch)')
+label="'Incluir fotografias disponíveis'"
+pos=m.index(label)
+anchor=m.rfind('SwitchListTile.adaptive(',0,pos)
+assert anchor>=0
+start=m.rfind('\n',0,anchor)+1
+indent=m[start:anchor]
+assert not indent.strip()
+addition="""SwitchListTile.adaptive(
+  contentPadding: EdgeInsets.zero,
+  title: const Text('Destacar recomendações importantes'),
+  subtitle: const Text('Opcional: negrito e faixa discreta nas correções prioritárias.'),
+  value: highlightRecommendations,
+  onChanged: busy ? null : (v) => setState(() => highlightRecommendations = v),
+),
 """
-new=old+"""              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Destacar recomendações importantes'),
-                subtitle: const Text('Opcional: texto em negrito e realce discreto para leitura rápida.'),
-                value: highlightRecommendations,
-                onChanged: busy ? null : (v) => setState(() => highlightRecommendations = v),
-              ),
-"""
-m=replace_one(m,old,new)
+m=m[:start]+indent+addition.replace('\n','\n'+indent)+m[start:]
 manager.write_text(m,encoding='utf8',newline='\n')
 pub=root/'pubspec.yaml'
 current=pub.read_text(encoding='utf8')
 old,new=('3.29.195+337','3.29.196+338') if sys.argv[2]=='android' else ('3.30.123+310','3.30.124+311')
-current=replace_one(current,'version: '+old,'version: '+new)
-pub.write_text(current,encoding='utf8',newline='\n')
+pub.write_text(exactly(current,'version: '+old,'version: '+new),encoding='utf8',newline='\n')
 for path,digest in before.items():
- assert hashlib.sha256((root/path).read_bytes()).hexdigest()==digest,path
-print('LIBRARY_MORE_OPTIONS_AND_OPTIONAL_MANAGER_PDF_EMPHASIS_OK')
+    assert hashlib.sha256((root/path).read_bytes()).hexdigest()==digest,path
+print('SST_LIBRARY_AND_OPTIONAL_MANAGER_PDF_EMPHASIS_READY',sys.argv[2])
