@@ -363,6 +363,15 @@ class _FieldOperationalControlScreenState
     return 'Nenhuma prioridade crítica foi identificada nos registros disponíveis.';
   }
 
+  String _pendingCompanyLabel(Map<String, Object?> row) {
+    final id = _value(row, 'company_id');
+    if (id.isEmpty) return selectedCompany?.name ?? 'Não identificada';
+    for (final company in companies) {
+      if (company.id == id) return company.name;
+    }
+    return 'Empresa não disponível';
+  }
+
   List<_DesktopPendingEntry> get _desktopPendingEntries {
     final now = DateTime.now();
     final rows = <_DesktopPendingEntry>[];
@@ -376,6 +385,7 @@ class _FieldOperationalControlScreenState
       rows.add(
         _DesktopPendingEntry(
           type: 'NC',
+          companyName: _pendingCompanyLabel(row),
           title: _value(row, 'code').isNotEmpty
               ? _value(row, 'code')
               : _value(row, 'description'),
@@ -398,6 +408,7 @@ class _FieldOperationalControlScreenState
       rows.add(
         _DesktopPendingEntry(
           type: 'Ação',
+          companyName: _pendingCompanyLabel(row),
           title: _value(row, 'non_conformity').isNotEmpty
               ? _value(row, 'non_conformity')
               : _value(row, 'corrective_action'),
@@ -756,6 +767,7 @@ class _FieldOperationalControlScreenState
                   dataRowMaxHeight: 62,
                   columns: const [
                     DataColumn(label: Text('Tipo')),
+                    DataColumn(label: Text('Empresa')),
                     DataColumn(label: Text('Item')),
                     DataColumn(label: Text('Área')),
                     DataColumn(label: Text('Responsável')),
@@ -770,6 +782,16 @@ class _FieldOperationalControlScreenState
                             Text(
                               item.type,
                               style: const TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                          ),
+                          DataCell(
+                            SizedBox(
+                              width: 175,
+                              child: Text(
+                                item.companyName,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ),
                           DataCell(
@@ -1254,6 +1276,7 @@ class _FieldOperationalControlScreenState
 
 class _DesktopPendingEntry {
   final String type;
+  final String companyName;
   final String title;
   final String area;
   final String responsible;
@@ -1263,6 +1286,7 @@ class _DesktopPendingEntry {
 
   const _DesktopPendingEntry({
     required this.type,
+    required this.companyName,
     required this.title,
     required this.area,
     required this.responsible,
