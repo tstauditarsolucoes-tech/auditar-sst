@@ -85,9 +85,10 @@ for query in (
 ):
     assert query in compact_control, "Field query company filter lost: " + query
 
+# dart format may wrap the onTap ternary over multiple lines.
+# Compare normalized Dart tokens while retaining the actual disabled/active behavior.
 assert "visitPriorities.first.detail" in control and (
-    "onTap: visitPriorities.first.code == 'ok'" in control and
-    "_openPriority(visitPriorities.first)" in control
+    "onTap:visitPriorities.first.code=='ok'?null:()=>_openPriority(visitPriorities.first)" in compact_control
 ), "Top field priority must remain actionable"
 assert control.index("visitPriorities.first.detail") < control.index("_connectionCard(),"), (
     "Show top priority before connection details"
