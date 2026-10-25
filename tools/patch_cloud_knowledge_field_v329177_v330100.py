@@ -52,32 +52,40 @@ assert s.count(anchor)==1
 s=s.replace(anchor,"    OfflineKnowledgeCloudService.schedule();\n"+anchor,1)
 widget.write_text(s,encoding='utf-8',newline='\n')
 
-# Three large repeated navigation cards become compact touch-friendly actions.
-s=quick.read_text(encoding='utf-8')
-start=s.index("        if (widget.intent == VisitIntent.visit) ...[")
-end=s.index("          _action(\n            'Pendências da empresa',",start)
-original=s[start:end]
-for token in ("'Nova ronda'","'Nova vistoria'","'Registrar não conformidade'"):
-    assert token in original
-replacement="""        if (widget.intent == VisitIntent.visit) ...[
-          Wrap(spacing: 8, runSpacing: 8, children: [
-            FilledButton.icon(
-              onPressed: _opening ? null : () => _open(ExpressRoundScreen(company: c)),
-              icon: const Icon(Icons.add_a_photo_outlined),
-              label: const Text('Nova ronda')),
-            OutlinedButton.icon(
-              onPressed: _opening ? null : () => _open(NewInspectionScreen(
-                initialCompany: c, fieldMode: true)),
-              icon: const Icon(Icons.fact_check_outlined),
-              label: const Text('Nova vistoria')),
-            OutlinedButton.icon(
-              onPressed: _opening ? null : _recordObservation,
-              icon: const Icon(Icons.warning_amber_outlined),
-              label: const Text('Registrar não conformidade')),
-          ]),
-          const SizedBox(height: 8),
-"""
-s=s[:start]+replacement+s[end:]
+# Do not replace the new NC-first visit card with legacy compact buttons.
+# Keep the backward-compatible path when building an older source.
+if "quick-visit-new-nc" not in quick.read_text(encoding='utf-8'):
+    # Three large repeated navigation cards become compact touch-friendly actions.
+    s=quick.read_text(encoding='utf-8')
+    start=s.index("        if (widget.intent == VisitIntent.visit) ...[")
+    end=s.index("          _action(\n            'Pendências da empresa',",start)
+    original=s[start:end]
+    for token in ("'Nova ronda'","'Nova vistoria'","'Registrar não conformidade'"):
+        assert token in original
+    replacement="""        if (widget.intent == VisitIntent.visit) ...[
+              Wrap(spacing: 8, runSpacing: 8, children: [
+                FilledButton.icon(
+                  onPressed: _opening ? null : () => _open(ExpressRoundScreen(company: c)),
+                  icon: const Icon(Icons.add_a_photo_outlined),
+                  label: const Text('Nova ronda')),
+                OutlinedButton.icon(
+                  onPressed: _opening ? null : () => _open(NewInspectionScreen(
+                    initialCompany: c, fieldMode: true)),
+                  icon: const Icon(Icons.fact_check_outlined),
+                  label: const Text('Nova vistoria')),
+                OutlinedButton.icon(
+                  onPressed: _opening ? null : _recordObservation,
+                  icon: const Icon(Icons.warning_amber_outlined),
+                  label: const Text('Registrar não conformidade')),
+              ]),
+              const SizedBox(height: 8),
+    """
+    s=s[:start]+replacement+s[end:]
+else:
+    s=quick.read_text(encoding='utf-8')
+    assert "Registro rápido na empresa selecionada" in s
+    assert "Registrar não conformidade" in s
+
 # Explicit reuse of latest *authorized* visit. Never auto-switch company.
 marker="  Widget _picker() {\n"
 assert s.count(marker)==1

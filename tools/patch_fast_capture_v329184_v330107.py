@@ -15,7 +15,12 @@ before = {p: hashlib.sha256(p.read_bytes()).hexdigest() for p in protected}
 s = quick.read_text(encoding="utf-8")
 anchor = "      await _open(SafetyObservationFormScreen(company: c, sectors: sectors));"
 assert s.count(anchor) == 1 and "Registrar outra ocorrência nesta empresa?" not in s
-s = s.replace(anchor, anchor + """
+# Source with the safer close-form notice already has "Outro registro".
+# Avoid duplicate snackbars; do not change the form or its save behavior.
+if "'Outro registro'" in s:
+    assert "Formulário fechado" in s, "Unrecognized existing capture notice"
+else:
+    s = s.replace(anchor, anchor + """
       // Reabre o fluxo original. Não presume que o formulário foi salvo.
       if (!mounted || _selected?.id != c.id) return;
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
