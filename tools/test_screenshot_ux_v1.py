@@ -85,5 +85,14 @@ if "Widget _desktopPendingTable(" in control and "bool _onlyOverdue = false;" in
     ):
         assert marker in control, "Desktop pending table regression: " + marker
 
+    for marker in (
+        "DataColumn(label: Text('Empresa'))",
+        "companyName: _pendingCompanyLabel(row)",
+        "item.companyName",
+        "final String companyName",
+    ):
+        assert marker in control, "ADM pending company label lost: " + marker
+
+
 print("AUDITAR_SCREENSHOT_UX_V1_OK")
 print("COMPANY_CIPA_RONDA_TIMELINE_OBSERVATIONS_PHOTO_SAFETY_OK")
