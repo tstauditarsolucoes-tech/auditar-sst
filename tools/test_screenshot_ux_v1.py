@@ -73,7 +73,10 @@ assert "visitPriorities.first.detail" in control and (
 assert control.index("visitPriorities.first.detail") < control.index("_connectionCard(),"), (
     "Show top priority before connection details"
 )
-if "Widget _desktopPendingTable(" in control:
+# The v3.30.90 desktop table is loaded before the v3.30.91 enhanced
+# overdue/pagination table in the Windows pipeline. Assert those features only
+# when the enhanced state is actually present; the later patch validates itself.
+if "Widget _desktopPendingTable(" in control and "bool _onlyOverdue = false;" in control:
     for marker in (
         "Somente vencidas",
         "Mostrar mais pendências",
