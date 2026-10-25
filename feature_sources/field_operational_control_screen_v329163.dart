@@ -352,6 +352,33 @@ class _FieldOperationalControlScreenState
                     children: [
                       _companyFilter(),
                       const SizedBox(height: 12),
+                      if (visitPriorities.isNotEmpty)
+                        Card(
+                          color: highCriticalOpen > 0 || overdueActions > 0
+                              ? const Color(0xFFFFF2E9)
+                              : const Color(0xFFEDF7F3),
+                          child: ListTile(
+                            leading: Icon(
+                              highCriticalOpen > 0 || overdueActions > 0
+                                  ? Icons.priority_high_rounded
+                                  : Icons.fact_check_outlined,
+                              color: const Color(0xFF17324E),
+                            ),
+                            title: Text(
+                              highCriticalOpen > 0 ? 'Prioridade imediata'
+                                  : overdueActions > 0 ? 'Prazo vencido'
+                                  : 'Próximo passo',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF17324E),
+                              ),
+                            ),
+                            subtitle: Text(visitPriorities.first.detail),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => _openPriority(visitPriorities.first),
+                          ),
+                        ),
+                      const SizedBox(height: 12),
                       _connectionCard(),
                       const SizedBox(height: 12),
                       _sectionTitle(
