@@ -35,6 +35,8 @@ class FieldOperationalControlScreen extends StatefulWidget {
 class _FieldOperationalControlScreenState
     extends State<FieldOperationalControlScreen> {
   bool loading = true;
+  bool _onlyOverdue = false;
+  int _pendingPageSize = 12;
   bool? online;
   String error = '';
   String companyId = '';
@@ -466,6 +468,33 @@ class _FieldOperationalControlScreenState
         children: [
           _companyFilter(),
           const SizedBox(height: 12),
+          if (visitPriorities.isNotEmpty)
+                        Card(
+                          color: highCriticalOpen > 0 || overdueActions > 0
+                              ? const Color(0xFFFFF2E9)
+                              : const Color(0xFFEDF7F3),
+                          child: ListTile(
+                            leading: Icon(
+                              highCriticalOpen > 0 || overdueActions > 0
+                                  ? Icons.priority_high_rounded
+                                  : Icons.fact_check_outlined,
+                              color: const Color(0xFF17324E),
+                            ),
+                            title: Text(
+                              highCriticalOpen > 0 ? 'Prioridade imediata'
+                                  : overdueActions > 0 ? 'Prazo vencido'
+                                  : 'Próximo passo',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF17324E),
+                              ),
+                            ),
+                            subtitle: Text(visitPriorities.first.detail),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => _openPriority(visitPriorities.first),
+                          ),
+                        ),
+                      const SizedBox(height: 12),
           _connectionCard(),
           const SizedBox(height: 12),
           _sectionTitle(
@@ -670,7 +699,10 @@ class _FieldOperationalControlScreenState
   }
 
   Widget _desktopPendingTable(List<_DesktopPendingEntry> entries) {
-    final visible = entries.take(12).toList(growable: false);
+    final filtered = _onlyOverdue
+        ? entries.where((item) => item.overdue).toList(growable: false)
+        : entries;
+    final visible = filtered.take(_pendingPageSize).toList(growable: false);
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -683,6 +715,26 @@ class _FieldOperationalControlScreenState
               'Itens abertos ordenados com atrasos primeiro. Exibição somente para acompanhamento.',
             ),
             const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                FilterChip(
+                  label: const Text('Somente vencidas'),
+                  avatar: const Icon(Icons.event_busy_outlined, size: 18),
+                  selected: _onlyOverdue,
+                  onSelected: (value) => setState(() {
+                    _onlyOverdue = value;
+                    _pendingPageSize = 12;
+                  }),
+                ),
+                Text(
+                  '${filtered.length} pendência(s) neste filtro',
+                  style: const TextStyle(color: AuditarBrand.neutral),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
             if (visible.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 24),
@@ -782,16 +834,19 @@ class _FieldOperationalControlScreenState
                   ],
                 ),
               ),
-            if (entries.length > visible.length) ...[
+            if (filtered.length > visible.length) ...[
               const SizedBox(height: 8),
               Text(
-                '+ ' +
-                    (entries.length - visible.length).toString() +
-                    ' pendência(s) disponível(is) nas telas de NC e plano de ação.',
+                '+ ${filtered.length - visible.length} pendência(s) ainda não exibida(s).',
                 style: const TextStyle(
                   color: AuditarBrand.neutral,
                   fontSize: 12,
                 ),
+              ),
+              TextButton.icon(
+                onPressed: () => setState(() => _pendingPageSize += 20),
+                icon: const Icon(Icons.expand_more_rounded),
+                label: const Text('Mostrar mais pendências'),
               ),
             ],
             const SizedBox(height: 10),
