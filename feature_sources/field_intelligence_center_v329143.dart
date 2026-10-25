@@ -92,18 +92,42 @@ class _FieldIntelligenceCenterScreenState
     try {
       final db = AppDatabase.instance;
       final fav = await db.getSetting(_favKey);
-      final loadedCompanies = await db.getCompanies();
-      final cid = selectedCompanyId;
-      final loadedWorkers = await db.getWorkers(companyId: cid);
-      final loadedInspections = await db.getInspectionHistory(companyId: cid);
-      final loadedNcs = await db.getNonConformityRows(companyId: cid);
-      final loadedActions = await db.getPendingActions(
-        companyId: cid,
-        includeCompleted: true,
-      );
-      final loadedTrainings = await db.getTrainingControls(companyId: cid);
-      final loadedDds = await db.getSstRecords(type: 'DDS', companyId: cid);
-      final loadedTrainingSummary = await db.getTrainingSummary(companyId: cid);
+      final userId = AuthService.currentUser?.id;
+      final requestedId = companyId;
+      final loadedCompanies = (await db.getCompanies())
+          .where((company) =>
+              company.active && AuthService.canAccessCompany(company.id))
+          .toList(growable: false);
+      final cid = requestedId.isNotEmpty &&
+              loadedCompanies.any((company) => company.id == requestedId)
+          ? requestedId
+          : null;
+      // Somente o ADM pode consultar todos os registros sem empresa.
+      final restrictedWithoutCompany = cid == null && !AuthService.isAdmin;
+      final loadedWorkers = restrictedWithoutCompany
+          ? <Worker>[]
+          : await db.getWorkers(companyId: cid);
+      final loadedInspections = restrictedWithoutCompany
+          ? <Map<String, Object?>>[]
+          : await db.getInspectionHistory(companyId: cid);
+      final loadedNcs = restrictedWithoutCompany
+          ? <Map<String, Object?>>[]
+          : await db.getNonConformityRows(companyId: cid);
+      final loadedActions = restrictedWithoutCompany
+          ? <Map<String, Object?>>[]
+          : await db.getPendingActions(
+              companyId: cid,
+              includeCompleted: true,
+            );
+      final loadedTrainings = restrictedWithoutCompany
+          ? <TrainingControl>[]
+          : await db.getTrainingControls(companyId: cid);
+      final loadedDds = restrictedWithoutCompany
+          ? <SstRecord>[]
+          : await db.getSstRecords(type: 'DDS', companyId: cid);
+      final loadedTrainingSummary = restrictedWithoutCompany
+          ? <String, int>{}
+          : await db.getTrainingSummary(companyId: cid);
       int pendingData = 0;
       int pendingMedia = 0;
       try { pendingData = await DeviceSyncService.pendingChangesCount(); } catch (_) {}
@@ -112,8 +136,14 @@ class _FieldIntelligenceCenterScreenState
       final syncStatus = await db.getSetting('last_device_sync_status');
       final syncError = await db.getSetting('last_device_sync_error');
       final mediaError = await db.getSetting('media_sync_last_error');
-      if (!mounted) return;
+      if (!mounted ||
+          userId != AuthService.currentUser?.id ||
+          requestedId != companyId ||
+          (cid != null && !AuthService.canAccessCompany(cid))) {
+        return;
+      }
       setState(() {
+        companyId = cid ?? '';
         companies = loadedCompanies;
         workers = loadedWorkers;
         inspections = loadedInspections;
@@ -260,7 +290,14 @@ class _FieldIntelligenceCenterScreenState
     return Scaffold(
       backgroundColor: AuditarBrand.background,
       appBar: AppBar(
-        title: const Text('Central Inteligente de Campo'),
+        title: const Tooltip(
+          message: 'Central Inteligente de Campo',
+          child: Text(
+            'Central Inteligente',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
         actions: [
           IconButton(
             tooltip: 'Personalizar atalhos',
@@ -285,7 +322,10 @@ class _FieldIntelligenceCenterScreenState
           ],
         ),
       ),
-      body: loading
+      body: SafeArea(
+        top: false,
+        bottom: true,
+        child: loading
           ? const Center(child: CircularProgressIndicator())
           : error.isNotEmpty
               ? Center(child: Padding(
@@ -304,6 +344,7 @@ class _FieldIntelligenceCenterScreenState
                     ],
                   )),
                 ]),
+      ),
     );
   }
 
@@ -320,9 +361,11 @@ class _FieldIntelligenceCenterScreenState
           isDense: true,
         ),
         items: [
-          const DropdownMenuItem(
+          DropdownMenuItem(
             value: '',
-            child: Text('Todas as empresas autorizadas'),
+            child: Text(AuthService.isAdmin
+                ? 'Todas as empresas autorizadas'
+                : 'Selecione uma empresa'),
           ),
           ...companies.map((company) => DropdownMenuItem(
             value: company.id,
@@ -344,8 +387,19 @@ class _FieldIntelligenceCenterScreenState
     return RefreshIndicator(
       onRefresh: load,
       child: ListView(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 110),
         children: [
+          if (selectedCompany == null && !AuthService.isAdmin)
+            const Card(
+              child: ListTile(
+                leading: Icon(Icons.info_outline_rounded),
+                title: Text('Selecione uma empresa acima'),
+                subtitle: Text(
+                  'Os indicadores aparecem depois de escolher a empresa. '
+                  'A fila de envio pertence a este aparelho.',
+                ),
+              ),
+            ),
           title(
             'Resumo operacional',
             selectedCompany == null
@@ -402,22 +456,76 @@ class _FieldIntelligenceCenterScreenState
               label: const Text('Editar'),
             ),
           ]),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: favoriteShortcuts.map((item) => SizedBox(
-              width: MediaQuery.sizeOf(context).width < 600 ? 160 : 190,
-              child: Card(
-                child: ListTile(
-                  enabled: item.enabled,
-                  onTap: item.enabled ? () => openPage(item.page()) : null,
-                  leading: Icon(item.icon),
-                  title: Text(item.label,
-                    style: const TextStyle(fontSize: 12,
-                      fontWeight: FontWeight.w800)),
-                ),
-              ),
-            )).toList(),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = constraints.maxWidth < 290 ? 1 : 2;
+              final width =
+                  (constraints.maxWidth - (columns - 1) * 8) / columns;
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: favoriteShortcuts.map((item) => SizedBox(
+                  width: width,
+                  child: Tooltip(
+                    message: item.enabled
+                        ? item.label
+                        : 'Selecione uma empresa para abrir evidências',
+                    child: Card(
+                      margin: EdgeInsets.zero,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: item.enabled
+                            ? () => openPage(item.page())
+                            : null,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(minHeight: 104),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 12),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  item.icon,
+                                  color: item.enabled
+                                      ? AuditarBrand.navy
+                                      : Colors.black38,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  item.label,
+                                  maxLines: 2,
+                                  softWrap: true,
+                                  textAlign: TextAlign.center,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    color: item.enabled
+                                        ? AuditarBrand.navy
+                                        : Colors.black45,
+                                  ),
+                                ),
+                                if (!item.enabled) ...[
+                                  const SizedBox(height: 4),
+                                  const Text(
+                                    'Selecione empresa',
+                                    maxLines: 1,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(fontSize: 10),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                )).toList(),
+              );
+            },
           ),
           const SizedBox(height: 16),
           Card(
@@ -578,7 +686,7 @@ class _FieldIntelligenceCenterScreenState
   }
 
   Widget evidenceTab() => ListView(
-    padding: const EdgeInsets.all(14),
+    padding: const EdgeInsets.fromLTRB(14, 14, 14, 110),
     children: [
       title('Central de evidências',
         'Use os registros já existentes sem duplicar fotos.'),
@@ -620,7 +728,7 @@ class _FieldIntelligenceCenterScreenState
       syncDate = DateFormat('dd/MM/yyyy HH:mm').format(parsed.toLocal());
     }
     return ListView(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 110),
       children: [
         title('Diagnóstico técnico ADM',
           'Somente leitura. Não altera fila, banco ou sincronização.'),

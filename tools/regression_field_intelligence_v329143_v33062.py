@@ -27,4 +27,22 @@ for snippet in (
 ):
     assert snippet in center, "Center missing: " + snippet
 
+# Regression from real Android Central Inteligente screenshot.
+for token in (
+    "'Central Inteligente'",
+    "body: SafeArea(",
+    "bottom: true",
+    "LayoutBuilder(",
+    "'Selecione empresa'",
+    "fromLTRB(14, 14, 14, 110)",
+    "AuthService.canAccessCompany(company.id)",
+    "restrictedWithoutCompany",
+    "userId != AuthService.currentUser?.id",
+):
+    assert token in center, "Field center layout/access regression: " + token
+
+assert "width: MediaQuery.sizeOf(context).width < 600 ? 160 : 190,\n              child: Card(" not in center, (
+    "Favorite labels should not be squeezed into fixed width ListTiles"
+)
+
 print("FIELD_INTELLIGENCE_REGRESSION_OK")
