@@ -59,5 +59,27 @@ inline = (root / "lib/widgets/offline_report_inline_suggestions.dart").read_text
 assert "Extintor com prazo informado como vencido" in inline, "Extinguisher expiry context"
 assert "isso não impede salvar o registro" in inline, "Short reports remain valid"
 
+
+# Field priority must be visible before technical status details on mobile and PC.
+visit = screen("quick_visit_screen.dart")
+assert "FilledButton.tonalIcon(" in visit and "backgroundColor: const Color(0xFFFFF2E9)" in visit, (
+    "Pendencias entry must stand out in daily field actions"
+)
+control = screen("field_operational_control_screen.dart")
+assert "visitPriorities.first.detail" in control and (
+    "onTap: () => _openPriority(visitPriorities.first)" in control
+), "Top field priority must remain actionable"
+assert control.index("visitPriorities.first.detail") < control.index("_connectionCard(),"), (
+    "Show top priority before connection details"
+)
+if "Widget _desktopPendingTable(" in control:
+    for marker in (
+        "Somente vencidas",
+        "Mostrar mais pendências",
+        "final filtered = _onlyOverdue",
+        "_pendingPageSize += 20",
+    ):
+        assert marker in control, "Desktop pending table regression: " + marker
+
 print("AUDITAR_SCREENSHOT_UX_V1_OK")
 print("COMPANY_CIPA_RONDA_TIMELINE_OBSERVATIONS_PHOTO_SAFETY_OK")
