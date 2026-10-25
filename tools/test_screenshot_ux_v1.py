@@ -67,6 +67,24 @@ assert "FilledButton.tonalIcon(" in visit and "backgroundColor: const Color(0xFF
 )
 control = screen("field_operational_control_screen.dart")
 assert "DateTime(due.year, due.month, due.day).isBefore(today)" in control, "Today is not overdue"
+# No global company data for non-ADM; the login/sync core stays unchanged.
+compact_control = re.sub(r"\\s+", "", control)
+for marker in (
+    "AuthService.canAccessCompany",
+    "noCompanyForRestricted",
+    "cid!=selectedCompanyId",
+    "userId!=AuthService.currentUser?.id",
+    "item.code!='sync'&&selectedCompanyId==null&&!AuthService.isAdmin",
+):
+    assert marker in compact_control, "Field company isolation lost: " + marker
+for query in (
+    "getNonConformityRows(companyId:cid)",
+    "getPendingActions(companyId:cid",
+    "getInspectionHistory(companyId:cid)",
+    "getTrainingSummary(companyId:cid)",
+):
+    assert query in compact_control, "Field query company filter lost: " + query
+
 assert "visitPriorities.first.detail" in control and (
     "onTap: visitPriorities.first.code == 'ok'" in control and
     "_openPriority(visitPriorities.first)" in control
