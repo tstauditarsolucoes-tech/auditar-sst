@@ -18,6 +18,22 @@ assert "backgroundColor: AuditarBrand.navyDark" in cipa, "CIPA dark tab/header s
 assert "unselectedLabelColor: Color(0xFFD5DDEE)" in cipa, "CIPA accessible tabs"
 assert "maxLines: 3" in cipa and re.search(r"constraints\.maxWidth\s*/\s*\(300\s*\*\s*scale\)", cipa), "CIPA metric labels"
 
+evidence = screen("correction_evidence_center_screen.dart")
+for marker in (
+    "indicatorColor: Colors.white",
+    "labelColor: Colors.white",
+    "unselectedLabelColor: Color(0xFFE2ECF7)",
+    "child: Text('Evidências SST')",
+    "tooltip: 'Copiar código da NC'",
+    "Clipboard.setData(ClipboardData(text: code))",
+    "maxLines: 2",
+    "_stageChip(item.evidenceStage)",
+    "getPhotosForAnswer",
+    "getCompletionPhotos",
+):
+    assert marker in evidence, f"Evidence tab contrast and compact NC header: {marker}"
+assert evidence.count("tooltip: 'Copiar código da NC'") == 1
+
 backup = screen("evidence_backup_screen.dart")
 assert "Não desinstale o aplicativo" in backup, "Device safety warning"
 assert "Fotos não localizadas" in backup, "Missing photo metric"

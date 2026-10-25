@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../brand.dart';
 import '../database.dart';
@@ -167,7 +168,10 @@ class _CorrectionEvidenceCenterScreenState
       child: Scaffold(
         backgroundColor: AuditarBrand.background,
         appBar: AppBar(
-          title: const Text('Evidências e recorrências'),
+          title: const Tooltip(
+            message: 'Evidências e recorrências',
+            child: Text('Evidências SST'),
+          ),
           actions: [
             IconButton(
               tooltip: 'Proteção e backup das fotos',
@@ -185,6 +189,12 @@ class _CorrectionEvidenceCenterScreenState
             ),
           ],
           bottom: const TabBar(
+            indicatorColor: Colors.white,
+            indicatorWeight: 3,
+            labelColor: Colors.white,
+            unselectedLabelColor: Color(0xFFE2ECF7),
+            labelStyle: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+            unselectedLabelStyle: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
             tabs: [
               Tab(icon: Icon(Icons.compare_outlined), text: 'Antes × Depois'),
               Tab(icon: Icon(Icons.repeat_rounded), text: 'Recorrências'),
@@ -229,7 +239,7 @@ class _CorrectionEvidenceCenterScreenState
         children: [
           _header(
             'Evidência de correção',
-            'O app reúne as fotos já vinculadas à constatação e à conclusão da ação. Nenhuma foto é duplicada.',
+            'Fotos vinculadas à constatação e à correção, sem duplicação.',
           ),
           const SizedBox(height: 10),
           Wrap(
@@ -299,7 +309,6 @@ class _CorrectionEvidenceCenterScreenState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Icon(
                   Icons.health_and_safety_outlined,
@@ -309,14 +318,36 @@ class _CorrectionEvidenceCenterScreenState
                 Expanded(
                   child: Text(
                     code.isEmpty ? 'Não conformidade' : code,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 15,
                     ),
                   ),
                 ),
-                _stageChip(item.evidenceStage),
+                if (code.isNotEmpty)
+                  IconButton(
+                    tooltip: 'Copiar código da NC',
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.copy_outlined, size: 18),
+                    onPressed: () async {
+                      await Clipboard.setData(ClipboardData(text: code));
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Código da NC copiado.'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                  ),
               ],
+            ),
+            const SizedBox(height: 5),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: _stageChip(item.evidenceStage),
             ),
             if (description.isNotEmpty) ...[
               const SizedBox(height: 8),
