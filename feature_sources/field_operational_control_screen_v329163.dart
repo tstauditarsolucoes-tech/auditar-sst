@@ -534,7 +534,7 @@ class _FieldOperationalControlScreenState
           prefixIcon: Icon(Icons.business_outlined),
         ),
         items: [
-          const DropdownMenuItem(
+          DropdownMenuItem(
             value: '',
             child: Text(AuthService.isAdmin
                 ? 'Todas as empresas autorizadas'

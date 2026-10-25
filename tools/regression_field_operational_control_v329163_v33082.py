@@ -44,6 +44,15 @@ for snippet in (
 ):
     assert snippet in screen, "controle operacional incompleto: " + snippet
 
+# The company dropdown depends on the authenticated role, so it cannot be const.
+import re
+assert "AuthService.canAccessCompany" in screen
+assert "noCompanyForRestricted" in screen
+assert not re.search(
+    r"const\s+DropdownMenuItem\s*\(\s*value:\s*'',\s*child:\s*Text\s*\(\s*AuthService\.isAdmin",
+    screen,
+), "Dart const dropdown must not reference a runtime role"
+
 for snippet in (
     "critical_nc",
     "overdue_actions",
