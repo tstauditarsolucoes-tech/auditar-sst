@@ -97,21 +97,25 @@ assert control.index("visitPriorities.first.detail") < control.index("_connectio
 # overdue/pagination table in the Windows pipeline. Assert those features only
 # when the enhanced state is actually present; the later patch validates itself.
 if "Widget _desktopPendingTable(" in control and "bool _onlyOverdue = false;" in control:
+    for label in ("Somente vencidas", "Mostrar mais pendências"):
+        assert label in control, "Desktop pending table label lost: " + label
+
+    # Dart format may split assignments and widget arguments over several lines.
+    # Check the actual filtering, pagination and company column semantics instead.
     for marker in (
-        "Somente vencidas",
-        "Mostrar mais pendências",
-        "final filtered = _onlyOverdue",
-        "_pendingPageSize += 20",
+        "entries.where((item)=>item.overdue)",
+        "filtered.take(_pendingPageSize)",
+        "_pendingPageSize+=20",
     ):
-        assert marker in control, "Desktop pending table regression: " + marker
+        assert marker in compact_control, "Desktop pending table regression: " + marker
 
     for marker in (
-        "DataColumn(label: Text('Empresa'))",
-        "companyName: _pendingCompanyLabel(row)",
+        "DataColumn(label:Text('Empresa'))",
+        "companyName:_pendingCompanyLabel(row)",
         "item.companyName",
-        "final String companyName",
+        "finalStringcompanyName",
     ):
-        assert marker in control, "ADM pending company label lost: " + marker
+        assert marker in compact_control, "ADM pending company label lost: " + marker
 
 
 print("AUDITAR_SCREENSHOT_UX_V1_OK")
