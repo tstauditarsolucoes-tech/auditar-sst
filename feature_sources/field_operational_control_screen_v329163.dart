@@ -230,11 +230,13 @@ class _FieldOperationalControlScreenState
 
   int get overdueActions {
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
     return actions.where((row) {
       if (_isCompleted(row)) return false;
       final raw = _value(row, 'due_date');
       final due = DateTime.tryParse(raw);
-      return due != null && due.isBefore(now);
+      return due != null &&
+          DateTime(due.year, due.month, due.day).isBefore(today);
     }).length;
   }
 

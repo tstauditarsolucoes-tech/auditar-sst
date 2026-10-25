@@ -66,6 +66,7 @@ assert "FilledButton.tonalIcon(" in visit and "backgroundColor: const Color(0xFF
     "Pendencias entry must stand out in daily field actions"
 )
 control = screen("field_operational_control_screen.dart")
+assert "DateTime(due.year, due.month, due.day).isBefore(today)" in control, "Today is not overdue"
 assert "visitPriorities.first.detail" in control and (
     "onTap: () => _openPriority(visitPriorities.first)" in control
 ), "Top field priority must remain actionable"
