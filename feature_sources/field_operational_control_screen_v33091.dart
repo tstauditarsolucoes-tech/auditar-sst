@@ -503,8 +503,12 @@ class _FieldOperationalControlScreenState
                               ),
                             ),
                             subtitle: Text(visitPriorities.first.detail),
-                            trailing: const Icon(Icons.chevron_right),
-                            onTap: () => _openPriority(visitPriorities.first),
+                            trailing: visitPriorities.first.code == 'ok'
+                                ? null
+                                : const Icon(Icons.chevron_right),
+                            onTap: visitPriorities.first.code == 'ok'
+                                ? null
+                                : () => _openPriority(visitPriorities.first),
                           ),
                         ),
                       const SizedBox(height: 12),
