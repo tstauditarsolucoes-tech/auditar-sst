@@ -26,6 +26,9 @@ on:
       - 'tools/patch_sst_library_v1.py'
       - 'tools/patch_sst_deep_catalog_v2.py'
       - 'tools/bump_polish_release_version_v1.py'
+      - 'tools/patch_nc_friendly_titles_v1.py'
+      - 'feature_sources/nc_title_store_v1.dart'
+      - 'feature_sources/nc_title_store_test_v1.dart'
       - 'feature_sources/offline_sst_deep_catalog_v2.dart'
       - 'feature_sources/offline_sst_deep_catalog_test_v2.dart'
       - 'feature_sources/offline_sst_expanded_catalog_v1.dart'
@@ -2005,6 +2008,20 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha analyze biblioteca' }
           flutter test test/offline_sst_deep_catalog_test.dart test/offline_sst_expanded_catalog_test.dart test/offline_sst_deep_catalog_test.dart test/report_pdf_emphasis_scope_test.dart test/offline_report_inline_suggestions_field_test.dart
           if ($LASTEXITCODE -ne 0) { throw 'Falha testes biblioteca' }
+          Pop-Location
+
+      - name: NCs com nome curto editável Windows (local, sem migrar banco)
+        shell: pwsh
+        run: |
+          python tools/patch_nc_friendly_titles_v1.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha nomes de NC' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/screens/non_conformities_screen.dart lib/screens/non_conformity_detail_screen.dart lib/screens/field_operational_control_screen.dart lib/services/nc_title_store.dart test/nc_title_store_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha formatacao NC' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Falha analise NC' }
+          flutter test test/nc_title_store_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha testes de NC' }
           Pop-Location
 
       - name: Numerar versao de acabamento Windows v3.30.126
