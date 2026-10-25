@@ -120,10 +120,14 @@ class VisitStartPanel extends StatelessWidget {
           label: const Text('Continuar rascunho'),
         ),
         const SizedBox(height: 10),
-        OutlinedButton.icon(
+        FilledButton.tonalIcon(
           onPressed: () => onOpen(VisitIntent.pending),
-          style: OutlinedButton.styleFrom(padding: const EdgeInsets.all(18)),
-          icon: const Icon(Icons.task_alt),
+          style: FilledButton.styleFrom(
+            padding: const EdgeInsets.all(18),
+            backgroundColor: const Color(0xFFFFF2E9),
+            foregroundColor: const Color(0xFF70401B),
+          ),
+          icon: const Icon(Icons.priority_high_rounded),
           label: const Text('Pendências'),
         ),
         const SizedBox(height: 10),
