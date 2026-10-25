@@ -423,6 +423,7 @@ class _FieldOperationalControlScreenState
                         'O que ainda precisa de tratamento ou acompanhamento.',
                       ),
                       const SizedBox(height: 8),
+                      _urgentPendingPreview(),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
@@ -523,6 +524,116 @@ class _FieldOperationalControlScreenState
                     ],
                   ),
                 ),
+    );
+  }
+
+  String _pendingPreviewCompany(Map<String, Object?> row) {
+    final id = _value(row, 'company_id');
+    for (final company in companies) {
+      if (company.id == id) return company.name;
+    }
+    return selectedCompany?.name ?? 'Empresa não identificada';
+  }
+
+  Widget _urgentPendingPreview() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final entries = <Map<String, String>>[];
+    for (final row in actions) {
+      if (_isCompleted(row)) continue;
+      final due = DateTime.tryParse(_value(row, 'due_date'));
+      if (due == null ||
+          !DateTime(due.year, due.month, due.day).isBefore(today)) {
+        continue;
+      }
+      final summary = _value(row, 'non_conformity').isNotEmpty
+          ? _value(row, 'non_conformity')
+          : _value(row, 'corrective_action');
+      entries.add({
+        'kind': 'action',
+        'order': '0-${due.toIso8601String()}',
+        'title': summary.isEmpty ? 'Ação vencida' : summary,
+        'detail': '${_pendingPreviewCompany(row)} • Prazo vencido: '
+            '${DateFormat('dd/MM/yyyy').format(due)}',
+      });
+    }
+    for (final row in ncs) {
+      if (_isCompleted(row)) continue;
+      final priority = [
+        _value(row, 'priority'),
+        _value(row, 'classification'),
+        _value(row, 'severity'),
+      ].join(' ').toLowerCase();
+      if (!priority.contains('alta') &&
+          !priority.contains('crit') &&
+          !priority.contains('crít')) {
+        continue;
+      }
+      final summary = _value(row, 'code').isNotEmpty
+          ? _value(row, 'code')
+          : _value(row, 'description');
+      entries.add({
+        'kind': 'nc',
+        'order': '1-${_value(row, 'id')}',
+        'title': summary.isEmpty ? 'Não conformidade crítica' : summary,
+        'detail': '${_pendingPreviewCompany(row)} • Alta/Crítica',
+      });
+    }
+    if (entries.isEmpty) return const SizedBox.shrink();
+    entries.sort((a, b) =>
+        (a['order'] ?? '').compareTo(b['order'] ?? ''));
+    return Card(
+      color: const Color(0xFFFFF2E9),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Text(
+                'Tratar primeiro • Ações vencidas primeiro',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF70401B),
+                ),
+              ),
+            ),
+            for (final item in entries.take(4))
+              ListTile(
+                dense: true,
+                leading: Icon(
+                  item['kind'] == 'nc'
+                      ? Icons.warning_amber_rounded
+                      : Icons.event_busy_outlined,
+                  color: const Color(0xFF70401B),
+                ),
+                title: Text(
+                  item['title'] ?? '',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(
+                  item['detail'] ?? '',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _open(item['kind'] == 'nc'
+                    ? NonConformitiesScreen(companyId: selectedCompanyId)
+                    : ActionPlanScreen(companyId: selectedCompanyId)),
+              ),
+            if (entries.length > 4)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Text(
+                  '+ ${entries.length - 4} outras prioridades; '
+                  'abra a lista completa para acompanhar.',
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 

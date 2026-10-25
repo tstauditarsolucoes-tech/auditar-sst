@@ -261,6 +261,19 @@ class _QuickVisitScreenState extends State<QuickVisitScreen> {
       final sectors = await AppDatabase.instance.getSectors(c.id);
       if (!mounted || _selected?.id != c.id) return;
       await _open(SafetyObservationFormScreen(company: c, sectors: sectors));
+      if (!mounted || _selected?.id != c.id) return;
+      // A tela fechada não comprova que os dados foram salvos.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Formulário fechado. Confira no histórico se o registro foi salvo.',
+          ),
+          action: SnackBarAction(
+            label: 'Outro registro',
+            onPressed: _recordObservation,
+          ),
+        ),
+      );
     } catch (_) {
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
@@ -302,6 +315,34 @@ class _QuickVisitScreenState extends State<QuickVisitScreen> {
         ),
         const SizedBox(height: 12),
         if (widget.intent == VisitIntent.visit) ...[
+          Card(
+            color: const Color(0xFFEDF7F3),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Registro rápido na empresa selecionada',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 8),
+                  FilledButton.icon(
+                    key: const Key('quick-visit-new-nc'),
+                    onPressed: _opening ? null : _recordObservation,
+                    icon: const Icon(Icons.add_a_photo_outlined),
+                    label: const Text('Registrar não conformidade'),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Confira a foto no formulário antes de salvar. '
+                    'Depois, registre outra ocorrência sem trocar de empresa.',
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           _action(
             'Nova ronda',
             'Fotos e descrição das situações encontradas',
@@ -314,15 +355,7 @@ class _QuickVisitScreenState extends State<QuickVisitScreen> {
             Icons.fact_check_outlined,
             NewInspectionScreen(initialCompany: c, fieldMode: true),
           ),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.warning_amber_outlined),
-              title: const Text('Registrar não conformidade'),
-              subtitle: const Text('Abrir o formulário de registro'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: _opening ? null : _recordObservation,
-            ),
-          ),
+
           _action(
             'Pendências da empresa',
             'Ações, não conformidades e vencimentos',

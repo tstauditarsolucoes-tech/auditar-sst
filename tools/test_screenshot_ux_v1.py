@@ -65,8 +65,25 @@ visit = screen("quick_visit_screen.dart")
 assert "FilledButton.tonalIcon(" in visit and "backgroundColor: const Color(0xFFFFF2E9)" in visit, (
     "Pendencias entry must stand out in daily field actions"
 )
+for marker in (
+    "quick-visit-new-nc",
+    "Outro registro",
+    "Confira no histórico se o registro foi salvo",
+    "Confira a foto no formulário antes de salvar",
+):
+    assert marker in visit, "Quick register safety regression: " + marker
+
 control = screen("field_operational_control_screen.dart")
 assert "DateTime(due.year, due.month, due.day).isBefore(today)" in control, "Today is not overdue"
+if "Widget _urgentPendingPreview()" in control:
+    for marker in (
+        "Tratar primeiro • Ações vencidas primeiro",
+        "entries.take(4)",
+        "_pendingPreviewCompany(row)",
+        "NonConformitiesScreen(companyId: selectedCompanyId)",
+        "ActionPlanScreen(companyId: selectedCompanyId)",
+    ):
+        assert marker in control, "Urgent pending preview regression: " + marker
 # No global company data for non-ADM; the login/sync core stays unchanged.
 compact_control = re.sub(r"\s+", "", control)
 for marker in (
