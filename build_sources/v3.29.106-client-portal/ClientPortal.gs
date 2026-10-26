@@ -407,12 +407,15 @@ function clientPortalEvidenceQueue(token, companyId) {
   const sheet = clientPortalEvidenceSheet_();
   const rows = sheet.getLastRow() < 2 ? [] :
     sheet.getRange(2,1,sheet.getLastRow()-1,10).getValues();
-  return {ok:true, evidences:rows.filter(function(row){
-    return String(row[1]) === cid;
-  }).map(function(row){
-    return {id:String(row[0]), companyId:String(row[1]), ncId:String(row[2]),
-      submittedBy:String(row[3]), date:String(row[4]), note:String(row[5]),
-      hasPhoto:!!row[6],status:String(row[7])};
+  const selected=rows.filter(function(row){return String(row[1])===cid;});
+  const reasons=selected.some(function(row){return String(row[7])==='REJEITADA';})?
+    clientPortalReviewReasonsForCompany_(cid):{};
+  return {ok:true,evidences:selected.map(function(row){
+    return {id:String(row[0]),companyId:String(row[1]),ncId:String(row[2]),
+      submittedBy:String(row[3]),date:String(row[4]),note:String(row[5]),
+      hasPhoto:!!row[6],status:String(row[7]),
+      reviewReason:String(row[7])==='REJEITADA'?(reasons[String(row[0])]||''):''
+    };
   })};
 }
 
