@@ -30,4 +30,18 @@ for marker in (
 assert re.search(r"labelText\s*:\s*'Nome do serviço'", a), 'Título de serviço ausente'
 assert re.search(r"labelText\s*:\s*'Orientações para o técnico'", a), 'Orientações do técnico ausentes'
 
+# Cache opcional da agenda: não apagar ao retornar ou ao atualizar.
+for marker in (
+    'class _AgendaSessionSnapshot',
+    '_restoreSnapshot();',
+    '_saveSnapshot();',
+    'Timer.periodic',
+    '_sessionScope()',
+    'Future.wait<dynamic>',
+    'if (hasTaskChanges) tasks = incoming;',
+    'Consultando atividades',
+    'Última atualização:',
+):
+    assert marker in a, 'Agenda sem carregamento incremental: ' + marker
+
 print('ANDROID_AGENDA_329195_REGRESSION_OK')
