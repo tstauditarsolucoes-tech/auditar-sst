@@ -370,8 +370,10 @@ class _TechnicianAgendaScreenState extends State<TechnicianAgendaScreen> with Wi
     );
   }
   @override Widget build(BuildContext context){
-    if(!allowed)return Scaffold(appBar:AppBar(title:const Text('Agenda SST')),
-      body:const Center(child:Text('Área restrita à equipe Auditar.')));
+    if(!allowed || _sessionScope()!=_openedSession)return Scaffold(
+      appBar:AppBar(title:const Text('Agenda SST')),
+      body:const Center(child:Text(
+        'Sessão alterada. Volte à tela inicial e abra sua agenda novamente.')));
     final visible=tasks.where((x){
       final status=(x['status']??'').toString();
       if(filter=='Pendentes')return status=='planned'||status=='in_progress';
