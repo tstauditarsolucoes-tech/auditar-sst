@@ -47,7 +47,7 @@ for marker in needed:
 assert "SharedPreferences" not in agenda, "Não persistir dados da agenda em preferências"
 assert "secureStorage" not in agenda, "Não gravar agenda em armazenamento seguro"
 assert "_lastSnapshot = null;" in agenda, "Isolamento ao mudar de conta"
-assert "if (!allowed || _sessionScope()!=_openedSession)" in agenda
+assert re.search(r"if\s*\(\s*!allowed\s*\|\|\s*_sessionScope\(\)\s*!=\s*_openedSession\s*\)", agenda), "Proteção ao trocar de conta"
 start = agenda.index("  Future<void> _load() async {")
 end = agenda.index("  String label(", start)
 load = agenda[start:end]
