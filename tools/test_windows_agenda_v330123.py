@@ -33,9 +33,11 @@ for marker in (
     'Orientações do serviço:',
     "task['companyId']",
     "task['technicianId']",
-    "labelText:'Nome do serviço'",
-    "labelText:'Orientações para o técnico'",
 ):
     assert marker in agenda, 'Detalhe da tarefa ausente: ' + marker
+
+# Dart format may insert whitespace after the colon; keep semantic assertions.
+assert re.search(r"labelText\\s*:\\s*'Nome do serviço'", agenda), 'Título de serviço ausente'
+assert re.search(r"labelText\\s*:\\s*'Orientações para o técnico'", agenda), 'Orientações do técnico ausentes'
 
 print('AGENDA_WINDOWS_330123_REGRESSION_OK')
