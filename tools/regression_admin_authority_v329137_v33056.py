@@ -11,6 +11,7 @@ def normalized(text):
 root = Path(sys.argv[1])
 service = (root / 'lib/services/admin_access_policy.dart').read_text(encoding='utf-8')
 center = (root / 'lib/screens/admin_center_screen.dart').read_text(encoding='utf-8')
+client_access = (root / 'lib/screens/admin_client_panel_access_screen.dart').read_text(encoding='utf-8')
 home = (root / 'lib/screens/home_screen.dart').read_text(encoding='utf-8')
 settings = (root / 'lib/screens/settings_screen.dart').read_text(encoding='utf-8')
 users = (root / 'lib/screens/users_screen.dart').read_text(encoding='utf-8')
@@ -29,11 +30,29 @@ for value in (
     'AuthService.listUsers()',
     'AppDatabase.instance.getCompanies(',
     'const UsersScreen()',
-    'const UsersScreen()',
+    'const AuditarClientPanelAccessScreen()',
     'const CompaniesScreen()',
 ):
     if normalized(value) not in normalized(center):
         raise SystemExit('Admin center missing: ' + value)
+# The two visually different administrative shortcuts must never point
+# to the same UsersScreen route again.
+assert center.count('const UsersScreen()') == 1
+assert center.count('const AuditarClientPanelAccessScreen()') == 1
+for marker in (
+    'class AuditarClientPanelAccessScreen',
+    'AppDatabase.instance.getCompanies(onlyActive: false)',
+    'CompanyClientAccessSection(',
+    'AuditarAdminAccess.isAdmin(AuthService.currentUser)',
+    "'Acessos ao painel dos clientes'",
+):
+    if normalized(marker) not in normalized(client_access):
+        raise SystemExit('Dedicated client-panel access page missing: ' + marker)
+for forbidden in ('AuthService.saveUser(', 'DeviceSyncService.', 'MediaSyncService.',
+                  'SharedPreferences', 'AppDatabase.instance.save'):
+    if forbidden in client_access:
+        raise SystemExit('Dedicated client-panel page must reuse safe existing editor: ' + forbidden)
+
 if normalized('if (AuthService.isAdmin)') not in normalized(home) or \
         normalized('page: () => const AuditarAdminCenterScreen()') not in normalized(home):
     raise SystemExit('Home admin entry not properly gated')
