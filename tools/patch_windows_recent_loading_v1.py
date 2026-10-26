@@ -195,56 +195,16 @@ s = s[:match.start()] + indent + progress.replace("\n", "\n" + indent) + "\n" + 
 updated[hub] = s
 
 s = agenda.read_text(encoding="utf-8")
-start = s.index("  Future<void> _load() async {")
-end = s.index("  String label(", start)
-existing = s[start:end]
-assert "getCompanies()" in existing and "operation" in existing
-new = """  Future<void> _load() async {
-    if (!allowed) return;
-    setState(() {
-      busy = true;
-      error = '';
-    });
-    try {
-      // Three independent reads begin together. The existing API,
-      // authorized companies and visible task data remain identical.
-      final parts = await Future.wait<dynamic>([
-        AppDatabase.instance.getCompanies(),
-        AuthService.isAdmin
-            ? AuthService.listUsers()
-            : Future<List<AuditarUser>>.value(<AuditarUser>[]),
-        _post({'operation': 'list'}),
-      ]);
-      final cs = (parts[0] as List<Company>)
-          .where((c) => c.active && AuthService.canAccessCompany(c.id))
-          .toList();
-      final us = (parts[1] as List<AuditarUser>)
-          .where((u) => u.active && u.role == 'tecnico')
-          .toList();
-      final resp = parts[2] as Map<String, dynamic>;
-      final raw = resp['tasks'];
-      if (mounted) {
-        setState(() {
-          companies = cs;
-          technicians = us;
-          tasks = raw is List
-              ? raw.whereType<Map>()
-                  .map((e) => Map<String, dynamic>.from(e)).toList()
-              : [];
-          busy = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          busy = false;
-          error = e.toString().replaceFirst('Bad state: ', '');
-        });
-      }
-    }
-  }
-"""
-s = s[:start] + new + s[end:]
+# The shared Android/Windows agenda now already runs independent calls
+# concurrently and maintains a session-bound in-memory snapshot. Do not
+# replace _load(): overwriting it would reintroduce the empty-screen flicker.
+if "Future.wait<dynamic>" in s and "_saveSnapshot();" in s:
+    assert "_refreshing = false;" in s, "Agenda needs stale-while-revalidate"
+    assert "Timer.periodic" in s, "Automatic refresh must remain available"
+else:
+    raise AssertionError(
+        "Missing shared agenda cache: refuse the older Windows _load override."
+    )
 updated[agenda] = s
 
 # No intermediate partial writes if any anchor fails.
