@@ -29,328 +29,188 @@ class TutorialCatalog {
     'home': TutorialContent(
       title: 'Bem-vindo ao Auditar SST',
       description:
-          'As dicas orientam cada etapa. Abra Guia de uso na tela inicial para consultar qualquer assunto quando precisar.',
+          'O mini tutorial é opcional: aparece quando você abre uma área pela primeira vez. Você pode pular, parar as dicas ou reiniciá-las nas Configurações.',
       tips: [
-        'Iniciar visita: selecione empresa/obra e escolha Ronda, Vistoria ou NC.',
-        'Continuar rascunho: retome o serviço; Pendências: comece pelo mais urgente.',
-        'Relatórios: confira o PDF antes de entregar; a opção Novidades explica recursos recentes.',
+        'Iniciar visita: escolha a empresa/obra antes de registrar Ronda, Vistoria ou NC.',
+        'Continuar rascunho: retome o que faltou. Pendências: veja primeiro os riscos críticos e os prazos vencidos.',
+        'Relatórios: confira as fotos e o PDF antes de compartilhar com a empresa.',
       ],
       icon: Icons.waving_hand_rounded,
       welcome: true,
     ),
     'companies': TutorialContent(
-      title: 'Empresas',
+      title: 'Empresas e obras',
       description:
-          'Aqui ficam as empresas atendidas e os dados usados nas vistorias, relatórios e controles.',
+          'Escolha a empresa certa para manter os registros organizados e separados.',
       tips: [
-        'Pesquise empresa, obra ou grupo e confirme o contexto antes de trabalhar.',
-        'Use recentes/favoritos quando a versão oferecer essas opções.',
-        'Mantenha registros separados por empresa e respeite as permissões da conta.',
+        'Pesquise a empresa e confirme seu nome ou obra antes de abrir uma visita.',
+        'Use setores, empresas recentes e favoritos quando disponíveis na sua versão.',
+        'Revise o contexto antes de registrar NC, foto ou relatório para evitar misturar empresas.',
       ],
       icon: Icons.business_outlined,
     ),
     'company_detail': TutorialContent(
       title: 'Área da empresa',
       description:
-          'Esta tela reúne tudo o que está acontecendo nesta empresa em um só lugar.',
+          'Veja os registros, atividades e pendências vinculados à empresa escolhida.',
       tips: [
-        'Consulte vistorias, NCs, ações e relatórios vinculados à empresa.',
-        'Confira a Linha do Tempo quando o atalho estiver disponível na sua versão.',
-        'O histórico da empresa é diferente das mensagens de tratativa do cliente.',
+        'Consulte vistorias, não conformidades, ações, treinamentos e documentos.',
+        'Na Visita Rápida, o atalho Linha do tempo da empresa pode mostrar o histórico de atividades.',
+        'Mensagens e confirmação de correções pelo cliente dependem do Painel do Cliente e das permissões.',
       ],
       icon: Icons.domain_outlined,
     ),
     'field_quick': TutorialContent(
-      title: 'Vistoria rápida',
+      title: 'Visita rápida',
       description:
-          'Use para registrar vários problemas durante uma ronda sem precisar montar uma vistoria completa antes.',
+          'Registre os achados em campo sem perder a empresa/obra selecionada.',
       tips: [
-        'Selecione empresa/obra, confira setor e entre em Ronda, Vistoria ou NC.',
-        'Registre situação, foto, prioridade e recomendação técnica; salve.',
-        'Reabra para conferir o registro e use a Linha do Tempo se estiver disponível.',
+        'Selecione empresa e, quando necessário, obra e setor antes de começar.',
+        'Escolha Ronda, Vistoria ou NC, descreva o que observou e acrescente foto e prioridade.',
+        'Salve o registro e confira no histórico; continue a visita na mesma empresa.',
       ],
       icon: Icons.flash_on_rounded,
     ),
     'history': TutorialContent(
-      title: 'Vistorias',
+      title: 'Vistorias e rascunhos',
       description:
-          'Aqui você encontra vistorias em andamento e já finalizadas.',
+          'Retome inspeções, confira os resultados e prepare a entrega.',
       tips: [
-        'Retome uma vistoria em rascunho sem trocar o contexto da empresa.',
-        'Revise texto, fotos e recomendações antes de concluir.',
-        'Gere o PDF, abra a prévia e teste compartilhamento com contato de teste.',
+        'Abra Continuar rascunho quando precisar terminar uma vistoria iniciada.',
+        'Em uma vistoria concluída, confira fotos, descrição do risco, recomendação e histórico.',
+        'Gere o PDF, abra a prévia e verifique o documento antes de compartilhar.',
       ],
       icon: Icons.fact_check_outlined,
     ),
     'non_conformities': TutorialContent(
-      title: 'Problemas encontrados',
+      title: 'Não conformidades (NCs)',
       description:
-          'Esta área concentra as não conformidades registradas nas inspeções.',
+          'Esta área reúne os problemas encontrados e o acompanhamento das correções.',
       tips: [
-        'Priorize NCs críticas e vencidas e abra o detalhe da empresa correta.',
-        'Confira fotos, recomendações, prazo, status, histórico e código oficial.',
-        'Títulos amigáveis editáveis ainda exigem integração e homologação; preserve o ID.',
+        'Priorize as NCs críticas, pendentes ou vencidas da empresa selecionada.',
+        'Abra cada NC para conferir descrição, fotos, prazo, status e código oficial.',
+        'Descreva claramente o problema, como Proteção removida ou Extintor vencido; nome editável depende da versão homologada.',
       ],
       icon: Icons.warning_amber_rounded,
     ),
     'action_plan': TutorialContent(
-      title: 'Planos de ação',
+      title: 'Plano de ação e correções',
       description:
-          'Aqui você acompanha quem ficou responsável por cada correção e qual é o prazo.',
+          'Acompanhe a responsabilidade, o prazo e a validação técnica das correções.',
       tips: [
-        'Confira responsável e prazo para cada correção.',
-        'Cliente pode informar a solução em tratativas habilitadas, sem encerrar a NC sozinho.',
-        'Confirme ou rejeite tecnicamente a evidência, registrando justificativa curta.',
+        'Defina e acompanhe o responsável e o prazo para tratar cada problema.',
+        'Quando o Painel do Cliente estiver habilitado, o cliente poderá informar uma correção e anexar evidências.',
+        'O técnico deve confirmar ou rejeitar a correção, justificando quando a evidência for insuficiente.',
       ],
       icon: Icons.assignment_turned_in_outlined,
     ),
     'workers': TutorialContent(
       title: 'Trabalhadores',
       description:
-          'Cadastre ou importe os trabalhadores para usar nos controles de SST.',
+          'Organize os dados dos trabalhadores para os controles de SST.',
       tips: [
-        'Informe nome, função e setor.',
-        'Use a importação para cadastrar listas maiores com mais rapidez.',
-        'Os dados ajudam nos treinamentos e demais controles por função.',
+        'Confira nome, função, setor e vínculo com a empresa correta.',
+        'Use a importação quando tiver uma lista maior e a função estiver disponível.',
+        'Revise os dados antes de utilizar em treinamentos e demais controles.',
       ],
       icon: Icons.groups_rounded,
     ),
     'trainings': TutorialContent(
-      title: 'Treinamentos',
+      title: 'Treinamentos e DDS',
       description:
-          'Veja quais treinamentos estão em dia e quais precisam de atenção.',
+          'Acompanhe capacitações e registros de participação.',
       tips: [
-        'Consulte pendências por trabalhador, função ou NR.',
-        'Registre treinamentos realizados e suas datas.',
-        'Use os alertas para não deixar vencimentos passarem.',
+        'Verifique quais treinamentos estão realizados, pendentes ou próximos do vencimento.',
+        'Registre data, participantes e evidências conforme o tipo de treinamento.',
+        'Consulte o histórico antes de emitir ou compartilhar comprovantes.',
       ],
       icon: Icons.school_outlined,
     ),
     'compliance_alerts': TutorialContent(
       title: 'Alertas e obrigações',
       description:
-          'Esta tela reúne prazos e obrigações que precisam ser acompanhados.',
+          'Identifique prazos e obrigações que exigem atenção.',
       tips: [
-        'Comece pelos itens vencidos ou próximos do vencimento.',
-        'Abra o item para identificar a empresa e o que precisa ser feito.',
-        'Use a tela como uma lista diária de acompanhamento.',
+        'Comece pelos itens vencidos e pelos que estão próximos do prazo.',
+        'Abra cada alerta e confira empresa, obrigação e responsável.',
+        'Após o atendimento, revise o status para manter o acompanhamento confiável.',
       ],
       icon: Icons.notification_important_outlined,
     ),
     'cipa': TutorialContent(
       title: 'CIPA',
       description:
-          'Use esta área para organizar eleições, candidatos e votação da CIPA.',
+          'Acompanhe as atividades e etapas de gestão da CIPA.',
       tips: [
-        'Crie a eleição e cadastre os candidatos.',
-        'Gere o QR Code quando for usar votação digital.',
-        'Acompanhe os votos e o resultado dentro do processo.',
+        'Consulte a eleição, os candidatos e as etapas disponíveis.',
+        'Quando aplicável, use o QR Code da votação conforme o procedimento adotado.',
+        'Confira o resultado, os registros e o histórico antes de finalizar.',
       ],
       icon: Icons.how_to_vote_outlined,
     ),
     'checklists': TutorialContent(
-      title: 'Biblioteca de checklists',
+      title: 'Checklists e apoio técnico',
       description:
-          'Aqui ficam os modelos prontos para acelerar suas vistorias.',
+          'Encontre modelos para inspecionar as situações de SST.',
       tips: [
-        'Pesquise modelos por atividade, equipamento, setor ou NR.',
-        'Use checklist somente quando aplicável e documente achados com foto.',
-        'Sugestões automáticas e biblioteca são apoio, não decisão técnica automática.',
+        'Pesquise por NR, setor, equipamento ou atividade e escolha somente os itens aplicáveis.',
+        'Durante a vistoria, responda os quesitos e registre evidências dos achados.',
+        'Biblioteca e sugestões offline são apoio: o julgamento técnico continua com o profissional.',
       ],
       icon: Icons.library_add_check_outlined,
     ),
     'routine': TutorialContent(
-      title: 'Rotina SST',
+      title: 'Rotina SST e agenda',
       description:
-          'Reúne registros do dia a dia que não precisam virar uma vistoria completa.',
+          'Registre atividades do dia a dia e acompanhe compromissos.',
       tips: [
-        'Registre DDS, treinamentos e demais atividades disponíveis na sua conta.',
-        'Confira agenda, empresa/obra e responsável antes de registrar a execução.',
-        'Em obra, acompanhe a NR-18 por etapa quando o módulo estiver disponível.',
+        'Use a rotina para DDS, APR/PT, incidentes e demais registros disponíveis.',
+        'Confira a agenda e os responsáveis antes de marcar uma atividade como realizada.',
+        'Em obras, acompanhe etapas e verificações NR-18 conforme os módulos disponíveis.',
       ],
       icon: Icons.dashboard_customize_outlined,
     ),
     'improvements': TutorialContent(
-      title: 'Melhorias',
+      title: 'Melhorias e Antes × Depois',
       description:
-          'Registre mudanças positivas feitas pela empresa e demonstre a evolução do trabalho.',
+          'Demonstre as correções e avanços observados na empresa.',
       tips: [
-        'Registre a situação anterior e a melhoria realizada.',
-        'Adicione fotos para comprovar o resultado.',
-        'Use os registros em acompanhamentos e apresentações gerenciais.',
+        'Registre a situação inicial e a melhoria implantada.',
+        'Inclua fotos Antes e Depois quando houver evidência verificável.',
+        'Consulte o histórico e use a comparação para acompanhar a evolução.',
       ],
       icon: Icons.auto_awesome_outlined,
     ),
     'dashboard': TutorialContent(
-      title: 'Indicadores',
+      title: 'Indicadores e visão gerencial',
       description:
-          'Mostra um resumo do desempenho e ajuda a identificar onde concentrar atenção.',
+          'Use os indicadores para identificar prioridades de atuação.',
       tips: [
-        'Priorize pendências, prazos vencidos e indicadores por empresa.',
-        'No PC, use filtros e supervisão ADM conforme sua autorização.',
-        'Último contato do técnico não comprova que ele esteja online agora.',
+        'Filtre empresa e período e veja pendências, riscos e prazos vencidos.',
+        'No Windows, a gestão/ADM pode acompanhar atividades dos técnicos conforme permissões.',
+        'Último contato mostra um registro de atividade, não presença online em tempo real.',
       ],
       icon: Icons.bar_chart_rounded,
     ),
     'new_inspection': TutorialContent(
       title: 'Nova vistoria',
       description:
-          'Aqui você monta e executa uma inspeção completa passo a passo.',
+          'Faça uma inspeção completa, com checklist e evidências.',
       tips: [
-        'Selecione empresa/obra, setor e checklist pertinente.',
-        'Registre os itens observados com descrição e foto de evidência.',
-        'Salve rascunho para continuar depois e valide o PDF ao finalizar.',
+        'Escolha empresa, setor e checklist adequado ao serviço.',
+        'Marque cada item, descreva o achado e confira as fotos antes de salvar.',
+        'Se interromper a visita, salve um rascunho. Depois revise o relatório e gere o PDF.',
       ],
       icon: Icons.add_a_photo_outlined,
     ),
-    'latest_features': TutorialContent(
-      title: 'Novidades do Auditar SST',
-      description: 'Conheça os principais atalhos e confirme o que está habilitado na instalação.',
-      tips: [
-        'Visita rápida: empresa/obra, NC, rascunho, pendências e Linha do Tempo.',
-        'Cliente pode informar correção, mas o técnico deve confirmar ou rejeitar, em Central habilitada.',
-        'Agenda, biblioteca offline, relatórios e supervisão ADM variam por perfil e versão.',
-      ],
-      icon: Icons.auto_awesome_rounded,
-    ),
-    'client_treatments': TutorialContent(
-      title: 'Comunicação e tratativas',
-      description: 'Cliente e técnico acompanham a correção com evidências.',
-      tips: [
-        'Cliente envia pedido de apoio ou sinaliza correção no painel habilitado.',
-        'Técnico analisa evidência e responde validando ou rejeitando com justificativa.',
-        'A Central Online deve estar publicada e a permissão tratativas habilitada.',
-      ],
-      icon: Icons.forum_outlined,
-    ),
-    'company_timeline': TutorialContent(
-      title: 'Linha do tempo da empresa',
-      description: 'Histórico consolidado da empresa selecionada.',
-      tips: [
-        'Em Iniciar visita, escolha empresa/obra e procure Linha do Tempo.',
-        'Consulte vistorias, DDS, treinamentos e correções.',
-        'A linha do tempo histórica não substitui o chat de tratativas.',
-      ],
-      icon: Icons.timeline_rounded,
-    ),
-    'offline_knowledge': TutorialContent(
-      title: 'Biblioteca técnica offline',
-      description: 'Referências e sugestões para avaliação profissional.',
-      tips: [
-        'Pesquise por atividade, NR ou equipamento.',
-        'Reveja a pertinência antes de aplicar a sugestão à ocorrência.',
-        'A biblioteca não substitui avaliação técnica nem determina infração automaticamente.',
-      ],
-      icon: Icons.menu_book_outlined,
-    ),
-    'admin_supervision': TutorialContent(
-      title: 'Supervisão ADM',
-      description: 'Acompanhe atividades e contas conforme permissões.',
-      tips: [
-        'No Windows, use filtros por técnico, empresa e período.',
-        'Último contato não equivale a presença online instantânea.',
-        'Criação de contas e permissões exige autorização administrativa.',
-      ],
-      icon: Icons.admin_panel_settings_outlined,
-    ),
-    'technician_agenda': TutorialContent(
-      title: 'Agenda dos técnicos',
-      description: 'Consulte compromissos e acompanhamento por empresa/obra.',
-      tips: [
-        'Confira data, responsável e empresa/obra.',
-        'Atualize o compromisso conforme o procedimento da empresa.',
-        'Verifique sincronização e permissões antes de considerar a agenda atualizada.',
-      ],
-      icon: Icons.calendar_month_rounded,
-    ),
-    'nr18': TutorialContent(
-      title: 'NR-18 por obra',
-      description: 'Registros e verificações de segurança na obra.',
-      tips: [
-        'Selecione a empresa e a obra correta.',
-        'Registre a etapa ou atividade e anexe evidências pertinentes.',
-        'Acompanhe pendências sem misturar registros de obras diferentes.',
-      ],
-      icon: Icons.construction_rounded,
-    ),
-    'ronda': TutorialContent(
-      title: 'Ronda de segurança',
-      description: 'Registro rápido de observações e fotos.',
-      tips: [
-        'Abra Iniciar visita e selecione a empresa e a obra corretas.',
-        'Entre em Ronda e informe o local, o problema e a evidência fotográfica.',
-        'Salve e reabra o histórico para confirmar que os dados foram registrados.',
-      ],
-      icon: Icons.directions_walk_rounded,
-    ),
-    'field_operational': TutorialContent(
-      title: 'Pendências em destaque',
-      description: 'Saiba o que precisa de atenção primeiro.',
-      tips: [
-        'Escolha a empresa e entre em Pendências ou Central Operacional.',
-        'Confira primeiro NCs críticas, itens vencidos e outras prioridades.',
-        'Abra o registro e verifique situação, responsável, prazo e histórico.',
-      ],
-      icon: Icons.priority_high_rounded,
-    ),
-    'reports_pdf': TutorialContent(
-      title: 'Relatórios e PDF',
-      description: 'Confira os dados antes de compartilhar.',
-      tips: [
-        'Abra Relatórios ou o histórico da vistoria/ronda da empresa.',
-        'Confira título, setor, foto, risco, recomendação e conclusão.',
-        'Gere e abra o PDF para revisar as páginas antes de enviar.',
-      ],
-      icon: Icons.picture_as_pdf_outlined,
-    ),
-    'offline_sync': TutorialContent(
-      title: 'Uso offline e sincronização',
-      description: 'Registre atividades mesmo quando não há internet.',
-      tips: [
-        'Antes da visita, entre na conta autorizada e confirme os dados disponíveis.',
-        'Sem internet, salve os registros e não apague rascunhos nem a fila.',
-        'Com internet novamente, confira o envio e a presença dos registros.',
-      ],
-      icon: Icons.cloud_off_outlined,
-    ),
-    'nc_names': TutorialContent(
-      title: 'Identificação de uma NC',
-      description: 'Use nomes claros e preserve o código oficial.',
-      tips: [
-        'Exemplo: Proteção removida ou Extintor vencido.',
-        'Enquanto o nome editável não estiver homologado, use descrição clara.',
-        'O código e o ID oficiais continuam sendo a referência do registro.',
-      ],
-      icon: Icons.drive_file_rename_outline,
-    ),
-    'photo_evidence': TutorialContent(
-      title: 'Fotos e evidências',
-      description: 'Registre imagens úteis para demonstrar os riscos.',
-      tips: [
-        'Fotografe o local e o detalhe do problema, com boa iluminação.',
-        'Confira se a foto abre corretamente antes de sair do registro.',
-        'Compare Antes e Depois na correção; solicite nova prova quando necessário.',
-      ],
-      icon: Icons.photo_camera_outlined,
-    ),
-    'permissions': TutorialContent(
-      title: 'Perfis e permissões',
-      description: 'Cada perfil vê as empresas e funções autorizadas.',
-      tips: [
-        'Técnico: registre vistorias, riscos, evidências e recomendações.',
-        'Cliente: consulte pendências e informe correções, se habilitado.',
-        'ADM: acompanhe a equipe e gerencie contas com a devida permissão.',
-      ],
-      icon: Icons.manage_accounts_outlined,
-    ),
     'settings': TutorialContent(
-      title: 'Configurações',
+      title: 'Configurações e mini tutorial',
       description:
-          'Aqui ficam sua conta, sincronização, backup, Google Drive e preferências do aplicativo.',
+          'Aqui ficam as preferências e os controles de ajuda e sincronização.',
       tips: [
-        'Use Ajuda rápida e Reiniciar mini tutorial para rever as orientações.',
-        'Verifique a fila de sincronização e não apague pendências não enviadas.',
-        'Em atualização, preserve dados e fotos; não desinstale sem backup.',
+        'Para rever dicas, use Ajuda e mini tutorial > Reiniciar mini tutorial.',
+        'Confira a fila de sincronização sem apagar registros locais ou pendências de envio.',
+        'Antes de atualizar o app, preserve seus registros e fotos; não desinstale sem backup.',
       ],
       icon: Icons.settings_outlined,
     ),
@@ -387,134 +247,8 @@ class _TutorialScreenShellState extends State<TutorialScreenShell> {
   Widget build(BuildContext context) => widget.child;
 }
 
-
-class _TutorialGuideCenter extends StatefulWidget {
-  const _TutorialGuideCenter();
-
-  @override
-  State<_TutorialGuideCenter> createState() => _TutorialGuideCenterState();
-}
-
-class _TutorialGuideCenterState extends State<_TutorialGuideCenter> {
-  String search = '';
-
-  static const Map<String, List<String>> groups = {
-    'Comece por aqui': ['home', 'companies', 'company_detail', 'field_quick', 'new_inspection', 'ronda', 'history'],
-    'NCs e evidências': ['field_operational', 'non_conformities', 'nc_names', 'photo_evidence', 'action_plan', 'company_timeline', 'client_treatments', 'improvements'],
-    'Documentos e rotinas SST': ['reports_pdf', 'checklists', 'offline_knowledge', 'nr18', 'workers', 'trainings', 'routine', 'cipa'],
-    'Agenda, gestão e acesso': ['technician_agenda', 'dashboard', 'admin_supervision', 'permissions', 'compliance_alerts'],
-    'Ajuda e segurança': ['latest_features', 'offline_sync', 'settings'],
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    final value = search.trim().toLowerCase();
-    bool contains(String id) {
-      final topic = TutorialCatalog.items[id];
-      if (topic == null) return false;
-      return value.isEmpty ||
-          topic.title.toLowerCase().contains(value) ||
-          topic.description.toLowerCase().contains(value) ||
-          topic.tips.any((tip) => tip.toLowerCase().contains(value));
-    }
-    final matches = groups.values.expand((ids) => ids).where(contains).length;
-
-    return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
-      child: SizedBox(
-        width: math.min(size.width - 28, 680.0),
-        height: math.min(size.height * 0.84, 720.0),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.help_outline_rounded, color: AuditarBrand.greenDark),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Text('Guia de uso do Auditar SST',
-                        style: TextStyle(fontWeight: FontWeight.w800,
-                            fontSize: 18, color: AuditarBrand.navy)),
-                  ),
-                  IconButton(
-                    tooltip: 'Fechar guia',
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                ],
-              ),
-              const Text('Escolha um assunto para ver os passos. Você pode consultar este guia sempre que precisar.',
-                style: TextStyle(fontSize: 13, height: 1.35)),
-              const SizedBox(height: 12),
-              TextField(
-                onChanged: (v) => setState(() => search = v),
-                decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.search),
-                  labelText: 'Pesquisar função ou dúvida',
-                  hintText: 'NC, ronda, PDF, cliente...',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text('$matches assuntos encontrados',
-                  style: const TextStyle(fontSize: 12, color: AuditarBrand.neutral)),
-              const SizedBox(height: 6),
-              Expanded(
-                child: ListView(
-                  children: [
-                    for (final group in groups.entries)
-                      if (group.value.any(contains)) ...[
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12, bottom: 5),
-                          child: Text(group.key, style: const TextStyle(
-                              fontWeight: FontWeight.w800, color: AuditarBrand.navy)),
-                        ),
-                        for (final id in group.value.where(contains))
-                          ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                            leading: Icon(TutorialCatalog.items[id]!.icon,
-                                color: AuditarBrand.greenDark),
-                            title: Text(TutorialCatalog.items[id]!.title),
-                            subtitle: Text(TutorialCatalog.items[id]!.description,
-                                maxLines: 2, overflow: TextOverflow.ellipsis),
-                            trailing: const Icon(Icons.chevron_right_rounded),
-                            onTap: () => TutorialCoach.show(context, id, force: true),
-                          ),
-                      ],
-                    if (matches == 0)
-                      const Padding(
-                        padding: EdgeInsets.all(20),
-                        child: Text('Nenhum assunto encontrado. Pesquise por empresa, NC, vistoria, PDF ou cliente.',
-                          textAlign: TextAlign.center),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text('Recursos podem depender da versão instalada, perfil e homologação da Central Online.',
-                  style: TextStyle(fontSize: 11, height: 1.3,
-                      color: AuditarBrand.neutral)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class TutorialCoach {
   TutorialCoach._();
-
-  static Future<void> showGuide(BuildContext context) async {
-    await showDialog<void>(
-      context: context,
-      builder: (_) => const _TutorialGuideCenter(),
-    );
-  }
 
   static Future<void> showIfNeeded(
     BuildContext context,
@@ -554,10 +288,7 @@ class TutorialCoach {
             child: Padding(
               padding: EdgeInsets.fromLTRB(14, 14, 14, bottomPadding),
               child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: 540,
-                  maxHeight: math.min(MediaQuery.sizeOf(dialogContext).height * 0.82, 640.0),
-                ),
+                constraints: const BoxConstraints(maxWidth: 540),
                 child: Material(
                   type: MaterialType.transparency,
                   child: Stack(
@@ -576,11 +307,10 @@ class TutorialCoach {
                             ),
                           ],
                         ),
-                        child: SingleChildScrollView(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -624,33 +354,25 @@ class TutorialCoach {
                               ],
                             ),
                             const SizedBox(height: 14),
-                            ...content.tips.asMap().entries.map(
-                              (entry) => Padding(
+                            ...content.tips.map(
+                              (tip) => Padding(
                                 padding: const EdgeInsets.only(bottom: 8),
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Container(
-                                      width: 24,
-                                      height: 24,
-                                      alignment: Alignment.center,
-                                      decoration: BoxDecoration(
-                                        color: AuditarBrand.greenSoft,
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        '${entry.key + 1}',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w800,
-                                          color: AuditarBrand.greenDark,
-                                        ),
+                                      margin: const EdgeInsets.only(top: 6),
+                                      width: 7,
+                                      height: 7,
+                                      decoration: const BoxDecoration(
+                                        color: AuditarBrand.greenDark,
+                                        shape: BoxShape.circle,
                                       ),
                                     ),
                                     const SizedBox(width: 9),
                                     Expanded(
                                       child: Text(
-                                        entry.value,
+                                        tip,
                                         style: const TextStyle(
                                           fontSize: 13,
                                           height: 1.35,
@@ -683,7 +405,7 @@ class TutorialCoach {
                                     ),
                                     child: Text(
                                       content.welcome
-                                          ? 'Não mostrar dicas'
+                                          ? 'Pular tutorial'
                                           : 'Parar dicas',
                                     ),
                                   ),
@@ -703,7 +425,6 @@ class TutorialCoach {
                               ],
                             ),
                           ],
-                          ),
                         ),
                       ),
                       Positioned(
