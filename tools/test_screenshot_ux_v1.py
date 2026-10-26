@@ -73,6 +73,14 @@ for marker in (
 ):
     assert marker in visit, "Quick register safety regression: " + marker
 
+# Timeline must be directly reachable once the company is selected, not hidden in More.
+for marker in (
+    "import 'company_timeline_screen.dart';",
+    "'Linha do tempo da empresa'",
+    "CompanyTimelineScreen(company: c)",
+):
+    assert marker in visit, "Timeline shortcut missing from quick visit: " + marker
+
 control = screen("field_operational_control_screen.dart")
 assert "DateTime(due.year, due.month, due.day).isBefore(today)" in control, "Today is not overdue"
 if "Widget _urgentPendingPreview()" in control:

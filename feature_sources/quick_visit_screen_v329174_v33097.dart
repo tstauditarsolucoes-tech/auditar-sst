@@ -6,6 +6,7 @@ import '../services/auth_service.dart';
 import '../widgets/company_organization.dart';
 import 'companies_screen.dart';
 import 'company_detail_screen.dart';
+import 'company_timeline_screen.dart';
 import 'express_round_screen.dart';
 import 'new_inspection_screen.dart';
 import 'history_screen.dart';
@@ -408,6 +409,12 @@ class _QuickVisitScreenState extends State<QuickVisitScreen> {
           ),
         ],
         const SizedBox(height: 12),
+        _action(
+          'Linha do tempo da empresa',
+          'Histórico de vistorias, DDS, treinamentos, segurança e correções',
+          Icons.timeline_rounded,
+          CompanyTimelineScreen(company: c),
+        ),
         _action(
           'Mais opções da empresa',
           'Trabalhadores, DDS, treinamentos, CIPA e documentos',

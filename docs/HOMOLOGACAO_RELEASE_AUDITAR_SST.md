@@ -31,3 +31,15 @@ A release é considerada homologada somente quando:
 - Android e Windows não apresentarem travamento nos fluxos acima.
 
 Se qualquer item falhar, registrar tela, ação realizada e mensagem exibida antes de atualizar novamente.
+
+
+## Acesso à Linha do Tempo (atalho de campo)
+Na versão com este acabamento, abrir **Iniciar visita**, selecionar a empresa/obra
+e tocar em **Linha do tempo da empresa**. O atalho reutiliza a mesma tela
+`CompanyTimelineScreen` já existente e respeita a seleção e a autorização da
+empresa. O histórico consolidado inclui vistorias, DDS, treinamentos, segurança
+e correções.
+
+Este histórico local **não é** a conversa de correção com o cliente. Para ela,
+usar **Comunicação e tratativas** no app, ou **Comunicação e linha do tempo** no
+Painel do Cliente, condicionado à implantação e à permissão `tratativas`.
