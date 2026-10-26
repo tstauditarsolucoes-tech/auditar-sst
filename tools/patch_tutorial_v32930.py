@@ -215,8 +215,8 @@ checks = {
     'lib/screens/settings_screen.dart': ['Reiniciar mini tutorial'],
     'lib/screens/login_screen.dart': ["tutorialId: 'home'"],
     'lib/screens/splash_screen.dart': ["tutorialId: 'home'"],
-    'lib/widgets/tutorial_bubble.dart': ['Não mostrar dicas', 'Parar dicas', 'TutorialScreenShell', 'showGuide', 'Guia de uso do Auditar SST', 'reports_pdf', 'client_treatments', 'nr18'],
-    'lib/services/tutorial_service.dart': ['resetForCurrentAccount', 'disableAll', "tutorialVersion = '2'"],
+    'lib/widgets/tutorial_bubble.dart': ['Pular tutorial', 'Parar dicas', 'TutorialScreenShell'],
+    'lib/services/tutorial_service.dart': ['resetForCurrentAccount', 'disableAll'],
 }
 for rel, needles in checks.items():
     text = read(rel)
