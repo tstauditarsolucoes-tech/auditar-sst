@@ -217,6 +217,7 @@ on:
       - 'build_sources/v3.29.106-client-portal/ClientPortal.gs'
       - 'build_sources/v3.29.106-client-portal/ClientPortal.html'
       - 'tools/test_client_portal_evidence_readability_v1.cjs'
+      - 'tools/test_client_portal_review_reason_v1.cjs'
       - 'tools/regression_client_portal_executive_compact_v329137.py'
       - 'tools/patch_client_portal_admin_v329131.py'
       - 'tools/patch_client_portal_login_brand_v329132.py'
@@ -559,6 +560,7 @@ jobs:
           node tools/test_client_portal_v329106.cjs "$APP_DIR/painel_web_google_apps_script/ClientPortal.gs"
           node tools/test_client_portal_admin_v329131.cjs "$APP_DIR/painel_web_google_apps_script/ClientPortal.gs" "$APP_DIR/painel_web_google_apps_script/ClientPortal.html"
           node tools/test_client_portal_evidence_readability_v1.cjs "$APP_DIR/painel_web_google_apps_script/ClientPortal.html"
+          node tools/test_client_portal_review_reason_v1.cjs "$APP_DIR/painel_web_google_apps_script/ClientPortal.gs"
 
       - name: Melhorar relatórios sem alterar sincronização, banco, GS ou IA
         run: |
