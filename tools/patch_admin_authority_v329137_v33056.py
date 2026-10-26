@@ -42,6 +42,17 @@ if target.exists():
 shutil.copyfile(repo / 'feature_sources/admin_access_policy_v329137.dart', target)
 shutil.copyfile(repo / 'feature_sources/admin_center_screen_v329137.dart',
                 root / 'lib/screens/admin_center_screen.dart')
+client_access_widget = root / 'lib/widgets/company_client_access_section.dart'
+if not client_access_widget.is_file():
+    raise SystemExit('Client panel accounts widget is missing: refusing wrong shortcut.')
+shutil.copyfile(
+    repo / 'feature_sources/admin_client_panel_access_screen_v1.dart',
+    root / 'lib/screens/admin_client_panel_access_screen.dart',
+)
+admin_center = (root / 'lib/screens/admin_center_screen.dart').read_text(encoding='utf-8')
+if admin_center.count('const AuditarClientPanelAccessScreen()') != 1:
+    raise SystemExit('Client panel shortcut must have a dedicated route.')
+
 shutil.copyfile(repo / 'feature_sources/admin_access_policy_test_v329137.dart',
                 root / 'test/admin_access_policy_test.dart')
 
