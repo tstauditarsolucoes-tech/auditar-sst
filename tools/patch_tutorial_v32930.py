@@ -224,12 +224,12 @@ write('ALTERACOES_v3.29.30.txt', '''AUDITAR SST v3.29.30+172 — MINI TUTORIAL G
 
 checks = {
     'pubspec.yaml': ['version: 3.29.30+172'],
-    'lib/screens/home_screen.dart': ["tutorialId: 'companies'", 'Ajuda rápida', 'versão 3.29.30'],
-    'lib/screens/settings_screen.dart': ['Reiniciar mini tutorial'],
+    'lib/screens/home_screen.dart': ["tutorialId: 'companies'", 'Guia de uso', 'Novidades do app', 'versão 3.29.30'],
+    'lib/screens/settings_screen.dart': ['Reiniciar mini tutorial', 'Abrir guia completo do app'],
     'lib/screens/login_screen.dart': ["tutorialId: 'home'"],
     'lib/screens/splash_screen.dart': ["tutorialId: 'home'"],
-    'lib/widgets/tutorial_bubble.dart': ['Pular tutorial', 'Parar dicas', 'TutorialScreenShell'],
-    'lib/services/tutorial_service.dart': ['resetForCurrentAccount', 'disableAll'],
+    'lib/widgets/tutorial_bubble.dart': ['Não mostrar dicas', 'Parar dicas', 'TutorialScreenShell', 'showGuide', 'Guia de uso do Auditar SST', 'reports_pdf', 'client_treatments', 'nr18'],
+    'lib/services/tutorial_service.dart': ['resetForCurrentAccount', 'disableAll', "tutorialVersion = '2'"],
 }
 for rel, needles in checks.items():
     text = read(rel)
