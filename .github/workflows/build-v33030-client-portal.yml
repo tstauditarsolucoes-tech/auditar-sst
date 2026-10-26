@@ -27,7 +27,6 @@ on:
       - 'tools/patch_sst_deep_catalog_v2.py'
       - 'tools/bump_polish_release_version_v1.py'
       - 'tools/patch_nc_friendly_titles_v1.py'
-      - 'tools/patch_tutorial_ui_v2.py'
       - 'tools/patch_tutorial_v32930.py'
       - 'build_sources/v3.29.30-tutorial/**'
       - 'feature_sources/nc_title_store_v1.dart'
@@ -2032,16 +2031,6 @@ jobs:
         run: |
           python tools/bump_polish_release_version_v1.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Versao incorreta: release bloqueada' }
-
-      - name: Atualizar tutorial interno e validar layout Windows
-        shell: pwsh
-        run: |
-          python tools/patch_tutorial_ui_v2.py "$env:APP_DIR"
-          if ($LASTEXITCODE -ne 0) { throw 'Falha no guia interno' }
-          Push-Location "$env:APP_DIR"
-          dart format lib/screens/home_screen.dart lib/screens/settings_screen.dart lib/widgets/tutorial_bubble.dart
-          if ($LASTEXITCODE -ne 0) { throw 'Falha de formatacao do tutorial' }
-          Pop-Location
 
       - name: Salvar diagnostico da interface Windows montada
         if: always()
