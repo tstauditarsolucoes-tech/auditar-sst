@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import re
 import sys
 r=Path(sys.argv[1])
 h=(r/'lib/screens/home_screen.dart').read_text(encoding='utf8')
@@ -21,9 +22,11 @@ for marker in (
     'Orientações do serviço:',
     "task['companyId']",
     "task['technicianId']",
-    "labelText:'Nome do serviço'",
-    "labelText:'Orientações para o técnico'",
 ):
     assert marker in a, 'Detalhe da tarefa ausente: ' + marker
+
+# Dart format may insert whitespace after the colon; keep semantic assertions.
+assert re.search(r"labelText\\s*:\\s*'Nome do serviço'", a), 'Título de serviço ausente'
+assert re.search(r"labelText\\s*:\\s*'Orientações para o técnico'", a), 'Orientações do técnico ausentes'
 
 print('ANDROID_AGENDA_329195_REGRESSION_OK')
