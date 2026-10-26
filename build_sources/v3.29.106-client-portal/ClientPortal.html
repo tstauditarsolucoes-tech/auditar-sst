@@ -479,6 +479,20 @@ function renderTrainingWorkers(company){
  search.oninput=draw;sector.onchange=draw;status.onchange=draw;draw();
  return details;
 }
+function clientPortalNcLabel(row){
+ const title=String(row&&row.title||'').trim();
+ const id=String(row&&row.id||'').trim();
+ if(title&&title!==id&&!/^NC[-_ ]?SST[-_]/i.test(title))return title;
+ const desc=String(row&&row.description||'').trim();
+ return desc?(desc.length>110?desc.slice(0,107)+'…':desc):
+  'Não conformidade — descrição não publicada';
+}
+function clientPortalNcFromEvidence(company,ncId){
+ const id=String(ncId||'').trim();
+ const rows=company&&company.nonConformities||[];
+ const row=rows.find(item=>String(item.id||'').trim()===id);
+ return row?clientPortalNcLabel(row):'Ocorrência ainda sem nome descritivo';
+}
 function managerOpenProblems(company){
  return (company.nonConformities||[]).filter(row=>statusBucket(row)!=='done')
   .sort((a,b)=>{
@@ -495,8 +509,9 @@ function printManagerPlan(company,rows){
   text('p','Empresa: '+company.name+' • Publicado em: '+formatPortalDate(company.updatedAt)));
  if(!rows.length)target.append(text('p','Nenhuma pendência publicada para este período.'));
  rows.forEach((row,index)=>{
-  const item=text('section','','print-item');item.append(text('h2',(index+1)+'. '+(row.title||'Providência')));
+  const item=text('section','','print-item');item.append(text('h2',(index+1)+'. '+clientPortalNcLabel(row)));
   const line=(label,value)=>item.append(text('p',label+': '+(value||'Não informado no registro.')));
+  line('Código da NC',row.id);
   line('Problema encontrado',row.description);
   line('O que precisa ser feito',row.action||row.recommendation);
   line('Base normativa',row.normative?(row.normative+(row.normativeItem?' • Item '+row.normativeItem:'')):'Não informada; confirmar com a Auditar.');
@@ -522,11 +537,13 @@ function renderImprovementPlan(company){
  print.onclick=()=>printManagerPlan(company,source);tools.append(print);details.append(tools);
  source.slice(0,12).forEach((row,index)=>{
   const card=text('div','','improvement-card');card.dataset.ncId=row.id||'';
-  card.append(text('h4',(index+1)+'. '+(row.title||row.description||'Providência')));
+  card.append(text('h4',(index+1)+'. '+clientPortalNcLabel(row)));
+  if(row.id)card.append(text('small','Registro: '+row.id,'compact-note'));
   if(row.description){card.append(text('span','O que encontramos','label'),text('p',row.description));}
+  else card.append(text('p','A Auditar ainda precisa publicar a descrição da ocorrência.','compact-note'));
   const action=row.action||row.recommendation;
   card.append(text('span','O que precisa ser feito','label'),
-    text('p',action||'Orientação específica ainda não publicada. Consulte a Auditar.'));
+    text('p',action||'Orientação técnica pendente de publicação pela Auditar. Solicite esclarecimento antes de realizar a correção.'));
   card.append(text('div','Base normativa: '+(row.normative?
    row.normative+(row.normativeItem?' • Item '+row.normativeItem:''):
    'Não informada no registro. Consulte a Auditar.'),'norma-box'));
@@ -652,6 +669,7 @@ function showEvidenceForm(e,companyId,ncId,button){
  const note=document.createElement('textarea');note.rows=3;note.maxLength=1000;note.required=false;note.placeholder='Conte o que foi feito e, se possível, por quem.';form.className='manager-photo-form';form.append(note);
  form.append(text('label','Fotografia (opcional, até 2 MB)'));
  const photo=document.createElement('input');photo.type='file';photo.accept='image/jpeg,image/png,image/webp';form.append(photo);
+ form.append(text('p','Este envio ficará pendente de conferência da Auditar e não encerra a NC.','compact-note'));
  const message=text('p','','muted');const submit=text('button','Enviar para validação');submit.type='submit';form.append(message,submit);
  form.onsubmit=evt=>{
   evt.preventDefault();submit.disabled=true;message.textContent='Enviando…';
@@ -659,7 +677,10 @@ function showEvidenceForm(e,companyId,ncId,button){
    message.textContent='Fotografia maior que 2 MB.';submit.disabled=false;return;
   }
   const send=image=>call('clientPortalSubmitEvidence',[token,companyId,ncId,note.value,image],res=>{
-   message.textContent=res&&res.message||'Não foi possível enviar.';
+   message.textContent=res&&res.ok?
+     'Evidência enviada. Protocolo: '+String(res.id||'não informado')+
+     '. Aguardando conferência da Auditar; a NC permanece aberta.':
+     res&&res.message||'Não foi possível enviar.';
    message.className=res&&res.ok?'ok':'error';submit.disabled=!!(res&&res.ok);
   },err=>{message.textContent=err;message.className='error';submit.disabled=false;});
   if(!file)return send(null);
@@ -688,7 +709,8 @@ function renderMyEvidence(company){
    if(!(res.evidences||[]).length)area.append(text('p','Você ainda não enviou correções pelo painel.','compact-note'));
    (res.evidences||[]).forEach(row=>{
     const line=text('div','','record-line');
-    line.append(text('b','Problema: '+row.ncId),
+    line.append(text('b','Problema: '+clientPortalNcFromEvidence(company,row.ncId)),
+     text('small','Registro: '+row.ncId),
      text('small',[formatPortalDate(row.date),labels[row.status]||row.status].filter(Boolean).join(' • ')));
     if(row.note)line.append(text('p',row.note));
     if(row.hasPhoto){
@@ -721,8 +743,12 @@ function renderQueue(shell,company){
    if(!res||!res.ok){area.append(text('p',res&&res.message||'Erro.','error'));return;}
    if(!res.evidences.length)area.append(text('p','Nenhuma evidência enviada.','muted'));
    res.evidences.forEach(evidence=>{
-    const box=text('div','','entry');box.append(text('h3','NC: '+evidence.ncId),
-    text('p',evidence.note||'Fotografia enviada.'),text('div',evidence.date+' • '+evidence.status,'muted'));
+    const box=text('div','','entry');box.append(
+     text('h3',clientPortalNcFromEvidence(company,evidence.ncId)),
+     text('small','NC: '+evidence.ncId),
+     text('p',evidence.note||'Fotografia enviada.'),
+     text('div',evidence.date+' • '+(evidence.status==='PENDENTE_VALIDACAO'?
+       'Aguardando análise técnica':evidence.status),'muted'));
     if(evidence.hasPhoto){
      const view=text('button','Ver fotografia','secondary');view.type='button';view.onclick=()=>call('clientPortalEvidencePhoto',[token,evidence.id],res=>{
       if(!res||!res.ok)return box.append(text('p',res&&res.message||'Foto indisponível.','error'));
@@ -734,7 +760,12 @@ function renderQueue(shell,company){
      const buttons=text('div','','row');
      ['VALIDADA','REJEITADA'].forEach(choice=>{
       const b=text('button',choice==='VALIDADA'?'Validar evidência':'Rejeitar evidência',choice==='VALIDADA'?'':'warn');b.type='button';
-      b.onclick=()=>{b.disabled=true;call('clientPortalReviewEvidence',[token,evidence.id,choice],res=>{
+      b.onclick=()=>{
+       const question=choice==='VALIDADA'?
+        'Confirmar conferência desta evidência? A NC permanece aberta até o encerramento técnico.':
+        'Rejeitar esta evidência? O cliente precisará enviar uma nova comprovação.';
+       if(!window.confirm(question))return;
+       b.disabled=true;call('clientPortalReviewEvidence',[token,evidence.id,choice],res=>{
        if(res&&res.ok)btn.click();else{b.disabled=false;box.append(text('p',res&&res.message||'Erro.','error'));}
       },err=>{b.disabled=false;box.append(text('p',err,'error'));});};buttons.append(b);
      });box.append(buttons);
