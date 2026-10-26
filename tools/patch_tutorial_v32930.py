@@ -192,7 +192,7 @@ settings = rep(settings, """          const SizedBox(height: 28),
                     ],
                   ),
                   const SizedBox(height: 12),
-                                    OutlinedButton.icon(
+                  OutlinedButton.icon(
                     onPressed: _resetTutorial,
                     icon: const Icon(Icons.replay_rounded),
                     label: const Text('Reiniciar mini tutorial'),
