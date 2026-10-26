@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import '../brand.dart';
 import '../services/tutorial_service.dart';
 
+// Mini tutorial original: opcional por conta, com dicas curtas e reativação em Configurações.
+
 class TutorialContent {
   final String title;
   final String description;
