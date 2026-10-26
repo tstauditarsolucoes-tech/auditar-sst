@@ -29,7 +29,7 @@ class TutorialCatalog {
     'home': TutorialContent(
       title: 'Bem-vindo ao Auditar SST',
       description:
-          'Este mini tutorial aparece somente na primeira vez que cada área for aberta. As dicas são curtas e você pode pular quando quiser.',
+          'As dicas orientam cada etapa. Abra Guia de uso na tela inicial para consultar qualquer assunto quando precisar.',
       tips: [
         'Iniciar visita: selecione empresa/obra e escolha Ronda, Vistoria ou NC.',
         'Continuar rascunho: retome o serviço; Pendências: comece pelo mais urgente.',
@@ -273,6 +273,76 @@ class TutorialCatalog {
       ],
       icon: Icons.construction_rounded,
     ),
+    'ronda': TutorialContent(
+      title: 'Ronda de segurança',
+      description: 'Registro rápido de observações e fotos.',
+      tips: [
+        'Abra Iniciar visita e selecione a empresa e a obra corretas.',
+        'Entre em Ronda e informe o local, o problema e a evidência fotográfica.',
+        'Salve e reabra o histórico para confirmar que os dados foram registrados.',
+      ],
+      icon: Icons.directions_walk_rounded,
+    ),
+    'field_operational': TutorialContent(
+      title: 'Pendências em destaque',
+      description: 'Saiba o que precisa de atenção primeiro.',
+      tips: [
+        'Escolha a empresa e entre em Pendências ou Central Operacional.',
+        'Confira primeiro NCs críticas, itens vencidos e outras prioridades.',
+        'Abra o registro e verifique situação, responsável, prazo e histórico.',
+      ],
+      icon: Icons.priority_high_rounded,
+    ),
+    'reports_pdf': TutorialContent(
+      title: 'Relatórios e PDF',
+      description: 'Confira os dados antes de compartilhar.',
+      tips: [
+        'Abra Relatórios ou o histórico da vistoria/ronda da empresa.',
+        'Confira título, setor, foto, risco, recomendação e conclusão.',
+        'Gere e abra o PDF para revisar as páginas antes de enviar.',
+      ],
+      icon: Icons.picture_as_pdf_outlined,
+    ),
+    'offline_sync': TutorialContent(
+      title: 'Uso offline e sincronização',
+      description: 'Registre atividades mesmo quando não há internet.',
+      tips: [
+        'Antes da visita, entre na conta autorizada e confirme os dados disponíveis.',
+        'Sem internet, salve os registros e não apague rascunhos nem a fila.',
+        'Com internet novamente, confira o envio e a presença dos registros.',
+      ],
+      icon: Icons.cloud_off_outlined,
+    ),
+    'nc_names': TutorialContent(
+      title: 'Identificação de uma NC',
+      description: 'Use nomes claros e preserve o código oficial.',
+      tips: [
+        'Exemplo: Proteção removida ou Extintor vencido.',
+        'Enquanto o nome editável não estiver homologado, use descrição clara.',
+        'O código e o ID oficiais continuam sendo a referência do registro.',
+      ],
+      icon: Icons.drive_file_rename_outline,
+    ),
+    'photo_evidence': TutorialContent(
+      title: 'Fotos e evidências',
+      description: 'Registre imagens úteis para demonstrar os riscos.',
+      tips: [
+        'Fotografe o local e o detalhe do problema, com boa iluminação.',
+        'Confira se a foto abre corretamente antes de sair do registro.',
+        'Compare Antes e Depois na correção; solicite nova prova quando necessário.',
+      ],
+      icon: Icons.photo_camera_outlined,
+    ),
+    'permissions': TutorialContent(
+      title: 'Perfis e permissões',
+      description: 'Cada perfil vê as empresas e funções autorizadas.',
+      tips: [
+        'Técnico: registre vistorias, riscos, evidências e recomendações.',
+        'Cliente: consulte pendências e informe correções, se habilitado.',
+        'ADM: acompanhe a equipe e gerencie contas com a devida permissão.',
+      ],
+      icon: Icons.manage_accounts_outlined,
+    ),
     'settings': TutorialContent(
       title: 'Configurações',
       description:
@@ -317,8 +387,134 @@ class _TutorialScreenShellState extends State<TutorialScreenShell> {
   Widget build(BuildContext context) => widget.child;
 }
 
+
+class _TutorialGuideCenter extends StatefulWidget {
+  const _TutorialGuideCenter();
+
+  @override
+  State<_TutorialGuideCenter> createState() => _TutorialGuideCenterState();
+}
+
+class _TutorialGuideCenterState extends State<_TutorialGuideCenter> {
+  String search = '';
+
+  static const Map<String, List<String>> groups = {
+    'Comece por aqui': ['home', 'companies', 'company_detail', 'field_quick', 'new_inspection', 'ronda', 'history'],
+    'NCs e evidências': ['field_operational', 'non_conformities', 'nc_names', 'photo_evidence', 'action_plan', 'company_timeline', 'client_treatments', 'improvements'],
+    'Documentos e rotinas SST': ['reports_pdf', 'checklists', 'offline_knowledge', 'nr18', 'workers', 'trainings', 'routine', 'cipa'],
+    'Agenda, gestão e acesso': ['technician_agenda', 'dashboard', 'admin_supervision', 'permissions', 'compliance_alerts'],
+    'Ajuda e segurança': ['latest_features', 'offline_sync', 'settings'],
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final value = search.trim().toLowerCase();
+    bool contains(String id) {
+      final topic = TutorialCatalog.items[id];
+      if (topic == null) return false;
+      return value.isEmpty ||
+          topic.title.toLowerCase().contains(value) ||
+          topic.description.toLowerCase().contains(value) ||
+          topic.tips.any((tip) => tip.toLowerCase().contains(value));
+    }
+    final matches = groups.values.expand((ids) => ids).where(contains).length;
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
+      child: SizedBox(
+        width: math.min(size.width - 28, 680),
+        height: math.min(size.height * 0.84, 720),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.help_outline_rounded, color: AuditarBrand.greenDark),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text('Guia de uso do Auditar SST',
+                        style: TextStyle(fontWeight: FontWeight.w800,
+                            fontSize: 18, color: AuditarBrand.navy)),
+                  ),
+                  IconButton(
+                    tooltip: 'Fechar guia',
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+              const Text('Escolha um assunto para ver os passos. Você pode consultar este guia sempre que precisar.',
+                style: TextStyle(fontSize: 13, height: 1.35)),
+              const SizedBox(height: 12),
+              TextField(
+                onChanged: (v) => setState(() => search = v),
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.search),
+                  labelText: 'Pesquisar função ou dúvida',
+                  hintText: 'NC, ronda, PDF, cliente...',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text('$matches assuntos encontrados',
+                  style: const TextStyle(fontSize: 12, color: AuditarBrand.neutral)),
+              const SizedBox(height: 6),
+              Expanded(
+                child: ListView(
+                  children: [
+                    for (final group in groups.entries)
+                      if (group.value.any(contains)) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12, bottom: 5),
+                          child: Text(group.key, style: const TextStyle(
+                              fontWeight: FontWeight.w800, color: AuditarBrand.navy)),
+                        ),
+                        for (final id in group.value.where(contains))
+                          ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                            leading: Icon(TutorialCatalog.items[id]!.icon,
+                                color: AuditarBrand.greenDark),
+                            title: Text(TutorialCatalog.items[id]!.title),
+                            subtitle: Text(TutorialCatalog.items[id]!.description,
+                                maxLines: 2, overflow: TextOverflow.ellipsis),
+                            trailing: const Icon(Icons.chevron_right_rounded),
+                            onTap: () => TutorialCoach.show(context, id, force: true),
+                          ),
+                      ],
+                    if (matches == 0)
+                      const Padding(
+                        padding: EdgeInsets.all(20),
+                        child: Text('Nenhum assunto encontrado. Pesquise por empresa, NC, vistoria, PDF ou cliente.',
+                          textAlign: TextAlign.center),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text('Recursos podem depender da versão instalada, perfil e homologação da Central Online.',
+                  style: TextStyle(fontSize: 11, height: 1.3,
+                      color: AuditarBrand.neutral)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class TutorialCoach {
   TutorialCoach._();
+
+  static Future<void> showGuide(BuildContext context) async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => const _TutorialGuideCenter(),
+    );
+  }
 
   static Future<void> showIfNeeded(
     BuildContext context,
