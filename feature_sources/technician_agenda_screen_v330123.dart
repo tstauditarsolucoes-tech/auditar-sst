@@ -156,10 +156,11 @@ class _TechnicianAgendaScreenState extends State<TechnicianAgendaScreen> with Wi
       }
       final incoming = raw.whereType<Map>()
           .map((e) => Map<String, dynamic>.from(e)).toList();
+      final hasTaskChanges = jsonEncode(tasks) != jsonEncode(incoming);
       setState(() {
         companies = cs;
         technicians = us;
-        tasks = incoming;
+        if (hasTaskChanges) tasks = incoming;
         busy = false;
         _refreshing = false;
         _lastSuccess = DateTime.now();
