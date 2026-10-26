@@ -18,8 +18,13 @@ s=quick.read_text(encoding='utf-8')
 anchor="import 'worksite_followup_screen.dart';"
 assert s.count(anchor)==1
 s=s.replace(anchor,anchor+"\nimport 'offline_knowledge_status_screen.dart';",1)
-anchor="        const SizedBox(height: 12),\n        _action(\n          'Mais opções da empresa',"
-assert s.count(anchor)==1
+# Aceita ambas as composições: antes e depois do atalho da Linha do Tempo.
+anchors=(
+    "        const SizedBox(height: 12),\\n        _action(\\n          'Mais opções da empresa',",
+    "        _action(\\n          'Mais opções da empresa',",
+)
+anchor=next((a for a in anchors if s.count(a)==1),None)
+assert anchor is not None, 'âncora única de Mais opções ausente ou duplicada'
 addition="""        Card(
           child: ListTile(
             leading: const Icon(Icons.cloud_sync_outlined),
