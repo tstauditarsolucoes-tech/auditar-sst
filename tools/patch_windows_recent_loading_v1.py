@@ -102,91 +102,149 @@ new = """  Future<void> _refresh() async {
 
 """
 assert "final accounts = await AuthService.listUsers();" in old
-assert "getCompanies(onlyActive: false)" in old
+assert "getCompanies(" in old
 s = s[:start] + new + s[end:]
 updated[center] = s
 
 s = hub.read_text(encoding="utf-8")
-s = replace_once(
-    s,
-    "  bool busy=true;\n  String error='',search='',filter='Todas',selected='';",
-    "  bool busy=true;\n  int _loadedCompanies=0, _totalCompanies=0;\n"
-    "  String error='',search='',filter='Todas',selected='';",
-    "progress counters",
-)
-s = replace_once(
-    s,
-    "    setState((){busy=true;error='';});",
-    "    setState((){busy=true;error='';_loadedCompanies=0;_totalCompanies=0;});",
-    "hub start",
-)
-s = replace_once(
-    s,
-    """      final values=<_CompanyPulse>[];
-      for(var i=0;i<companies.length;i+=4){
+class_pos = s.index("class _AdminOperationalHubScreenState")
+class_brace = s.index("{", class_pos)
+s = s[:class_brace + 1] + """
+  int _loadedCompanies = 0;
+  int _totalCompanies = 0;
+""" + s[class_brace + 1:]
+start = s.index("  Future<void> _load() async {")
+end = s.index("  List<_CompanyPulse> get shown", start)
+existing = s[start:end]
+assert "getCompanies()" in existing and "Future.wait(" in existing
+new = """  Future<void> _load() async {
+    if (!adm) {
+      if (mounted) setState(() => busy = false);
+      return;
+    }
+    final actor = AuthService.currentUser?.id;
+    setState(() {
+      busy = true;
+      error = '';
+      _loadedCompanies = 0;
+      _totalCompanies = 0;
+    });
+    try {
+      final companies = (await AppDatabase.instance.getCompanies())
+          .where((c) => c.active && AuthService.canAccessCompany(c.id))
+          .toList();
+      if (!mounted || !adm || actor != AuthService.currentUser?.id) return;
+      setState(() => _totalCompanies = companies.length);
+      final values = <_CompanyPulse>[];
+      for (var i = 0; i < companies.length; i += 4) {
         values.addAll(await Future.wait(companies.skip(i).take(4).map(_read)));
-        if(!mounted||!adm||actor!=AuthService.currentUser?.id)return;
-      }""",
-    """      final values=<_CompanyPulse>[];
-      if(!mounted||!adm||actor!=AuthService.currentUser?.id)return;
-      setState(()=>_totalCompanies=companies.length);
-      for(var i=0;i<companies.length;i+=4){
-        values.addAll(await Future.wait(companies.skip(i).take(4).map(_read)));
-        if(!mounted||!adm||actor!=AuthService.currentUser?.id)return;
-        // Publish real completed company data by batch instead of waiting for
-        // every local history/checklist query across the entire portfolio.
-        final partial=List<_CompanyPulse>.of(values)..sort((a,b){
-          if(a.error!=null&&b.error==null)return 1;
-          if(b.error!=null&&a.error==null)return -1;
-          final n=b.score.compareTo(a.score);
-          return n!=0?n:a.company.name.compareTo(b.company.name);
+        if (!mounted || !adm || actor != AuthService.currentUser?.id) return;
+        // On Windows, render each completed batch while the rest loads.
+        // Values represent real data and are never guessed or cached.
+        final partial = List<_CompanyPulse>.of(values)
+          ..sort((a, b) {
+            if (a.error != null && b.error == null) return 1;
+            if (b.error != null && a.error == null) return -1;
+            final n = b.score.compareTo(a.score);
+            return n != 0 ? n : a.company.name.compareTo(b.company.name);
+          });
+        setState(() {
+          data = partial;
+          _loadedCompanies = values.length;
         });
-        setState((){
-          data=partial;
-          _loadedCompanies=values.length;
+      }
+      values.sort((a, b) {
+        if (a.error != null && b.error == null) return 1;
+        if (b.error != null && a.error == null) return -1;
+        final n = b.score.compareTo(a.score);
+        return n != 0 ? n : a.company.name.compareTo(b.company.name);
+      });
+      if (mounted && adm && actor == AuthService.currentUser?.id) {
+        setState(() {
+          data = values;
+          busy = false;
+          if (!data.any((e) => e.company.id == selected)) selected = '';
         });
-      }""",
-    "hub incremental batches",
-)
-s = replace_once(
-    s,
-    "        if(busy)const LinearProgressIndicator(),",
-    """        if(busy)...[
-          const LinearProgressIndicator(),
-          if(_totalCompanies>0)Padding(
-            padding:const EdgeInsets.symmetric(horizontal:12,vertical:5),
-            child:Text('Carregando empresas: '+_loadedCompanies.toString()+
-              ' de '+_totalCompanies.toString()),
-          ),
-        ],""",
-    "hub loading progress",
-)
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          busy = false;
+          error = 'Não foi possível carregar os registros locais.';
+        });
+      }
+    }
+  }
+"""
+s = s[:start] + new + s[end:]
+import re
+progress_pat = r"(?m)^(?P<indent>[ \t]*)if\s*\(\s*busy\s*\)\s*const\s+LinearProgressIndicator\(\)\s*,\s*$"
+match = re.search(progress_pat, s)
+assert match, "Progresso atual da Central ADM não encontrado"
+indent = match.group("indent")
+progress = """if (busy) ...[
+  const LinearProgressIndicator(),
+  if (_totalCompanies > 0)
+    Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      child: Text('Carregando empresas: ' +
+          _loadedCompanies.toString() + ' de ' + _totalCompanies.toString()),
+    ),
+],"""
+s = s[:match.start()] + indent + progress.replace("\n", "\n" + indent) + s[match.end():]
 updated[hub] = s
 
 s = agenda.read_text(encoding="utf-8")
-old = """      final cs=(await AppDatabase.instance.getCompanies())
-        .where((c)=>c.active&&AuthService.canAccessCompany(c.id)).toList();
-      List<AuditarUser> us=[];
-      if(AuthService.isAdmin)us=(await AuthService.listUsers())
-        .where((u)=>u.active&&u.role=='tecnico').toList();
-      final resp=await _post({'operation':'list'});
-      final raw=resp['tasks'];"""
-new = """      // Independent reads start together. This does not change any endpoint,
-      // access policy, record, or result shown to the technician/ADM.
-      final parts=await Future.wait<dynamic>([
+start = s.index("  Future<void> _load() async {")
+end = s.index("  String label(", start)
+existing = s[start:end]
+assert "getCompanies()" in existing and "operation" in existing
+new = """  Future<void> _load() async {
+    if (!allowed) return;
+    setState(() {
+      busy = true;
+      error = '';
+    });
+    try {
+      // Three independent reads begin together. The existing API,
+      // authorized companies and visible task data remain identical.
+      final parts = await Future.wait<dynamic>([
         AppDatabase.instance.getCompanies(),
         AuthService.isAdmin
-          ? AuthService.listUsers()
-          : Future<List<AuditarUser>>.value(<AuditarUser>[]),
-        _post({'operation':'list'}),
+            ? AuthService.listUsers()
+            : Future<List<AuditarUser>>.value(<AuditarUser>[]),
+        _post({'operation': 'list'}),
       ]);
-      final cs=(parts[0] as List<Company>)
-        .where((c)=>c.active&&AuthService.canAccessCompany(c.id)).toList();
-      final us=(parts[1] as List<AuditarUser>)
-        .where((u)=>u.active&&u.role=='tecnico').toList();
-      final resp=parts[2] as Map<String,dynamic>;
-      final raw=resp['tasks'];"""
-s = replace_once(s, old, new, "agenda parallel reads")
+      final cs = (parts[0] as List<Company>)
+          .where((c) => c.active && AuthService.canAccessCompany(c.id))
+          .toList();
+      final us = (parts[1] as List<AuditarUser>)
+          .where((u) => u.active && u.role == 'tecnico')
+          .toList();
+      final resp = parts[2] as Map<String, dynamic>;
+      final raw = resp['tasks'];
+      if (mounted) {
+        setState(() {
+          companies = cs;
+          technicians = us;
+          tasks = raw is List
+              ? raw.whereType<Map>()
+                  .map((e) => Map<String, dynamic>.from(e)).toList()
+              : [];
+          busy = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          busy = false;
+          error = e.toString().replaceFirst('Bad state: ', '');
+        });
+      }
+    }
+  }
+"""
+s = s[:start] + new + s[end:]
 updated[agenda] = s
 
 # No intermediate partial writes if any anchor fails.
