@@ -20,6 +20,13 @@ for route in ["ExpressRoundScreen(company: c)",
   "FieldOperationalControlScreen(initialCompanyId: c.id)",
   "HistoryScreen(companyId: c.id)","ManagerReportsScreen(company: c)",
   "CompanyDetailScreen(company: c)",
-  "Registrar outra ocorrência nesta empresa?"]:
+  ]:
   assert re.sub(r"\s+","",route) in compact,route
+# Preserve a way to capture another NC, whichever safe, localized UI is
+# present. The original close-form prompt and the new button are equivalent
+# for navigation; neither should imply successful persistence.
+assert ("Registraroutraocorrêncianestaempresa?" in compact or
+        ("Outroregistro" in compact and "Formuláriofechado" in compact)), (
+    "Sequential NC capture action lost"
+)
 print("NAVIGATION_COMPANY_CONTEXT_REGRESSION_OK")
