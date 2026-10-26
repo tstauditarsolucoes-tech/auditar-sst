@@ -417,6 +417,27 @@ function clientPortalEvidenceQueue(token, companyId) {
 }
 
 /** Cliente acompanha somente as correções enviadas por sua própria conta. */
+/** Motivos separados da planilha histórica de evidências (10 colunas).
+ * Nunca altera o texto enviado pelo cliente nem encerra uma NC.
+ */
+function clientPortalReviewReasonSheet_() {
+  return ensureSheet_(ensureAuthStorage_(), 'ClientPortalEvidenceReviewReasonsV1',
+    ['evidence_id','company_id','reason','reviewed_by','reviewed_at']);
+}
+function clientPortalReviewReasonsForCompany_(companyId) {
+  const ss=ensureAuthStorage_();
+  const sheet=ss.getSheetByName('ClientPortalEvidenceReviewReasonsV1');
+  const reasons={};
+  if(!sheet||sheet.getLastRow()<2)return reasons;
+  const rows=sheet.getRange(2,1,sheet.getLastRow()-1,5).getValues();
+  rows.forEach(function(row){
+    if(String(row[1]||'')===String(companyId||'')&&String(row[0]||'')) {
+      reasons[String(row[0])]=String(row[2]||'').slice(0,500);
+    }
+  });
+  return reasons;
+}
+
 function clientPortalMyEvidence(token, companyId) {
   const user=clientPortalAuthorizedUser_(token),cid=String(companyId||'').trim();
   if(!user)return {ok:false,code:'SESSION_INVALID',message:'Entre novamente.'};
@@ -428,21 +449,31 @@ function clientPortalMyEvidence(token, companyId) {
   const rows=sheet.getLastRow()<2?[]:sheet.getRange(2,1,sheet.getLastRow()-1,10).getValues();
   const selected=rows.filter(function(row){
     return String(row[1])===cid&&(user.role!=='cliente'||String(row[3])===user.id);
-  }).slice(-50).reverse().map(function(row){
+  }).slice(-50).reverse();
+  const rejected=selected.some(function(row){return String(row[7])==='REJEITADA';});
+  const reasons=rejected?clientPortalReviewReasonsForCompany_(cid):{};
+  const mapped=selected.map(function(row){
     return {id:String(row[0]),ncId:String(row[2]),date:String(row[4]),
       note:String(row[5]).slice(0,1000),hasPhoto:!!row[6],status:String(row[7]),
-      reviewedAt:String(row[8]||'')};
+      reviewedAt:String(row[8]||''),
+      reviewReason:String(row[7])==='REJEITADA'?
+        (reasons[String(row[0])]||'Motivo ainda não registrado. Contate a Auditar.'):''
+      };
   });
-  return {ok:true,evidences:selected};
+  return {ok:true,evidences:mapped};
 }
 
-function clientPortalReviewEvidence(token, evidenceId, decision) {
+function clientPortalReviewEvidence(token, evidenceId, decision, reason) {
   const user = clientPortalAuthorizedUser_(token);
   if (!user || user.role === 'cliente') {
     return {ok:false,code:'ACCESS_DENIED',message:'Acesso negado.'};
   }
   if (['VALIDADA','REJEITADA'].indexOf(String(decision || '')) < 0) {
     return {ok:false,message:'Decisão inválida.'};
+  }
+  const reviewReason=String(reason||'').trim().slice(0,500);
+  if(decision==='REJEITADA'&&reviewReason.length<8) {
+    return {ok:false,message:'Explique a rejeição em pelo menos 8 caracteres.'};
   }
   const sheet = clientPortalEvidenceSheet_();
   if (sheet.getLastRow() < 2) return {ok:false,message:'Evidência não encontrada.'};
@@ -457,10 +488,20 @@ function clientPortalReviewEvidence(token, evidenceId, decision) {
     if (String(row[7]) !== 'PENDENTE_VALIDACAO') {
       return {ok:false,message:'Evidência já analisada.'};
     }
-    sheet.getRange(i+2,8,1,3).setValues([[decision,new Date().toISOString(),user.id]]);
+    const at=new Date().toISOString();
+    // Registre a justificativa antes do status para que uma falha de escrita
+    // não marque a rejeição sem uma explicação disponível ao cliente.
+    if(decision==='REJEITADA') {
+      clientPortalReviewReasonSheet_().appendRow([
+        String(evidenceId),companyId,reviewReason,user.id,at
+      ]);
+    }
+    sheet.getRange(i+2,8,1,3).setValues([[decision,at,user.id]]);
     auditAuthEvent_(user,'client_portal_review_evidence','evidence',String(evidenceId),
-      companyId,'','client_portal',{decision:decision});
-    return {ok:true,message:'Evidência analisada. A situação da NC permanece sob controle do técnico.'};
+      companyId,'','client_portal',{decision:decision,reason:reviewReason});
+    return {ok:true,message:decision==='REJEITADA'?
+      'Evidência rejeitada com justificativa para o cliente. A NC permanece aberta.':
+      'Evidência conferida. A situação da NC permanece sob controle do técnico.'};
   }
   return {ok:false,message:'Evidência não encontrada.'};
 }
