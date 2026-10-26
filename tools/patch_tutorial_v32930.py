@@ -75,6 +75,13 @@ home = rep(home, """          IconButton(
             icon: const Icon(Icons.help_outline_rounded),
           ),
           IconButton(
+            tooltip: 'Novidades do app',
+            onPressed: () => TutorialCoach.show(
+              context, 'latest_features', force: true,
+            ),
+            icon: const Icon(Icons.new_releases_outlined),
+          ),
+          IconButton(
             tooltip: 'Configurações',
             onPressed: () => _open(
               const SettingsScreen(),
