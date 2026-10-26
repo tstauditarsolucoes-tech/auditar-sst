@@ -99,6 +99,7 @@ on:
       - 'tools/test_client_multi_access_v329136.cjs'
       - 'feature_sources/admin_access_policy_v329137.dart'
       - 'feature_sources/admin_center_screen_v329137.dart'
+      - 'feature_sources/admin_client_panel_access_screen_v1.dart'
       - 'feature_sources/admin_access_policy_test_v329137.dart'
       - 'tools/patch_admin_authority_v329137_v33056.py'
       - 'tools/regression_admin_authority_v329137_v33056.py'
