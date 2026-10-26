@@ -70,16 +70,9 @@ home = rep(home, """          IconButton(
             icon: const Icon(Icons.settings_outlined),
           ),
 """, """          IconButton(
-            tooltip: 'Guia de uso',
-            onPressed: () => TutorialCoach.showGuide(context),
+            tooltip: 'Ajuda rápida',
+            onPressed: () => TutorialCoach.show(context, 'home', force: true),
             icon: const Icon(Icons.help_outline_rounded),
-          ),
-          IconButton(
-            tooltip: 'Novidades do app',
-            onPressed: () => TutorialCoach.show(
-              context, 'latest_features', force: true,
-            ),
-            icon: const Icon(Icons.new_releases_outlined),
           ),
           IconButton(
             tooltip: 'Configurações',
@@ -152,7 +145,7 @@ companies = rep(companies, 'MaterialPageRoute(builder: (_) => CompanyDetailScree
 write('lib/screens/companies_screen.dart', companies)
 
 settings = read('lib/screens/settings_screen.dart')
-settings = rep(settings, "import '../services/drive_service.dart';\n", "import '../services/drive_service.dart';\nimport '../services/tutorial_service.dart';\nimport '../widgets/tutorial_bubble.dart';\n", 'import tutorial settings')
+settings = rep(settings, "import '../services/drive_service.dart';\n", "import '../services/drive_service.dart';\nimport '../services/tutorial_service.dart';\n", 'import tutorial settings')
 settings = rep(settings, '  Future<void> _logout() async {\n', """  Future<void> _resetTutorial() async {
     await TutorialService.resetForCurrentAccount();
     if (!mounted) return;
@@ -192,20 +185,14 @@ settings = rep(settings, """          const SizedBox(height: 28),
                       SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'O aplicativo explica as funções com passos simples. Use o Guia de uso para consultar todos os assuntos, sempre que precisar.',
+                          'O aplicativo mostra uma dica curta na primeira vez que cada área é aberta. O tutorial pode ser pulado a qualquer momento.',
                           style: TextStyle(fontSize: 12.8, height: 1.35),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  FilledButton.icon(
-                    onPressed: () => TutorialCoach.showGuide(context),
-                    icon: const Icon(Icons.menu_book_outlined),
-                    label: const Text('Abrir guia completo do app'),
-                  ),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
+                                    OutlinedButton.icon(
                     onPressed: _resetTutorial,
                     icon: const Icon(Icons.replay_rounded),
                     label: const Text('Reiniciar mini tutorial'),
@@ -224,8 +211,8 @@ write('ALTERACOES_v3.29.30.txt', '''AUDITAR SST v3.29.30+172 — MINI TUTORIAL G
 
 checks = {
     'pubspec.yaml': ['version: 3.29.30+172'],
-    'lib/screens/home_screen.dart': ["tutorialId: 'companies'", 'Guia de uso', 'Novidades do app', 'versão 3.29.30'],
-    'lib/screens/settings_screen.dart': ['Reiniciar mini tutorial', 'Abrir guia completo do app'],
+    'lib/screens/home_screen.dart': ["tutorialId: 'companies'", 'Ajuda rápida', 'versão 3.29.30'],
+    'lib/screens/settings_screen.dart': ['Reiniciar mini tutorial'],
     'lib/screens/login_screen.dart': ["tutorialId: 'home'"],
     'lib/screens/splash_screen.dart': ["tutorialId: 'home'"],
     'lib/widgets/tutorial_bubble.dart': ['Não mostrar dicas', 'Parar dicas', 'TutorialScreenShell', 'showGuide', 'Guia de uso do Auditar SST', 'reports_pdf', 'client_treatments', 'nr18'],
