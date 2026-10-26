@@ -6,7 +6,7 @@ import 'auth_service.dart';
 class TutorialService {
   TutorialService._();
 
-  static const String tutorialVersion = '1';
+  static const String tutorialVersion = '2';
 
   static String get _scope {
     final raw = (AuthService.currentUser?.id ?? 'local').trim();
