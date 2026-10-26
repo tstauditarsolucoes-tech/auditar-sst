@@ -24,6 +24,7 @@ on:
       - 'tools/bump_polish_release_version_v1.py'
       - 'tools/patch_nc_friendly_titles_v1.py'
       - 'tools/patch_tutorial_v32930.py'
+      - 'tools/test_tutorial_optional_v1.py'
       - 'build_sources/v3.29.30-tutorial/**'
       - 'feature_sources/nc_title_store_v1.dart'
       - 'feature_sources/nc_title_store_test_v1.dart'
@@ -1608,6 +1609,11 @@ jobs:
           set -euo pipefail
           python3 tools/bump_polish_release_version_v1.py "$APP_DIR" android
           grep -Fq 'version: 3.29.198+340' "$APP_DIR/pubspec.yaml"
+
+      - name: Testar mini tutorial opcional original
+        run: |
+          set -euo pipefail
+          python3 tools/test_tutorial_optional_v1.py "$APP_DIR"
 
       - name: Inventario de navegação e rotas do aplicativo montado
         run: |
