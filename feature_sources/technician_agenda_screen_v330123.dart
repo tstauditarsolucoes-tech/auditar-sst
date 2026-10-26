@@ -108,9 +108,13 @@ class _TechnicianAgendaScreenState extends State<TechnicianAgendaScreen> {
             items:[for(final u in technicians)DropdownMenuItem(value:u.id,child:Text(u.name))],
             onChanged:(v){if(v!=null)rebuild(()=>tech=v);}),
           TextField(controller:title,maxLength:140,
-            decoration:const InputDecoration(labelText:'Atividade')),
+            decoration:const InputDecoration(
+              labelText:'Nome do serviço',
+              hintText:'Ex.: Inspeção de extintores ou vistoria da obra')),
           TextField(controller:notes,maxLines:3,maxLength:1800,
-            decoration:const InputDecoration(labelText:'Orientações')),
+            decoration:const InputDecoration(
+              labelText:'Orientações para o técnico',
+              hintText:'Objetivo, local, setor e cuidados necessários')),
           OutlinedButton(onPressed:()async{
             final next=await _date(when);
             if(next!=null)rebuild((){
@@ -175,33 +179,82 @@ class _TechnicianAgendaScreenState extends State<TechnicianAgendaScreen> {
       busy=false;error=e.toString().replaceFirst('Bad state: ','');
     });}
   }
+  String _companyForTask(Map<String,dynamic> task) {
+    final id=(task['companyId']??'').toString().trim();
+    if(id.isEmpty)return 'Não informada';
+    for(final company in companies){
+      if(company.id==id)return company.name;
+    }
+    return 'Empresa não localizada neste acesso';
+  }
+  String _technicianForTask(Map<String,dynamic> task) {
+    final id=(task['technicianId']??'').toString().trim();
+    for(final technician in technicians){
+      if(technician.id==id)return technician.name;
+    }
+    final current=AuthService.currentUser;
+    if(current!=null&&current.id==id)return current.name;
+    return 'Técnico não localizado';
+  }
   Widget _task(Map<String,dynamic> t){
     final state=(t['status']??'planned').toString();
     final finalState=state=='done'||state=='cancelled';
-    final who=technicians.where((u)=>u.id==t['technicianId'])
-      .map((u)=>u.name).join(', ');
-    return Card(child:Padding(padding:const EdgeInsets.all(15),child:Column(
-      crossAxisAlignment:CrossAxisAlignment.start,children:[
-      Text((t['title']??'Serviço').toString(),
-        style:const TextStyle(fontSize:16,fontWeight:FontWeight.w800)),
-      Text(label(state)+' · '+date(t['scheduledAt'])+' · Prazo '+date(t['dueAt'])),
-      if(who.isNotEmpty)Text('Responsável: '+who),
-      if((t['description']??'').toString().isNotEmpty)
-        Text(t['description'].toString()),
-      if((t['lastReason']??'').toString().isNotEmpty)
-        Text('Último comentário: '+t['lastReason'].toString()),
-      if(!finalState)Wrap(spacing:7,children:[
-        if(state!='in_progress')OutlinedButton(
-          onPressed:busy?null:()=>_status(t,'in_progress'),
-          child:const Text('Iniciar / retomar')),
-        OutlinedButton(onPressed:busy?null:()=>_status(t,'blocked'),
-          child:const Text('Impedimento')),
-        FilledButton(onPressed:busy?null:()=>_status(t,'done'),
-          child:const Text('Concluir')),
-        if(AuthService.isAdmin)TextButton(onPressed:busy?null:()=>_status(t,'cancelled'),
-          child:const Text('Cancelar'))
-      ])
-    ])));
+    final title=(t['title']??'').toString().trim();
+    final instructions=(t['description']??'').toString().trim();
+    final lastNote=(t['lastReason']??'').toString().trim();
+    final companyName=_companyForTask(t);
+    final technicianName=_technicianForTask(t);
+    return Card(
+      child:Padding(
+        padding:const EdgeInsets.all(15),
+        child:Column(
+          crossAxisAlignment:CrossAxisAlignment.start,
+          children:[
+            Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
+              Expanded(child:Text(
+                title.isEmpty?'Atividade sem título':title,
+                style:const TextStyle(fontSize:16,fontWeight:FontWeight.w800),
+              )),
+              const SizedBox(width:8),
+              Chip(label:Text(label(state))),
+            ]),
+            const SizedBox(height:6),
+            Text('Empresa: '+companyName,
+              style:const TextStyle(fontWeight:FontWeight.w700)),
+            Text('Responsável: '+technicianName),
+            Text('Início previsto: '+date(t['scheduledAt'])),
+            Text('Prazo: '+date(t['dueAt'])),
+            if(instructions.isNotEmpty)...[
+              const SizedBox(height:9),
+              const Text('Orientações do serviço:',
+                style:TextStyle(fontWeight:FontWeight.w700)),
+              Text(instructions),
+            ],
+            if(lastNote.isNotEmpty)...[
+              const SizedBox(height:9),
+              Text('Última atualização: '+lastNote),
+            ],
+            if(!finalState)...[
+              const SizedBox(height:12),
+              Wrap(spacing:7,runSpacing:7,children:[
+                if(state!='in_progress')OutlinedButton(
+                  onPressed:busy?null:()=>_status(t,'in_progress'),
+                  child:const Text('Iniciar / retomar')),
+                OutlinedButton(
+                  onPressed:busy?null:()=>_status(t,'blocked'),
+                  child:const Text('Impedimento')),
+                FilledButton(
+                  onPressed:busy?null:()=>_status(t,'done'),
+                  child:const Text('Concluir')),
+                if(AuthService.isAdmin)TextButton(
+                  onPressed:busy?null:()=>_status(t,'cancelled'),
+                  child:const Text('Cancelar')),
+              ]),
+            ],
+          ],
+        ),
+      ),
+    );
   }
   @override Widget build(BuildContext context){
     if(!allowed)return Scaffold(appBar:AppBar(title:const Text('Agenda SST')),
@@ -219,7 +272,12 @@ class _TechnicianAgendaScreenState extends State<TechnicianAgendaScreen> {
       IconButton(tooltip:'Atualizar',onPressed:busy?null:_load,
         icon:const Icon(Icons.refresh))
     ]),body:ListView(padding:const EdgeInsets.all(16),children:[
-      const Text('Serviços e visitas',style:TextStyle(fontSize:22,fontWeight:FontWeight.w800)),
+      Text(AuthService.isAdmin?'Agenda da equipe · visão ADM':'Minhas tarefas e visitas',
+        style:const TextStyle(fontSize:22,fontWeight:FontWeight.w800)),
+      if(AuthService.isAdmin)Padding(
+        padding:const EdgeInsets.only(top:8,bottom:6),
+        child:Text('Total: ${tasks.length} · Pendentes: ${tasks.where((t)=>t['status']=='planned'||t['status']=='in_progress').length} · Impedidas: ${tasks.where((t)=>t['status']=='blocked').length} · Concluídas: ${tasks.where((t)=>t['status']=='done').length}'),
+      ),
       const Text('Agenda online: o registro não substitui a vistoria ou a conclusão oficial de NC.'),
       if(busy)const LinearProgressIndicator(),
       if(error.isNotEmpty)Padding(padding:const EdgeInsets.all(14),
