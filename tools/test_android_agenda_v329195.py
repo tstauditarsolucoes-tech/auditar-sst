@@ -7,8 +7,9 @@ h=(r/'lib/screens/home_screen.dart').read_text(encoding='utf8')
 a=(r/'lib/screens/technician_agenda_screen.dart').read_text(encoding='utf8')
 assert h.count("title: 'Minha agenda'")==1
 assert h.count("const TechnicianAgendaScreen()")==1
-for key in ["'operation':'list'","'operation':'status'","'operation':'create'","AuthService.isAdmin"]:
- assert key in a,key
+for operation in ("list", "status", "create"):
+    assert re.search(rf"""["']operation["']\s*:\s*["']{operation}["']""", a), operation
+assert "AuthService.isAdmin" in a
 assert 'version: 3.29.195+337' in (r/'pubspec.yaml').read_text(encoding='utf8')
 # As tarefas da gestão precisam exibir empresa, técnico, prazo e orientações.
 # A agenda do técnico continua disponível sem modificar a rota online.
