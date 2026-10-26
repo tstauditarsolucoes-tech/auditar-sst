@@ -26,7 +26,7 @@ for marker in (
     assert marker in a, 'Detalhe da tarefa ausente: ' + marker
 
 # Dart format may insert whitespace after the colon; keep semantic assertions.
-assert re.search(r"labelText\\s*:\\s*'Nome do serviço'", a), 'Título de serviço ausente'
-assert re.search(r"labelText\\s*:\\s*'Orientações para o técnico'", a), 'Orientações do técnico ausentes'
+assert re.search(r"labelText\s*:\s*'Nome do serviço'", a), 'Título de serviço ausente'
+assert re.search(r"labelText\s*:\s*'Orientações para o técnico'", a), 'Orientações do técnico ausentes'
 
 print('ANDROID_AGENDA_329195_REGRESSION_OK')
