@@ -33,3 +33,19 @@ jobs:
         run: node tools/test_client_portal_v329106.cjs build_sources/v3.29.106-client-portal/ClientPortal.gs
       - name: Confirmar backend parseavel
         run: cp build_sources/v3.29.106-client-portal/ClientPortal.gs /tmp/auditar-client-portal-check.js && node --check /tmp/auditar-client-portal-check.js
+      - name: Preparar pacote de homologacao do Painel do Cliente
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/painel-cliente-v1
+          cp build_sources/v3.29.106-client-portal/ClientPortal.html dist/painel-cliente-v1/
+          cp build_sources/v3.29.106-client-portal/ClientPortal.gs dist/painel-cliente-v1/
+          cp docs/PAINEL_CLIENTE_FONTE_LEGIVEL_REJEICAO_V1.md dist/painel-cliente-v1/LEIA-ANTES-DE-INSTALAR.md
+          (cd dist/painel-cliente-v1 && sha256sum ClientPortal.html ClientPortal.gs > SHA256.txt)
+      - name: Anexar fontes homologadas para teste
+        uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-Painel-Cliente-Legibilidade-Rejeicao-CANDIDATO
+          path: dist/painel-cliente-v1/
+          retention-days: 14
+
