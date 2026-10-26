@@ -58,7 +58,7 @@ new = """  Future<void> _refresh() async {
     // Local data and remote users are independent; don't make the PC wait
     // for a remote round trip before showing the number of companies.
     await Future.wait<void>([
-      () async {
+      (() async {
         try {
           final companies = await AppDatabase.instance.getCompanies(
             onlyActive: false,
@@ -69,8 +69,8 @@ new = """  Future<void> _refresh() async {
         } catch (_) {
           failedCompanies = true;
         }
-      }(),
-      () async {
+      })(),
+      (() async {
         try {
           final accounts = await AuthService.listUsers();
           if (!mounted || !AuditarAdminAccess.isAdmin(AuthService.currentUser) ||
@@ -85,7 +85,7 @@ new = """  Future<void> _refresh() async {
         } catch (_) {
           failedAccounts = true;
         }
-      }(),
+      })(),
     ]);
     if (!mounted || !AuditarAdminAccess.isAdmin(AuthService.currentUser) ||
         AuthService.currentUser?.id != actor) return;
