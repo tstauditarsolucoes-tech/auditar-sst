@@ -20,7 +20,7 @@ for (const marker of [
  'Protocolo:',
  'Aguardando análise técnica',
  'Evidência enviada.',
- "window.prompt('Explique ao cliente", "'auditar-panel-readable-v1'", "'portalFontLarger'", "'reviewReason'",
+ "window.prompt('Explique ao cliente", 'auditar-panel-readable-v1', "'portalFontLarger'", 'row.reviewReason',
  'clientPortalReviewEvidence',
  'clientPortalSubmitEvidence',
  'Evidências aguardando validação',
