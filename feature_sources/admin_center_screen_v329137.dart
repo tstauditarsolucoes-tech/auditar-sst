@@ -5,6 +5,7 @@ import '../database.dart';
 import '../services/auth_service.dart';
 import '../services/admin_access_policy.dart';
 import 'users_screen.dart';
+import 'admin_client_panel_access_screen.dart';
 import 'companies_screen.dart';
 import 'checklist_templates_screen.dart';
 import 'dashboard_screen.dart';
@@ -190,9 +191,9 @@ class _AuditarAdminCenterScreenState extends State<AuditarAdminCenterScreen> {
               Icons.manage_accounts_outlined,
               () => _open(const UsersScreen())),
           _action('Acessos ao painel dos clientes',
-              'Gerente, diretoria e RH: e-mail, senha, empresa e permissões individuais.',
+              'Escolha uma empresa e gerencie gerente, diretoria e RH com permissões individuais.',
               Icons.shield_outlined,
-              () => _open(const UsersScreen())),
+              () => _open(const AuditarClientPanelAccessScreen())),
           _action('Empresas e ambientes',
               'Abrir o cadastro e administrar os acessos individuais de cada empresa.',
               Icons.business_outlined,
