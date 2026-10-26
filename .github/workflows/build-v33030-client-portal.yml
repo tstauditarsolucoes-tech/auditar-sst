@@ -25,6 +25,7 @@ on:
       - 'feature_sources/technician_agenda_screen_v330123.dart'
       - 'tools/patch_windows_agenda_v330123.py'
       - 'tools/test_windows_agenda_v330123.py'
+      - 'tools/test_agenda_session_cache_v1.py'
       - 'tools/patch_sst_library_v1.py'
       - 'tools/patch_sst_deep_catalog_v2.py'
       - 'tools/bump_polish_release_version_v1.py'
@@ -2041,6 +2042,12 @@ jobs:
         run: |
           python tools/bump_polish_release_version_v1.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Versao incorreta: release bloqueada' }
+
+      - name: Validar agenda retida por sessao sem recarregar do zero
+        shell: pwsh
+        run: |
+          python tools/test_agenda_session_cache_v1.py .
+          if ($LASTEXITCODE -ne 0) { throw 'Falha: cache e atualizacao da agenda' }
 
       - name: Acelerar abertura dos modulos recentes Windows com regressao
         shell: pwsh
