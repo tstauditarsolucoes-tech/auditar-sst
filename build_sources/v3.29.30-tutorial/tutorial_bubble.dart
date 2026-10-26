@@ -31,9 +31,9 @@ class TutorialCatalog {
       description:
           'Este mini tutorial aparece somente na primeira vez que cada área for aberta. As dicas são curtas e você pode pular quando quiser.',
       tips: [
-        'Use “Nova vistoria” para iniciar uma inspeção completa.',
-        'Use “Vistoria rápida” quando precisar registrar achados rapidamente em campo.',
-        'Os demais recursos ficam organizados nos módulos da tela inicial.',
+        'Iniciar visita: selecione empresa/obra e escolha Ronda, Vistoria ou NC.',
+        'Continuar rascunho: retome o serviço; Pendências: comece pelo mais urgente.',
+        'Relatórios: confira o PDF antes de entregar; a opção Novidades explica recursos recentes.',
       ],
       icon: Icons.waving_hand_rounded,
       welcome: true,
@@ -43,9 +43,9 @@ class TutorialCatalog {
       description:
           'Aqui ficam as empresas atendidas e os dados usados nas vistorias, relatórios e controles.',
       tips: [
-        'Cadastre ou pesquise uma empresa pelo nome, CNPJ ou cidade.',
-        'Toque na empresa para abrir setores, vistorias, pendências e recursos próprios dela.',
-        'Mantenha os setores atualizados para facilitar o preenchimento em campo.',
+        'Pesquise empresa, obra ou grupo e confirme o contexto antes de trabalhar.',
+        'Use recentes/favoritos quando a versão oferecer essas opções.',
+        'Mantenha registros separados por empresa e respeite as permissões da conta.',
       ],
       icon: Icons.business_outlined,
     ),
@@ -54,9 +54,9 @@ class TutorialCatalog {
       description:
           'Esta tela reúne tudo o que está acontecendo nesta empresa em um só lugar.',
       tips: [
-        'Visão geral: resumo e atalhos principais.',
-        'Vistorias, NCs e Ações: acompanhe problemas e correções.',
-        'PGR + IA: consulte e trabalhe os riscos do PGR com apoio da IA.',
+        'Consulte vistorias, NCs, ações e relatórios vinculados à empresa.',
+        'Confira a Linha do Tempo quando o atalho estiver disponível na sua versão.',
+        'O histórico da empresa é diferente das mensagens de tratativa do cliente.',
       ],
       icon: Icons.domain_outlined,
     ),
@@ -65,9 +65,9 @@ class TutorialCatalog {
       description:
           'Use para registrar vários problemas durante uma ronda sem precisar montar uma vistoria completa antes.',
       tips: [
-        'Escolha empresa e setor.',
-        'Registre o problema, foto, prioridade e recomendação.',
-        'Continue adicionando achados conforme anda pela empresa.',
+        'Selecione empresa/obra, confira setor e entre em Ronda, Vistoria ou NC.',
+        'Registre situação, foto, prioridade e recomendação técnica; salve.',
+        'Reabra para conferir o registro e use a Linha do Tempo se estiver disponível.',
       ],
       icon: Icons.flash_on_rounded,
     ),
@@ -76,9 +76,9 @@ class TutorialCatalog {
       description:
           'Aqui você encontra vistorias em andamento e já finalizadas.',
       tips: [
-        'Retome uma vistoria que ainda não terminou.',
-        'Abra uma vistoria finalizada para consultar os registros.',
-        'Use os relatórios para entregar o resultado à empresa.',
+        'Retome uma vistoria em rascunho sem trocar o contexto da empresa.',
+        'Revise texto, fotos e recomendações antes de concluir.',
+        'Gere o PDF, abra a prévia e teste compartilhamento com contato de teste.',
       ],
       icon: Icons.fact_check_outlined,
     ),
@@ -87,9 +87,9 @@ class TutorialCatalog {
       description:
           'Esta área concentra as não conformidades registradas nas inspeções.',
       tips: [
-        'Veja o que ainda está em aberto e o que já foi resolvido.',
-        'Abra o registro para consultar fotos, risco, recomendação e histórico.',
-        'Atualize o status quando a empresa corrigir o problema.',
+        'Priorize NCs críticas e vencidas e abra o detalhe da empresa correta.',
+        'Confira fotos, recomendações, prazo, status, histórico e código oficial.',
+        'Títulos amigáveis editáveis ainda exigem integração e homologação; preserve o ID.',
       ],
       icon: Icons.warning_amber_rounded,
     ),
@@ -98,9 +98,9 @@ class TutorialCatalog {
       description:
           'Aqui você acompanha quem ficou responsável por cada correção e qual é o prazo.',
       tips: [
-        'Defina responsável e data para conclusão.',
-        'Acompanhe ações abertas, atrasadas e concluídas.',
-        'Use esta tela para cobrar e registrar o andamento das correções.',
+        'Confira responsável e prazo para cada correção.',
+        'Cliente pode informar a solução em tratativas habilitadas, sem encerrar a NC sozinho.',
+        'Confirme ou rejeite tecnicamente a evidência, registrando justificativa curta.',
       ],
       icon: Icons.assignment_turned_in_outlined,
     ),
@@ -153,9 +153,9 @@ class TutorialCatalog {
       description:
           'Aqui ficam os modelos prontos para acelerar suas vistorias.',
       tips: [
-        'Pesquise por equipamento, atividade, setor ou NR.',
-        'Ative os modelos que mais usa e personalize quando necessário.',
-        'Na Nova vistoria, você pode procurar e adicionar os checklists diretamente.',
+        'Pesquise modelos por atividade, equipamento, setor ou NR.',
+        'Use checklist somente quando aplicável e documente achados com foto.',
+        'Sugestões automáticas e biblioteca são apoio, não decisão técnica automática.',
       ],
       icon: Icons.library_add_check_outlined,
     ),
@@ -164,9 +164,9 @@ class TutorialCatalog {
       description:
           'Reúne registros do dia a dia que não precisam virar uma vistoria completa.',
       tips: [
-        'Registre DDS, APR/PT, incidentes e controles de equipamentos.',
-        'Use a agenda para lembrar atividades e compromissos.',
-        'Mantenha a rotina registrada para facilitar o acompanhamento da empresa.',
+        'Registre DDS, treinamentos e demais atividades disponíveis na sua conta.',
+        'Confira agenda, empresa/obra e responsável antes de registrar a execução.',
+        'Em obra, acompanhe a NR-18 por etapa quando o módulo estiver disponível.',
       ],
       icon: Icons.dashboard_customize_outlined,
     ),
@@ -186,9 +186,9 @@ class TutorialCatalog {
       description:
           'Mostra um resumo do desempenho e ajuda a identificar onde concentrar atenção.',
       tips: [
-        'Use filtros para analisar uma empresa ou período específico.',
-        'Observe pendências, evolução e setores que mais precisam de atenção.',
-        'Os indicadores ajudam a definir prioridades de trabalho.',
+        'Priorize pendências, prazos vencidos e indicadores por empresa.',
+        'No PC, use filtros e supervisão ADM conforme sua autorização.',
+        'Último contato do técnico não comprova que ele esteja online agora.',
       ],
       icon: Icons.bar_chart_rounded,
     ),
@@ -197,20 +197,90 @@ class TutorialCatalog {
       description:
           'Aqui você monta e executa uma inspeção completa passo a passo.',
       tips: [
-        'Escolha empresa, setor e os checklists que serão usados.',
-        'Durante a inspeção, marque a situação de cada item e registre fotos quando necessário.',
-        'Você pode salvar e continuar depois antes de finalizar o relatório.',
+        'Selecione empresa/obra, setor e checklist pertinente.',
+        'Registre os itens observados com descrição e foto de evidência.',
+        'Salve rascunho para continuar depois e valide o PDF ao finalizar.',
       ],
       icon: Icons.add_a_photo_outlined,
+    ),
+    'latest_features': TutorialContent(
+      title: 'Novidades do Auditar SST',
+      description: 'Conheça os principais atalhos e confirme o que está habilitado na instalação.',
+      tips: [
+        'Visita rápida: empresa/obra, NC, rascunho, pendências e Linha do Tempo.',
+        'Cliente pode informar correção, mas o técnico deve confirmar ou rejeitar, em Central habilitada.',
+        'Agenda, biblioteca offline, relatórios e supervisão ADM variam por perfil e versão.',
+      ],
+      icon: Icons.auto_awesome_rounded,
+    ),
+    'client_treatments': TutorialContent(
+      title: 'Comunicação e tratativas',
+      description: 'Cliente e técnico acompanham a correção com evidências.',
+      tips: [
+        'Cliente envia pedido de apoio ou sinaliza correção no painel habilitado.',
+        'Técnico analisa evidência e responde validando ou rejeitando com justificativa.',
+        'A Central Online deve estar publicada e a permissão tratativas habilitada.',
+      ],
+      icon: Icons.forum_outlined,
+    ),
+    'company_timeline': TutorialContent(
+      title: 'Linha do tempo da empresa',
+      description: 'Histórico consolidado da empresa selecionada.',
+      tips: [
+        'Em Iniciar visita, escolha empresa/obra e procure Linha do Tempo.',
+        'Consulte vistorias, DDS, treinamentos e correções.',
+        'A linha do tempo histórica não substitui o chat de tratativas.',
+      ],
+      icon: Icons.timeline_rounded,
+    ),
+    'offline_knowledge': TutorialContent(
+      title: 'Biblioteca técnica offline',
+      description: 'Referências e sugestões para avaliação profissional.',
+      tips: [
+        'Pesquise por atividade, NR ou equipamento.',
+        'Reveja a pertinência antes de aplicar a sugestão à ocorrência.',
+        'A biblioteca não substitui avaliação técnica nem determina infração automaticamente.',
+      ],
+      icon: Icons.menu_book_outlined,
+    ),
+    'admin_supervision': TutorialContent(
+      title: 'Supervisão ADM',
+      description: 'Acompanhe atividades e contas conforme permissões.',
+      tips: [
+        'No Windows, use filtros por técnico, empresa e período.',
+        'Último contato não equivale a presença online instantânea.',
+        'Criação de contas e permissões exige autorização administrativa.',
+      ],
+      icon: Icons.admin_panel_settings_outlined,
+    ),
+    'technician_agenda': TutorialContent(
+      title: 'Agenda dos técnicos',
+      description: 'Consulte compromissos e acompanhamento por empresa/obra.',
+      tips: [
+        'Confira data, responsável e empresa/obra.',
+        'Atualize o compromisso conforme o procedimento da empresa.',
+        'Verifique sincronização e permissões antes de considerar a agenda atualizada.',
+      ],
+      icon: Icons.calendar_month_rounded,
+    ),
+    'nr18': TutorialContent(
+      title: 'NR-18 por obra',
+      description: 'Registros e verificações de segurança na obra.',
+      tips: [
+        'Selecione a empresa e a obra correta.',
+        'Registre a etapa ou atividade e anexe evidências pertinentes.',
+        'Acompanhe pendências sem misturar registros de obras diferentes.',
+      ],
+      icon: Icons.construction_rounded,
     ),
     'settings': TutorialContent(
       title: 'Configurações',
       description:
           'Aqui ficam sua conta, sincronização, backup, Google Drive e preferências do aplicativo.',
       tips: [
-        'No Windows, confira a sincronização com o celular.',
-        'Use backup e Drive para aumentar a segurança dos dados.',
-        'Nesta tela você também pode reiniciar este mini tutorial.',
+        'Use Ajuda rápida e Reiniciar mini tutorial para rever as orientações.',
+        'Verifique a fila de sincronização e não apague pendências não enviadas.',
+        'Em atualização, preserve dados e fotos; não desinstale sem backup.',
       ],
       icon: Icons.settings_outlined,
     ),
