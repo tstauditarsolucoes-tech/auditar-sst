@@ -1,0 +1,35 @@
+name: Auditar SST - validar painel cliente e legibilidade
+
+on:
+  push:
+    branches:
+      - feature/client-panel-permissions-v329106
+    paths:
+      - 'build_sources/v3.29.106-client-portal/**'
+      - 'tools/test_client_portal_review_reason_v1.cjs'
+      - 'tools/test_client_portal_evidence_readability_v1.cjs'
+      - 'tools/test_client_portal_v329106.cjs'
+      - '.github/workflows/validate-client-portal-accessibility.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  panel:
+    name: Testar NC, evidencia e fontes
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verificar script HTML no Node
+        run: node tools/test_client_portal_evidence_readability_v1.cjs build_sources/v3.29.106-client-portal/ClientPortal.html
+      - name: Validar isolamento e motivo de rejeicao
+        run: node tools/test_client_portal_review_reason_v1.cjs build_sources/v3.29.106-client-portal/ClientPortal.gs
+      - name: Validar permissoes e rotas originais
+        run: node tools/test_client_portal_v329106.cjs build_sources/v3.29.106-client-portal/ClientPortal.gs
+      - name: Confirmar backend parseavel
+        run: cp build_sources/v3.29.106-client-portal/ClientPortal.gs /tmp/auditar-client-portal-check.js && node --check /tmp/auditar-client-portal-check.js
