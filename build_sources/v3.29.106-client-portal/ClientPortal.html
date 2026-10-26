@@ -213,6 +213,69 @@ body:has(#login:not(.hidden)) .auditar-portal-footer{display:none}
 }
 @media print{.auditar-app-header,.auditar-portal-footer{display:none!important}}
 
+
+/* auditar-panel-readable-v1: leitura confortável sem modificar dados. */
+@media screen{
+ html{--auditar-text-boost:0px}
+ html[data-auditar-text="large"]{--auditar-text-boost:2px}
+ html[data-auditar-text="extra"]{--auditar-text-boost:4px}
+ body{font-size:calc(16px + var(--auditar-text-boost));line-height:1.52}
+ .portal-company,.portal-company p,.portal-company li,.portal-company .entry,
+ .portal-company .muted,.portal-company .compact-note,.portal-company .record-line,
+ .portal-company .k-card small,.portal-company .kanban-empty,
+ .portal-company .training-stat span,.portal-company .report-mini small,
+ .portal-company .manager-total,.portal-company .norma-box,
+ .portal-company .attention-item,.portal-company .document-note,
+ .portal-company .metric-hint,.portal-company .mini-pill,.portal-company .update-chip,
+ .portal-company .status-dot,.auditar-portal-footer,#dashboard #status,
+ #dashboard #welcome,.tratativa-event p,.tratativa-event-head,
+ .tratativa-inbox-entry small{font-size:calc(14px + var(--auditar-text-boost))!important;line-height:1.5;overflow-wrap:anywhere}
+ .portal-company .exec-card span,.portal-company .training-stat span,
+ .portal-company .k-card b,.portal-company .record-line b,
+ .portal-company .report-mini b,.portal-company .kanban-title,
+ .portal-company .drill summary,.portal-company .activity-toggle summary,
+ .portal-company .improvement-card h4,.portal-company .compact-box h3,
+ .portal-company .attention-head b,.portal-company .section-eyebrow,
+ .portal-company .improvement-card .label,.portal-company .manager-photo-form label,
+ .portal-company .worker-table th,.portal-company .worker-table td,
+ .portal-company .report-mini button,.portal-company .manager-actions button,
+ .portal-company .manager-btn,.portal-company .report-mini button,
+ .portal-company .manager-photo-form textarea,
+ .tratativa-hub summary,.tratativa-form label,.tratativa-quick button{
+  font-size:calc(15px + var(--auditar-text-boost))!important;line-height:1.45;
+ }
+ .portal-company .improvement-card p,.portal-company .improvement-card .norma-box,
+ .portal-company .record-line p,.portal-company .tratativa-event p,
+ .portal-company .entry p{font-size:calc(16px + var(--auditar-text-boost))!important;line-height:1.58}
+ .portal-company h3,.portal-company h4{overflow-wrap:anywhere}
+ .portal-company h4,.portal-company .compact-box h3{font-size:calc(18px + var(--auditar-text-boost))!important}
+ .portal-company .exec-kicker,.auditar-header-caption small,
+ .auditar-header-trust,.auditar-portal-footer{font-size:calc(13px + var(--auditar-text-boost))!important}
+ .portal-company .drill summary,.portal-company .activity-toggle summary{
+  padding-top:16px;padding-bottom:16px
+ }
+ .manager-photo-form input,.manager-photo-form textarea,
+ .tratativa-form input,.tratativa-form textarea,.tratativa-form select,
+ .portal-company input,.portal-company select,
+ .portal-company textarea{font-size:calc(16px + var(--auditar-text-boost))!important}
+ .portal-company button,.auditar-app-header button,#dashboard #refresh{
+  font-size:calc(15px + var(--auditar-text-boost))!important;min-height:42px
+ }
+ .portal-company .section-grid,.portal-company .report-ribbon,
+ .portal-company .training-grid{min-width:0}
+ .auditar-header-actions{flex-wrap:wrap;justify-content:flex-end}
+ .auditar-font-size{display:flex;align-items:center;gap:3px}
+ .auditar-app-header .auditar-font-size button{
+  color:#123b4e!important;background:#f2f8fc!important;
+  min-width:43px;padding:8px 9px;border-radius:8px;border:1px solid #cce1e7
+ }
+ @media(max-width:760px){
+  .portal-company .section-grid{grid-template-columns:minmax(0,1fr)!important}
+  .portal-company .worker-table{display:block;max-width:100%;overflow-x:auto}
+  .auditar-header-actions{gap:7px}
+  .auditar-header-trust{display:none}
+ }
+}
 </style>
 </head>
 <body>
@@ -221,7 +284,7 @@ body:has(#login:not(.hidden)) .auditar-portal-footer{display:none}
   <span class="auditar-brand-frame"><img id="auditarOfficialLogo" class="auditar-official-logo" alt="Auditar Soluções — Medicina Ocupacional e Segurança do Trabalho" src="data:image/png;base64,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"></span>
   <span class="auditar-header-caption"><b>Auditar SST</b><small>Área do Cliente · Painel Gerencial</small></span>
  </div>
- <div class="auditar-header-actions"><span class="auditar-header-trust">Acesso individual por empresa</span><button id="logout" class="secondary hidden" type="button">Sair da conta</button></div>
+ <div class="auditar-header-actions"><span class="auditar-header-trust">Acesso individual por empresa</span><div class="auditar-font-size" aria-label="Tamanho das letras"><button id="portalFontSmaller" type="button" aria-label="Diminuir letras" title="Diminuir letras">A−</button><button id="portalFontLarger" type="button" aria-label="Aumentar letras" title="Aumentar letras">A+</button></div><button id="logout" class="secondary hidden" type="button">Sair da conta</button></div>
 </header>
 <main class="wrap">
 <section class="panel login" id="login">
@@ -245,6 +308,23 @@ body:has(#login:not(.hidden)) .auditar-portal-footer{display:none}
 (function(){
 'use strict';
 const $=id=>document.getElementById(id);
+const portalTextSizes=['normal','large','extra'];
+let portalTextSize=0;
+try {
+ const saved=localStorage.getItem('auditar_portal_text_size_v1');
+ const idx=portalTextSizes.indexOf(saved);
+ portalTextSize=idx<0?0:idx;
+}catch(_){}
+function updatePortalTextSize(step){
+ portalTextSize=Math.max(0,Math.min(2,portalTextSize+step));
+ document.documentElement.dataset.auditarText=portalTextSizes[portalTextSize];
+ try{localStorage.setItem('auditar_portal_text_size_v1',portalTextSizes[portalTextSize]);}catch(_){}
+ $('portalFontSmaller').disabled=portalTextSize===0;
+ $('portalFontLarger').disabled=portalTextSize===2;
+}
+$('portalFontSmaller').onclick=()=>updatePortalTextSize(-1);
+$('portalFontLarger').onclick=()=>updatePortalTextSize(1);
+updatePortalTextSize(0);
 /* Apply the same supplied Auditar brand to web login and dashboard. */
 function applyOfficialAuditarBrand(){
  const source=$('auditarOfficialLogo');
@@ -713,6 +793,9 @@ function renderMyEvidence(company){
      text('small','Registro: '+row.ncId),
      text('small',[formatPortalDate(row.date),labels[row.status]||row.status].filter(Boolean).join(' • ')));
     if(row.note)line.append(text('p',row.note));
+    if(row.status==='REJEITADA')line.append(
+      text('p','Motivo da rejeição: '+(row.reviewReason||
+        'Motivo ainda não informado. Solicite orientação à Auditar.'),'notice'));
     if(row.hasPhoto){
      const view=text('button','Ver foto enviada','secondary manager-btn');view.type='button';
      view.onclick=()=>{
@@ -761,11 +844,14 @@ function renderQueue(shell,company){
      ['VALIDADA','REJEITADA'].forEach(choice=>{
       const b=text('button',choice==='VALIDADA'?'Validar evidência':'Rejeitar evidência',choice==='VALIDADA'?'':'warn');b.type='button';
       b.onclick=()=>{
-       const question=choice==='VALIDADA'?
-        'Confirmar conferência desta evidência? A NC permanece aberta até o encerramento técnico.':
-        'Rejeitar esta evidência? O cliente precisará enviar uma nova comprovação.';
-       if(!window.confirm(question))return;
-       b.disabled=true;call('clientPortalReviewEvidence',[token,evidence.id,choice],res=>{
+       let reason='';
+       if(choice==='REJEITADA'){
+        const answer=window.prompt('Explique ao cliente por que a evidência não foi aceita (mínimo de 8 caracteres):','');
+        if(answer===null)return;
+        reason=answer.trim();
+        if(reason.length<8){box.append(text('p','Informe um motivo com pelo menos 8 caracteres.','error'));return;}
+       }else if(!window.confirm('Confirmar a conferência? A NC continuará aberta até o encerramento técnico.'))return;
+       b.disabled=true;call('clientPortalReviewEvidence',[token,evidence.id,choice,reason],res=>{
        if(res&&res.ok)btn.click();else{b.disabled=false;box.append(text('p',res&&res.message||'Erro.','error'));}
       },err=>{b.disabled=false;box.append(text('p',err,'error'));});};buttons.append(b);
      });box.append(buttons);
