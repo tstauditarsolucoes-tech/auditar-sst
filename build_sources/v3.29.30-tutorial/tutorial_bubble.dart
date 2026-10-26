@@ -554,7 +554,10 @@ class TutorialCoach {
             child: Padding(
               padding: EdgeInsets.fromLTRB(14, 14, 14, bottomPadding),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 540),
+                constraints: BoxConstraints(
+                  maxWidth: 540,
+                  maxHeight: math.min(MediaQuery.sizeOf(dialogContext).height * 0.82, 640),
+                ),
                 child: Material(
                   type: MaterialType.transparency,
                   child: Stack(
@@ -573,10 +576,11 @@ class TutorialCoach {
                             ),
                           ],
                         ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -620,25 +624,33 @@ class TutorialCoach {
                               ],
                             ),
                             const SizedBox(height: 14),
-                            ...content.tips.map(
-                              (tip) => Padding(
+                            ...content.tips.asMap().entries.map(
+                              (entry) => Padding(
                                 padding: const EdgeInsets.only(bottom: 8),
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Container(
-                                      margin: const EdgeInsets.only(top: 6),
-                                      width: 7,
-                                      height: 7,
-                                      decoration: const BoxDecoration(
-                                        color: AuditarBrand.greenDark,
-                                        shape: BoxShape.circle,
+                                      width: 24,
+                                      height: 24,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: AuditarBrand.greenSoft,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        '${entry.key + 1}',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w800,
+                                          color: AuditarBrand.greenDark,
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(width: 9),
                                     Expanded(
                                       child: Text(
-                                        tip,
+                                        entry.value,
                                         style: const TextStyle(
                                           fontSize: 13,
                                           height: 1.35,
@@ -671,7 +683,7 @@ class TutorialCoach {
                                     ),
                                     child: Text(
                                       content.welcome
-                                          ? 'Pular tutorial'
+                                          ? 'Não mostrar dicas'
                                           : 'Parar dicas',
                                     ),
                                   ),
@@ -691,6 +703,7 @@ class TutorialCoach {
                               ],
                             ),
                           ],
+                          ),
                         ),
                       ),
                       Positioned(
