@@ -264,6 +264,7 @@ on:
       - 'build_sources/v3.29.106-client-portal/ClientPortal.gs'
       - 'build_sources/v3.29.106-client-portal/ClientPortal.html'
       - 'tools/test_client_portal_evidence_readability_v1.cjs'
+      - 'tools/test_client_portal_review_reason_v1.cjs'
       - 'tools/regression_client_portal_executive_compact_v329137.py'
       - 'tools/patch_client_portal_admin_v329131.py'
       - 'tools/patch_client_portal_login_brand_v329132.py'
@@ -588,6 +589,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Teste tenant falhou' }
           node tools/test_client_portal_admin_v329131.cjs "$env:APP_DIR/painel_web_google_apps_script/ClientPortal.gs" "$env:APP_DIR/painel_web_google_apps_script/ClientPortal.html"
           node tools/test_client_portal_evidence_readability_v1.cjs "$env:APP_DIR/painel_web_google_apps_script/ClientPortal.html"
+          node tools/test_client_portal_review_reason_v1.cjs "$env:APP_DIR/painel_web_google_apps_script/ClientPortal.gs"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha na verificacao de motivo de rejeicao e isolamento do cliente' }
           if ($LASTEXITCODE -ne 0) { throw 'Falha na legibilidade das NCs e evidências' }
           if ($LASTEXITCODE -ne 0) { throw 'Teste de administracao do portal falhou' }
 
