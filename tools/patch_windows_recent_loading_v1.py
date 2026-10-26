@@ -191,7 +191,7 @@ progress = """if (busy) ...[
           _loadedCompanies.toString() + ' de ' + _totalCompanies.toString()),
     ),
 ],"""
-s = s[:match.start()] + indent + progress.replace("\n", "\n" + indent) + s[match.end():]
+s = s[:match.start()] + indent + progress.replace("\n", "\n" + indent) + "\n" + s[match.end():]
 updated[hub] = s
 
 s = agenda.read_text(encoding="utf-8")
