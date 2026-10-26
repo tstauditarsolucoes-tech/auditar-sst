@@ -54,7 +54,7 @@ load = agenda[start:end]
 assert len(re.findall(r"\btasks\s*=\s*\[\s*\]", load)) == 0,     "Recarga não deve esvaziar lista existente"
 assert "tasks.clear()" not in load
 assert "catch (e)" in load and "_saveSnapshot();" in load
-assert re.search(r"if\\s*\\(\\s*_lastSuccess\\s*!=\\s*null\\s*\\)", agenda), "Mostrar quando a lista foi atualizada"
+assert re.search(r"if\s*\(\s*_lastSuccess\s*!=\s*null\s*\)", agenda), "Mostrar quando a lista foi atualizada"
 assert "if(visible.isEmpty && _refreshing)" in agenda,     "Não mostrar falsa ausência de atividades durante consulta"
 assert "if \"Future.wait<dynamic>\" in s and \"_saveSnapshot();\" in s:" in windows,     "Patch Windows não pode substituir carregamento com cache"
 assert "raise AssertionError(" in windows and "shared agenda cache" in windows
