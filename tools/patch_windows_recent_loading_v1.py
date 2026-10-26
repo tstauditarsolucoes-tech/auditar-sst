@@ -256,7 +256,7 @@ for path, digest in before.items():
         raise AssertionError(f"Arquivo protegido modificado: {path}")
 
 assert "Future.wait<void>" in updated[center]
-assert "_loadedCompanies=values.length" in updated[hub]
+assert "_loadedCompanies = values.length" in updated[hub]
 assert "Future.wait<dynamic>" in updated[agenda]
 assert "agenda_tecnicos_v1" in updated[agenda]
 print("WINDOWS_RECENT_LOADING_OPTIMIZED_OK: independent requests, partial data and unchanged core.")
