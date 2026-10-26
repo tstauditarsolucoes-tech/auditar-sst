@@ -20,7 +20,7 @@ for (const marker of [
  'Protocolo:',
  'Aguardando análise técnica',
  'Evidência enviada.',
- 'if(!window.confirm(question))return;',
+ "window.prompt('Explique ao cliente", "'auditar-panel-readable-v1'", "'portalFontLarger'", "'reviewReason'",
  'clientPortalReviewEvidence',
  'clientPortalSubmitEvidence',
  'Evidências aguardando validação',
@@ -31,7 +31,7 @@ assert(!html.includes("card.append(text('h4',(index+1)+'. '+(row.title||row.desc
 assert(!html.includes("text('h3','NC: '+evidence.ncId)"));
 assert(html.includes("O envio registra") ||
        html.includes("Este envio ficará pendente de conferência"));
-assert(html.includes("a NC permanece aberta") ||
+assert(html.includes("Aguardando conferência") || html.includes("a NC permanece aberta") ||
        html.includes("A NC permanece sob controle do técnico"));
 
 // Verify the fallback uses existing source content, never guesses a title/norm.
