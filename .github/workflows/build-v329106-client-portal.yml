@@ -23,6 +23,9 @@ on:
       - 'tools/patch_sst_deep_catalog_v2.py'
       - 'tools/bump_polish_release_version_v1.py'
       - 'tools/patch_nc_friendly_titles_v1.py'
+      - 'tools/patch_tutorial_ui_v2.py'
+      - 'tools/patch_tutorial_v32930.py'
+      - 'build_sources/v3.29.30-tutorial/**'
       - 'feature_sources/nc_title_store_v1.dart'
       - 'feature_sources/nc_title_store_test_v1.dart'
       - 'feature_sources/offline_sst_deep_catalog_v2.dart'
@@ -1606,6 +1609,15 @@ jobs:
           set -euo pipefail
           python3 tools/bump_polish_release_version_v1.py "$APP_DIR" android
           grep -Fq 'version: 3.29.198+340' "$APP_DIR/pubspec.yaml"
+
+      - name: Atualizar tutorial interno e validar layout Android
+        run: |
+          set -euo pipefail
+          python3 tools/patch_tutorial_ui_v2.py "$APP_DIR"
+          (
+            cd "$APP_DIR"
+            dart format lib/screens/home_screen.dart lib/screens/settings_screen.dart lib/widgets/tutorial_bubble.dart
+          )
 
       - name: Inventario de navegação e rotas do aplicativo montado
         run: |
