@@ -423,8 +423,8 @@ class _TutorialGuideCenterState extends State<_TutorialGuideCenter> {
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
       child: SizedBox(
-        width: math.min(size.width - 28, 680),
-        height: math.min(size.height * 0.84, 720),
+        width: math.min(size.width - 28, 680.0),
+        height: math.min(size.height * 0.84, 720.0),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -556,7 +556,7 @@ class TutorialCoach {
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   maxWidth: 540,
-                  maxHeight: math.min(MediaQuery.sizeOf(dialogContext).height * 0.82, 640),
+                  maxHeight: math.min(MediaQuery.sizeOf(dialogContext).height * 0.82, 640.0),
                 ),
                 child: Material(
                   type: MaterialType.transparency,
