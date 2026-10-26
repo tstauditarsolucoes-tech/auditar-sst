@@ -16,6 +16,8 @@ on:
       - 'tools/patch_field_visual_v329193_v330116.py'
       - 'tools/patch_windows_desktop_ux_v330118.py'
       - 'tools/patch_windows_home_productivity_v330119.py'
+      - 'tools/patch_windows_recent_loading_v1.py'
+      - 'tools/test_windows_recent_loading_v1.py'
       - 'tools/patch_windows_admin_supervision_v330120.py'
       - 'tools/test_windows_admin_supervision_v330120.py'
       - 'feature_sources/admin_technician_supervision_screen_v330120.dart'
@@ -2033,6 +2035,20 @@ jobs:
         run: |
           python tools/bump_polish_release_version_v1.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Versao incorreta: release bloqueada' }
+
+      - name: Acelerar abertura dos modulos recentes Windows com regressao
+        shell: pwsh
+        run: |
+          python tools/patch_windows_recent_loading_v1.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha no carregamento progressivo Windows' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/screens/admin_center_screen.dart lib/screens/admin_operational_hub_screen.dart lib/screens/technician_agenda_screen.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha formatacao desempenho Windows' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Analise Flutter falhou apos melhoria de desempenho' }
+          Pop-Location
+          python tools/test_windows_recent_loading_v1.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao desempenho Windows' }
 
       - name: Salvar diagnostico da interface Windows montada
         if: always()
