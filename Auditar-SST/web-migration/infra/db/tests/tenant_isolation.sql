@@ -27,9 +27,9 @@ BEGIN
   SELECT count(*) INTO cnt FROM sst.inspection;
   IF cnt <> 0 THEN RAISE EXCEPTION 'RLS falhou: sem empresa retornou % linhas', cnt; END IF;
   SELECT count(*) INTO cnt FROM sst.app_user;
-  IF cnt <> 0 THEN RAISE EXCEPTION 'RLS falhou: sem empresa revelou usuarios', cnt; END IF;
+  IF cnt <> 0 THEN RAISE EXCEPTION 'RLS falhou: sem empresa revelou % usuarios', cnt; END IF;
   SELECT count(*) INTO cnt FROM sst.user_company_role;
-  IF cnt <> 0 THEN RAISE EXCEPTION 'RLS falhou: sem empresa revelou vinculos', cnt; END IF;
+  IF cnt <> 0 THEN RAISE EXCEPTION 'RLS falhou: sem empresa revelou % vinculos', cnt; END IF;
 END $$;
 
 SET LOCAL app.company_id = '10000000-0000-4000-8000-000000000001';
