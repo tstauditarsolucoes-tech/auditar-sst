@@ -70,3 +70,8 @@ Somente após 001–004 em base nova: prioridades, prazos, atribuição, revisã
 ## Migração 006 — portal e supervisão web isolados
 
 Em banco NOVO, aplicar após 005: migrations/006_client_portal_admin.sql. Cria support_thread, support_message (append-only para runtime) e web_user_activity, com FKs de tenant e RLS forçado. Backend controla cliente dono do ticket, status e gestão por empresa. Não conecta Apps Script, Drive, fotos ou usuários existentes. Não executar migração em volume com dados reais sem backup, revisão e aprovação.
+
+
+## Migração 007 — metadados de arquivo privado
+
+Somente em banco novo com 001–006 concluídas: adiciona client_request_id idempotente aos metadados de sst.evidence. Os bytes ficam no volume do Docker, não no PostgreSQL. RLS de evidências da migration 001 continua em vigor. Banco e volume precisam de backup consistente e ensaio de restauração antes de migração de dados reais.

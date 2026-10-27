@@ -42,3 +42,5 @@
 
 /* Painel do Cliente e Central ADM da homologacao isolada */
 .portal-pilot,.admin-pilot{display:grid;gap:1rem}.portal-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.6rem}.portal-stat{padding:1rem;border:1px solid #d1e4dd;border-radius:12px;background:#f5fbf7;display:flex;flex-direction:column;gap:.35rem}.portal-stat strong{font-size:1.8rem;color:#126744}.portal-stat span{font-size:1rem;color:#28443a}.portal-nc-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}.portal-pilot .nc-card{border-left:4px solid #efad45}.admin-pilot .inspection-item small,.portal-pilot .inspection-item small{display:block;font-size:1rem;line-height:1.45}
+
+.evidence-pilot{margin:1rem 0;padding:1rem;border:1px dashed #9cb9aa;border-radius:12px;background:#f9fcfa}.evidence-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.6rem}.evidence-thumb{margin:0;padding:.35rem;border:1px solid #d5e7df;border-radius:8px}.evidence-thumb img{display:block;width:100%;height:120px;object-fit:cover;border-radius:6px}.evidence-thumb figcaption{font-size:.85rem;color:#34554b;margin-top:.4rem}

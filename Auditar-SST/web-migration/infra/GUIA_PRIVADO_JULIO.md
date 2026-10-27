@@ -61,7 +61,7 @@ Começar com o Compose **padrão, sem login**; isto cria apenas os serviços ded
 docker compose -p auditar-sst-web-hml -f compose.staging.yml up --build -d --wait
 ```
 
-Só num banco **novo e vazio**, aplicar migrações 001, 002, 003, 004, 005 e 006 nessa ordem, uma única vez:
+Só num banco **novo e vazio**, aplicar migrações 001, 002, 003, 004, 005, 006 e 007 nessa ordem, uma única vez:
 
 ```bash
 docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
@@ -81,6 +81,9 @@ docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
 
 docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
   psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/006_client_portal_admin.sql
+
+docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
+  psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/007_private_media_pilot.sql
 ```
 
 **Não executar** arquivos em `db/tests/seed_*.sql` na VPS. Eles contêm identidades e senhas fictícias públicas **exclusivas da CI descartável**.
@@ -100,6 +103,7 @@ docker compose -p auditar-sst-web-hml -f compose.staging.yml -f compose.private-
 O script recusa roles existentes e não redefine senhas silenciosamente. Ele cria:
 - `sst_web_data_hml`: somente operações SST com `sst_app_runtime` e escopo por empresa;
 - `sst_web_auth_hml`: somente sessões/credenciais com `sst_auth_runtime`.
+- `evidence_data_hml`: volume Docker NOVO com fotos de homologação, separado de outros volumes, montado apenas na API privada e nunca publicado no NPM. Backup de **banco + volume** deve ser coordenado.
 
 Agora ativar **somente API** privada, que verifica o HTTPS configurado, papéis não-superuser e segredos. O script `private-entrypoint.sh` inicia brevemente como root apenas para copiar os segredos legíveis por root para um `tmpfs` efêmero, restringe-os ao usuário `node` e **descarta privilégios antes de iniciar o servidor Node**. Os segredos originais permanecem `0600` e a API não usa um filesystem persistente para essa cópia:
 
@@ -147,10 +151,12 @@ Criar um Proxy Host **novo** para a URL privada:
 - Abrir solicitação de apoio no painel do cliente, responder como técnico, encerrar e reabrir; verificar que empresa B não vê os tickets de A.
 - Registrar correção de NC no painel e validar/rejeitar pela equipe; verificar que somente gestor/ADM vê a Central Administrativa.
 - Conferir atividade Web recente na Central ADM (não indica presença do Android/Windows) e a troca de empresa.
+- Anexar foto **fictícia** de até 2 MB a NC e vistoria, abrir no painel autenticado e validar que outra empresa não acessa nem o arquivo nem seus metadados. Não carregar fotografias reais.
 - Repetir o envio da vistoria com a mesma chave e confirmar que não gera duplicatas; testar rascunho em duas abas.
 - Conferir histórico e verificar que outra empresa não vê os dados anteriores.
 - Sair/entrar e conferir expiração/negação de sessões revogadas.
 - Conferir consumo de memória, backups, logs e limites de tentativas de login.
+- Registrar estratégia de cópia criptografada e teste de restauração do PostgreSQL **junto do volume** `evidence_data_hml`; não reutilizar o backup do Drive como substituto.
 - Testar no PC e celular; verificar que a tela original de demonstração não foi alterada.
 
 A CI automatizada já simula boa parte desse fluxo no PostgreSQL real **descartável**, mas não substitui a homologação física com NPM/SSL da VPS.
@@ -171,4 +177,11 @@ docker compose -p auditar-sst-web-hml -f compose.staging.yml \
 
 ### Ainda NÃO entregue em produção
 
-Vistorias/agenda/painel do cliente/ADM são apenas pilotos isolados, não estão integralmente migrados ao Node/Web; PDF/fotos/assinaturas ainda não estão migrados; os apps Flutter não usam esta API; não houve transferência de dados/Drive nem homologação geral. A implantação no domínio final exigirá backup testado, auditoria de permissões, restauração, rate limiting avançado, monitoramento, tratamento de senhas, carga e aprovação expressa da Auditar.
+Vistorias/agenda/painel do cliente/ADM/fotos de teste são pilotos isolados, não integram sistemas legados; PDF, assinaturas e fotografias reais ainda não foram migrados; os apps Flutter não usam esta API; não houve transferência de dados/Drive nem homologação geral. A implantação no domínio final exigirá backup testado, auditoria de permissões, restauração, rate limiting avançado, monitoramento, tratamento de senhas, carga e aprovação expressa da Auditar.
+
+
+## Armazenamento próprio: primeira entrega de homologação (007)
+
+Fotos **fictícias** JPEG/PNG/WebP (até 2 MB) são enviadas em sessão HTTPS da web nova, armazenadas no volume nomeado `evidence_data_hml` em caminho não exposto ao NPM, e registradas no PostgreSQL com hash SHA-256, tamanho, perfil/empresa e identificador estável. Leitura exige login e escopo de empresa; não há URL pública nem cópia para Google Drive. A implementação confirma cabeçalho básico do arquivo, mas ainda exige validação mais profunda, antivírus, cotas por empresa, retenção, integridade/restauração em caso de falha entre disco e banco e estratégia de backup antes de uso real. Não colocar assinatura biométrica nem dado sensível neste piloto.
+
+**Atenção:** um backup de banco sozinho não recupera fotos; um backup de volume sozinho não recupera vínculos. Planejar cópia consistente dos dois recursos com teste de restauração. O entrypoint padrão não monta o volume de mídia e permanece fechado.

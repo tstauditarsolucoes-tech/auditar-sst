@@ -22,4 +22,11 @@ for name in data_db_password auth_db_password; do
   chown node:node "/run/auditar-private/$name"
   chmod 0400 "/run/auditar-private/$name"
 done
+if [ "${AUDITAR_EVIDENCE_DIR:-}" != "/var/lib/auditar-staging/evidence" ] ||
+   [ ! -d "$AUDITAR_EVIDENCE_DIR" ] || [ -L "$AUDITAR_EVIDENCE_DIR" ]; then
+  echo "Volume privado de fotos da homologacao ausente" >&2
+  exit 1
+fi
+chown node:node "$AUDITAR_EVIDENCE_DIR"
+chmod 0700 "$AUDITAR_EVIDENCE_DIR"
 exec su-exec node node /srv/auditar/server.bootstrap.mjs

@@ -5,13 +5,14 @@ import { ApiError, createNcService } from './ncService.mjs';
 import { createInspectionService } from './inspectionService.mjs';
 import { createTaskService } from './taskService.mjs';
 import { createPortalService } from './portalService.mjs';
+import { createEvidenceService } from './evidenceService.mjs';
 
 /**
  * Auth NOVA opcional, injetada internamente na homologacao.
  * Sem authService e sem resolvePrincipal, nao ha nenhuma rota de negocios livre.
  * NUNCA montar resolvePrincipal a partir de headers x-company-id/x-role.
  */
-export function createApp({pool, authService, resolvePrincipal} = {}) {
+export function createApp({pool, authService, resolvePrincipal, evidenceDir} = {}) {
   if (authService && resolvePrincipal) {
     throw new Error('Nao misturar autenticador real com resolver de teste');
   }
@@ -19,6 +20,7 @@ export function createApp({pool, authService, resolvePrincipal} = {}) {
   const inspectionService=createInspectionService(pool);
   const taskService=createTaskService(pool);
   const portalService=createPortalService(pool);
+  const evidenceService=createEvidenceService(pool,evidenceDir);
   return createServer(async (req,res)=>{
     const pathname=new URL(req.url || '/', 'http://localhost').pathname;
     res.setHeader('Content-Type','application/json; charset=utf-8');
@@ -29,7 +31,7 @@ export function createApp({pool, authService, resolvePrincipal} = {}) {
       res.writeHead(status);
       res.end(JSON.stringify(data));
     }
-    async function readJson() {
+    async function readJson(maxBytes=8192) {
       const type=req.headers['content-type']||'';
       if (!/^application\/json(?:;|$)/i.test(type)) {
         throw new ApiError(415,'JSON_REQUIRED','JSON obrigatorio');
@@ -38,7 +40,7 @@ export function createApp({pool, authService, resolvePrincipal} = {}) {
       let length=0;
       for await (const chunk of req) {
         length+=chunk.length;
-        if (length>8192) throw new ApiError(413,'TOO_LARGE','JSON muito grande');
+        if (length>maxBytes) throw new ApiError(413,'TOO_LARGE','JSON muito grande');
         chunks.push(chunk);
       }
       let body;
@@ -90,6 +92,33 @@ export function createApp({pool, authService, resolvePrincipal} = {}) {
         }
       }
 
+
+      // Midia de homologacao: nome privado aleatorio, sem links publicos.
+      const evidenceCollection=pathname==='/api/v1/evidence';
+      const evidenceContent=pathname.match(/^\/api\/v1\/evidence\/([a-f0-9-]{36})\/content$/i);
+      if((evidenceCollection||evidenceContent)&&['GET','POST'].includes(req.method)){
+        const resolver=authService?authService.resolvePrincipal.bind(authService):resolvePrincipal;
+        const principal=typeof resolver==='function'?await resolver(req):null;
+        if(!principal){send(401,{ok:false,code:'UNAUTHENTICATED'});return;}
+        if(req.method==='POST'&&authService)authService.requireMutation(req);
+        if(evidenceCollection&&req.method==='POST'){
+          send(201,await evidenceService.upload(principal,await readJson(3*1024*1024)));return;
+        }
+        if(evidenceCollection&&req.method==='GET'){
+          const q=new URL(req.url||'/', 'http://localhost').searchParams;
+          send(200,{items:await evidenceService.list(principal,{
+            inspectionId:q.get('inspectionId'),nonConformityId:q.get('nonConformityId'),
+          })});return;
+        }
+        if(evidenceContent&&req.method==='GET'){
+          const image=await evidenceService.download(principal,evidenceContent[1]);
+          res.setHeader('Content-Type',image.mimeType);
+          res.setHeader('Content-Disposition','inline');
+          res.writeHead(200);
+          res.end(image.data);
+          return;
+        }
+      }
 
       // Portal do Cliente e Central ADM: base NOVA, tenants e papeis da sessao.
       const portalDashboard=pathname==='/api/v1/portal/dashboard';

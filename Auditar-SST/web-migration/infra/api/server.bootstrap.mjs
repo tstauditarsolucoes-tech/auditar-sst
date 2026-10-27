@@ -35,7 +35,11 @@ function configuration() {
   if (!validName.test(dataUser)||!validName.test(authUser)||dataUser===authUser) {
     throw new Error('Usuarios DB restritos distintos obrigatorios');
   }
-  return {allowedOrigin,port,dataUser,authUser};
+  const evidenceDir=process.env.AUDITAR_EVIDENCE_DIR;
+  if(evidenceDir!=='/var/lib/auditar-staging/evidence'){
+    throw new Error('Volume dedicado de fotos da homologacao obrigatorio');
+  }
+  return {allowedOrigin,port,dataUser,authUser,evidenceDir};
 }
 async function secret(path) {
   if (!/^\/run\/auditar-private\/(data_db_password|auth_db_password)$/.test(path||'')) {
@@ -89,7 +93,7 @@ try {
   throw error;
 }
 const authService=createAuthService({pool:authPool,allowedOrigin:config.allowedOrigin});
-const server=createApp({pool:dataPool,authService});
+const server=createApp({pool:dataPool,authService,evidenceDir:config.evidenceDir});
 let closing=false;
 async function close() {
   if (closing) return;

@@ -54,3 +54,8 @@ O frontend React inclui `web/src/WebAuthPilot.tsx`, aba **Acesso de homologaçã
 ## Portal do Cliente e Central ADM web — piloto (migração 006)
 
 portalService.mjs cria solicitações de apoio, mensagens com histórico imutável e encerramento/reabertura; valida sempre empresa e vínculo da sessão. Clientes consultam somente tickets que criaram; equipe técnica consulta tickets da empresa ativa. GET /api/v1/portal/dashboard destaca NCs não validadas por pontuação de risco e últimas tratativas. Rotas /api/v1/portal/threads suportam listagem/criação/detalhes/mensagens/encerramento e reabertura. Opera com idempotência UUID nas criações. Escritas exigem sessão, Origin e CSRF. GET /api/v1/admin/overview e /team são só para gestor/ADM da empresa selecionada. POST /api/v1/activity/ping registra atividade apenas desta web nova, jamais detecta app Flutter. Migration 006 inclui RLS forçado e FKs multiempresa. Testes: integration.portal.ci.test.mjs. Sem fotos, chat legado, notificações ou criação de contas reais nesta etapa.
+
+
+## Fotos no volume privado (piloto 007)
+
+api/evidenceService.mjs grava somente JPEG/PNG/WebP fictícios de até 2 MB no volume novo configurado no bootstrap HTTPS privado; arquivo tem nome aleatório, verificação básica do formato, SHA-256 e chave de idempotência. Os metadados ficam em sst.evidence, cujo tenant RLS está ativo desde 001. Endpoints GET /api/v1/evidence?inspectionId=UUID (ou nonConformityId), POST /api/v1/evidence e GET /api/v1/evidence/:id/content. Sem configuração de volume, a API nega o acesso. Não há mídia pública, uso do Drive, migração de fotos/assinaturas antigas ou assinatura digital nesta fase. Atenção a possíveis arquivos órfãos por falha após gravação: reconciliar e testar backup/restauração antes de produção.

@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: '24'
       - name: Testes HTTP sem dados ou dependencias externas
-        run: node --test Auditar-SST/web-migration/infra/api/server.test.mjs Auditar-SST/web-migration/infra/api/ncService.test.mjs Auditar-SST/web-migration/infra/api/inspectionService.test.mjs Auditar-SST/web-migration/infra/api/taskService.test.mjs Auditar-SST/web-migration/infra/api/portalService.test.mjs
+        run: node --test Auditar-SST/web-migration/infra/api/server.test.mjs Auditar-SST/web-migration/infra/api/ncService.test.mjs Auditar-SST/web-migration/infra/api/inspectionService.test.mjs Auditar-SST/web-migration/infra/api/taskService.test.mjs Auditar-SST/web-migration/infra/api/portalService.test.mjs Auditar-SST/web-migration/infra/api/evidenceService.test.mjs
       - name: Testar regras migradas e compilar React TypeScript
         shell: bash
         run: |
@@ -80,6 +80,8 @@ jobs:
           docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
             psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/006_client_portal_admin.sql
           docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
+            psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/007_private_media_pilot.sql
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
             psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/tests/tenant_isolation.sql
           echo 'POSTGRES_MULTIEMPRESA_STAGING_OK'
       - name: Testar API NC com PostgreSQL real multiempresa e usuario restrito (CI efemera)
@@ -134,6 +136,18 @@ jobs:
             -e PGPASSWORD=ci-synthetic-test-only-not-for-deploy-9274 \
             api node --test integration.portal.ci.test.mjs
           echo 'CLIENT_PORTAL_MULTIEMPRESA_CI_ONLY_OK'
+      - name: Testar fotos em volume privado, hash e permissao de cliente (CI efemera)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T \
+            -e AUDITAR_SST_EPHEMERAL_CI_DB=FAKE_DATA_CI_ONLY \
+            -e PGHOST=db -e PGPORT=5432 -e PGDATABASE=auditar_web_hml \
+            -e PGUSER=sst_ci_runner \
+            -e PGPASSWORD=ci-synthetic-test-only-not-for-deploy-9274 \
+            api node --test integration.evidence.ci.test.mjs
+          echo 'EVIDENCE_PRIVATE_STORAGE_CI_ONLY_OK'
       - name: Testar novo login web, cookies, CSRF e permissoes em duas empresas (CI efemera)
         shell: bash
         run: |
@@ -160,6 +174,7 @@ jobs:
           cd Auditar-SST/web-migration/infra
           bash -n scripts/preflight-private.sh
           bash -n scripts/provision-first-admin.sh
+          sh -n api/private-entrypoint.sh
           sh -n db/scripts/create_private_roles.sh
           docker compose -p auditar-sst-web-ci -f compose.staging.yml -f compose.private-auth.example.yml config --quiet
           if docker compose -p auditar-sst-web-ci -f compose.staging.yml -f compose.private-auth.example.yml config --format json | jq -e '.services[] | has("ports")' | grep -q true; then

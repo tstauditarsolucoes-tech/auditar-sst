@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import {EvidencePilot} from './EvidencePilot';
 
 type PilotSession={
   companyId:string;
@@ -153,7 +154,7 @@ export function InspectionPilot({session}:{session:PilotSession}){
       <div>
         <p className="eyebrow green">VISTORIAS • HOMOLOGAÇÃO PRIVADA</p>
         <h3>Vistorias e Ronda Expressa no servidor</h3>
-        <p className="muted">Teste de rascunhos, achados e conclusão. Sem upload de fotos, IA, sincronização Flutter ou dados existentes nesta etapa.</p>
+        <p className="muted">Teste de rascunhos, achados e conclusão. Fotos fictícias em volume privado opcional; sem IA, sincronização Flutter ou dados existentes nesta etapa.</p>
       </div>
       <button type="button" className="secondary-button" disabled={busy}
         onClick={()=>void run(refresh)}>Atualizar lista</button>
@@ -262,6 +263,7 @@ export function InspectionPilot({session}:{session:PilotSession}){
           <p>{item.description}</p>
         </div>
       </article>)}</div>
+      {canWrite&&<EvidencePilot session={session} targetType="inspection" targetId={detail.inspection.id}/>}
       <h4>Histórico da vistoria</h4>
       <ol className="auth-timeline">{detail.events.map(event=><li key={event.id}>
         <strong>{event.kind.replaceAll('_',' ')}</strong>

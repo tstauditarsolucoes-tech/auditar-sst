@@ -1,4 +1,5 @@
 import {useEffect,useState} from 'react';
+import {EvidencePilot} from './EvidencePilot';
 
 type Session={role:'adm'|'gestor'|'tecnico'|'cliente';csrfToken:string;user:{id:string}};
 type Nc={id:string;short_title:string;description:string;probability:number;severity:number;status:string;updated_at:string};
@@ -145,7 +146,7 @@ export function ClientPortalPilot({session}:{session:Session}){
             onClick={()=>void run(()=>correction(nc,false))}>Rejeitar com motivo</button>
         </div>}
         {nc.status==='correcao_informada'&&!staff&&<p className="muted">Aguardando validação técnica.</p>}
-        <p className="muted">Fotos e evidências ainda não estão disponíveis neste piloto. Nenhuma foto é alterada no Drive.</p>
+        <EvidencePilot session={session} targetType="nc" targetId={nc.id}/>
       </div>}
     </article>)}</div>
     <div className="auth-divider"/>

@@ -98,6 +98,26 @@ const heartbeat=await fetch(base+'activity/ping',{
   method:'POST',headers,body:'{}',
 });
 assert.equal(heartbeat.status,200);
+const pilotPng='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/ZQoAAAAASUVORK5CYII=';
+const photo=await fetch(base+'evidence',{
+  method:'POST',headers,body:JSON.stringify({
+    mimeType:'image/png',contentBase64:pilotPng,inspectionId,
+    clientRequestId:'ba000000-0000-4000-8000-000000000001',
+  }),
+});
+assert.equal(photo.status,201);
+const photoId=(await photo.json()).item.id;
+const photoAccess=await fetch(base+'evidence/'+photoId+'/content',{headers:{cookie}});
+assert.equal(photoAccess.status,200);
+assert.equal(photoAccess.headers.get('content-type'),'image/png');
+assert.equal(Buffer.from(await photoAccess.arrayBuffer()).toString('base64'),pilotPng);
+const photoReplay=await fetch(base+'evidence',{
+  method:'POST',headers,body:JSON.stringify({
+    mimeType:'image/png',contentBase64:pilotPng,inspectionId,
+    clientRequestId:'ba000000-0000-4000-8000-000000000001',
+  }),
+});
+assert.equal((await photoReplay.json()).replayed,true);
 const logout=await fetch(base+'auth/logout',{
   method:'POST',headers:{cookie,origin,'x-csrf-token':session.csrfToken},
 });
