@@ -1,3 +1,5 @@
+> **Escopo vigente:** a nova plataforma Web começará **sem migração de dados antigos**. O sistema existente no domínio deve ser inventariado e preservado antes de qualquer mudança. [Entrega atualizada ao Júlio](ENTREGA_JULIO_HOSPEDAGEM.md).
+
 # Plano de virada do domínio tst.auditarsolucoes.com.br
 
 **Situação confirmada pelo proprietário em 27/10/2026:** o domínio JÁ ATENDE um sistema que, segundo o proprietário, **foi instalado por engano e deverá ser retirado**, para dar lugar ao Auditar SST Web. A identificação exata do sistema atual, contêineres, banco e volumes ainda precisa ser feita pelo administrador da VPS. Isto não é autorização para mudar a rota neste momento. Nenhuma ação foi feita na VPS, no Nginx Proxy Manager ou no DNS.
@@ -26,7 +28,7 @@ Julio deverá identificar e registrar **fora do Git público**:
 2. Criar o Auditar SST Web como projeto Docker próprio (por exemplo, auditar-sst-web-hml), com banco/volume próprios e sem host ports.
 3. Integrar apenas o contêiner web à rede externa do NPM, conforme compose.npm.example.yml. Não conectar API/banco diretamente ao proxy público.
 4. Validar o backend e o frontend por acesso restrito; usar subdomínio exclusivo de homologação apenas se o gestor do DNS/NPM aprovar. **Não presumir que esse subdomínio exista.**
-5. Migrar primeiro com dados fictícios; ensaiar migração de cópia anonimizada e restauração dos anexos.
+5. Preparar banco NOVO vazio com cadastros inteiramente fictícios. **Não migrar** dados, fotografias, assinaturas ou histórico do sistema anterior, conforme decisão atual da Auditar.
 6. Verificar login, empresas, permissões, NC, agenda, chat/tratativas, foto, PDF, relatórios e layout PC/celular.
 7. Obter aceite de usuário/gestão e congelar contrato de migração dos aplicativos antigos.
 
@@ -36,9 +38,9 @@ O código atual em infra/ tem uma **primeira interface React com dados fictício
 
 - [ ] Sistema web completo e homologado nos dispositivos reais, com SSL, monitoramento, backups e controles por empresa.
 - [ ] Central Online e apps Android/Windows testados com o novo backend, sem alteração de sync sem autorização.
-- [ ] Inventário de empresas, NCs, vistorias, fotos, assinaturas, PDFs, treinamentos e históricos com contagens e checksums.
+- [ ] Garantir que a nova instalação começa vazia, sem importar dados antigos; preservar e inventariar os recursos atuais apenas para sua proteção/retorno.
 - [ ] Exportação final/backup verificado do ambiente antigo, com teste de restauração.
-- [ ] Estratégia para novos registros durante a janela (pausa de escrita ou reconciliação auditada), com responsáveis definidos.
+- [ ] Estratégia para operar novos cadastros exclusivamente no sistema NOVO, sem supor sincronização com o legado; informar à equipe a separação dos registros.
 - [ ] Plano de reversão exercitado e tempo máximo de interrupção/retorno acordados.
 - [ ] Configuração antiga do Proxy Host salva em local privado (destino, portas, TLS e políticas).
 - [ ] Aviso aos usuários sobre a janela e aceite expresso do proprietário.
@@ -48,7 +50,7 @@ Se qualquer item crítico falhar, **NÃO VIRAR O DOMÍNIO**.
 ## 5. Virada assistida (somente com autorização)
 
 1. Confirmar backups e integridade imediatamente antes do corte.
-2. Aplicar último delta aprovado e, se necessário, bloquear novas escritas no serviço antigo de modo controlado.
+2. Não importar dados ou deltas do serviço antigo. Confirmar que o sistema novo começará com registros novos e que o anterior será preservado segundo a política de retenção.
 3. No Nginx Proxy Manager, editar o Proxy Host existente de tst.auditarsolucoes.com.br apenas para apontar ao serviço web novo validado (hostname do contêiner web e porta interna 8080). Preservar certificado, política de HTTPS e configuração de segurança.
 4. Validar HTTPS, login, isolamento multiempresa, foto, emissão de PDF, erros 4xx/5xx e operações essenciais pelo domínio real.
 5. Monitorar e registrar horário, versão, aprovadores e incidências. Manter contêiner/volumes antigos **parados ou em contingência, mas recuperáveis**, conforme plano acordado.
@@ -59,7 +61,7 @@ Alteração de DNS pode não ser necessária se o domínio já aponta para o mes
 
 - Restaurar o destino original e as políticas do Proxy Host a partir da cópia validada.
 - Garantir que a versão antiga ainda existe com seus volumes e banco íntegros; não usar comandos que apagam volumes.
-- Se houve escritas no novo sistema, **não alternar cegamente para o antigo**: registrar essas transações e definir reconciliação para evitar perda/duplicidade.
+- Se houve escritas no novo sistema, **não alternar cegamente para o antigo**: manter cópia recuperável dos registros NOVOS e definir com a Auditar como acessar as duas bases após o retorno, **sem migração automática**.
 - Revalidar login, serviços antigos, APIs, fotos e PDFs após retorno.
 - Comunicar conclusão/reversão e guardar trilha de auditoria.
 

@@ -11,6 +11,10 @@ Testar no navegador a nova interface React, login por cookie seguro, seleção d
 
 **Nunca substituir o Proxy Host de `tst.auditarsolucoes.com.br` agora.** O bootstrap inclusive recusa esse hostname. Escolher URL HTTPS NOVA e privada de homologação, com DNS/certificado sob responsabilidade do administrador. Não supor que um subdomínio de teste já existe.
 
+## Verificação inicial sem instalar nada na VPS compartilhada
+
+Antes de criar segredos ou recursos, conferir a rede Docker e o hostname exclusivo de homologação: `AUDITAR_NPM_NETWORK=NOME_REAL_DA_REDE_NPM AUDITAR_ALLOWED_ORIGIN=https://HOSTNAME-PRIVADO bash scripts/preflight-shared-vps.sh`. O script faz **somente leitura**, detecta conflitos de projeto/volumes/rede e confere a configuração Compose sem portas de host. Não usar `tst.auditarsolucoes.com.br` na homologação: ele continua ocupado. A entrega técnica atualizada está em [ENTREGA_JULIO_HOSPEDAGEM.md](ENTREGA_JULIO_HOSPEDAGEM.md).
+
 ## Pré-requisitos do Júlio
 
 - VPS compartilhada com Docker Compose v2, capacidade de disco/memória e rede de Nginx Proxy Manager identificadas.

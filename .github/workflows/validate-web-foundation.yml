@@ -49,6 +49,20 @@ jobs:
             exit 1
           fi
           echo 'WEB_FOUNDATION_ISOLATED_OK'
+      - name: Validar inspeção read-only de VPS compartilhada e bloquear uso do domínio ocupado
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          bash -n scripts/preflight-shared-vps.sh
+          if AUDITAR_NPM_NETWORK=rede-ci-inexistente \
+             AUDITAR_ALLOWED_ORIGIN=https://tst.auditarsolucoes.com.br \
+             bash scripts/preflight-shared-vps.sh >/tmp/auditar-shared-preflight.txt 2>&1; then
+            echo 'ERRO: script aceitou o dominio principal em teste' >&2
+            exit 1
+          fi
+          grep -q 'Dominio principal ocupado' /tmp/auditar-shared-preflight.txt
+          echo 'SHARED_VPS_PREFLIGHT_READ_ONLY_POLICY_OK'
       - name: Verificar projeto com script de preflight sem deploy
         shell: bash
         run: |

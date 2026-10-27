@@ -38,7 +38,7 @@ Conferir primeiro que o domínio está livre ou que a transição do serviço ex
 
 | Campo Nginx Proxy Manager | Valor candidato |
 | --- | --- |
-| Domain Names | tst.auditarsolucoes.com.br |
+| Domain Names | tst.auditarsolucoes.com.br **somente depois da virada autorizada**; usar hostname novo exclusivo na homologação |
 | Scheme | http (NPM faz a terminação TLS/HTTPS) |
 | Forward Hostname / IP | auditar-sst-web-hml |
 | Forward Port | 8080 |
@@ -47,7 +47,7 @@ Conferir primeiro que o domínio está livre ou que a transição do serviço ex
 | Websocket Support | somente se a interface futura usar WebSocket |
 | Access control | restringir homologação a equipe autorizada; revisar impacto em login final |
 
-Atenção: **não apontar o domínio real para a página de teste como se fosse sistema final**. A interface atual é um protótipo React com matriz de risco e NCs fictícias, sem login nem dados reais; NÃO é o sistema completo. Prefira um subdomínio exclusivo de homologação (nome definido com o dono do DNS) enquanto o endereço principal estiver em uso.
+Atenção: **não apontar o domínio real para a página de teste como se fosse sistema final**. A interface React atual tem vários módulos e login opt-in de homologação, mas ainda **não é um sistema completo e homologado para produção**. NÃO apontar o domínio final antes do aceite. Prefira um subdomínio exclusivo de homologação (nome definido com o dono do DNS) enquanto o endereço principal estiver em uso.
 
 ## 4. Checklist de segurança antes de expor qualquer rota
 
@@ -62,3 +62,8 @@ Atenção: **não apontar o domínio real para a página de teste como se fosse 
 - [ ] Autorização expressa da Auditar antes da virada para o domínio definitivo.
 
 **Não executar deploy automático, alterar NPM, criar certificado, redirecionar DNS, carregar dados reais ou iniciar migração de banco com este arquivo.**
+
+
+## 5. Inspeção prévia da VPS compartilhada (read-only)
+
+Antes de escolher a rede, proxy ou ligar contêineres, consulte [ENTREGA_JULIO_HOSPEDAGEM.md](ENTREGA_JULIO_HOSPEDAGEM.md) e rode `scripts/preflight-shared-vps.sh` com `AUDITAR_NPM_NETWORK` e `AUDITAR_ALLOWED_ORIGIN` definidos para a infraestrutura *de testes*. O script não altera a VPS; detecta uso do nome de projeto, conflitos óbvios e portas publicadas por engano. O nome `tst.auditarsolucoes.com.br` já está ocupado e continua reservado à transição futura. **Não migrar dados legados.**
