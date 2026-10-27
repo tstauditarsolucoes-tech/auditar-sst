@@ -13,7 +13,7 @@
 
 | Componente | Entregue agora | Limitação |
 | --- | --- | --- |
-| Web | React/TypeScript/Vite, layout celular/PC, matriz de risco e título amigável de NC migrados de Dart | NCs demonstrativas em memória, não existe CRUD real |
+| Web | React/TypeScript/Vite, layout celular/PC, matriz/Assistente Offline e guia opcional de login/NCs conectadas para homologação | Telas principais continuam demonstrativas; painel de acesso funciona só após ativar explicitamente auth/DB no backend isolado |
 | API | Node.js 24, NCs e módulo NOVO de autenticação web com sessão por cookie seguro, permissões por empresa e CSRF; integração testada contra banco efêmero | O serviço Docker continua sem configurar pools/login: rotas protegidas retornam 401 até hardening e implantação específica |
 | Banco | PostgreSQL 17, migrações 001 e 002: domínio SST/RLS e tabelas separadas de credenciais/sessões para web | Ainda sem usuários reais, secrets de operação, backup real ou upload privado |
 | Proxy | Nginx serve React e repassa /api/ internamente | Sem acesso público ou certificado neste pacote |
@@ -101,3 +101,8 @@ bash scripts/smoke-staging.sh --npm
 - Plano de virada: `PLANO_DE_VIRADA_DO_DOMINIO_TST.md`
 
 **Responsabilidades:** o desenvolvimento pode preparar o projeto; Julio administra VPS, redes/NPM, acesso, SSL, backups e deploy após autorização. A Auditar realiza homologação funcional e autoriza a virada.
+
+
+## 7. Tela nova de acesso (somente teste de homologação)
+
+Há uma aba **Acesso de homologação** no React (`web/src/WebAuthPilot.tsx`) com formulário de login novo, seleção de empresa vinculada, lista/criação de NC, relato/validação de correção, linha do tempo e logout. As demais telas continuam com exemplos fictícios e não foram substituídas. **A aba de acesso não funciona no Docker padrão:** a API permanece com autenticação desabilitada e retorna 401. Só habilitar com contas novas autorizadas, URL HTTPS de teste, revisão de CSRF, rate limiting e conexão a banco segregado; não usar senhas da Central Online atual nem dados reais antes da homologação aprovada.

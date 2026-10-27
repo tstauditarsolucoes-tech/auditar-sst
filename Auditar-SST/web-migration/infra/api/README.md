@@ -31,3 +31,6 @@ O que está no GitHub é uma base de negócio e um contrato HTTP protegido por p
 **CI:** `api/integration.auth.ci.test.mjs` testa o login apenas com usuário/senha de exemplo (`example.invalid`) em PostgreSQL efêmero, autorizações, CSRF, isolamento entre empresas, troca de vínculo e logout. A seed `db/tests/seed_auth_integration_ci.sql` não deve ser usada na VPS.
 
 **Não habilitado no contêiner entregue:** o `server.mjs` continua chamando `createApp()` sem pools nem `authService`; assim, endpoints de login/NC retornam 401 por padrão. Antes da ativação, implementar configuração segura de credenciais de duas contas de DB, validação de proxy HTTPS, proteção contra força bruta/rate limiting, provisionamento e recuperação de senhas, logs de segurança, revisão de cookies/CSRF, limpeza de sessões, backup e ensaio real de homologação. Nenhuma conta legada foi importada. **Isto não é login de produção.**
+
+
+O frontend React inclui `web/src/WebAuthPilot.tsx`, aba **Acesso de homologação**, preparada para consumir estas rotas com cookie HttpOnly, token CSRF e troca de empresa. Como o entrypoint não habilita auth, a aba exibe uma orientação de configuração e não aceita contas reais. Ações nessa aba só terão efeito no banco NOVO de homologação quando o backend for ativado intencionalmente, diferentemente dos demais exemplos do protótipo.

@@ -3,3 +3,18 @@
 
 .assistant-panel{max-width:1100px}.privacy-warning{border:1px solid #f1d6a3;background:#fff8e9;padding:12px 15px;border-radius:8px;font-size:12px;line-height:1.5;color:#745424}.assistant-input{display:flex;flex-direction:column;gap:9px;font-size:13px;font-weight:750;color:#345269;margin-top:20px}.assistant-input textarea{width:100%;min-height:118px;resize:vertical;padding:14px;border:1px solid #cbdde6;border-radius:9px;font:inherit;font-size:15px;color:#244158;line-height:1.5}.sample-buttons{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.sample-buttons button{white-space:normal;text-align:left}.assistant-grid{display:grid;grid-template-columns:1fr 1fr 1.1fr 1.3fr;gap:14px;align-items:end;margin:24px 0}.assistant-grid label{display:flex;flex-direction:column;gap:9px;color:#506678;font-size:13px;font-weight:700}.assistant-grid label.check-label{flex-direction:row;align-items:center;padding-bottom:11px}.assistant-grid select{width:100%;padding:12px;border:1px solid #cddce5;border-radius:8px;min-height:45px;background:#fff;color:#254258;font-size:15px}.analysis-result{border-top:1px solid #e5edf2;padding-top:22px}.analysis-result>h3{color:#153d5a;font-size:22px;margin:0 0 8px}.analysis-result>.secondary-button{margin-top:12px}.result-block{margin:15px 0;background:#f6fafb;border:1px solid #e4edf1;border-radius:10px;padding:15px}.result-block h4{margin:0 0 8px;font-size:14px;color:#1a4964}.result-block p{margin:0 0 8px;line-height:1.6;font-size:14px;color:#375365}.result-block p:last-child{margin-bottom:0}.result-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.result-columns .result-block{margin:0}.nr-list{margin:0;padding-left:20px;line-height:1.9;color:#245c6b;font-size:14px}
 @media(max-width:1000px){.assistant-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:720px){.assistant-grid,.result-columns{grid-template-columns:1fr}.sample-buttons{flex-direction:column}.sample-buttons button{width:100%}}
+
+/* Acesso web NOVO, utilizado somente apos habilitacao intencional em homologacao. */
+.auth-pilot{max-width:1000px}.auth-form{display:flex;flex-direction:column;gap:14px;max-width:700px;margin:18px 0}
+.auth-form label,.auth-company{display:flex;flex-direction:column;gap:8px;font-weight:650;font-size:14px}
+.auth-form input,.auth-form textarea,.auth-form select,.auth-company select{background:#fff;border:1px solid #cbd9e1;border-radius:9px;padding:12px;color:#183044;width:100%}
+.auth-form textarea{resize:vertical;min-height:80px}.auth-session{display:flex;justify-content:space-between;align-items:center;gap:16px;background:#eaf7f2;padding:15px;border-radius:12px;margin:16px 0}
+.auth-session strong{display:block}.auth-session small{display:block;color:#466475;margin-top:4px}
+.auth-company{max-width:600px}.auth-divider{height:1px;background:#dbe5ea;margin:26px 0}
+.auth-numbers{display:flex;gap:16px;flex-wrap:wrap}.auth-numbers label{min-width:140px;flex:1}
+.auth-message{border-left:4px solid #189b78;background:#e8f6f1;padding:12px;border-radius:5px;overflow-wrap:anywhere}
+.auth-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}.auth-actions .auth-form{flex:1 1 100%;margin:0}
+.auth-timeline{list-style:none;padding-left:20px;margin:16px 0;border-left:3px solid #13ad86}
+.auth-timeline li{position:relative;padding:3px 0 15px 16px}.auth-timeline li:before{content:'';position:absolute;left:-26px;top:7px;background:#13ad86;width:9px;height:9px;border-radius:50%}
+.auth-timeline strong{text-transform:capitalize}.auth-timeline p{margin:4px 0}.auth-timeline small{color:#597184}
+@media (max-width:640px){.auth-session{flex-direction:column;align-items:stretch}.auth-numbers{flex-direction:column}.auth-pilot{min-width:0}}

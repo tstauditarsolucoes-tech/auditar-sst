@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { displayNcTitle, matrixScore, normalizeFriendlyName, priorityFromMatrix } from './domain/nc';
 import type { Priority } from './domain/nc';
 import { analyzeOfflineField } from './domain/offlineRules';
+import { WebAuthPilot } from './WebAuthPilot';
 
 type Entry = {
   id: string;
@@ -12,7 +13,7 @@ type Entry = {
   severity: number;
   recurring: boolean;
 };
-type Section = 'inicio' | 'ncs' | 'assistente';
+type Section = 'inicio' | 'ncs' | 'assistente' | 'acesso';
 type Filter = 'Todas' | Entry['status'];
 
 const EXAMPLES: readonly Entry[] = [
@@ -89,6 +90,7 @@ export function App() {
           <button className={section === 'inicio' ? 'navitem active' : 'navitem'} onClick={() => setSection('inicio')} aria-current={section === 'inicio' ? 'page' : undefined}>▦ <span>Visão geral</span></button>
           <button className={section === 'ncs' ? 'navitem active' : 'navitem'} onClick={() => setSection('ncs')} aria-current={section === 'ncs' ? 'page' : undefined}>◉ <span>Não conformidades</span></button>
           <button className={section === 'assistente' ? 'navitem active' : 'navitem'} onClick={() => setSection('assistente')} aria-current={section === 'assistente' ? 'page' : undefined}>◇ <span>Assistente Offline</span></button>
+          <button className={section === 'acesso' ? 'navitem active' : 'navitem'} onClick={() => setSection('acesso')} aria-current={section === 'acesso' ? 'page' : undefined}>♙ <span>Acesso de homologação</span></button>
           <div className="coming"><span>Agenda SST</span><small>Em migração</small></div>
           <div className="coming"><span>Relatórios e PDF</span><small>Em migração</small></div>
           <div className="coming"><span>Painel do cliente</span><small>Em migração</small></div>
@@ -98,13 +100,13 @@ export function App() {
 
       <main className="main">
         <header className="page-header">
-          <div><p className="eyebrow">AUDITAR SOLUÇÕES · PRIMEIRA ETAPA WEB</p><h1>{section === 'inicio' ? 'Visão geral' : section === 'assistente' ? 'Assistente Offline' : 'Não conformidades'}</h1><p className="subheading">Funcionalidades portadas do aplicativo SST para navegador</p></div>
+          <div><p className="eyebrow">AUDITAR SOLUÇÕES · PRIMEIRA ETAPA WEB</p><h1>{section === 'inicio' ? 'Visão geral' : section === 'assistente' ? 'Assistente Offline' : section === 'acesso' ? 'Acesso de homologação' : 'Não conformidades'}</h1><p className="subheading">Funcionalidades portadas do aplicativo SST para navegador</p></div>
           <div className="api-pill" title="Consulta apenas o endereço de saúde do Node.js"><span className={`dot ${apiStatus}`} />API: {apiStatus}</div>
         </header>
 
-        <div className="notice" role="status"><strong>DEMONSTRAÇÃO COM DADOS FICTÍCIOS</strong><span>Este ambiente não está conectado à Central Online. As alterações existem somente nesta tela e desaparecem ao atualizar a página.</span></div>
+        {section !== 'acesso' && <div className="notice" role="status"><strong>DEMONSTRAÇÃO COM DADOS FICTÍCIOS</strong><span>Este ambiente não está conectado à Central Online. As alterações existem somente nesta tela e desaparecem ao atualizar a página.</span></div>}
 
-        {section === 'inicio' ? (
+        {section === 'acesso' ? <WebAuthPilot/> : section === 'inicio' ? (
           <>
             <section className="metric-grid" aria-label="Resumo fictício">
               <div className="metric"><span>Não conformidades demonstrativas</span><strong>04</strong><small>Exemplos, não registros reais</small></div>
