@@ -1,45 +1,40 @@
-# Auditar SST Web — preparação técnica (27/10/2026)
+# Auditar SST Web — migração incremental (27/10/2026)
 
-**Estado: preparação de migração; não é aplicação web funcional nem release.**
+**Estado: primeira parte funcional migrada; não é o sistema completo nem release de produção.**
 
-Esta pasta foi criada numa branch isolada para o programador avaliar a migração do Auditar SST Android/Windows + Central Online para um sistema acessível em navegador, em servidor próprio.
+O objetivo é preparar uma nova tecnologia web na branch isolada `migration/preparacao-web-20261027` para o programador Júlio César Angelim. As versões Android/Windows, a Central Online e a Gestão EPI continuam intactas.
 
-## Documentos para começar
+## O que já foi convertido de Flutter/Dart
 
-1. [AUDITORIA_DO_CODIGO.md](AUDITORIA_DO_CODIGO.md) — diagnóstico do código real, onde cada função está e quais bloqueios existem.
-2. [PLANO_DE_MIGRACAO.md](PLANO_DE_MIGRACAO.md) — arquitetura recomendada, etapas com entregas verificáveis, migração dos dados e homologação.
-3. [API_WEB_PROPOSTA.yaml](API_WEB_PROPOSTA.yaml) — contrato OpenAPI inicial da **futura** API web, ainda não implementado.
-4. [CHECKLIST_PARA_O_PROGRAMADOR.md](CHECKLIST_PARA_O_PROGRAMADOR.md) — decisões necessárias e critérios de aceite.
+- **Matriz de risco:** cálculo de pontuação (1 a 25), bônus de recorrência (+2, limitado a 25) e faixas Baixa/Média/Alta/Crítica portados para `infra/web/src/domain/nc.ts`.
+- **Nomes amigáveis das NCs:** normalização, limite de 80 caracteres, fallback da primeira frase, preservação do ID e da descrição original. Esta demonstração edita nomes somente em memória (sem persistência).
+- **Interface React + TypeScript:** dashboard responsivo, simulador de prioridade, filtros de NCs fictícias e edição de nomes, no diretório `infra/web/src/`.
+- **Testes automatizados** das funções portadas e build de frontend na GitHub Actions.
 
-## Escopo
+Veja os detalhes em [infra/web/MIGRACAO_DART_PARA_TYPESCRIPT.md](infra/web/MIGRACAO_DART_PARA_TYPESCRIPT.md) e os comandos Docker em [infra/README.md](infra/README.md).
 
-- Preservar Android e Windows atuais em paralelo.
-- Preparar uma nova interface web responsiva para técnico, cliente e ADM.
-- Transformar as funções de Central/Apps Script em contratos de backend **sem modificar a Central atual**.
-- Isolar dados por empresa no servidor, manter eventos e histórico auditável.
-- Tratar fotos, assinaturas e PDFs como dados privados.
-- Planejar importação com backups e conferência de contagens/checksums.
-- Não utilizar chaves embutidas em JavaScript entregue ao navegador.
+### O que NÃO foi migrado ainda
 
-## Infraestrutura informada pelo programador (27/10/2026)
+Não há acesso a NCs reais, autenticação, sincronização, banco de clientes, fotos, assinaturas, relatórios/PDF, agenda, CIPA, IA, painel do cliente ou Central ADM. Backend Node responde somente no endpoint de saúde. O banco PostgreSQL de staging está vazio. A migração dos dados exigirá consentimento específico, backup, validação de permissões e homologação. Não confundir com produto pronto.
 
-A hospedagem será em VPS compartilhada com outros sistemas, com Docker, Node.js e banco em contêiner permitidos. O proxy será Nginx Proxy Manager e o domínio indicado é tst.auditarsolucoes.com.br, **já ocupado e destinado a substituição futura**. Antes de trocar a rota, seguir [infra/PLANO_DE_VIRADA_DO_DOMINIO_TST.md](infra/PLANO_DE_VIRADA_DO_DOMINIO_TST.md). A integração está documentada em [infra/GUIA_NGINX_PROXY_MANAGER_TST.md](infra/GUIA_NGINX_PROXY_MANAGER_TST.md), sem alteração de domínio ou deploy. Preparação isolada: [infra/README.md](infra/README.md) e [infra/compose.staging.yml](infra/compose.staging.yml). **Nenhum contêiner foi iniciado no servidor real.** Ainda faltam proxy reverso, domínio e política de backup.
+## Documentos técnicos para o programador
 
-## Escolha técnica proposta, a confirmar com o programador
+1. [AUDITORIA_DO_CODIGO.md](AUDITORIA_DO_CODIGO.md) — diagnóstico de fontes e obstáculos de portabilidade.
+2. [PLANO_DE_MIGRACAO.md](PLANO_DE_MIGRACAO.md) — plano de arquitetura e etapas com critérios de aceite.
+3. [API_WEB_PROPOSTA.yaml](API_WEB_PROPOSTA.yaml) — contrato OpenAPI futuro, **não implementado**.
+4. [CHECKLIST_PARA_O_PROGRAMADOR.md](CHECKLIST_PARA_O_PROGRAMADOR.md) — decisões e testes restantes.
+5. [infra/PLANO_DE_VIRADA_DO_DOMINIO_TST.md](infra/PLANO_DE_VIRADA_DO_DOMINIO_TST.md) — substituição futura segura da rota existente.
 
-- **Se houver VPS/servidor com Node:** frontend React + TypeScript + Vite; API Node.js + TypeScript (por exemplo Fastify); PostgreSQL; armazenamento privado de objetos; HTTPS/reverse proxy.
-- **Se for apenas hospedagem PHP compartilhada:** frontend React + TypeScript + Vite; backend PHP com framework e autenticação/controle de acesso auditados; banco suportado pela hospedagem. A estrutura de frontend/contrato HTTP permanece semelhante.
-- **Alternativa a analisar:** Flutter Web sem reescrever toda a UI. Flutter Web não exige instalação no dispositivo do cliente, porém os atuais usos de dart:io, SQLite/FFI, arquivos e plugins do Auditar SST impedem assumir compatibilidade direta.
+## Infraestrutura informada em 27/10/2026
 
-Nenhuma das alternativas foi aprovada como definitiva. Não enviar nenhuma pasta de código ao public_html antes de decidir segurança, banco, domínio e migração.
+VPS compartilhada com outros sistemas, Docker, Node.js e banco em contêiner; Nginx Proxy Manager. Domínio final `tst.auditarsolucoes.com.br`, hoje ocupado por outro sistema que será retirado **apenas após a homologação do novo sistema e plano de reversão**. Nenhuma instalação, remoção, troca de proxy ou domínio foi feita.
 
-## Referência congelada
+A stack React/Vite/TypeScript + Node/PostgreSQL é uma proposta de migração incremental. Flutter Web também serve páginas sem instalar arquivos no dispositivo do usuário, mas plugins/arquivos/SQLite atuais requerem análise. A escolha e o plano de produção precisam ser revisados com o programador.
 
-- Repositório: tstauditarsolucoes-tech/auditar-sst (público).
-- Origem da análise: branch organize/sst-em-pasta-20261027, SHA b331fb9a1fc88755cdc00652e110ed9d0a7185e4.
-- Builds identificados: Android v3.29.198 e Windows v3.30.126 (candidatos; não equivalem a homologação web).
-- Esta branch altera **somente** documentação/contrato de preparação; não modifica arquivos protegidos de sync/autenticação/banco, o painel GS, APK, EXE ou infraestrutura em produção.
+## Repositório e precauções
 
-## Resultado esperado da próxima etapa
-
-Após confirmar a infraestrutura, criar no mesmo repositório uma aplicação web separada (front/backend) com dados de teste fictícios. Só integrar dados reais depois de aprovar os contratos, controle de acesso multiempresa, backups e testes de reversão.
+- Fonte SST original: branch `organize/sst-em-pasta-20261027`, SHA inicial `b331fb9a1fc88755cdc00652e110ed9d0a7185e4`.
+- Os aplicativos Android/Windows e Central seguem disponíveis durante a reconstrução.
+- Branch web específica não altera autenticação, sincronização, IA, Google Apps Script, fotos/Drive nem dados persistentes.
+- Este código está em repositório público: nunca incluir senhas, chaves, usuários reais ou arquivos de clientes.
+- O PR web permanece **DRAFT** até revisão e testes.

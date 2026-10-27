@@ -1,4 +1,4 @@
-name: Auditar SST Web - validar fundacao Docker (sem deploy)
+name: Auditar SST Web - validar React e Docker (sem deploy)
 on:
   push:
     branches: [migration/preparacao-web-20261027]
@@ -15,7 +15,7 @@ permissions:
 jobs:
   foundation:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,6 +23,14 @@ jobs:
           node-version: '24'
       - name: Testes HTTP sem dados ou dependencias externas
         run: node --test Auditar-SST/web-migration/infra/api/server.test.mjs
+      - name: Testar regras migradas e compilar React TypeScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra/web
+          npm install --no-audit --no-fund
+          npm run test
+          npm run build
       - name: Validar YAML e isolamento sem subir conteineres
         shell: bash
         run: |
@@ -36,7 +44,6 @@ jobs:
             exit 1
           fi
           echo 'WEB_FOUNDATION_ISOLATED_OK'
-
       - name: Validar integracao Nginx Proxy Manager sem deploy
         shell: bash
         env:

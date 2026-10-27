@@ -1,54 +1,54 @@
-# Base executável de homologação Docker — Auditar SST Web
+# Primeira interface React/TypeScript do Auditar SST — Docker isolado
 
-**Somente infraestrutura/sonda isolada. Não é migração funcional do app e NÃO usa dados de produção.**
+**Protótipo funcional com DADOS FICTÍCIOS. Não é versão completa e NÃO usa dados de produção.**
 
-Este pacote cria, em um projeto Docker Compose separado:
-- web: página estática de verificação com proxy /api/ pelo Nginx;
-- api: Node.js 24 LTS, com apenas GET /api/v1/health;
-- db: PostgreSQL 17 com volume próprio, ainda sem tabelas de clientes.
+O pacote contém:
+- `web/`: interface React 19 + TypeScript + Vite, responsiva para computador e celular, com funcionalidades reais **portadas de Dart** para matrizes de prioridade e nomes amigáveis das NCs. Filtros e edição nesta tela estão funcionais, mas não persistem ao recarregar;
+- `api/`: Node.js 24, somente GET /api/v1/health;
+- `db`: PostgreSQL 17 com volume de teste próprio, sem tabelas de clientes e sem conexão com o aplicativo;
+- Nginx web na porta 8080 **somente dentro das redes Docker**, com proxy /api/ para Node.
 
-O portal definitivo será desenvolvido em React + TypeScript; o componente estático atual apenas prova que navegador -> proxy -> Node funciona. Nenhum login simulado ou dados fictícios de clientes são apresentados como reais.
+**Não contém login ou conta real, importação de dados, sincronização, fotografias, assinaturas, agenda ou PDF.** Os cartões demonstrativos usam identificadores `DEMO-NC-...`, nunca dados de empresas reais.
 
-**Domínio ocupado:** o proprietário confirmou que tst.auditarsolucoes.com.br está servindo um sistema que será substituído. Leia primeiro [PLANO_DE_VIRADA_DO_DOMINIO_TST.md](PLANO_DE_VIRADA_DO_DOMINIO_TST.md); nenhuma troca está autorizada agora.
+## Testar só a lógica e a compilação do frontend
 
-## Integração com Nginx Proxy Manager e domínio informado
+No diretório `infra/web`, com Node.js 24:
 
-- Domínio final indicado: tst.auditarsolucoes.com.br.
-- Proxy existente: Nginx Proxy Manager.
-- Leia [GUIA_NGINX_PROXY_MANAGER_TST.md](GUIA_NGINX_PROXY_MANAGER_TST.md) antes de alterar qualquer rota.
-- O arquivo [compose.npm.example.yml](compose.npm.example.yml) é um override opcional com rede externa, sem host ports.
-- **Não foi criado nem alterado qualquer Proxy Host; não substitua um serviço já usando esse domínio.**
+```bash
+npm install --no-audit --no-fund
+npm run test
+npm run build
+```
 
-## Por que não interfere nos outros sistemas da VPS
+Para desenvolvimento local, `npm run dev`; a API de saúde só responde no ambiente com proxy Node. A aplicação funciona para demonstração mesmo com a API indisponível. O Dockerfile constrói o bundle React antes de servir os arquivos estáticos via Nginx.
 
-- Nenhum serviço usa ports: **não publica 80, 443, 3000 nem 5432 no host**.
-- Rede backend interna para API/PostgreSQL; rede frontend_net exclusiva do projeto.
-- Banco e volume isolados pelo nome de projeto Compose.
-- Nenhum segredo, conta, dado pessoal, foto ou banco existente é acessado.
-- Não conecta a Central Online/Apps Script/Hostinger; não modifica aplicativos existentes.
-- Não liga restart automático. A inclusão no domínio/proxy real depende de aprovação.
+Consulte [web/MIGRACAO_DART_PARA_TYPESCRIPT.md](web/MIGRACAO_DART_PARA_TYPESCRIPT.md) para funções portadas e limites.
 
-## Testes seguros (para o programador; não foram executados na VPS)
+## Domínio e Nginx Proxy Manager
 
-1. Em ambiente de homologação, crie localmente a pasta infra/secrets e o arquivo infra/secrets/postgres_password com senha aleatória forte, protegido por permissões restritas. **Nunca versionar ou compartilhar esse arquivo**.
-2. Verifique primeiro a configuração com:
-   docker compose -p auditar-sst-web-hml -f compose.staging.yml config --quiet
-3. Execute os testes do Node localmente:
-   node --test api/server.test.mjs
-4. Crie os contêineres apenas em ambiente autorizado:
-   docker compose -p auditar-sst-web-hml -f compose.staging.yml up --build -d
-5. Confira estado e logs com docker compose ps e docker compose logs (mesmos parâmetros -p/-f).
-6. Confirme a API dentro do próprio contêiner:
-   docker compose -p auditar-sst-web-hml -f compose.staging.yml exec api node -e "fetch('http://127.0.0.1:3000/api/v1/health').then(r=>r.json()).then(console.log)"
+O endereço `tst.auditarsolucoes.com.br` **já atende outro sistema, que o proprietário pretende substituir somente na virada final**. Siga [PLANO_DE_VIRADA_DO_DOMINIO_TST.md](PLANO_DE_VIRADA_DO_DOMINIO_TST.md) e [GUIA_NGINX_PROXY_MANAGER_TST.md](GUIA_NGINX_PROXY_MANAGER_TST.md). Não mudar rota, DNS, contêiner, domínio ou dados existentes agora. `compose.npm.example.yml` é apenas exemplo de rede externa.
 
-A interface web não ficará acessível externamente até o administrador conectar o proxy reverso existente à rede/container web, ou configurar um binding controlado apenas para homologação. **Não abrir 5432 ou a API diretamente na internet.**
+## Isolamento dos serviços da VPS compartilhada
 
-## Próximas etapas antes de qualquer deploy
+- O Compose NÃO publica `80`, `443`, `3000`, `5432` nem `8080` no host.
+- API/PostgreSQL isolados na rede backend; frontend em rede do projeto.
+- Senhas de banco lidas de segredo externo, nunca registradas no GitHub.
+- Nenhuma operação sobre a Central Online, Apps Script, Drive, banco real ou serviços existentes.
+- Sem reinicialização automática. Sem implantação na VPS.
+- Nunca executar `docker compose down --volumes` num ambiente contendo dados.
 
-- Confirmar qual proxy reverso já existe na VPS (Traefik, Nginx, Caddy, Portainer etc.), domínio de staging e portas internas livres.
-- Criar políticas de backup/restore para o novo volume Postgres antes de inserir dados.
-- Implementar login/tenants no backend, React frontend e testes de segurança; exigir cookies seguros, CSRF e trilha de auditoria.
-- Somente depois, migrar NC/agenda/fotos em cópia de homologação com aprovação.
-- Não executar docker compose down --volumes; remover volumes pode causar perda de dados.
+## Homologação Docker pelo programador (somente após autorização)
 
-O contrato funcional proposto está em ../API_WEB_PROPOSTA.yaml. A implantação real na VPS ainda depende de autorização e revisão do programador.
+1. Em ambiente reservado, criar `infra/secrets/postgres_password` com senha forte e acesso restrito (fora do Git).
+2. Na pasta `infra`, verificar antes: `docker compose -p auditar-sst-web-hml -f compose.staging.yml config --quiet`.
+3. Se autorizado em staging, subir isoladamente: `docker compose -p auditar-sst-web-hml -f compose.staging.yml up --build -d`.
+4. Conferir `docker compose -p auditar-sst-web-hml -f compose.staging.yml ps`.
+5. API: `docker compose -p auditar-sst-web-hml -f compose.staging.yml exec api node -e "fetch('http://127.0.0.1:3000/api/v1/health').then(r=>r.json()).then(console.log)"`.
+
+**O frontend não ficará acessível pela internet até o administrador configurar um endereço de staging/proxy; isso não foi feito.** Não abrir diretamente o banco ou a API para a internet.
+
+## Faltam para lançamento real
+
+Identidade/autenticação, isolamento de empresas, API de NCs, auditoria, histórico, fotos e assinaturas, tarefas/agenda, documentos/PDF, painel do cliente e ADM, migração verificada dos dados e testes de segurança/carga/recuperação, backup/restauração e virada planejada do domínio. O OpenAPI é ainda um contrato proposto.
+
+A pasta `web/static/` é a sonda estática antiga: permanece versionada como referência, mas **não é utilizada na nova imagem**.

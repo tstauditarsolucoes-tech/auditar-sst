@@ -1,0 +1,23 @@
+{
+  "name": "auditar-sst-web-prototipo",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test src/domain/nc.test.ts",
+    "build": "tsc --noEmit && vite build",
+    "dev": "vite --host 0.0.0.0"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "typescript": "~5.9.3",
+    "vite": "8.3.5"
+  }
+}
