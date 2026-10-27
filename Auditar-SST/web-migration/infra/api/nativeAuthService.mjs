@@ -1,7 +1,7 @@
 /**
  * Sessões NATIVAS de homologação, separadas do cookie Web.
- * Somente login/consulta/logout; NUNCA usar bearer para endpoints de negocio
- * antes de implementar um protocolo novo, isolado do Apps Script/Flutter atual.
+ * Login, sessao, logout e leitura explicitamente permitida dos cadastros NOVOS.
+ * Escrita e sincronizacao permanecem BLOQUEADAS; sem Apps Script/Flutter atual.
  */
 import {createHash,randomBytes} from 'node:crypto';
 import {ApiError} from './ncService.mjs';
@@ -121,6 +121,10 @@ export function createNativeAuthService({pool}={}){
       return {ok:true,user:{id:item.user_id,name:item.display_name},
         companyId:item.company_id,role:item.role,
         expiresAt:item.expires_at,syncEnabled:false,writesEnabled:false};
+    },
+    async principal(req){
+      const current=await this.session(req);
+      return {userId:current.user.id,companyId:current.companyId,role:current.role};
     },
     async logout(req){
       rejectBrowser(req);

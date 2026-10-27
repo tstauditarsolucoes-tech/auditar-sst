@@ -63,3 +63,8 @@ O Júlio deve seguir o guia privado [infra/GUIA_PRIVADO_JULIO.md](infra/GUIA_PRI
 ## Sondagem nativa da nova API (sem sincronização e sem dados antigos)
 
 O contrato público de diagnóstico `GET /api/v1/native/handshake` responde explicitamente `native.syncEnabled=false`, `native.writesEnabled=false` e `native.authentication=not-implemented`. O cliente Dart em [native/flutter_probe](native/flutter_probe/README.md) é independente dos arquivos do aplicativo antigo, usa somente GET/HTTPS, desativado por padrão, e **nunca** confirma ou envia fila offline. Uma checagem de conexão bem-sucedida não equivale a suporte de Android/Windows ao backend. Os builds atuais não foram alterados ou gerados. A CI testa o bloqueio com simulações sintéticas em Dart e HTTP.
+
+
+## Leituras nativas piloto (somente nova base)
+
+A autenticação nativa opcional, ainda DESLIGADA por padrão, oferece duas rotas **somente GET** de consulta de NC e vistorias recém-criadas na nova base. A empresa é extraída do bearer validado, não de parâmetros do dispositivo. Sem criação/alteração, sem acesso à sincronização Flutter legada ou upload de evidência, sem APK/EXE novo. CI cobre logout, acesso não autenticado, escrita bloqueada e tentativa de selecionar empresa por query string. Não se trata ainda de sincronização Android/Windows.

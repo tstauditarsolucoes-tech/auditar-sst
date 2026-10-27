@@ -72,6 +72,31 @@ test('sessao nativa: token independente, sem acesso business, 2 empresas e revog
   assert.equal(nc.status,401,'Bearer nativo nao autoriza rotas Web');
   const photo=await fetch(base+'evidence',{headers:bearer});
   assert.equal(photo.status,401);
+  // Rotas nativas NOVAS somente leitura, autenticadas e filtradas pela empresa da sessao.
+  const readNcs=await fetch(base+'native/data/nonconformities',{headers:bearer});
+  assert.equal(readNcs.status,200);
+  const ncItems=await readNcs.json();
+  assert.equal(ncItems.readOnly,true);
+  assert.equal(ncItems.syncEnabled,false);
+  assert.ok(Array.isArray(ncItems.items));
+  const readInspections=await fetch(base+'native/data/inspections',{headers:bearer});
+  assert.equal(readInspections.status,200);
+  const inspectionItems=await readInspections.json();
+  assert.ok(Array.isArray(inspectionItems.items));
+  assert.equal(inspectionItems.readOnly,true);
+  // URL com empresa forjada NAO muda escopo: ID vem apenas do token validado.
+  const forged=await fetch(base+'native/data/nonconformities?companyId=20000000-0000-4000-8000-000000000002',
+    {headers:bearer});
+  assert.equal(forged.status,200);
+  assert.deepEqual((await forged.json()).items,ncItems.items);
+  for(const [method,path] of [
+    ['POST','native/data/nonconformities'],
+    ['PATCH','native/data/inspections'],
+  ]){
+    const denied=await fetch(base+path,{method,headers:bearer});
+    assert.equal(denied.status,405);
+  }
+  assert.equal((await fetch(base+'native/data/nonconformities')).status,401);
   const forbiddenSync=await fetch(base+'native/sync/push',{method:'POST',headers:bearer});
   assert.equal(forbiddenSync.status,404,'Nenhum envio esta habilitado');
   const mixed=await fetch(base+'native/auth/session',{
@@ -81,6 +106,7 @@ test('sessao nativa: token independente, sem acesso business, 2 empresas e revog
   const logout=await fetch(base+'native/auth/logout',{method:'POST',headers:bearer});
   assert.equal(logout.status,200);
   assert.equal((await fetch(base+'native/auth/session',{headers:bearer})).status,401);
+  assert.equal((await fetch(base+'native/data/nonconformities',{headers:bearer})).status,401);
   assert.equal((await fetch(base+'native/auth/logout',{method:'POST',headers:bearer})).status,401);
   // A role de dados RLS nao deve poder consultar tokens nativos nem senhas.
   const direct=await dataPool.connect();

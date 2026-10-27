@@ -101,3 +101,8 @@ Não se trata de relatório oficial Padrão Auditar 3, que ainda exige revisão 
 ## Piloto 013 — Autenticação nativa separada e inativa por padrão
 
 `nativeAuthService.mjs` introduz somente login nativo com credenciais NOVAS da homologação (scrypt), controle persistente de tentativas, sessão revogável com bearer de 256 bits e hash de token no PostgreSQL. `POST /api/v1/native/auth/login` aceita somente `email` e `password`; `GET /api/v1/native/auth/session` e `POST /api/v1/native/auth/logout` exigem bearer. Sem Origin/cookie. Ativação apenas por variável explícita `AUDITAR_ENABLE_NATIVE_AUTH=PRIVATE_STAGING_NATIVE_ONLY` no servidor de homologação privada. **Não implementa API de dados, sincronização, envio de fotos, login Flutter conectado nem suporte de produção.** Os demais serviços ignoram tokens nativos. Teste `integration.native-auth.ci.test.mjs` com PostgreSQL efêmero e contas fictícias.
+
+
+## Consultas nativas protegidas (sem sync)
+
+O token opt-in 013 pode consultar **somente** `GET /api/v1/native/data/nonconformities` e `GET /api/v1/native/data/inspections`; ambas chamam serviços existentes com `principal()` validado na tabela `native_session` e isolamento por empresa RLS. Não existe criação, alteração, importação, upload de mídia nem ACK de fila offline pelo token. Qualquer tentativa de escrita recebe 405. O código Flutter instalado não utiliza estas URLs.

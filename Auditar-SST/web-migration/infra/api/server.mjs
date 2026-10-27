@@ -70,6 +70,20 @@ export function createApp({pool, authService, nativeAuthService, resolvePrincipa
         return;
       }
 
+      // Consultas NATIVAS SOMENTE leitura, usando dados NOVOS no tenant do token.
+      // Nao aceitar syncPush/syncPull, uploads, escrita ou companyId passado pelo cliente.
+      const nativeNcs=pathname==='/api/v1/native/data/nonconformities';
+      const nativeInspections=pathname==='/api/v1/native/data/inspections';
+      if(nativeNcs||nativeInspections){
+        if(!nativeAuthService){send(404,{ok:false,code:'NATIVE_AUTH_DISABLED'});return;}
+        if(req.method!=='GET'){send(405,{ok:false,code:'READ_ONLY'});return;}
+        const nativePrincipal=await nativeAuthService.principal(req);
+        const items=nativeNcs
+          ?await ncService.list(nativePrincipal)
+          :await inspectionService.list(nativePrincipal);
+        send(200,{items,readOnly:true,syncEnabled:false});return;
+      }
+
       // Auth NATIVA opcional: apenas login/me/logout e tokens exclusivos do app.
       // Nenhuma rota de dados/NC/foto aceita este bearer; cookie Web fica separado.
       const nativeLogin=pathname==='/api/v1/native/auth/login';

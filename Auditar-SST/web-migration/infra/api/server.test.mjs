@@ -192,6 +192,8 @@ test('Login nativo permanece desligado quando servidor inicia normalmente',async
    ['POST','/api/v1/native/auth/login'],
    ['GET','/api/v1/native/auth/session'],
    ['POST','/api/v1/native/auth/logout'],
+   ['GET','/api/v1/native/data/nonconformities'],
+   ['GET','/api/v1/native/data/inspections'],
   ]){
    const r=await fetch(base+path,{method});
    assert.equal(r.status,404);
