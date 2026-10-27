@@ -69,6 +69,22 @@ jobs:
           docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
             psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/tests/tenant_isolation.sql
           echo 'POSTGRES_MULTIEMPRESA_STAGING_OK'
+      - name: Testar API NC com PostgreSQL real multiempresa e usuario restrito (CI efemera)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          # Dados sinteticos. Exige banco vazio CI, nao usar na VPS.
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
+            psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 \
+            -v AUDITAR_INTEGRATION_CI=1 -f /db-init/tests/seed_nc_integration_ci.sql
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T \
+            -e AUDITAR_SST_EPHEMERAL_CI_DB=FAKE_DATA_CI_ONLY \
+            -e PGHOST=db -e PGPORT=5432 -e PGDATABASE=auditar_web_hml \
+            -e PGUSER=sst_ci_runner \
+            -e PGPASSWORD=ci-synthetic-test-only-not-for-deploy-9274 \
+            api node --test integration.ci.test.mjs
+          echo 'NC_API_REAL_POSTGRES_CI_ONLY_OK'
       - name: Validar integracao Nginx Proxy Manager sem deploy
         shell: bash
         env:

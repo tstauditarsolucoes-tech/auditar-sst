@@ -18,7 +18,7 @@
 | Banco | PostgreSQL 17, migração 001: empresas, vínculos, vistorias, NCs, histórico, evidências (metadados), tarefas, auditoria e RLS multiempresa | Ainda sem credenciais, dados reais, backup operacional ou upload privado |
 | Proxy | Nginx serve React e repassa /api/ internamente | Sem acesso público ou certificado neste pacote |
 | Docker | Compose isolado, nenhum host port, segredo via arquivo externo | Não conectado à VPS nem ao NPM |
-| Testes | Regras TypeScript, Node NCs com pool simulado, esquema SQL e RLS multiempresa com dados fictícios/ROLLBACK, build React e smoke Docker | Não valida API contra Postgres real, sessões reais nem integrações legadas |
+| Testes | Regras TypeScript, Node NCs com pool simulado E teste ponta a ponta API×PostgreSQL real de CI efêmera, com conta restrita, duas empresas fictícias, RLS, build React e smoke Docker | Não valida sessões reais, mídias nem integrações legadas |
 
 A pasta `web/static` contém a sonda antiga, não é usada no build React. **Nenhum segredo, foto, assinatura ou dado de cliente foi enviado ao repositório público.**
 
@@ -83,7 +83,7 @@ bash scripts/smoke-staging.sh --npm
 ## 5. Critérios para a hospedagem REAL do Auditar SST
 
 **Ainda não atendidos:**
-1. Integrar backend Node a credenciais PostgreSQL de mínimo privilégio e autenticador de sessão verificado, testar rotas reais NC×PostgreSQL e desenvolver toda API SST com autorização/monitoramento.
+1. Integrar backend Node a credenciais PostgreSQL de mínimo privilégio e autenticador de sessão verificado, expandir testes reais NC×PostgreSQL já preparados na CI e desenvolver toda API SST com autorização/monitoramento.
 2. Expandir esquema inicial e migrações versionadas, backup automático fora da VPS, ensaio de recuperação, armazenamento privado de mídia dentro do servidor e integridade de anexos.
 3. Migração funcional Web: vistorias, NCs/tratativas, agenda, relatórios, fotos, assinaturas, painel Cliente, ADM, CIPA e módulos em uso.
 4. Adaptar Android e Windows à nova API mantendo offline, testar uploads/filas/conflitos e instalar versões de homologação em aparelhos reais.
