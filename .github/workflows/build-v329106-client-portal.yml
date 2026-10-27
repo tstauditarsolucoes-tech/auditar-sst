@@ -5,7 +5,7 @@ name: Auditar SST Android v3.29.198 Biblioteca NRs
 on:
   workflow_dispatch:
   push:
-    branches: [feature/client-panel-permissions-v329106]
+    branches: [feature/client-panel-permissions-v329106, organize/sst-em-pasta-20261027]
     paths:
       - 'Auditar-SST/**'
       - 'tools/patch_client_treatment_inbox_v329182_v330105.py'
