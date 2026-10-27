@@ -8,7 +8,7 @@ Infraestrutura informada em 27/10/2026:
 - proxy reverso: Nginx Proxy Manager (NPM);
 - domínio informado: **tst.auditarsolucoes.com.br**.
 
-Não foi possível confirmar o conteúdo atual do domínio a partir desta auditoria. **Antes de qualquer alteração, Julio deve verificar se já existe um Proxy Host para esse endereço ou se outro serviço o utiliza. Nunca sobrescrever a rota existente sem backup e autorização.**
+**Confirmação posterior do proprietário:** tst.auditarsolucoes.com.br **já está em uso** e será substituído futuramente. A troca deve seguir o [PLANO_DE_VIRADA_DO_DOMINIO_TST.md](PLANO_DE_VIRADA_DO_DOMINIO_TST.md). Ainda é necessário identificar o serviço atual e suas dependências. **Não substituir a rota antes de homologar o novo sistema, fazer backup e obter autorização expressa.**
 
 ## 1. Como conectar os contêineres sem ocupar portas do host
 

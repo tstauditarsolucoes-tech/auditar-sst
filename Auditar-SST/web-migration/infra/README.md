@@ -9,6 +9,8 @@ Este pacote cria, em um projeto Docker Compose separado:
 
 O portal definitivo será desenvolvido em React + TypeScript; o componente estático atual apenas prova que navegador -> proxy -> Node funciona. Nenhum login simulado ou dados fictícios de clientes são apresentados como reais.
 
+**Domínio ocupado:** o proprietário confirmou que tst.auditarsolucoes.com.br está servindo um sistema que será substituído. Leia primeiro [PLANO_DE_VIRADA_DO_DOMINIO_TST.md](PLANO_DE_VIRADA_DO_DOMINIO_TST.md); nenhuma troca está autorizada agora.
+
 ## Integração com Nginx Proxy Manager e domínio informado
 
 - Domínio final indicado: tst.auditarsolucoes.com.br.
