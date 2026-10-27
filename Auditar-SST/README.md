@@ -1,6 +1,6 @@
-# Auditar SST — pasta organizada (candidata)
+# Auditar SST — código consolidado em pasta única (candidato de migração)
 
-Esta pasta reúne **somente o aplicativo Auditar SST** (Android e Windows), com suas fontes, bases, scripts de montagem, testes, documentos, módulos administrativos e cópias dos dois workflows principais.
+Esta pasta passou a reunir **todo o código-fonte do aplicativo Auditar SST** (Android e Windows), com suas fontes, bases, scripts de montagem, testes, documentos, módulos administrativos e cópias dos dois workflows principais.
 
 - Origem: `tstauditarsolucoes-tech/auditar-sst`, branch `feature/client-panel-permissions-v329106`.
 - Snapshot de origem: `2002fd8d9228eb210aa0bf778dfd8b994d1396ad` (26/10/2026).
@@ -19,6 +19,8 @@ Esta pasta reúne **somente o aplicativo Auditar SST** (Android e Windows), com 
 
 ## Segurança e etapa seguinte
 
-Este é um **espelho organizado para revisão**, sem excluir nem mudar os caminhos dos arquivos originais. Assim os builds e a PR #15 permanecem preservados. Antes de remover os diretórios SST antigos, é obrigatório migrar os workflows para trabalhar dentro de `Auditar-SST/`, validar CI, dados, fotos, histórico, assinaturas, login offline, PDFs e atualização em aparelho real.
+Na branch de organização, os antigos diretórios SST foram **retirados da raiz** e preservados aqui, com os mesmos objetos Git, sem excluir histórico. Os workflows ativos, que precisam permanecer em `/.github/workflows/`, copiam temporariamente esta pasta para a raiz **apenas no runner de CI**, preservando os scripts existentes. O Gestão EPI permanece na raiz, independente.
 
-Nenhum APK foi publicado, nenhum Apps Script foi implantado e nenhum banco de dados do usuário foi modificado nesta organização. **Não usar esta pasta, sozinha, como comprovação de release homologada.**
+**Para o programador web:** consulte [`docs/GUIA_PROGRAMADOR_WEB_SERVIDOR_PROPRIO_20261027.md`](docs/GUIA_PROGRAMADOR_WEB_SERVIDOR_PROPRIO_20261027.md). A interface atual Android/Windows e o Painel Apps Script exigem adaptação e homologação antes de rodar em servidor próprio.
+
+Nenhum APK foi publicado, nenhum Apps Script foi implantado e nenhum banco de dados do usuário foi modificado nesta organização. O CI completo da nova estrutura e a operação web ainda precisam ser homologados. **Não usar esta pasta, sozinha, como comprovação de release homologada.**
