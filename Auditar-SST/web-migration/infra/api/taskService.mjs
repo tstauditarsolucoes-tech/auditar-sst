@@ -211,10 +211,10 @@ export function createTaskService(pool){
           throw new ApiError(400,'INVALID_INPUT','Cancelar exige motivo');
         }
         const updated=await db.query(
-          'UPDATE sst.task SET status=$3,revision=revision+1,updated_at=now(),'+
-          'completed_at=CASE WHEN $3=$4 THEN now() ELSE completed_at END '+
+          'UPDATE sst.task SET status=$3::varchar,revision=revision+1,updated_at=now(),'+
+          "completed_at=CASE WHEN $3::varchar='concluida' THEN now() ELSE completed_at END "+
           'WHERE company_id=$1 AND id=$2 RETURNING id,status,revision',
-          [p.companyId,task.id,next,'concluida'],
+          [p.companyId,task.id,next],
         );
         await event(db,p,task.id,next,message);
         return updated.rows[0];
