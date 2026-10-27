@@ -41,10 +41,11 @@ test('sensor e intertravamento retornam perfil especifico, prazo e responsavel',
 });
 
 test('empate entre perfis mantém primeiro da lista de regras do Dart', () => {
-  // 'protetor auricular' casa primeiro com EPI, mesmo quando também casa com ruido.
+  // 'protetor auricular' casa primeiro com EPI, mesmo quando o perfil de ruido tambem reconhece o termo.
   const result = analyzeOfflineField({text:'Uso incorreto de protetor auricular', probability:2, severity:2});
   assert.equal(result.category, 'Equipamento de proteção individual');
-  assert.deepEqual(result.nrs, ['NR-06', 'NR-15']);
+  // A funcao Dart suggestNrs nao inclui 'protetor auricular' na lista de termos da NR-15.
+  assert.deepEqual(result.nrs, ['NR-06']);
 });
 
 test('perfil generico evita inventar NR ou risco especifico', () => {
