@@ -3,6 +3,7 @@ on:
   push:
     branches: [feature/client-panel-permissions-v329106]
     paths:
+      - 'Auditar-SST/**'
       - 'feature_sources/OperationalAgendaV1.gs'
       - 'tools/test_operational_agenda_v1.cjs'
       - 'feature_sources/TechnicianSupervisionCloud_v1.gs'
@@ -10,6 +11,7 @@ on:
       - '.github/workflows/validate-operational-agenda.yml'
   pull_request:
     paths:
+      - 'Auditar-SST/**'
       - 'feature_sources/OperationalAgendaV1.gs'
       - 'tools/test_operational_agenda_v1.cjs'
       - 'feature_sources/TechnicianSupervisionCloud_v1.gs'
@@ -24,6 +26,12 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+      - name: Restaurar fontes SST da pasta unica para teste
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d Auditar-SST/tools
+          cp -a Auditar-SST/. .
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
