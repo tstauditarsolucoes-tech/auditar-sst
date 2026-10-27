@@ -9,6 +9,14 @@ Este pacote cria, em um projeto Docker Compose separado:
 
 O portal definitivo será desenvolvido em React + TypeScript; o componente estático atual apenas prova que navegador -> proxy -> Node funciona. Nenhum login simulado ou dados fictícios de clientes são apresentados como reais.
 
+## Integração com Nginx Proxy Manager e domínio informado
+
+- Domínio final indicado: tst.auditarsolucoes.com.br.
+- Proxy existente: Nginx Proxy Manager.
+- Leia [GUIA_NGINX_PROXY_MANAGER_TST.md](GUIA_NGINX_PROXY_MANAGER_TST.md) antes de alterar qualquer rota.
+- O arquivo [compose.npm.example.yml](compose.npm.example.yml) é um override opcional com rede externa, sem host ports.
+- **Não foi criado nem alterado qualquer Proxy Host; não substitua um serviço já usando esse domínio.**
+
 ## Por que não interfere nos outros sistemas da VPS
 
 - Nenhum serviço usa ports: **não publica 80, 443, 3000 nem 5432 no host**.

@@ -1,0 +1,15 @@
+# Override OPCIONAL para Nginx Proxy Manager ja existente na VPS.
+# NAO ativar nem mudar host/proxy sem confirmar uso do dominio e autorizacao.
+# Somente o frontend entra na rede externa de proxy; API/DB ficam internos.
+services:
+  web:
+    networks:
+      backend: {}
+      frontend_net: {}
+      npm_proxy:
+        aliases:
+          - auditar-sst-web-hml
+networks:
+  npm_proxy:
+    external: true
+    name: ${AUDITAR_NPM_NETWORK:?Informe o nome da rede Docker do Nginx Proxy Manager}

@@ -23,7 +23,7 @@ Esta pasta foi criada numa branch isolada para o programador avaliar a migraçã
 
 ## Infraestrutura informada pelo programador (27/10/2026)
 
-A hospedagem será em VPS compartilhada com outros sistemas, com Docker, Node.js e banco em contêiner permitidos. Preparação isolada: [infra/README.md](infra/README.md) e [infra/compose.staging.yml](infra/compose.staging.yml). **Nenhum contêiner foi iniciado no servidor real.** Ainda faltam proxy reverso, domínio e política de backup.
+A hospedagem será em VPS compartilhada com outros sistemas, com Docker, Node.js e banco em contêiner permitidos. O proxy será Nginx Proxy Manager e o domínio indicado é tst.auditarsolucoes.com.br. A integração está documentada em [infra/GUIA_NGINX_PROXY_MANAGER_TST.md](infra/GUIA_NGINX_PROXY_MANAGER_TST.md), sem alteração de domínio ou deploy. Preparação isolada: [infra/README.md](infra/README.md) e [infra/compose.staging.yml](infra/compose.staging.yml). **Nenhum contêiner foi iniciado no servidor real.** Ainda faltam proxy reverso, domínio e política de backup.
 
 ## Escolha técnica proposta, a confirmar com o programador
 

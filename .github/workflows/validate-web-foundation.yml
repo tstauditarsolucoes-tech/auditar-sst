@@ -36,3 +36,16 @@ jobs:
             exit 1
           fi
           echo 'WEB_FOUNDATION_ISOLATED_OK'
+
+      - name: Validar integracao Nginx Proxy Manager sem deploy
+        shell: bash
+        env:
+          AUDITAR_NPM_NETWORK: rede-npm-ficticia-ci
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          docker compose -f compose.staging.yml -f compose.npm.example.yml config --quiet
+          docker compose -f compose.staging.yml -f compose.npm.example.yml config --format json | jq -e '.services.web.networks | has("npm_proxy")'
+          docker compose -f compose.staging.yml -f compose.npm.example.yml config --format json | jq -e '.services.api.networks | has("npm_proxy") | not'
+          docker compose -f compose.staging.yml -f compose.npm.example.yml config --format json | jq -e '.services.db.networks | has("npm_proxy") | not'
+          echo 'NPM_OVERLAY_ISOLATION_OK'
