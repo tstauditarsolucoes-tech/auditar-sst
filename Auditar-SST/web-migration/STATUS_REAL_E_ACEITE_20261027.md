@@ -22,6 +22,10 @@ Android APK Flutter, Windows EXE Flutter e nova Web React/TypeScript devem compa
 | PDF de vistoria de teste | Candidato, sem modelo oficial |
 | Android/Windows existentes | Preservados, sem migração de API |
 
+## Primeiro passo disponível para inventário de cópias
+
+O script privado tools/inventory-legacy-backup.mjs lê somente uma cópia local de backup e mostra contagens/tamanhos por tipo sem revelar nomes ou conteúdos. Não é um importador e não substitui a conferência manual. Consulte infra/GUIA_PRIVADO_JULIO.md.
+
 ## Bloqueios reais antes da produção
 
 - [ ] Inventariar Apps Script, Sheets e Drive; exportar tudo com autorização específica.

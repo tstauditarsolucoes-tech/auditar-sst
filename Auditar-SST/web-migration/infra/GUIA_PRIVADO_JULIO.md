@@ -191,3 +191,8 @@ Fotos **fictícias** JPEG/PNG/WebP (até 2 MB) são enviadas em sessão HTTPS da
 ## PDF de vistoria — piloto 008 lógico (sem nova migração SQL)
 
 O endpoint autenticado GET /api/v1/reports/inspections/:id/pdf gera PDF de vistoria **concluída** inteiramente em memória (sem arquivo persistente), com capa, nome da empresa da sessão, risco e até dois achados por página, incorporando a primeira foto JPEG/PNG de teste de cada NC, quando houver. PDFs ainda não representam o relatório profissional final, não incluem assinatura nem todas as informações do Flutter/Apps Script; fotos WebP continuam visíveis apenas no painel. Não enviar esse material de homologação a clientes nem considerar como relatório oficial. Testar visualmente e aprovar modelo antes de produção.
+
+
+## Inventário pré-migração do legado: SOMENTE leitura de cópia
+
+Antes de importar registros reais, o responsável deve fazer um backup completo **fora do repositório público**, seguindo as regras de acesso dos dados de clientes. Em um equipamento controlado, manter uma CÓPIA numa pasta exclusiva com nome iniciando por `auditar-sst-backup-`, por exemplo `/dados/privados/auditar-sst-backup-20261027`. Após verificar permissões locais, executar `node tools/inventory-legacy-backup.mjs /dados/privados/auditar-sst-backup-20261027`. O script só lê arquivos, calcula hashes internamente e devolve totais por extensão, tamanho e quantidade de possíveis duplicatas; não publica nomes, conteúdo, fotos, hashes individuais, IDs ou credenciais. Ele **não transfere nada** ao PostgreSQL. Não apontar para pastas de produção, Google Drive montado ou diretórios amplos. Antes da migração real, comparar inventários antes/depois e validar integridade dos documentos, permissões, autorização e plano de retorno.
