@@ -21,6 +21,8 @@ Esta pasta passou a reunir **todo o código-fonte do aplicativo Auditar SST** (A
 
 Na branch de organização, os antigos diretórios SST foram **retirados da raiz** e preservados aqui, com os mesmos objetos Git, sem excluir histórico. Os workflows ativos, que precisam permanecer em `/.github/workflows/`, copiam temporariamente esta pasta para a raiz **apenas no runner de CI**, preservando os scripts existentes. O Gestão EPI permanece na raiz, independente.
 
+**Preparação da migração de tecnologia para web:** consulte [web-migration/README.md](web-migration/README.md) para auditoria do código, arquitetura, fases e contrato inicial de API (proposta, sem implementação de produção).
+
 **Para o programador web:** consulte [`docs/GUIA_PROGRAMADOR_WEB_SERVIDOR_PROPRIO_20261027.md`](docs/GUIA_PROGRAMADOR_WEB_SERVIDOR_PROPRIO_20261027.md). A interface atual Android/Windows e o Painel Apps Script exigem adaptação e homologação antes de rodar em servidor próprio.
 
 Nenhum APK foi publicado, nenhum Apps Script foi implantado e nenhum banco de dados do usuário foi modificado nesta organização. O CI completo da nova estrutura e a operação web ainda precisam ser homologados. **Não usar esta pasta, sozinha, como comprovação de release homologada.**

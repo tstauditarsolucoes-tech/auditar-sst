@@ -1,0 +1,330 @@
+openapi: 3.0.3
+info:
+  title: Auditar SST - Contrato WEB proposto
+  version: 0.1.0-draft
+  description: |
+    Apenas especificacao candidata para discussao com o programador.
+    Nao representa endpoints atualmente implementados ou em producao.
+servers:
+  - url: https://staging.example.invalid/api/v1
+    description: Exemplo nao funcional, substituir apos aprovar a infraestrutura
+security:
+  - sessionCookie: []
+paths:
+  /session:
+    post:
+      summary: Criar sessao web por credenciais
+      security: []
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Sessao criada com cookie seguro definido pelo servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUser'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    delete:
+      summary: Encerrar a sessao ativa
+      operationId: logout
+      responses:
+        '204':
+          description: Sessao encerrada
+  /me:
+    get:
+      summary: Usuario, papel e empresas permitidas
+      operationId: currentUser
+      responses:
+        '200':
+          description: Sessao ativa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUser'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /companies:
+    get:
+      summary: Listar apenas empresas autorizadas ao usuario
+      operationId: listCompanies
+      responses:
+        '200':
+          description: Empresas permitidas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Company'
+  /companies/{companyId}/nonconformities:
+    parameters:
+      - $ref: '#/components/parameters/companyId'
+    get:
+      summary: NCs publicadas para a empresa do usuario
+      operationId: listNonConformities
+      responses:
+        '200':
+          description: NCs e respectivas prioridades
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NonConformity'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /companies/{companyId}/nonconformities/{ncId}/timeline:
+    parameters:
+      - $ref: '#/components/parameters/companyId'
+      - name: ncId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Ler eventos imutaveis da NC
+      operationId: getTimeline
+      responses:
+        '200':
+          description: Eventos ordenados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TreatmentEvent'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      summary: Registrar mensagem, correcao, validacao ou rejeicao conforme papel
+      operationId: postTreatment
+      description: |
+        O servidor deve validar papel, empresa, ocorrencia publicada e transicao.
+        Cliente nao pode validar NC. Validacao/rejeicao exigem perfil tecnico/ADM.
+        Usar idempotencyKey para evitar duplicidade em reenvios.
+        Exigir protecao CSRF quando autenticacao for baseada em cookies.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 8
+            maxLength: 120
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TreatmentInput'
+      responses:
+        '201':
+          description: Novo evento preservado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TreatmentEvent'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Conflito de transicao ou idempotencia
+  /companies/{companyId}/agenda:
+    parameters:
+      - $ref: '#/components/parameters/companyId'
+    get:
+      summary: Tarefas visiveis ao tecnico ou administrador autorizado
+      operationId: listAgenda
+      responses:
+        '200':
+          description: Tarefas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AgendaTask'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /companies/{companyId}/evidence:
+    parameters:
+      - $ref: '#/components/parameters/companyId'
+    post:
+      summary: Upload privado de evidencia da empresa
+      operationId: uploadEvidence
+      description: |
+        A autorizacao e validada no backend. O storage nao retorna caminho
+        publico permanente; somente id opaco e checksum para referencia.
+        Exigir protecao CSRF quando autenticacao for baseada em cookies.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, relatedType, relatedId]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                relatedType:
+                  type: string
+                  enum: [nonconformity, inspection, treatment]
+                relatedId:
+                  type: string
+      responses:
+        '201':
+          description: Evidencia criada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Evidence'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: auditar_session
+  parameters:
+    companyId:
+      name: companyId
+      in: path
+      required: true
+      description: Validar pertencimento no backend em toda operacao
+      schema:
+        type: string
+  responses:
+    Unauthorized:
+      description: Sessao ausente ou expirada
+    Forbidden:
+      description: Identidade sem permissao para empresa ou acao
+  schemas:
+    CurrentUser:
+      type: object
+      required: [id, displayName, role, companyIds]
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        role:
+          type: string
+          enum: [admin, tecnico, cliente]
+        companyIds:
+          type: array
+          items:
+            type: string
+    Company:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    NonConformity:
+      type: object
+      required: [id, companyId, title, status]
+      properties:
+        id:
+          type: string
+        companyId:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [aberta, correcao_informada, validada, rejeitada]
+        priority:
+          type: string
+          enum: [baixa, media, alta, critica]
+        updatedAt:
+          type: string
+          format: date-time
+    TreatmentInput:
+      type: object
+      additionalProperties: false
+      required: [type, message]
+      properties:
+        type:
+          type: string
+          enum: [mensagem, pedido_apoio, informar_correcao, validacao_tecnica, rejeicao_tecnica]
+        message:
+          type: string
+          minLength: 1
+          maxLength: 1600
+        evidenceId:
+          type: string
+        reason:
+          type: string
+          maxLength: 1600
+    TreatmentEvent:
+      type: object
+      required: [id, companyId, ncId, actorId, type, message, createdAt]
+      properties:
+        id:
+          type: string
+        companyId:
+          type: string
+        ncId:
+          type: string
+        actorId:
+          type: string
+        type:
+          type: string
+        message:
+          type: string
+        reason:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    AgendaTask:
+      type: object
+      required: [id, companyId, technicianId, title, status]
+      properties:
+        id:
+          type: string
+        companyId:
+          type: string
+        technicianId:
+          type: string
+        title:
+          type: string
+        status:
+          type: string
+        dueAt:
+          type: string
+          format: date-time
+    Evidence:
+      type: object
+      required: [id, companyId, mimeType, sha256]
+      properties:
+        id:
+          type: string
+        companyId:
+          type: string
+        mimeType:
+          type: string
+        sha256:
+          type: string
+          pattern: '^[a-fA-F0-9]{64}$'
