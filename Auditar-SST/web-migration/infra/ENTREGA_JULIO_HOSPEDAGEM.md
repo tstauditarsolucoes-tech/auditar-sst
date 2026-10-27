@@ -1,7 +1,7 @@
 # Entrega técnica para Júlio César Angelim — Auditar SST
 
 **Preparado em 27/10/2026.** Branch `migration/preparacao-web-20261027`, PR #23 **DRAFT**.  
-**Status:** infraestrutura Docker e PRIMEIRA interface React funcional, próprias para **homologação isolada com dados fictícios**. **Não é o Auditar SST completo pronto para publicar no domínio principal.**
+**Status:** infraestrutura Docker, primeira interface React, esquema PostgreSQL multiempresa e protótipo protegido de regras HTTP de NCs, próprios para **homologação isolada com dados fictícios**. **Não é o Auditar SST completo pronto para publicar no domínio principal.**
 
 ## 1. O produto que a Auditar quer receber
 
@@ -14,11 +14,11 @@
 | Componente | Entregue agora | Limitação |
 | --- | --- | --- |
 | Web | React/TypeScript/Vite, layout celular/PC, matriz de risco e título amigável de NC migrados de Dart | NCs demonstrativas em memória, não existe CRUD real |
-| API | Node.js 24, rota GET /api/v1/health | Sem login, dados, autorização, endpoints funcionais |
-| Banco | PostgreSQL 17 em container, rede e volume próprios de homologação | Não tem modelo de dados SST ou migrações operacionais |
+| API | Node.js 24, health e lógica/rotas de NCs: criar, listar, histórico, informar/validar/rejeitar correções; testes com pool simulado | Sem autenticação real ou conexão de banco configurada: rotas de NC retornam 401 por segurança |
+| Banco | PostgreSQL 17, migração 001: empresas, vínculos, vistorias, NCs, histórico, evidências (metadados), tarefas, auditoria e RLS multiempresa | Ainda sem credenciais, dados reais, backup operacional ou upload privado |
 | Proxy | Nginx serve React e repassa /api/ internamente | Sem acesso público ou certificado neste pacote |
 | Docker | Compose isolado, nenhum host port, segredo via arquivo externo | Não conectado à VPS nem ao NPM |
-| Testes | Regras TypeScript, build React, saúde API, config Compose, smoke Docker | Não valida segurança multiempresa nem integrações reais |
+| Testes | Regras TypeScript, Node NCs com pool simulado, esquema SQL e RLS multiempresa com dados fictícios/ROLLBACK, build React e smoke Docker | Não valida API contra Postgres real, sessões reais nem integrações legadas |
 
 A pasta `web/static` contém a sonda antiga, não é usada no build React. **Nenhum segredo, foto, assinatura ou dado de cliente foi enviado ao repositório público.**
 
@@ -51,7 +51,7 @@ bash scripts/smoke-staging.sh
 docker compose -p auditar-sst-web-hml -f compose.staging.yml ps
 ```
 
-Isso apenas confirma frontend React e endpoint de saúde. **Não oferece URL externa nem converte aplicativos.**
+Isso apenas confirma frontend React, endpoint de saúde e imagem da API cuja lógica de NC permanece bloqueada sem autenticação; o banco inicia vazio e precisa da migração de homologação seguindo `db/README.md`. **Não oferece URL externa nem converte aplicativos.**
 
 ### Se quiser visualizar no navegador sem trocar o domínio atual
 
@@ -83,8 +83,8 @@ bash scripts/smoke-staging.sh --npm
 ## 5. Critérios para a hospedagem REAL do Auditar SST
 
 **Ainda não atendidos:**
-1. Backend Node com autenticação, controle multiempresa, auditoria e API SST completa, testado contra acesso indevido.
-2. Esquema de banco/versionamento, backup automático fora da VPS, ensaio de recuperação, armazenamento privado de mídia dentro do servidor e integridade de anexos.
+1. Integrar backend Node a credenciais PostgreSQL de mínimo privilégio e autenticador de sessão verificado, testar rotas reais NC×PostgreSQL e desenvolver toda API SST com autorização/monitoramento.
+2. Expandir esquema inicial e migrações versionadas, backup automático fora da VPS, ensaio de recuperação, armazenamento privado de mídia dentro do servidor e integridade de anexos.
 3. Migração funcional Web: vistorias, NCs/tratativas, agenda, relatórios, fotos, assinaturas, painel Cliente, ADM, CIPA e módulos em uso.
 4. Adaptar Android e Windows à nova API mantendo offline, testar uploads/filas/conflitos e instalar versões de homologação em aparelhos reais.
 5. Ensaiar migração legada sem perdas e compatibilidade entre os três clientes.
