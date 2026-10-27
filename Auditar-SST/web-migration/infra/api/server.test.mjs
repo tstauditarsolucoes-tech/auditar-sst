@@ -130,3 +130,20 @@ test('Treinamentos e DDS rejeitam headers de identidade forjados',async()=>{
     }
   });
 });
+
+test('CIPA: endpoints recusam perfis ou empresa forjados sem sessao real',async()=>{
+  await withServer(async base=>{
+    for(const [method,path] of [
+      ['GET','/api/v1/cipa/mandates'],
+      ['POST','/api/v1/cipa/mandates'],
+      ['GET','/api/v1/cipa/mandates/10000000-0000-4000-8000-000000000001'],
+      ['POST','/api/v1/cipa/mandates/10000000-0000-4000-8000-000000000001/members'],
+      ['POST','/api/v1/cipa/meetings/10000000-0000-4000-8000-000000000001/status'],
+    ]){
+      const result=await fetch(base+path,{method,headers:{
+        'x-role':'adm','x-company-id':'10000000-0000-4000-8000-000000000001',
+      }});
+      assert.equal(result.status,401);
+    }
+  });
+});

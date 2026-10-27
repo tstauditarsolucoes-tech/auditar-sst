@@ -18,6 +18,7 @@ Android APK Flutter, Windows EXE Flutter e nova Web React/TypeScript devem compa
 | Agenda SST, prazos e designação | Piloto e CI |
 | Plano de Ação vinculado à NC, prazo, responsável e histórico | Piloto, migração 008 e CI |
 | Treinamentos, DDS e Integração (planejamento/andamento) | Piloto, migração 009 e CI; sem certificados ou listas de presença |
+| CIPA (mandato, composição e reuniões) | Piloto, migração 010 e teste CI; sem voto, atas oficiais ou validação NR-5 |
 | Painel Cliente, tickets e conversas | Piloto e CI |
 | Central ADM e última atividade da Web | Piloto e CI |
 | Fotos privadas JPEG/PNG/WebP no Docker | Piloto e CI, máximo 2 MB |
@@ -39,7 +40,7 @@ Foi conferido o servico legado `device_sync_service.dart`: 16 tabelas SQLite, fi
 - [ ] Migrar autenticação de usuários com processo auditado, recuperação de acesso e revisão de segurança.
 - [ ] Implementar cliente Android e Windows para nova API, fila offline e resolução de conflitos.
 - [ ] Migrar fotografias, assinaturas, documentos e PDFs preservando referências e visual.
-- [ ] Finalizar módulos faltantes e paridade: CIPA, certificados/listas de presença e importação do histórico de DDS/treinamentos, integração do Plano de Ação legado, IA, notificações, relatórios Auditar 3, Supervisão completa.
+- [ ] Finalizar módulos faltantes e paridade: CIPA legal e eleitoral, certificados/listas de presença e importação do histórico de DDS/treinamentos, integração do Plano de Ação legado, IA, notificações, relatórios Auditar 3, Supervisão completa.
 - [ ] Cotas, varredura de mídia, criptografia, retenção, logs, backups regulares do banco + volume e teste de restauração.
 - [ ] Testes físicos Android, Windows e navegador: offline, câmera, assinatura, PDF, grupos, permissões e conexão lenta.
 - [ ] Testes de carga, falhas, atualização sem zerar cache, e acesso separado de empresas.

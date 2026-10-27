@@ -85,3 +85,8 @@ Somente em banco novo com 001–006 concluídas: adiciona client_request_id idem
 ## Migração 009 — Treinamentos, DDS e Integração (somente Web de homologação)
 
 Executar depois da migração 008 e somente em PostgreSQL NOVO de teste, uma vez. `009_training_sessions_pilot.sql` cria `sst.training_session` e `sst.training_event`, associadas à empresa, com RLS forçado e histórico somente para inclusão pela API. Os registros incluem tipo, tema, setor, NR de referência, instrutor, data, duração e contagem informada de participantes, mas **não substituem comprovantes/certificados/listas de presença** e não migram qualquer treinamento anterior. Dados reais de colaboradores não devem ser usados no piloto.
+
+
+## Migração 010 — CIPA Web (somente teste privado)
+
+`migrations/010_cipa_pilot.sql` depende de 001–009 e acrescenta `sst.cipa_mandate`, `sst.cipa_member`, `sst.cipa_meeting` e `sst.cipa_event`, com chaves (empresa, entidade), RLS obrigatório e trilha de eventos append-only. As tabelas representam **somente controles administrativos**; não processam votos, não aplicam cálculo da NR-5, não importam dados reais e não validam documentos oficiais.

@@ -61,7 +61,7 @@ Começar com o Compose **padrão, sem login**; isto cria apenas os serviços ded
 docker compose -p auditar-sst-web-hml -f compose.staging.yml up --build -d --wait
 ```
 
-Só num banco **novo e vazio**, aplicar migrações 001, 002, 003, 004, 005, 006, 007, 008 e 009 nessa ordem, uma única vez:
+Só num banco **novo e vazio**, aplicar migrações 001, 002, 003, 004, 005, 006, 007, 008, 009 e 010 nessa ordem, uma única vez:
 
 ```bash
 docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
@@ -90,6 +90,9 @@ docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
 
 docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
   psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/009_training_sessions_pilot.sql
+
+docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
+  psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/010_cipa_pilot.sql
 ```
 
 **Não executar** arquivos em `db/tests/seed_*.sql` na VPS. Eles contêm identidades e senhas fictícias públicas **exclusivas da CI descartável**.
@@ -220,3 +223,10 @@ Depois das migrações 001–008, o piloto de homologação inclui uma área de 
 Apenas contas da EQUIPE em homologação privada podem abrir registros de Treinamentos e DDS após login. A nova área cadastra tipo, tema, setor, referência à NR, instrutor, data, duração e contagem declarada de participantes. Histórico append-only, alteração com revisão, criação e conclusão com idempotência, e isolamento por empresa no PostgreSQL. Cliente não acessa esses registros. Para marcar como realizado é necessário informar duração e contagem de participantes; **isso não representa lista de presença assinada, certificado, qualificação profissional nem comprovação de cumprimento de NR.**
 
 Teste uma atividade fictícia planejada, edite duração e participantes, marque realizada, valide histórico, outro perfil e outra empresa. Não utilize dados pessoais, certificados, listas ou fotografias reais nesta homologação. O aplicativo Flutter e suas informações históricas continuam inalterados.
+
+
+## CIPA Web — piloto 010 (apenas cadastros sintéticos)
+
+A nova aba CIPA da homologação privada tem mandato (início/fim, data de eleição declarada), representantes com tipo e condição, agenda de reunião, resumo de reunião informada, andamento administrativo e linha do tempo somente para inclusão. A API exige login novo, empresa ativa e CSRF em todas as mutações. Contas do cliente NÃO acessam este módulo; somente gestor/ADM pode marcar mandato como ativo ou encerrado.
+
+Este cadastro **não valida dimensionamento, eleição, votação, listas de presença, atas assinadas, designação formal, carga horária, atas eleitorais nem conformidade com a NR-5**. Não cadastrar nomes verdadeiros, não enviar fotografias ou documentos reais e não considerar a área como entrega legal. Testar mandatário fictício, representante fictício, reunião, conclusão, mudança de empresa e a vedação para cliente. O sistema Flutter e o Apps Script atual não são modificados.

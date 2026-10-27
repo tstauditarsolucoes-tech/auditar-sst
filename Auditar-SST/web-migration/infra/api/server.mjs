@@ -6,6 +6,7 @@ import { createInspectionService } from './inspectionService.mjs';
 import { createTaskService } from './taskService.mjs';
 import { createActionPlanService } from './actionPlanService.mjs';
 import { createTrainingService } from './trainingService.mjs';
+import { createCipaService } from './cipaService.mjs';
 import { createPortalService } from './portalService.mjs';
 import { createEvidenceService } from './evidenceService.mjs';
 import { createReportService } from './reportService.mjs';
@@ -25,6 +26,7 @@ export function createApp({pool, authService, resolvePrincipal, evidenceDir} = {
   const taskService=createTaskService(pool);
   const actionPlanService=createActionPlanService(pool);
   const trainingService=createTrainingService(pool);
+  const cipaService=createCipaService(pool);
   const portalService=createPortalService(pool);
   const evidenceService=createEvidenceService(pool,evidenceDir);
   const reportService=createReportService(pool,evidenceDir);
@@ -202,6 +204,43 @@ export function createApp({pool, authService, resolvePrincipal, evidenceDir} = {
         if(activityPing&&req.method==='POST'){
           await readJson();
           send(200,await portalService.ping(principal));return;
+        }
+      }
+
+      // CIPA Web: mandato, composicao e reunioes SOMENTE na base ficticia de homologacao.
+      const cipaCollection=pathname==='/api/v1/cipa/mandates';
+      const cipaMandatePath=pathname.match(
+        /^\/api\/v1\/cipa\/mandates\/([a-f0-9-]{36})(?:\/(members|meetings|status))?$/i,
+      );
+      const cipaMeetingPath=pathname.match(
+        /^\/api\/v1\/cipa\/meetings\/([a-f0-9-]{36})\/status$/i,
+      );
+      if((cipaCollection||cipaMandatePath||cipaMeetingPath)&&['GET','POST'].includes(req.method)){
+        const resolver=authService
+          ?authService.resolvePrincipal.bind(authService):resolvePrincipal;
+        const principal=typeof resolver==='function'?await resolver(req):null;
+        if(!principal){send(401,{ok:false,code:'UNAUTHENTICATED'});return;}
+        if(req.method!=='GET'&&authService)authService.requireMutation(req);
+        if(cipaCollection&&req.method==='GET'){
+          send(200,{items:await cipaService.list(principal)});return;
+        }
+        if(cipaCollection&&req.method==='POST'){
+          send(201,{item:await cipaService.create(principal,await readJson())});return;
+        }
+        if(cipaMandatePath&&!cipaMandatePath[2]&&req.method==='GET'){
+          send(200,await cipaService.get(principal,cipaMandatePath[1]));return;
+        }
+        if(cipaMandatePath?.[2]==='members'&&req.method==='POST'){
+          send(201,{item:await cipaService.addMember(principal,cipaMandatePath[1],await readJson())});return;
+        }
+        if(cipaMandatePath?.[2]==='meetings'&&req.method==='POST'){
+          send(201,{item:await cipaService.addMeeting(principal,cipaMandatePath[1],await readJson())});return;
+        }
+        if(cipaMandatePath?.[2]==='status'&&req.method==='POST'){
+          send(200,{item:await cipaService.mandateStatus(principal,cipaMandatePath[1],await readJson())});return;
+        }
+        if(cipaMeetingPath&&req.method==='POST'){
+          send(200,{item:await cipaService.decideMeeting(principal,cipaMeetingPath[1],await readJson())});return;
         }
       }
 

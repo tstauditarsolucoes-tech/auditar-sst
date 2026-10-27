@@ -74,3 +74,8 @@ api/reportService.mjs usa a nova base PostgreSQL/Node, sem fontes legadas. GET /
 ## Treinamentos e DDS Web (migração 009)
 
 `trainingService.mjs` suporta `GET/POST /api/v1/training-sessions`, `GET/PATCH /api/v1/training-sessions/:id` e `POST /api/v1/training-sessions/:id/status`. A área `TrainingPilot.tsx` só aparece para perfis internos autenticados; cliente recebe 403 também na API. Gestor/ADM e criador técnico podem alterar registros planejados e informar realização ou cancelamento com motivo. Todo acesso usa tenant de sessão verificado, com RLS e chave idempotente. Para marcar realizado, o usuário deve informar duração e número de participantes; essa informação é **autodeclarada e não comprova presença nem certificação**. Sem participantes identificáveis, upload de certificados, e-mail, importação legado ou comprovação de requisitos legais nesta etapa. Teste efêmero: `integration.training.ci.test.mjs`.
+
+
+## CIPA Web — piloto 010
+
+`cipaService.mjs` e `CipaPilot.tsx` permitem cadastrar mandato fictício, composição (empregados/empregador/designado, titular/suplente), reunião, resumo de reunião e transições administrativas do mandato. Rotas protegidas: `GET/POST /api/v1/cipa/mandates`, `GET /api/v1/cipa/mandates/:id`, `POST /api/v1/cipa/mandates/:id/members`, `POST /api/v1/cipa/mandates/:id/meetings`, `POST /api/v1/cipa/meetings/:id/status`, `POST /api/v1/cipa/mandates/:id/status`. A aplicação exige sessão verificada, Origin, CSRF nas escritas e RLS multiempresa. Cliente recebe 403; mudança de status do mandato é reservada a gestor/ADM. **Não é módulo de eleição, certificação, ata assinada ou conformidade NR-5.** Teste PostgreSQL fictício em `integration.cipa.ci.test.mjs`.
