@@ -60,3 +60,8 @@ docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
 ## Migração 004 — vistorias da homologação
 
 Aplicar **após** 001/002/003, somente no banco novo `auditar_web_hml`, uma vez. Acrescenta setor/local, versão de rascunho, conclusão, idempotência de envio, nome amigável da NC e linha do tempo imutável das vistorias. O `sst_app_runtime` recebe apenas operações da empresa selecionada via RLS; perfis `cliente` só leem vistorias concluídas pela API. Sem fotos, assinaturas, PDF ou dados de clientes importados nesta fase.
+
+
+## Migração 005 — Agenda e validação de equipe (homologação)
+
+Somente após 001–004 em base nova: prioridades, prazos, atribuição, revisão e idempotência de tarefas; RLS para nomes e vínculos de funcionários da empresa ativa, sem expor dados de usuários de outras empresas. O autenticador mantém role separado para credenciais, e a API de tarefas usa somente a role de dados com `SET LOCAL`. Eventos de tarefa não são substituídos. Sem sincronização real de agenda Flutter nesta etapa.

@@ -33,3 +33,9 @@
 .inspection-check input{width:19px!important;height:19px;flex:none}
 .inspection-complete{padding:16px;border-radius:10px;border:1px solid #d3e8dc;background:#effaf4;display:grid;gap:13px;margin:22px 0}
 @media(max-width:640px){.inspection-pilot{padding:12px}.inspection-two{grid-template-columns:1fr}.inspection-item{flex-direction:column;align-items:stretch}.inspection-item button{width:100%}}
+
+/* Agenda interna: mesmo padrao legivel e responsivo das vistorias. */
+.task-pilot{margin:22px 0;padding:18px;border:1px solid #cfe1ef;background:#f5f9fd;border-radius:14px}
+.task-pilot h3,.task-pilot h4{color:#1e5273;margin:12px 0 10px}
+.task-pilot .auth-form{max-width:760px}
+@media(max-width:640px){.task-pilot{padding:12px}}

@@ -23,12 +23,14 @@ INSERT INTO sst.company(id,name) VALUES
 INSERT INTO sst.app_user(id,display_name,email) VALUES
 ('11000000-0000-4000-8000-000000000001','Tecnico Ficticio CI','tecnico-ci-a@example.invalid'),
 ('11000000-0000-4000-8000-000000000002','Cliente Ficticio CI','cliente-ci-a@example.invalid'),
-('22000000-0000-4000-8000-000000000002','Tecnico Ficticio CI B','tecnico-ci-b@example.invalid');
+('22000000-0000-4000-8000-000000000002','Tecnico Ficticio CI B','tecnico-ci-b@example.invalid'),
+('33000000-0000-4000-8000-000000000003','Gestor Ficticio CI A','gestor-ci-a@example.invalid');
 
 INSERT INTO sst.user_company_role(company_id,user_id,role) VALUES
 ('10000000-0000-4000-8000-000000000001','11000000-0000-4000-8000-000000000001','tecnico'),
 ('10000000-0000-4000-8000-000000000001','11000000-0000-4000-8000-000000000002','cliente'),
-('20000000-0000-4000-8000-000000000002','22000000-0000-4000-8000-000000000002','tecnico');
+('20000000-0000-4000-8000-000000000002','22000000-0000-4000-8000-000000000002','tecnico'),
+('10000000-0000-4000-8000-000000000001','33000000-0000-4000-8000-000000000003','gestor');
 
 -- Identidade DB efemera nao-superuser; so pode trocar para sst_app_runtime.
 CREATE ROLE sst_ci_runner LOGIN PASSWORD 'ci-synthetic-test-only-not-for-deploy-9274';

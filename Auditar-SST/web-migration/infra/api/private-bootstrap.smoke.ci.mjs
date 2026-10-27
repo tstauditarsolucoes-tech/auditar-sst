@@ -56,6 +56,29 @@ assert.equal(detailInspection.status,200);
 const detail=(await detailInspection.json());
 assert.equal(detail.inspection.status,'concluida');
 assert.equal(detail.findings.length,1);
+const privateTask=await fetch(base+'tasks',{
+  method:'POST',headers,body:JSON.stringify({
+    title:'Agenda HTTP ficticia CI',description:'Apenas ambiente descartavel',
+    priority:'media',clientRequestId:'96000000-0000-4000-8000-000000000001',
+  }),
+});
+assert.equal(privateTask.status,201);
+const taskId=(await privateTask.json()).item.id;
+const taskList=await fetch(base+'tasks',{headers:{cookie}});
+assert.equal(taskList.status,200);
+assert.ok((await taskList.json()).items.some(t=>t.id===taskId));
+const taskStarted=await fetch(base+'tasks/'+taskId+'/status',{
+  method:'POST',headers,body:JSON.stringify({status:'em_andamento',message:'Inicio CI'}),
+});
+assert.equal(taskStarted.status,200);
+const taskDone=await fetch(base+'tasks/'+taskId+'/status',{
+  method:'POST',headers,body:JSON.stringify({status:'concluida',message:'Fim CI'}),
+});
+assert.equal(taskDone.status,200);
+const taskDetail=await fetch(base+'tasks/'+taskId,{headers:{cookie}});
+assert.equal(taskDetail.status,200);
+assert.deepEqual((await taskDetail.json()).events.map(e=>e.kind),
+  ['criada','em_andamento','concluida']);
 const logout=await fetch(base+'auth/logout',{
   method:'POST',headers:{cookie,origin,'x-csrf-token':session.csrfToken},
 });
@@ -64,4 +87,6 @@ const revoked=await fetch(base+'auth/session',{headers:{cookie}});
 assert.equal(revoked.status,401);
 const afterLogout=await fetch(base+'inspections',{headers:{cookie}});
 assert.equal(afterLogout.status,401);
+const taskAfterLogout=await fetch(base+'tasks',{headers:{cookie}});
+assert.equal(taskAfterLogout.status,401);
 process.stdout.write('PRIVATE_AUTH_BOOTSTRAP_SMOKE_OK\n');

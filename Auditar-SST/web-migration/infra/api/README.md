@@ -44,3 +44,8 @@ O frontend React inclui `web/src/WebAuthPilot.tsx`, aba **Acesso de homologaçã
 ## Vistorias/Ronda Expressa — piloto web (migração 004)
 
 `api/inspectionService.mjs` expõe listagem, detalhes com achados/histórico, abertura de rascunho, edição com `expectedRevision` para impedir sobrescrita, inclusão de achado com título amigável de NC, e conclusão. As rotas são `GET/POST /api/v1/inspections`, `GET/PATCH /api/v1/inspections/:id`, `POST /api/v1/inspections/:id/findings`, `POST /api/v1/inspections/:id/complete`. Criação de vistoria e achados exigem `clientRequestId` UUID estável para repetição segura de envio. Clientes não veem rascunhos; apenas técnico/gestor/ADM grava ou conclui. Auditoria de eventos e revisão ficam no banco novo; RLS e autenticação/cookies/CSRF seguem obrigatórios. **Sem integração offline real dos apps Flutter, sem envio de fotos, IA e sem migração de dados legados.** O teste `integration.inspections.ci.test.mjs` usa somente CI efêmera.
+
+
+## Agenda SST — piloto isolado (migração 005)
+
+`api/taskService.mjs` gerencia tarefas por empresa com título, prioridade, prazo, técnico designado, revisões, histórico e transições abertas→em andamento→concluída/cancelada (cancelamento exige motivo). Gestor/ADM pode atribuir a membros ativos **da mesma empresa**; técnico pode criar para si, ver suas tarefas e alterar andamento quando designado; cliente não acessa a agenda interna. RLS das identidades visíveis à API foi adicionado sem liberar credenciais, e `clientRequestId` evita duplicações. Rotas `GET/POST /api/v1/tasks`, `GET /api/v1/tasks/assignees`, `GET/PATCH /api/v1/tasks/:id`, `POST /api/v1/tasks/:id/status`. Apenas homologação, sem importação de agenda legada e sem notificação/tempo online real.

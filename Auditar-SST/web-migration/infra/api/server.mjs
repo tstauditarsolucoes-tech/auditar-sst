@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { ApiError, createNcService } from './ncService.mjs';
 import { createInspectionService } from './inspectionService.mjs';
+import { createTaskService } from './taskService.mjs';
 
 /**
  * Auth NOVA opcional, injetada internamente na homologacao.
@@ -15,6 +16,7 @@ export function createApp({pool, authService, resolvePrincipal} = {}) {
   }
   const ncService=createNcService(pool);
   const inspectionService=createInspectionService(pool);
+  const taskService=createTaskService(pool);
   return createServer(async (req,res)=>{
     const pathname=new URL(req.url || '/', 'http://localhost').pathname;
     res.setHeader('Content-Type','application/json; charset=utf-8');
@@ -83,6 +85,39 @@ export function createApp({pool, authService, resolvePrincipal} = {}) {
           res.setHeader('Set-Cookie',result.cookie);
           send(200,result.body);
           return;
+        }
+      }
+
+      // Agenda de homologacao: cliente nao acessa tarefas internas da equipe.
+      const tasksCollection=pathname==='/api/v1/tasks';
+      const taskAssignees=pathname==='/api/v1/tasks/assignees';
+      const taskPath=pathname.match(
+        /^\/api\/v1\/tasks\/([a-f0-9-]{36})(?:\/(status))?$/i,
+      );
+      if ((tasksCollection||taskAssignees||taskPath)&&['GET','POST','PATCH'].includes(req.method)) {
+        const resolver=authService
+          ? authService.resolvePrincipal.bind(authService)
+          : resolvePrincipal;
+        const principal=typeof resolver==='function'?await resolver(req):null;
+        if(!principal){send(401,{ok:false,code:'UNAUTHENTICATED'});return;}
+        if(req.method!=='GET'&&authService)authService.requireMutation(req);
+        if(taskAssignees&&req.method==='GET'){
+          send(200,{items:await taskService.assignees(principal)});return;
+        }
+        if(tasksCollection&&req.method==='GET'){
+          send(200,{items:await taskService.list(principal)});return;
+        }
+        if(tasksCollection&&req.method==='POST'){
+          send(201,{item:await taskService.create(principal,await readJson())});return;
+        }
+        if(taskPath&&!taskPath[2]&&req.method==='GET'){
+          send(200,await taskService.get(principal,taskPath[1]));return;
+        }
+        if(taskPath&&!taskPath[2]&&req.method==='PATCH'){
+          send(200,{item:await taskService.edit(principal,taskPath[1],await readJson())});return;
+        }
+        if(taskPath?.[2]==='status'&&req.method==='POST'){
+          send(200,{item:await taskService.status(principal,taskPath[1],await readJson())});return;
         }
       }
 

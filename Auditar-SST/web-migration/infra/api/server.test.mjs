@@ -73,3 +73,13 @@ test('vistoria protegida nao confia em headers de empresa nem perfil',async()=>{
     }
   });
 });
+
+test('agenda e lista de designados negam acesso sem autenticacao nova',async()=>{
+  await withServer(async base=>{
+    for(const path of ['/api/v1/tasks','/api/v1/tasks/assignees',
+      '/api/v1/tasks/10000000-0000-4000-8000-000000000001']) {
+      const res=await fetch(base+path,{headers:{'x-role':'adm','x-company-id':'falso'}});
+      assert.equal(res.status,401);
+    }
+  });
+});

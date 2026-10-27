@@ -61,7 +61,7 @@ Começar com o Compose **padrão, sem login**; isto cria apenas os serviços ded
 docker compose -p auditar-sst-web-hml -f compose.staging.yml up --build -d --wait
 ```
 
-Só num banco **novo e vazio**, aplicar migrações 001, 002, 003 e 004 nessa ordem, uma única vez:
+Só num banco **novo e vazio**, aplicar migrações 001, 002, 003, 004 e 005 nessa ordem, uma única vez:
 
 ```bash
 docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
@@ -75,6 +75,9 @@ docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
 
 docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
   psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/004_inspections_pilot.sql
+
+docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
+  psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/005_agenda_pilot.sql
 ```
 
 **Não executar** arquivos em `db/tests/seed_*.sql` na VPS. Eles contêm identidades e senhas fictícias públicas **exclusivas da CI descartável**.
@@ -137,6 +140,7 @@ Criar um Proxy Host **novo** para a URL privada:
 - Abrir a URL privada HTTPS e a aba **Acesso de homologação**.
 - Entrar com o usuário fictício criado e selecionar a empresa.
 - Criar uma vistoria fictícia, incluir achado/NC, concluir e verificar o histórico; depois informar correção, rejeitar com motivo e validar.
+- Criar tarefa de agenda fictícia; gestor atribui a técnico, técnico inicia/conclui e registra comentário. Verificar que outra empresa não lê tarefas.
 - Repetir o envio da vistoria com a mesma chave e confirmar que não gera duplicatas; testar rascunho em duas abas.
 - Conferir histórico e verificar que outra empresa não vê os dados anteriores.
 - Sair/entrar e conferir expiração/negação de sessões revogadas.

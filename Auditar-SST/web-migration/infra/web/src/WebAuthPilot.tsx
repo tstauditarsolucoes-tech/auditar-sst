@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { InspectionPilot } from './InspectionPilot';
+import { TaskPilot } from './TaskPilot';
 
 type WebSession = {
   ok: true;
@@ -187,7 +188,8 @@ export function WebAuthPilot() {
             </select>
           </label>
           <div className="auth-divider" />
-          <InspectionPilot key={session.companyId} session={session} />
+          <InspectionPilot key={'inspection-'+session.companyId} session={session} />
+          {session.role!=='cliente'&&<TaskPilot key={'tasks-'+session.companyId} session={session} userId={session.user.id} />}
           <div className="auth-divider" />
           {session.role !== 'cliente' && (
             <form className="auth-form" onSubmit={(event)=>{event.preventDefault();void run(createNc);}}>
