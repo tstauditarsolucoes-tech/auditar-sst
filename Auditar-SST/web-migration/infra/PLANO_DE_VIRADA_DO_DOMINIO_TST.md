@@ -1,10 +1,12 @@
 # Plano de virada do domínio tst.auditarsolucoes.com.br
 
-**Situação confirmada pelo proprietário em 27/10/2026:** o domínio JÁ ATENDE outro serviço e será substituído futuramente pelo Auditar SST Web. Isto não é autorização para mudar a rota neste momento. Nenhuma ação foi feita na VPS, no Nginx Proxy Manager ou no DNS.
+**Situação confirmada pelo proprietário em 27/10/2026:** o domínio JÁ ATENDE um sistema que, segundo o proprietário, **foi instalado por engano e deverá ser retirado**, para dar lugar ao Auditar SST Web. A identificação exata do sistema atual, contêineres, banco e volumes ainda precisa ser feita pelo administrador da VPS. Isto não é autorização para mudar a rota neste momento. Nenhuma ação foi feita na VPS, no Nginx Proxy Manager ou no DNS.
 
 ## 1. Regra de segurança
 
 Preparar novo sistema em paralelo, testar em ambiente restrito, preservar configuração e dados do serviço atual, obter autorização expressa e só então trocar o destino do Proxy Host no Nginx Proxy Manager. Nunca apagar contêineres, volumes, certificados ou registros do serviço antigo durante a virada.
+
+**A substituição não deve copiar automaticamente dados do sistema errado para o Auditar SST.** Ainda assim, só se pode descartar seus arquivos/bancos após confirmar o conteúdo e a ausência de dependências de outros serviços.
 
 ## 2. Inventário indispensável do serviço ATUAL
 
@@ -61,9 +63,21 @@ Alteração de DNS pode não ser necessária se o domínio já aponta para o mes
 - Revalidar login, serviços antigos, APIs, fotos e PDFs após retorno.
 - Comunicar conclusão/reversão e guardar trilha de auditoria.
 
-## 7. Pendências específicas para confirmar com Julio
+## 7. Desativação posterior do sistema instalado por engano
 
-1. **Qual serviço está atualmente por trás de tst.auditarsolucoes.com.br?** É o painel atual do Auditar SST, outro projeto ou uma página temporária?
+**Somente após o Auditar SST Web estar funcional, homologado e o domínio ter sido transferido com êxito:**
+
+1. Confirmar, por identificadores exatos (projeto Docker, contêiner, imagem, rede, banco e volumes), quais recursos pertencem exclusivamente ao sistema errado.
+2. Arquivar configuração e backup/restauração verificável; verificar se nenhum outro sistema da VPS compartilha volumes, banco, serviço ou rede.
+3. Parar apenas os contêineres identificados, sem apagar seus volumes durante o período de observação/rollback aprovado.
+4. Após aprovação expressa e prazo de retenção definido pela Auditar, remover **somente recursos exclusivos e identificados**; registrar o que foi removido e como recuperar.
+5. Não executar limpeza global de Docker, exclusão de volumes em massa, nem alterar certificados, redes e bancos dos outros sistemas.
+
+**Nesta PR nenhum arquivo, contêiner, banco, domínio ou rota foi removido.**
+
+## 8. Pendências específicas para confirmar com Julio
+
+1. **Qual é o nome/projeto e contêiner exato do sistema instalado por engano?** Confirmar que ele não é a Central Online nem provê APIs de que Android/Windows dependam.
 2. O serviço antigo armazena algum dado de cliente próprio ou apenas encaminha para a Central Online?
 3. Há possibilidade de criar um subdomínio de homologação privado enquanto a versão nova é desenvolvida?
 4. Quem autoriza e executa a troca do Proxy Host e os backups da VPS?
