@@ -1,7 +1,7 @@
 # Entrega técnica para Júlio César Angelim — Auditar SST
 
 **Preparado em 27/10/2026.** Branch `migration/preparacao-web-20261027`, PR #23 **DRAFT**.  
-**Status:** infraestrutura Docker, primeira interface React, esquema PostgreSQL multiempresa e protótipo protegido de regras HTTP de NCs, próprios para **homologação isolada com dados fictícios**. **Não é o Auditar SST completo pronto para publicar no domínio principal.**
+**Status:** React, Node, PostgreSQL e autenticação NOVA habilitáveis em ambiente **privado e isolado, somente dados fictícios**, com configuração opt-in. NÃO é produto final, não afeta app instalado ou domínio atual. **Não é o Auditar SST completo pronto para publicar no domínio principal.**
 
 ## 1. O produto que a Auditar quer receber
 
@@ -14,8 +14,8 @@
 | Componente | Entregue agora | Limitação |
 | --- | --- | --- |
 | Web | React/TypeScript/Vite, layout celular/PC, matriz/Assistente Offline e guia opcional de login/NCs conectadas para homologação | Telas principais continuam demonstrativas; painel de acesso funciona só após ativar explicitamente auth/DB no backend isolado |
-| API | Node.js 24, NCs e módulo NOVO de autenticação web com sessão por cookie seguro, permissões por empresa e CSRF; integração testada contra banco efêmero | O serviço Docker continua sem configurar pools/login: rotas protegidas retornam 401 até hardening e implantação específica |
-| Banco | PostgreSQL 17, migrações 001 e 002: domínio SST/RLS e tabelas separadas de credenciais/sessões para web | Ainda sem usuários reais, secrets de operação, backup real ou upload privado |
+| API | Node.js 24, NCs, login web e sessões/CSRF; bootstrap privado opt-in com duas contas limitadas e limite inicial de tentativas; testado em CI | Por padrão continua bloqueada (401); só o overlay de homologação privada com TLS e controle de acesso ativa o login |
+| Banco | PostgreSQL 17, migrações 001–003: domínio SST/RLS, login/sessões e limitação de tentativas | Ainda sem usuários reais, backup real ou armazenamento privado de mídia |
 | Proxy | Nginx serve React e repassa /api/ internamente | Sem acesso público ou certificado neste pacote |
 | Docker | Compose isolado, nenhum host port, segredo via arquivo externo | Não conectado à VPS nem ao NPM |
 | Testes | TypeScript, NCs×PostgreSQL e NOVO login×PostgreSQL de CI efêmera, troca de empresa, cookie e proteção CSRF, React e smoke Docker | Não valida contas reais, mídia, autenticação Flutter nem integrações legadas |
@@ -106,3 +106,8 @@ bash scripts/smoke-staging.sh --npm
 ## 7. Tela nova de acesso (somente teste de homologação)
 
 Há uma aba **Acesso de homologação** no React (`web/src/WebAuthPilot.tsx`) com formulário de login novo, seleção de empresa vinculada, lista/criação de NC, relato/validação de correção, linha do tempo e logout. As demais telas continuam com exemplos fictícios e não foram substituídas. **A aba de acesso não funciona no Docker padrão:** a API permanece com autenticação desabilitada e retorna 401. Só habilitar com contas novas autorizadas, URL HTTPS de teste, revisão de CSRF, rate limiting e conexão a banco segregado; não usar senhas da Central Online atual nem dados reais antes da homologação aprovada.
+
+
+## Preparação para primeiro acesso PRIVADO do Júlio
+
+O pacote adicional está explicado em **[GUIA_PRIVADO_JULIO.md](GUIA_PRIVADO_JULIO.md)**: preflight sem deploy, segredos Docker locais, migrações 001–003, roles distintos, bootstrap opt-in, conta fictícia inicial, NPM em hostname novo com SSL/Access List, testes e parada sem remover volumes. O domínio principal permanece bloqueado pelo bootstrap para impedir substituição prematura.

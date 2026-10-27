@@ -6,6 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {once} from 'node:events';
 import pg from 'pg';
+import {createHash} from 'node:crypto';
 import {createApp} from './server.mjs';
 import {createAuthService} from './authService.mjs';
 
@@ -42,6 +43,23 @@ test('CI: autentica, exige cookie/CSRF, separa empresas e revoga sessao',async()
       email:'tecnico-ci-a@example.invalid',password:'senha-falsa',
     }));
     assert.equal(invalid.status,401);
+    // Forca o contador perto do limite sem desperdiçar 10 derivacoes de senha.
+    const fakeEmail='nao-existe-ci@example.invalid';
+    const h=createHash('sha256').update(fakeEmail).digest('hex');
+    const rateConn=await authPool.connect();
+    try {
+      await rateConn.query('BEGIN');
+      await rateConn.query('SET LOCAL ROLE sst_auth_runtime');
+      await rateConn.query(
+        'INSERT INTO sst.auth_login_counter(identity_hash,attempt_count,window_start) '+
+        'VALUES ($1,9,now())',[h],
+      );
+      await rateConn.query('COMMIT');
+    } finally {rateConn.release();}
+    const tenth=await fetch(base+'/api/v1/auth/login',json({email:fakeEmail,password:'errada'}));
+    assert.equal(tenth.status,401);
+    const limited=await fetch(base+'/api/v1/auth/login',json({email:fakeEmail,password:'errada'}));
+    assert.equal(limited.status,429);
     const login=await fetch(base+'/api/v1/auth/login',json({
       email:'tecnico-ci-a@example.invalid',password:fakePassword,
     }));

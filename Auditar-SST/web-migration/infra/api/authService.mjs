@@ -115,6 +115,19 @@ export function createAuthService({pool, allowedOrigin, secureCookies = true}={}
         throw new ApiError(401,'LOGIN_FAILED',LOGIN_ERROR);
       }
       const normalized=email.trim().toLowerCase();
+      const identityHash=sha256(normalized);
+      // Janela persistida no banco, compartilhada entre processos do novo servidor.
+      // Dez tentativas por identidade a cada 15min, mesmo para e-mails inexistentes.
+      const attempts=await withAuth(pool,async db=>(await db.query(
+        'INSERT INTO sst.auth_login_counter(identity_hash,attempt_count,window_start,updated_at) '+
+        'VALUES ($1,1,now(),now()) ON CONFLICT(identity_hash) DO UPDATE SET '+
+        "attempt_count=CASE WHEN sst.auth_login_counter.window_start < now()-interval '15 minutes' "+
+        'THEN 1 ELSE least(sst.auth_login_counter.attempt_count+1,1000) END, '+
+        "window_start=CASE WHEN sst.auth_login_counter.window_start < now()-interval '15 minutes' "+
+        'THEN now() ELSE sst.auth_login_counter.window_start END, updated_at=now() '+
+        'RETURNING attempt_count',[identityHash],
+      )).rows[0].attempt_count);
+      if (attempts>10) throw new ApiError(429,'LOGIN_THROTTLED','Aguarde para tentar novamente');
       const found=await withAuth(pool,async db=>(await db.query(
         'SELECT u.id,u.display_name,u.active,a.password_verifier FROM sst.app_user u '+
         'JOIN sst.auth_credential a ON a.user_id=u.id '+
@@ -140,6 +153,9 @@ export function createAuthService({pool, allowedOrigin, secureCookies = true}={}
         "VALUES ($1,$2,$3,now()+interval '8 hours')",
         [tokenHash,found.id,membership.company_id],
       ));
+      await withAuth(pool,db=>db.query(
+        'DELETE FROM sst.auth_login_counter WHERE identity_hash=$1',[identityHash],
+      ));
       return {cookie:sessionCookie(token),body:{
         ok:true,user:{id:found.id,name:found.display_name},
         companyId:membership.company_id,role:membership.role,
@@ -154,9 +170,11 @@ export function createAuthService({pool, allowedOrigin, secureCookies = true}={}
           'SELECT s.user_id,s.company_id,m.role,u.display_name '+
           'FROM sst.auth_session s '+
           'JOIN sst.app_user u ON u.id=s.user_id '+
+          'JOIN sst.auth_credential a ON a.user_id=s.user_id '+
           'JOIN sst.user_company_role m ON m.company_id=s.company_id AND m.user_id=s.user_id '+
           'JOIN sst.company c ON c.id=s.company_id '+
           'WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() '+
+          'AND s.issued_at>=a.changed_at '+
           "AND u.active AND m.active AND c.status='ativa' LIMIT 1",
           [sha256(token)],
         );

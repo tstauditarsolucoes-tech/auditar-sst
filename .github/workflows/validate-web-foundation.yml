@@ -38,6 +38,9 @@ jobs:
           cd Auditar-SST/web-migration/infra
           mkdir -p secrets
           printf 'ci-test-only-not-a-production-password-123456\n' > secrets/postgres_password
+          openssl rand -base64 48 > secrets/data_db_password
+          openssl rand -base64 48 > secrets/auth_db_password
+          chmod 600 secrets/postgres_password secrets/data_db_password secrets/auth_db_password
           docker compose -f compose.staging.yml config --quiet
           if docker compose -f compose.staging.yml config --format json | jq -e '.services[] | has("ports")' | grep -q true; then
             echo 'ERRO: porta publicada na VPS' >&2
@@ -68,6 +71,8 @@ jobs:
             psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/001_initial.sql
           docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
             psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/002_web_auth.sql
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
+            psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/003_auth_login_limit.sql
           docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
             psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/tests/tenant_isolation.sql
           echo 'POSTGRES_MULTIEMPRESA_STAGING_OK'
@@ -104,6 +109,31 @@ jobs:
             -e AUDITAR_PG_AUTH_PASSWORD=ci-auth-synthetic-test-only-7416 \
             api node --test integration.auth.ci.test.mjs
           echo 'WEB_AUTH_POSTGRES_EPHEMERAL_CI_OK'
+      - name: Validar opt-in privado Docker com roles segregados e login HTTP (CI efemera)
+        shell: bash
+        env:
+          AUDITAR_ALLOWED_ORIGIN: https://homologacao-ci.auditarsolucoes.invalid
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          bash -n scripts/preflight-private.sh
+          bash -n scripts/provision-first-admin.sh
+          sh -n db/scripts/create_private_roles.sh
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml -f compose.private-auth.example.yml config --quiet
+          if docker compose -p auditar-sst-web-ci -f compose.staging.yml -f compose.private-auth.example.yml config --format json | jq -e '.services[] | has("ports")' | grep -q true; then
+            echo 'ERRO: portas de autenticacao expostas' >&2
+            exit 1
+          fi
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml -f compose.private-auth.example.yml \
+            up -d --no-deps --wait --wait-timeout 180 db
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml -f compose.private-auth.example.yml \
+            exec -T db sh /db-init/scripts/create_private_roles.sh
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml -f compose.private-auth.example.yml \
+            up --build -d --no-deps --wait --wait-timeout 180 api
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml -f compose.private-auth.example.yml \
+            exec -T -e AUDITAR_SST_EPHEMERAL_CI_DB=FAKE_DATA_CI_ONLY \
+            api node private-bootstrap.smoke.ci.mjs
+          echo 'PRIVATE_DOCKER_WITH_REAL_LOGIN_CI_OK'
       - name: Validar integracao Nginx Proxy Manager sem deploy
         shell: bash
         env:

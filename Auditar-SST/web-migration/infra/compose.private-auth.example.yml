@@ -1,0 +1,28 @@
+# Opt-in de homologacao PRIVADA. Nunca executar isoladamente nem no dominio final.
+# Usar -f compose.staging.yml -f compose.private-auth.example.yml
+services:
+  api:
+    command: ["node", "server.bootstrap.mjs"]
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      AUDITAR_ENABLE_PRIVATE_AUTH: PRIVATE_STAGING_CONFIRMED
+      AUDITAR_ALLOWED_ORIGIN: ${AUDITAR_ALLOWED_ORIGIN:?Use HTTPS privado e separado do dominio final}
+      AUDITAR_DATA_DB_USER: ${AUDITAR_DATA_DB_USER:-sst_web_data_hml}
+      AUDITAR_AUTH_DB_USER: ${AUDITAR_AUTH_DB_USER:-sst_web_auth_hml}
+      AUDITAR_DATA_DB_PASSWORD_FILE: /run/secrets/data_db_password
+      AUDITAR_AUTH_DB_PASSWORD_FILE: /run/secrets/auth_db_password
+      PGHOST: db
+      PGDATABASE: auditar_web_hml
+    secrets:
+      - data_db_password
+      - auth_db_password
+  db:
+    secrets:
+      - data_db_password
+      - auth_db_password
+secrets:
+  data_db_password:
+    file: ./secrets/data_db_password
+  auth_db_password:
+    file: ./secrets/auth_db_password
