@@ -2,7 +2,7 @@
  * Nunca aceitar payloads de tabela, filas de sync Flutter ou empresa/perfil do cliente.
  */
 import {ApiError} from './ncService.mjs';
-const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ALLOWED={
  inspection:new Set(['inspectionType','title','description','sector','location','clientRequestId']),
  finding:new Set(['shortTitle','description','recommendation','probability','severity','recurring','clientRequestId']),

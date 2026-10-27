@@ -72,3 +72,8 @@ A autenticação nativa opcional, ainda DESLIGADA por padrão, oferece duas rota
 ### Rascunhos nativos novos (ainda sem cliente Flutter)
 
 API opcional com opt-in duplo, criação de vistoria e achado com idempotência UUID no PostgreSQL NOVO, perfil autenticado e segregação por empresa. Sem mídia, conclusão, atualização, importação ou ACK legado; desativada na hospedagem por padrão. O aplicativo Android/Windows existente permanece intocado.
+
+
+## Preparação de fila nativa NOVA sem migração
+
+Modelo Dart `native_draft_outbox.dart` e testes de idempotência/ACK/transporte indisponível, sem persistência de dispositivo nem conexão ao Flutter em uso. O adaptador durável e testes físicos continuam PENDENTES. Rascunhos de homologação podem ser criados com duplo opt-in, mas não é sincronização offline pronta.

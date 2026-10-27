@@ -314,4 +314,5 @@ jobs:
         run: |
           dart --version
           dart run Auditar-SST/web-migration/native/flutter_probe/native_backend_probe_test.dart
+          dart run Auditar-SST/web-migration/native/flutter_probe/native_draft_outbox_test.dart
           echo 'DART_NATIVE_READ_ONLY_PROBE_CI_OK'
