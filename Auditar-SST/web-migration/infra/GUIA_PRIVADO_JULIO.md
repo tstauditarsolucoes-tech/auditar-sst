@@ -92,7 +92,7 @@ O script recusa roles existentes e não redefine senhas silenciosamente. Ele cri
 - `sst_web_data_hml`: somente operações SST com `sst_app_runtime` e escopo por empresa;
 - `sst_web_auth_hml`: somente sessões/credenciais com `sst_auth_runtime`.
 
-Agora ativar **somente API** privada, que verifica o HTTPS configurado, papéis não-superuser e segredos:
+Agora ativar **somente API** privada, que verifica o HTTPS configurado, papéis não-superuser e segredos. O script `private-entrypoint.sh` inicia brevemente como root apenas para copiar os segredos legíveis por root para um `tmpfs` efêmero, restringe-os ao usuário `node` e **descarta privilégios antes de iniciar o servidor Node**. Os segredos originais permanecem `0600` e a API não usa um filesystem persistente para essa cópia:
 
 ```bash
 docker compose -p auditar-sst-web-hml -f compose.staging.yml -f compose.private-auth.example.yml \

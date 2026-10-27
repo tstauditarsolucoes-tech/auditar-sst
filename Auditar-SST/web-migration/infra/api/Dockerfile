@@ -1,8 +1,9 @@
 FROM node:24-alpine
+RUN apk add --no-cache su-exec
 WORKDIR /srv/auditar
 COPY package.json ./
 RUN npm install --omit=dev --no-audit --no-fund --ignore-scripts
-COPY server.mjs server.bootstrap.mjs hash-password-stdin.mjs private-bootstrap.smoke.ci.mjs ncService.mjs authService.mjs server.test.mjs ncService.test.mjs integration.ci.test.mjs integration.auth.ci.test.mjs ./
+COPY private-entrypoint.sh server.mjs server.bootstrap.mjs hash-password-stdin.mjs private-bootstrap.smoke.ci.mjs ncService.mjs authService.mjs server.test.mjs ncService.test.mjs integration.ci.test.mjs integration.auth.ci.test.mjs ./
 RUN npm test
 USER node
 ENV NODE_ENV=production PORT=3000

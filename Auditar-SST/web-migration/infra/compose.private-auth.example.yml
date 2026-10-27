@@ -2,7 +2,11 @@
 # Usar -f compose.staging.yml -f compose.private-auth.example.yml
 services:
   api:
-    command: ["node", "server.bootstrap.mjs"]
+    # root so para ler secrets locais; su-exec reduz para node antes do servidor.
+    user: "0:0"
+    command: ["sh", "/srv/auditar/private-entrypoint.sh"]
+    tmpfs:
+      - /run/auditar-private:mode=0700
     environment:
       NODE_ENV: production
       PORT: "3000"
@@ -10,8 +14,8 @@ services:
       AUDITAR_ALLOWED_ORIGIN: ${AUDITAR_ALLOWED_ORIGIN:?Use HTTPS privado e separado do dominio final}
       AUDITAR_DATA_DB_USER: ${AUDITAR_DATA_DB_USER:-sst_web_data_hml}
       AUDITAR_AUTH_DB_USER: ${AUDITAR_AUTH_DB_USER:-sst_web_auth_hml}
-      AUDITAR_DATA_DB_PASSWORD_FILE: /run/secrets/data_db_password
-      AUDITAR_AUTH_DB_PASSWORD_FILE: /run/secrets/auth_db_password
+      AUDITAR_DATA_DB_PASSWORD_FILE: /run/auditar-private/data_db_password
+      AUDITAR_AUTH_DB_PASSWORD_FILE: /run/auditar-private/auth_db_password
       PGHOST: db
       PGDATABASE: auditar_web_hml
     secrets:

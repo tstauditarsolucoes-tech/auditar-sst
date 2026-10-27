@@ -8,6 +8,9 @@ import { createApp } from './server.mjs';
 import { createAuthService } from './authService.mjs';
 
 function configuration() {
+  if (typeof process.getuid==='function' && process.getuid()===0) {
+    throw new Error('Servidor Node nao pode rodar como root');
+  }
   if (process.env.AUDITAR_ENABLE_PRIVATE_AUTH !== 'PRIVATE_STAGING_CONFIRMED') {
     throw new Error('A ativacao privada exige confirmacao explicita');
   }
@@ -35,8 +38,8 @@ function configuration() {
   return {allowedOrigin,port,dataUser,authUser};
 }
 async function secret(path) {
-  if (!/^\/run\/secrets\/[a-z0-9_]+$/.test(path||'')) {
-    throw new Error('Secret deve ser montado em /run/secrets');
+  if (!/^\/run\/auditar-private\/(data_db_password|auth_db_password)$/.test(path||'')) {
+    throw new Error('Secret deve estar em tmpfs privado');
   }
   const value=(await readFile(path,'utf8')).trim();
   if (value.length<24) throw new Error('Secret de DB curto ou ausente');
@@ -69,8 +72,8 @@ async function verifyPool(pool,role) {
 
 const config=configuration();
 const [dataPassword,authPassword]=await Promise.all([
-  secret(process.env.AUDITAR_DATA_DB_PASSWORD_FILE||'/run/secrets/data_db_password'),
-  secret(process.env.AUDITAR_AUTH_DB_PASSWORD_FILE||'/run/secrets/auth_db_password'),
+  secret(process.env.AUDITAR_DATA_DB_PASSWORD_FILE||'/run/auditar-private/data_db_password'),
+  secret(process.env.AUDITAR_AUTH_DB_PASSWORD_FILE||'/run/auditar-private/auth_db_password'),
 ]);
 const base={host:'db',port:5432,database:'auditar_web_hml',
   max:4,connectionTimeoutMillis:6000,idleTimeoutMillis:10000};

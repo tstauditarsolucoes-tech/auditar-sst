@@ -28,7 +28,7 @@ fi
 unset repeat_password
 files=(-f compose.staging.yml -f compose.private-auth.example.yml)
 verifier=$(printf '%s' "$password" |
-  docker compose -p auditar-sst-web-hml "${files[@]}" exec -T api node hash-password-stdin.mjs)
+  docker compose -p auditar-sst-web-hml "${files[@]}" exec -T -u node api node hash-password-stdin.mjs)
 unset password
 if [[ ! "$verifier" =~ ^scrypt\$131072\$8\$1\$[0-9a-f]{32}\$[0-9a-f]{128}$ ]]; then
   echo "Hash nao confirmado. Nao foi criado usuario." >&2
