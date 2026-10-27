@@ -10,6 +10,7 @@ import { createCipaService } from './cipaService.mjs';
 import { createPortalService } from './portalService.mjs';
 import { createEvidenceService } from './evidenceService.mjs';
 import { createReportService } from './reportService.mjs';
+import { createTrainingReportService } from './trainingReportService.mjs';
 import {legacyCompatibilityCapabilities,inspectLegacyManifest} from './legacyCompatibility.mjs';
 
 /**
@@ -30,6 +31,7 @@ export function createApp({pool, authService, resolvePrincipal, evidenceDir} = {
   const portalService=createPortalService(pool);
   const evidenceService=createEvidenceService(pool,evidenceDir);
   const reportService=createReportService(pool,evidenceDir);
+  const trainingReportService=createTrainingReportService(pool);
   return createServer(async (req,res)=>{
     const pathname=new URL(req.url || '/', 'http://localhost').pathname;
     res.setHeader('Content-Type','application/json; charset=utf-8');
@@ -131,6 +133,19 @@ export function createApp({pool, authService, resolvePrincipal, evidenceDir} = {
         res.writeHead(200);
         res.end(pdf);
         return;
+      }
+
+      // Minuta PDF nominal de participacao declarada: SEM assinaturas, nao vale como certificado.
+      const trainingReport=pathname.match(
+        /^\/api\/v1\/reports\/trainings\/([a-f0-9-]{36})\/attendance\.pdf$/i);
+      if(trainingReport&&req.method==='GET'){
+        const resolver=authService?authService.resolvePrincipal.bind(authService):resolvePrincipal;
+        const principal=typeof resolver==='function'?await resolver(req):null;
+        if(!principal){send(401,{ok:false,code:'UNAUTHENTICATED'});return;}
+        const pdf=await trainingReportService.attendancePdf(principal,trainingReport[1]);
+        res.setHeader('Content-Type','application/pdf');
+        res.setHeader('Content-Disposition','attachment; filename="auditar-sst-treinamento-minuta-hml.pdf"');
+        res.writeHead(200);res.end(pdf);return;
       }
 
       // Midia de homologacao: nome privado aleatorio, sem links publicos.
@@ -247,7 +262,7 @@ export function createApp({pool, authService, resolvePrincipal, evidenceDir} = {
       // Treinamentos, DDS e Integracao: apenas registros sintéticos no banco NOVO.
       const trainingCollection=pathname==='/api/v1/training-sessions';
       const trainingPath=pathname.match(
-        /^\/api\/v1\/training-sessions\/([a-f0-9-]{36})(?:\/(status))?$/i,
+        /^\/api\/v1\/training-sessions\/([a-f0-9-]{36})(?:\/(status|participants))?$/i,
       );
       if ((trainingCollection||trainingPath)&&['GET','POST','PATCH'].includes(req.method)){
         const resolver=authService
@@ -267,6 +282,10 @@ export function createApp({pool, authService, resolvePrincipal, evidenceDir} = {
         }
         if(trainingPath&&!trainingPath[2]&&req.method==='PATCH'){
           send(200,{item:await trainingService.edit(principal,trainingPath[1],await readJson())});return;
+        }
+        if(trainingPath?.[2]==='participants'&&req.method==='POST'){
+          send(201,{item:await trainingService.addParticipant(principal,trainingPath[1],await readJson())});
+          return;
         }
         if(trainingPath?.[2]==='status'&&req.method==='POST'){
           send(200,{item:await trainingService.status(principal,trainingPath[1],await readJson())});return;

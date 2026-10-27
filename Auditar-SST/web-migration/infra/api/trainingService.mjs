@@ -90,7 +90,11 @@ export function createTrainingService(pool){
           'SELECT id,kind,message,resulting_revision,created_by,created_at '+
           'FROM sst.training_event WHERE company_id=$1 AND training_id=$2 '+
           'ORDER BY created_at,id',[p.companyId,training.id]);
-        return {training,events:events.rows};
+        const attendance=await db.query(
+          'SELECT id,display_name,presence,note,created_at FROM sst.training_attendance '+
+          'WHERE company_id=$1 AND training_id=$2 ORDER BY created_at,id LIMIT 100',
+          [p.companyId,training.id]);
+        return {training,events:events.rows,attendance:attendance.rows};
       });
     },
     create(principal,payload={}){
@@ -122,6 +126,45 @@ export function createTrainingService(pool){
           throw new ApiError(409,'IDEMPOTENCY_CONFLICT','Chave de envio reutilizada');
         const {request_fingerprint:_discard,...result}=existing.rows[0];
         return result;
+      });
+    },
+    addParticipant(principal,id,payload={}){
+      return withTenant(pool,principal,async(db,p)=>{
+        requireStaff(p);
+        const trainingId=uuid(id,'Treinamento');
+        const requestId=uuid(payload.clientRequestId,'Chave de envio');
+        const name=text(payload.displayName,180,'Nome ficticio');
+        const presence=payload.presence||'nao_confirmada';
+        if(!['declarada','nao_confirmada'].includes(presence))
+          throw new ApiError(400,'INVALID_INPUT','Marcacao de presenca invalida');
+        const note=text(payload.note,500,'Observacao',true);
+        const hash=createHash('sha256').update(JSON.stringify([
+          trainingId,p.userId,name,presence,note,
+        ])).digest('hex');
+        const activity=await row(db,p,trainingId,true);
+        canManage(p,activity);
+        const original=await db.query(
+          'SELECT id,training_id,display_name,presence,note,request_fingerprint '+
+          'FROM sst.training_attendance WHERE company_id=$1 AND client_request_id=$2',
+          [p.companyId,requestId]);
+        if(original.rowCount){
+          if(original.rows[0].request_fingerprint!==hash)
+            throw new ApiError(409,'IDEMPOTENCY_CONFLICT','Registro enviado com outros dados');
+          const {request_fingerprint:_omit,...safe}=original.rows[0];
+          return safe;
+        }
+        const size=await db.query(
+          'SELECT count(*)::integer AS n FROM sst.training_attendance '+
+          'WHERE company_id=$1 AND training_id=$2',[p.companyId,trainingId]);
+        if(size.rows[0].n>=100)throw new ApiError(413,'ATTENDANCE_LIMIT',
+          'Lista de teste limitada a 100 registros');
+        const inserted=await db.query(
+          'INSERT INTO sst.training_attendance '+
+          '(company_id,training_id,display_name,presence,note,created_by,client_request_id,request_fingerprint) '+
+          'VALUES($1,$2,$3,$4,$5,$6,$7,$8) '+
+          'RETURNING id,training_id,display_name,presence,note,created_at',
+          [p.companyId,trainingId,name,presence,note,p.userId,requestId,hash]);
+        return inserted.rows[0];
       });
     },
     edit(principal,id,payload={}){

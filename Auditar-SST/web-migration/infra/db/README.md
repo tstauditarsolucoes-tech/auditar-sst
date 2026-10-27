@@ -95,3 +95,8 @@ Executar depois da migração 008 e somente em PostgreSQL NOVO de teste, uma vez
 ## Migração 011 — Recomendação técnica separada no achado da vistoria Web
 
 `011_nc_recommendation_pdf.sql` depende de 001–010 e acrescenta `recommendation` opcional à tabela de NC para orientar o relatório PDF de homologação. Nada é preenchido automaticamente por IA, e NCs antigas de teste permanecem com recomendação vazia. A mudança não migra dados nem edita Apps Script, Drive ou Flutter.
+
+
+## Migração 012 — Participantes declarados, sem assinatura
+
+Apenas PostgreSQL NOVO de homologação. `012_training_attendance_draft.sql` depende de 001–011. Cria `sst.training_attendance` (até 100 por evento via API) com FK composta empresa/treinamento, RLS forçado e somente inclusão para o runtime. **Não contém certificado, CPF, assinatura ou prova de comparecimento** e não importa dados de Apps Script/Drive. Não carregar nomes reais até homologação jurídica/técnica e procedimentos LGPD.

@@ -147,3 +147,17 @@ test('CIPA: endpoints recusam perfis ou empresa forjados sem sessao real',async(
     }
   });
 });
+
+test('Participantes e PDF de treinamento nao aceitam headers falsos como sessao',async()=>{
+ await withServer(async base=>{
+  for(const [method,path] of [
+   ['POST','/api/v1/training-sessions/10000000-0000-4000-8000-000000000001/participants'],
+   ['GET','/api/v1/reports/trainings/10000000-0000-4000-8000-000000000001/attendance.pdf'],
+  ]) {
+   const r=await fetch(base+path,{method,headers:{
+    'x-role':'adm','x-company-id':'10000000-0000-4000-8000-000000000001',
+   }});
+   assert.equal(r.status,401);
+  }
+ });
+});

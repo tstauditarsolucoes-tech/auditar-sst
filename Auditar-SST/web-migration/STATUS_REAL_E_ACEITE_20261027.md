@@ -17,7 +17,7 @@ Android APK Flutter, Windows EXE Flutter e nova Web React/TypeScript devem compa
 | Vistorias/Ronda, rascunho e achados | Piloto e CI |
 | Agenda SST, prazos e designação | Piloto e CI |
 | Plano de Ação vinculado à NC, prazo, responsável e histórico | Piloto, migração 008 e CI |
-| Treinamentos, DDS e Integração (planejamento/andamento) | Piloto, migração 009 e CI; sem certificados ou listas de presença |
+| Treinamentos, DDS e Integração (planejamento/andamento) | Piloto 009 + lista declarada e minuta PDF 012 (SEM assinatura/certificado) |
 | CIPA (mandato, composição e reuniões) | Piloto, migração 010 e teste CI; sem voto, atas oficiais ou validação NR-5 |
 | Painel Cliente, tickets e conversas | Piloto e CI |
 | Central ADM e última atividade da Web | Piloto e CI |

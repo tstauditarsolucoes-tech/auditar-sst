@@ -61,7 +61,7 @@ Começar com o Compose **padrão, sem login**; isto cria apenas os serviços ded
 docker compose -p auditar-sst-web-hml -f compose.staging.yml up --build -d --wait
 ```
 
-Só num banco **novo e vazio**, aplicar migrações 001, 002, 003, 004, 005, 006, 007, 008, 009, 010 e 011 nessa ordem, uma única vez:
+Só num banco **novo e vazio**, aplicar migrações 001, 002, 003, 004, 005, 006, 007, 008, 009, 010, 011 e 012 nessa ordem, uma única vez:
 
 ```bash
 docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
@@ -96,6 +96,9 @@ docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
 
 docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
   psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/011_nc_recommendation_pdf.sql
+
+docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
+  psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/012_training_attendance_draft.sql
 ```
 
 **Não executar** arquivos em `db/tests/seed_*.sql` na VPS. Eles contêm identidades e senhas fictícias públicas **exclusivas da CI descartável**.
@@ -240,3 +243,10 @@ Este cadastro **não valida dimensionamento, eleição, votação, listas de pre
 Uma NC registrada dentro da vistoria pode armazenar uma **recomendação técnica** separada da descrição, com limite de 1.600 caracteres. O PDF piloto apresenta até 2 achados por página e cria páginas adicionais com fotos maiores (até duas evidências por página). O PDF consulta **apenas a primeira foto JPEG/PNG de cada NC** na base NOVA de teste, não faz cópia das mídias nem migra o Google Drive.
 
 O modelo ainda NÃO está homologado como **Padrão Auditar 3**: falta assinatura, conferência tipográfica/visual em celular e PC, aprovar logo/marca oficial, texto integral dos campos que excedem o espaço do cartão e referências legais completas. Textos longos nos cartões podem ser reduzidos visualmente; o registro original permanece íntegro no PostgreSQL. Não enviar a clientes nem substituir o relatório oficial. Antes de aprovar, gerar PDF com 0, 1, 2, 3 e 30 NCs fictícias e fotos horizontais/verticais; conferir renderização e anexos, sem usar dados pessoais.
+
+
+## Participantes de treinamento — minuta PDF, piloto 012
+
+A nova área Treinamentos/DDS aceita SOMENTE **nomes FICTÍCIOS** para simular uma relação de participantes informados, com estado `nao_confirmada` ou `declarada`. A inclusão é somente append-only, limitada a 100 registros por atividade, vinculada à empresa da sessão e com chave de envio contra duplicidade. Somente criador/gestor/ADM podem registrar; cliente não lê. A rota `GET /api/v1/reports/trainings/:id/attendance.pdf` gera uma **minuta** PDF privada sem assinaturas e sem certificados. O documento é marcado em todas as páginas como **MINUTA - NÃO COMPROVA PRESENÇA**. Ele NÃO pode ser enviado ao cliente como prova de treinamento, nem usado para comprovar requisitos da NR.
+
+Na VPS, executar migração 012 **apenas sobre banco NOVO de homologação** após 001–011. Não cadastrar trabalhadores reais, CPFs, assinaturas ou documentos. Verificar no teste do Júlio com 0, 1 e 16 participantes fictícios, exportação do PDF, separação por empresa e permissão de cliente. Não haverá migração do Drive/Sheets: os dados legados continuam preservados fora da nova plataforma. Para uso real serão necessários consentimento/política LGPD, coleta autenticada de presença/assinatura, validação profissional do conteúdo e layout de certificado, retenção, backups e auditoria.

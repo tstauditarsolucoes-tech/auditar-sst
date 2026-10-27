@@ -84,3 +84,8 @@ api/reportService.mjs usa a nova base PostgreSQL/Node, sem fontes legadas. GET /
 ## PDF ampliado e recomendação de NC — piloto 011
 
 A criação de achado em `POST /api/v1/inspections/:id/findings` aceita `recommendation` opcional (até 1600 caracteres), com controle de idempotência. `GET /api/v1/reports/inspections/:id/pdf` apresenta até dois quadros de NC por página e anexo fotográfico ampliado, com no máximo duas imagens por página e **apenas a primeira JPEG/PNG de cada NC**. O gerador não importa fotografias do legado nem grava PDF no Drive. Ainda trunca a visualização de texto excessivamente longo em cartões e não possui modelo Padrão Auditar 3 aprovado, assinatura e checklist completo. Não utilizar em documento oficial.
+
+
+## Minuta de lista de participantes — piloto 012
+
+`POST /api/v1/training-sessions/:id/participants` registra nome fictício, `presence` como `nao_confirmada` ou `declarada`, observação curta e UUID de envio; somente criador/gestor/ADM no tenant autenticado. `GET /api/v1/training-sessions/:id` retorna `attendance` para a equipe. `GET /api/v1/reports/trainings/:id/attendance.pdf` gera minuta paginada com faixa de advertência explícita: **não comprova presença**. Nenhuma assinatura/certificado/credencial profissional é gerada, e dados legados não são importados. Ver CI `integration.training-attendance.ci.test.mjs`.

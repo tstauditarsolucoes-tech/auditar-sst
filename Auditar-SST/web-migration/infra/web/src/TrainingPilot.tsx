@@ -9,7 +9,8 @@ type Activity={
   status:Status;revision:number;created_by:string;updated_at:string;
 };
 type History={id:string;kind:string;message:string;created_at:string};
-type Detail={training:Activity;events:History[]};
+type Attendance={id:string;display_name:string;presence:'declarada'|'nao_confirmada';note:string;created_at:string};
+type Detail={training:Activity;events:History[];attendance:Attendance[]};
 const kindNames:Record<Kind,string>={treinamento:'Treinamento',dds:'DDS',integracao:'Integração'};
 const statusNames:Record<Status,string>={planejado:'Planejado',realizado:'Realizado (informado)',cancelado:'Cancelado'};
 async function request<T>(url:string,method:'GET'|'POST'|'PATCH'='GET',body?:object,csrf?:string):Promise<T>{
@@ -66,6 +67,10 @@ export function TrainingPilot({session}:{session:Session}){
   const [edit,setEdit]=useState<FormState>(empty);
   const [filter,setFilter]=useState<'todos'|Kind>('todos');
   const [note,setNote]=useState('');
+  const [attendeeName,setAttendeeName]=useState('');
+  const [attendeePresence,setAttendeePresence]=useState<'declarada'|'nao_confirmada'>('nao_confirmada');
+  const [attendeeNote,setAttendeeNote]=useState('');
+  const [attendeeKey,setAttendeeKey]=useState(()=>crypto.randomUUID());
   const [newKey,setNewKey]=useState(()=>crypto.randomUUID());
   const [statusKey,setStatusKey]=useState(()=>crypto.randomUUID());
   const [busy,setBusy]=useState(false);
@@ -109,6 +114,17 @@ export function TrainingPilot({session}:{session:Session}){
     },session.csrfToken);
     await refresh();await open(selected.training.id);
     setNotice('Registro atualizado com histórico.');
+  }
+  async function addAttendee(){
+    if(!selected)return;
+    await request('training-sessions/'+selected.training.id+'/participants','POST',{
+      displayName:attendeeName,presence:attendeePresence,note:attendeeNote,
+      clientRequestId:attendeeKey,
+    },session.csrfToken);
+    setAttendeeName('');setAttendeeNote('');setAttendeePresence('nao_confirmada');
+    setAttendeeKey(crypto.randomUUID());
+    await open(selected.training.id);
+    setNotice('Participante fictício adicionado ao registro administrativo.');
   }
   async function changeStatus(status:'realizado'|'cancelado'){
     if(!selected)return;
@@ -216,6 +232,40 @@ export function TrainingPilot({session}:{session:Session}){
         </div>
         <p className="muted">Para marcar realizado, informe antes a duração e a quantidade de participantes. Essa indicação não certifica presença nem conformidade normativa.</p>
       </div>}
+      <div className="auth-divider"/>
+      <h4>Participantes declarados (somente teste)</h4>
+      <p className="muted">Registros informados, sem assinatura, comprovação de presença ou certificado. Não insira nomes reais nesta homologação.</p>
+      {!selected.attendance?.length&&<p className="muted">Nenhum participante fictício cadastrado.</p>}
+      <div className="inspection-list">
+        {(selected.attendance||[]).map(person=><div className="inspection-item" key={person.id}>
+          <div><strong>{person.display_name}</strong>
+            <small>{person.presence==='declarada'?'Participação declarada':'Presença não confirmada'}</small>
+            {person.note&&<p>{person.note}</p>}
+          </div>
+        </div>)}
+      </div>
+      {canManage&&<form className="auth-form" onSubmit={event=>{event.preventDefault();void run(addAttendee);}}>
+        <label>Nome fictício para teste
+          <input maxLength={180} required value={attendeeName} onChange={event=>setAttendeeName(event.target.value)}
+            placeholder="Ex.: Colaborador TESTE"/>
+        </label>
+        <label>Situação informada
+          <select value={attendeePresence} onChange={event=>setAttendeePresence(event.target.value as typeof attendeePresence)}>
+            <option value="nao_confirmada">Não confirmada</option>
+            <option value="declarada">Declarada (sem comprovação)</option>
+          </select>
+        </label>
+        <label>Observação opcional
+          <input maxLength={500} value={attendeeNote} onChange={event=>setAttendeeNote(event.target.value)}/>
+        </label>
+        <button className="secondary-button" type="submit" disabled={busy||!attendeeName.trim()}>
+          Adicionar participante fictício
+        </button>
+      </form>}
+      <p><a href={'/api/v1/reports/trainings/'+selected.training.id+'/attendance.pdf'}
+        className="secondary-button" download="auditar-sst-treinamento-minuta-hml.pdf">
+        Baixar minuta PDF (não é lista assinada)
+      </a></p>
       <h4>Histórico</h4>
       <ol className="auth-timeline">{selected.events.map(event=><li key={event.id}>
         <strong>{event.kind.replaceAll('_',' ')}</strong>
