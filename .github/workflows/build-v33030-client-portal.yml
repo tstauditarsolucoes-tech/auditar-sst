@@ -2,9 +2,11 @@ name: Auditar SST Windows v3.30.126 Biblioteca NRs
 # Clean rebuild v3.30.64 after protected productivity consolidation
 
 on:
+  workflow_dispatch:
   push:
-    branches: [feature/client-panel-permissions-v329106]
+    branches: [feature/client-panel-permissions-v329106, organize/sst-em-pasta-20261027]
     paths:
+      - 'Auditar-SST/**'
       - 'tools/patch_client_treatment_inbox_v329182_v330105.py'
       - 'tools/patch_treatment_outbox_v329185_v330108.py'
       - 'tools/patch_treatment_conversation_v329186_v330109.py'
@@ -375,6 +377,16 @@ jobs:
     timeout-minutes: 210
     steps:
       - uses: actions/checkout@v5
+
+      - name: Preparar fontes SST da pasta unica (somente no runner)
+        shell: pwsh
+        run: |
+          if (-not (Test-Path 'Auditar-SST/README.md')) { throw 'Pasta unica SST ausente' }
+          Get-ChildItem -LiteralPath 'Auditar-SST' -Force | ForEach-Object {
+            Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $env:GITHUB_WORKSPACE $_.Name) -Recurse -Force
+          }
+          if (-not (Test-Path 'tools/assemble_windows_v3309_mobile_parity.py')) { throw 'Montagem SST ausente' }
+          if (-not (Test-Path 'feature_sources')) { throw 'Fontes SST ausentes' }
 
       - name: Montar base Windows atual
         shell: pwsh

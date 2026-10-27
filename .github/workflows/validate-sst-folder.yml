@@ -1,0 +1,66 @@
+name: Auditar SST - validar pasta unica (sem publicar)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - organize/sst-em-pasta-20261027
+    paths:
+      - 'Auditar-SST/**'
+      - '.github/workflows/build-v329106-client-portal.yml'
+      - '.github/workflows/build-v33030-client-portal.yml'
+      - '.github/workflows/validate-sst-folder.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  linux-layout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validar SST separado do EPI
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d Auditar-SST/tools
+          test -d Auditar-SST/feature_sources
+          test -d Auditar-SST/build_sources
+          test -d Auditar-SST/source_overrides
+          test -f Auditar-SST/README.md
+          test -f Auditar-SST/docs/GUIA_PROGRAMADOR_WEB_SERVIDOR_PROPRIO_20261027.md
+          test -d auditar-epi
+          test -d gestao-epi-master
+          test ! -e tools
+          test ! -e feature_sources
+          test ! -e source_overrides
+          test ! -e Auditar-SST/auditar-epi
+          test ! -e Auditar-SST/gestao-epi-master
+      - name: Simular layout legado usado pelo Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp -a Auditar-SST/. .
+          test -f tools/assemble_android_v32966.sh
+          test -f tools/assemble_windows_v3309_mobile_parity.py
+          test -f source_overrides/Auditar_SST_v1_5_dashboard/pubspec.yaml
+          test -f build_sources/v3.29.106-client-portal/ClientPortal.html
+          unzip -tq Auditar_SST_v1.5_dashboard_completo.zip
+
+  windows-layout:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Simular layout legado usado pelo Windows
+        shell: pwsh
+        run: |
+          if (Test-Path 'tools') { throw 'SST nao foi removido da raiz' }
+          if (-not (Test-Path 'Auditar-SST/README.md')) { throw 'Pasta unica ausente' }
+          Get-ChildItem -LiteralPath 'Auditar-SST' -Force | ForEach-Object {
+            Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $env:GITHUB_WORKSPACE $_.Name) -Recurse -Force
+          }
+          if (-not (Test-Path 'tools/assemble_windows_v3309_mobile_parity.py')) { throw 'Montagem Windows ausente' }
+          if (-not (Test-Path 'source_overrides/Auditar_SST_v1_5_dashboard/pubspec.yaml')) { throw 'Base Flutter ausente' }
+          if (-not (Test-Path 'gestao-epi-master')) { throw 'Gestao EPI afetado' }
