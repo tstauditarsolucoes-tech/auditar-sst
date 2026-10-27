@@ -64,3 +64,8 @@ api/evidenceService.mjs grava somente JPEG/PNG/WebP fictícios de até 2 MB no v
 ## PDF em memória de vistoria concluída (piloto)
 
 api/reportService.mjs usa a nova base PostgreSQL/Node, sem fontes legadas. GET /api/v1/reports/inspections/:id/pdf exige sessão, tenant e vistoria concluída; gera relatório resumido em PDF com página de capa, até dois achados/página e foto JPEG/PNG opcional vinda do volume privado. Download direto pelo navegador, sem window.print. Arquivo não persiste em disco, sem Drive, assinatura digital, log de envio ou nome/logo oficial. Não confundir com Padrão Auditar 3 homologado. Limite 30 NCs e 24 MiB para reduzir risco de consumo excessivo; requer revisar paginação, fontes e layout em aparelhos reais.
+
+
+## Plano de Ação Web (migração 008)
+
+`actionPlanService.mjs` implementa lista, detalhe, criação idempotente, edição por revisão e mudança de status com histórico. A API exige sessão Web NOVA e CSRF para mutações; cliente não acessa plano interno; técnico só atua como responsável ou criador, gestor/ADM atribui e edita. Filtragem e FK `company_id` protegem a separação de empresas. `GET/POST /api/v1/action-plans`, `GET/PATCH /api/v1/action-plans/:id`, `POST /api/v1/action-plans/:id/status`. Página `ActionPlanPilot.tsx` aparece dentro do acesso autenticado de homologação. A integração `integration.action-plans.ci.test.mjs` cria exclusivamente NCs e planos fictícios e verifica RLS, papéis, idempotência e eventos. **Ainda não substitui os Planos de Ação Flutter/Apps Script nem é homologação funcional final.**

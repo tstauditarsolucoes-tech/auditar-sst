@@ -75,3 +75,8 @@ Em banco NOVO, aplicar após 005: migrations/006_client_portal_admin.sql. Cria s
 ## Migração 007 — metadados de arquivo privado
 
 Somente em banco novo com 001–006 concluídas: adiciona client_request_id idempotente aos metadados de sst.evidence. Os bytes ficam no volume do Docker, não no PostgreSQL. RLS de evidências da migration 001 continua em vigor. Banco e volume precisam de backup consistente e ensaio de restauração antes de migração de dados reais.
+
+
+## Migração 008 — Plano de Ação Web somente de homologação
+
+`008_action_plan_pilot.sql` depende das migrações 001–007 no **banco novo**. Cria `sst.action_plan` vinculado por FK composta à NC da mesma empresa, responsável ativo por vínculo de empresa, prazo, status, revisão otimista, chave de envio e impressão digital de criação. O histórico em `sst.action_plan_event` registra alterações e idempotência de mudança de status. As duas tabelas têm `ENABLE/FORCE ROW LEVEL SECURITY` e recebem permissões apenas do role restrito da API. **Não cria nem migra plano de ação legado; não executar na Central atual.**

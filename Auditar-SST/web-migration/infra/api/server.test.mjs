@@ -101,3 +101,17 @@ test('PDF de vistoria exige autenticacao e nao aceita headers forjados',async()=
     assert.equal(response.status,401);
   });
 });
+
+test('Plano de Acao nao confia em headers nem permite acesso sem sessao nova',async()=>{
+  await withServer(async base=>{
+    for(const [method,path] of [
+      ['GET','/api/v1/action-plans'],
+      ['POST','/api/v1/action-plans'],
+      ['GET','/api/v1/action-plans/10000000-0000-4000-8000-000000000001'],
+      ['POST','/api/v1/action-plans/10000000-0000-4000-8000-000000000001/status'],
+    ]) {
+      const response=await fetch(base+path,{method,headers:{'x-role':'adm','x-company-id':'ficticio'}});
+      assert.equal(response.status,401);
+    }
+  });
+});

@@ -61,7 +61,7 @@ Começar com o Compose **padrão, sem login**; isto cria apenas os serviços ded
 docker compose -p auditar-sst-web-hml -f compose.staging.yml up --build -d --wait
 ```
 
-Só num banco **novo e vazio**, aplicar migrações 001, 002, 003, 004, 005, 006 e 007 nessa ordem, uma única vez:
+Só num banco **novo e vazio**, aplicar migrações 001, 002, 003, 004, 005, 006, 007 e 008 nessa ordem, uma única vez:
 
 ```bash
 docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
@@ -84,6 +84,9 @@ docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
 
 docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
   psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/007_private_media_pilot.sql
+
+docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
+  psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/008_action_plan_pilot.sql
 ```
 
 **Não executar** arquivos em `db/tests/seed_*.sql` na VPS. Eles contêm identidades e senhas fictícias públicas **exclusivas da CI descartável**.
@@ -203,3 +206,8 @@ Antes de importar registros reais, o responsável deve fazer um backup completo 
 O Node da homologacao disponibiliza `GET /api/v1/migration/compatibility` e `POST /api/v1/migration/compatibility/check` para uma **sessao ADM da nova base**, exigindo origem e CSRF em POST. Esses endpoints aceitam somente contagens (sem linhas, anexos ou credenciais) e devolvem **bloqueio expresso de sincronizacao real**; nao sao `device_sync_push/pull`. Consulte [MATRIZ_COMPATIBILIDADE_LEGADA_20261027.md](../MATRIZ_COMPATIBILIDADE_LEGADA_20261027.md).
 
 Nao alterar URL, token, fila, cursor nem banco SQLite nos aplicativos Flutter existentes com base nesse resultado. O teste de compatibilidade e apenas a primeira camada de seguranca.
+
+
+## Plano de Ação — piloto Web (migração 008)
+
+Depois das migrações 001–008, o piloto de homologação inclui uma área de **Plano de Ação SST** com NC vinculada, responsável ativo da empresa, prazo opcional, revisão contra sobrescrita e histórico de criação/edição/andamento/conclusão/cancelamento. Os endpoints privados autenticados são `GET/POST /api/v1/action-plans`, `GET/PATCH /api/v1/action-plans/:id` e `POST /api/v1/action-plans/:id/status`. Nenhum plano do legado foi importado. Testes de isolamento e idempotência executam apenas sobre dados artificiais na GitHub Actions. **Não testar com cliente real.**

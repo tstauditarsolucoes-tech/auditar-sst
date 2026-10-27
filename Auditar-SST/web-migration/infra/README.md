@@ -2,7 +2,7 @@
 
 **Atualização 27/10/2026. Nenhuma implantação em produção.**
 
-A estrutura anterior era um protótipo estático; agora há uma aba **opcional** com login de teste e APIs Node/PostgreSQL para NCs, vistorias/Ronda, agenda, suporte cliente, Central ADM, imagens fictícias em volume Docker privado e PDF resumido de vistoria concluída.
+A estrutura anterior era um protótipo estático; agora há uma aba **opcional** com login de teste e APIs Node/PostgreSQL para NCs, vistorias/Ronda, agenda, Plano de Ação, suporte cliente, Central ADM, imagens fictícias em volume Docker privado e PDF resumido de vistoria concluída.
 
 - O entrypoint Docker **padrão permanece fechado** para dados de negócio.
 - A ativação exige o overlay privado, HTTPS de teste separado do domínio final, Access List no Nginx Proxy Manager e dois roles de DB separados.

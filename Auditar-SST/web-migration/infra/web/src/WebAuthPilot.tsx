@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { InspectionPilot } from './InspectionPilot';
 import { TaskPilot } from './TaskPilot';
+import { ActionPlanPilot } from './ActionPlanPilot';
 import { ClientPortalPilot } from './ClientPortalPilot';
 import { AdminOverviewPilot } from './AdminOverviewPilot';
 
@@ -204,6 +205,7 @@ export function WebAuthPilot() {
           <div className="auth-divider" />
           <InspectionPilot key={'inspection-'+session.companyId} session={session} />
           {session.role!=='cliente'&&<TaskPilot key={'tasks-'+session.companyId} session={session} userId={session.user.id} />}
+          {session.role!=='cliente'&&<ActionPlanPilot key={'plans-'+session.companyId} session={session} />}
           <div className="auth-divider" />
           {session.role !== 'cliente' && (
             <form className="auth-form" onSubmit={(event)=>{event.preventDefault();void run(createNc);}}>
