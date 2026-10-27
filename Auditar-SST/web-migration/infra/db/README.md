@@ -80,3 +80,8 @@ Somente em banco novo com 001–006 concluídas: adiciona client_request_id idem
 ## Migração 008 — Plano de Ação Web somente de homologação
 
 `008_action_plan_pilot.sql` depende das migrações 001–007 no **banco novo**. Cria `sst.action_plan` vinculado por FK composta à NC da mesma empresa, responsável ativo por vínculo de empresa, prazo, status, revisão otimista, chave de envio e impressão digital de criação. O histórico em `sst.action_plan_event` registra alterações e idempotência de mudança de status. As duas tabelas têm `ENABLE/FORCE ROW LEVEL SECURITY` e recebem permissões apenas do role restrito da API. **Não cria nem migra plano de ação legado; não executar na Central atual.**
+
+
+## Migração 009 — Treinamentos, DDS e Integração (somente Web de homologação)
+
+Executar depois da migração 008 e somente em PostgreSQL NOVO de teste, uma vez. `009_training_sessions_pilot.sql` cria `sst.training_session` e `sst.training_event`, associadas à empresa, com RLS forçado e histórico somente para inclusão pela API. Os registros incluem tipo, tema, setor, NR de referência, instrutor, data, duração e contagem informada de participantes, mas **não substituem comprovantes/certificados/listas de presença** e não migram qualquer treinamento anterior. Dados reais de colaboradores não devem ser usados no piloto.

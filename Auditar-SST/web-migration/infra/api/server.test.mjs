@@ -115,3 +115,18 @@ test('Plano de Acao nao confia em headers nem permite acesso sem sessao nova',as
     }
   });
 });
+
+test('Treinamentos e DDS rejeitam headers de identidade forjados',async()=>{
+  await withServer(async base=>{
+    for(const [method,path] of [
+      ['GET','/api/v1/training-sessions'],
+      ['POST','/api/v1/training-sessions'],
+      ['GET','/api/v1/training-sessions/10000000-0000-4000-8000-000000000001'],
+    ]) {
+      const response=await fetch(base+path,{
+        method,headers:{'x-role':'adm','x-company-id':'10000000-0000-4000-8000-000000000001'},
+      });
+      assert.equal(response.status,401);
+    }
+  });
+});

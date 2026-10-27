@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { InspectionPilot } from './InspectionPilot';
 import { TaskPilot } from './TaskPilot';
 import { ActionPlanPilot } from './ActionPlanPilot';
+import { TrainingPilot } from './TrainingPilot';
 import { ClientPortalPilot } from './ClientPortalPilot';
 import { AdminOverviewPilot } from './AdminOverviewPilot';
 
@@ -71,12 +72,13 @@ export function WebAuthPilot() {
   const [severity, setSeverity] = useState(3);
   const [note, setNote] = useState('');
   const [actionId, setActionId] = useState<string | null>(null);
-  const [workspaceTab, setWorkspaceTab] = useState<'pendencias'|'vistorias'|'agenda'|'planos'|'atendimento'|'gestao'>('pendencias');
+  const [workspaceTab, setWorkspaceTab] = useState<'pendencias'|'vistorias'|'agenda'|'planos'|'treinamentos'|'atendimento'|'gestao'>('pendencias');
   const workspaceItems = [
     {id:'pendencias',label:'Não conformidades'},
     {id:'vistorias',label:'Vistorias e Ronda'},
     {id:'agenda',label:'Agenda SST'},
     {id:'planos',label:'Plano de Ação'},
+    {id:'treinamentos',label:'Treinamentos e DDS'},
     {id:'atendimento',label:'Atendimento'},
     {id:'gestao',label:'Central ADM'},
   ] as const;
@@ -231,6 +233,8 @@ export function WebAuthPilot() {
             <TaskPilot key={'tasks-'+session.companyId} session={session} userId={session.user.id} />}
           {workspaceTab==='planos'&&session.role!=='cliente'&&
             <ActionPlanPilot key={'plans-'+session.companyId} session={session} />}
+          {workspaceTab==='treinamentos'&&session.role!=='cliente'&&
+            <TrainingPilot key={'training-'+session.companyId} session={session} />}
           {workspaceTab==='pendencias'&&<>
           {session.role !== 'cliente' && (
             <form className="auth-form" onSubmit={(event)=>{event.preventDefault();void run(createNc);}}>

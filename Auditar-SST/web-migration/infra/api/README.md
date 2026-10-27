@@ -69,3 +69,8 @@ api/reportService.mjs usa a nova base PostgreSQL/Node, sem fontes legadas. GET /
 ## Plano de Ação Web (migração 008)
 
 `actionPlanService.mjs` implementa lista, detalhe, criação idempotente, edição por revisão e mudança de status com histórico. A API exige sessão Web NOVA e CSRF para mutações; cliente não acessa plano interno; técnico só atua como responsável ou criador, gestor/ADM atribui e edita. Filtragem e FK `company_id` protegem a separação de empresas. `GET/POST /api/v1/action-plans`, `GET/PATCH /api/v1/action-plans/:id`, `POST /api/v1/action-plans/:id/status`. Página `ActionPlanPilot.tsx` aparece dentro do acesso autenticado de homologação. A integração `integration.action-plans.ci.test.mjs` cria exclusivamente NCs e planos fictícios e verifica RLS, papéis, idempotência e eventos. **Ainda não substitui os Planos de Ação Flutter/Apps Script nem é homologação funcional final.**
+
+
+## Treinamentos e DDS Web (migração 009)
+
+`trainingService.mjs` suporta `GET/POST /api/v1/training-sessions`, `GET/PATCH /api/v1/training-sessions/:id` e `POST /api/v1/training-sessions/:id/status`. A área `TrainingPilot.tsx` só aparece para perfis internos autenticados; cliente recebe 403 também na API. Gestor/ADM e criador técnico podem alterar registros planejados e informar realização ou cancelamento com motivo. Todo acesso usa tenant de sessão verificado, com RLS e chave idempotente. Para marcar realizado, o usuário deve informar duração e número de participantes; essa informação é **autodeclarada e não comprova presença nem certificação**. Sem participantes identificáveis, upload de certificados, e-mail, importação legado ou comprovação de requisitos legais nesta etapa. Teste efêmero: `integration.training.ci.test.mjs`.

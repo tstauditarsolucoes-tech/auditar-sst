@@ -5,6 +5,7 @@ import { ApiError, createNcService } from './ncService.mjs';
 import { createInspectionService } from './inspectionService.mjs';
 import { createTaskService } from './taskService.mjs';
 import { createActionPlanService } from './actionPlanService.mjs';
+import { createTrainingService } from './trainingService.mjs';
 import { createPortalService } from './portalService.mjs';
 import { createEvidenceService } from './evidenceService.mjs';
 import { createReportService } from './reportService.mjs';
@@ -23,6 +24,7 @@ export function createApp({pool, authService, resolvePrincipal, evidenceDir} = {
   const inspectionService=createInspectionService(pool);
   const taskService=createTaskService(pool);
   const actionPlanService=createActionPlanService(pool);
+  const trainingService=createTrainingService(pool);
   const portalService=createPortalService(pool);
   const evidenceService=createEvidenceService(pool,evidenceDir);
   const reportService=createReportService(pool,evidenceDir);
@@ -200,6 +202,35 @@ export function createApp({pool, authService, resolvePrincipal, evidenceDir} = {
         if(activityPing&&req.method==='POST'){
           await readJson();
           send(200,await portalService.ping(principal));return;
+        }
+      }
+
+      // Treinamentos, DDS e Integracao: apenas registros sintéticos no banco NOVO.
+      const trainingCollection=pathname==='/api/v1/training-sessions';
+      const trainingPath=pathname.match(
+        /^\/api\/v1\/training-sessions\/([a-f0-9-]{36})(?:\/(status))?$/i,
+      );
+      if ((trainingCollection||trainingPath)&&['GET','POST','PATCH'].includes(req.method)){
+        const resolver=authService
+          ?authService.resolvePrincipal.bind(authService):resolvePrincipal;
+        const principal=typeof resolver==='function'?await resolver(req):null;
+        if(!principal){send(401,{ok:false,code:'UNAUTHENTICATED'});return;}
+        if(req.method!=='GET'&&authService)authService.requireMutation(req);
+        if(trainingCollection&&req.method==='GET'){
+          const q=new URL(req.url||'/', 'http://localhost').searchParams;
+          send(200,{items:await trainingService.list(principal,q.get('kind'))});return;
+        }
+        if(trainingCollection&&req.method==='POST'){
+          send(201,{item:await trainingService.create(principal,await readJson())});return;
+        }
+        if(trainingPath&&!trainingPath[2]&&req.method==='GET'){
+          send(200,await trainingService.get(principal,trainingPath[1]));return;
+        }
+        if(trainingPath&&!trainingPath[2]&&req.method==='PATCH'){
+          send(200,{item:await trainingService.edit(principal,trainingPath[1],await readJson())});return;
+        }
+        if(trainingPath?.[2]==='status'&&req.method==='POST'){
+          send(200,{item:await trainingService.status(principal,trainingPath[1],await readJson())});return;
         }
       }
 

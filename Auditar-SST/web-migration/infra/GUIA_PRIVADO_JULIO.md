@@ -61,7 +61,7 @@ Começar com o Compose **padrão, sem login**; isto cria apenas os serviços ded
 docker compose -p auditar-sst-web-hml -f compose.staging.yml up --build -d --wait
 ```
 
-Só num banco **novo e vazio**, aplicar migrações 001, 002, 003, 004, 005, 006, 007 e 008 nessa ordem, uma única vez:
+Só num banco **novo e vazio**, aplicar migrações 001, 002, 003, 004, 005, 006, 007, 008 e 009 nessa ordem, uma única vez:
 
 ```bash
 docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
@@ -87,6 +87,9 @@ docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
 
 docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
   psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/008_action_plan_pilot.sql
+
+docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
+  psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/009_training_sessions_pilot.sql
 ```
 
 **Não executar** arquivos em `db/tests/seed_*.sql` na VPS. Eles contêm identidades e senhas fictícias públicas **exclusivas da CI descartável**.
@@ -211,3 +214,9 @@ Nao alterar URL, token, fila, cursor nem banco SQLite nos aplicativos Flutter ex
 ## Plano de Ação — piloto Web (migração 008)
 
 Depois das migrações 001–008, o piloto de homologação inclui uma área de **Plano de Ação SST** com NC vinculada, responsável ativo da empresa, prazo opcional, revisão contra sobrescrita e histórico de criação/edição/andamento/conclusão/cancelamento. Os endpoints privados autenticados são `GET/POST /api/v1/action-plans`, `GET/PATCH /api/v1/action-plans/:id` e `POST /api/v1/action-plans/:id/status`. Nenhum plano do legado foi importado. Testes de isolamento e idempotência executam apenas sobre dados artificiais na GitHub Actions. **Não testar com cliente real.**
+
+## Treinamentos/DDS/Integração Web — piloto 009
+
+Apenas contas da EQUIPE em homologação privada podem abrir registros de Treinamentos e DDS após login. A nova área cadastra tipo, tema, setor, referência à NR, instrutor, data, duração e contagem declarada de participantes. Histórico append-only, alteração com revisão, criação e conclusão com idempotência, e isolamento por empresa no PostgreSQL. Cliente não acessa esses registros. Para marcar como realizado é necessário informar duração e contagem de participantes; **isso não representa lista de presença assinada, certificado, qualificação profissional nem comprovação de cumprimento de NR.**
+
+Teste uma atividade fictícia planejada, edite duração e participantes, marque realizada, valide histórico, outro perfil e outra empresa. Não utilize dados pessoais, certificados, listas ou fotografias reais nesta homologação. O aplicativo Flutter e suas informações históricas continuam inalterados.
