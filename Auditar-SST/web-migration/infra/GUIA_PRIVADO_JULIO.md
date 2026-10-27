@@ -196,3 +196,10 @@ O endpoint autenticado GET /api/v1/reports/inspections/:id/pdf gera PDF de visto
 ## Inventário pré-migração do legado: SOMENTE leitura de cópia
 
 Antes de importar registros reais, o responsável deve fazer um backup completo **fora do repositório público**, seguindo as regras de acesso dos dados de clientes. Em um equipamento controlado, manter uma CÓPIA numa pasta exclusiva com nome iniciando por `auditar-sst-backup-`, por exemplo `/dados/privados/auditar-sst-backup-20261027`. Após verificar permissões locais, executar `node tools/inventory-legacy-backup.mjs /dados/privados/auditar-sst-backup-20261027`. O script só lê arquivos, calcula hashes internamente e devolve totais por extensão, tamanho e quantidade de possíveis duplicatas; não publica nomes, conteúdo, fotos, hashes individuais, IDs ou credenciais. Ele **não transfere nada** ao PostgreSQL. Não apontar para pastas de produção, Google Drive montado ou diretórios amplos. Antes da migração real, comparar inventários antes/depois e validar integridade dos documentos, permissões, autorização e plano de retorno.
+
+
+## Auditoria de compatibilidade antes de pensar em migrar os aparelhos
+
+O Node da homologacao disponibiliza `GET /api/v1/migration/compatibility` e `POST /api/v1/migration/compatibility/check` para uma **sessao ADM da nova base**, exigindo origem e CSRF em POST. Esses endpoints aceitam somente contagens (sem linhas, anexos ou credenciais) e devolvem **bloqueio expresso de sincronizacao real**; nao sao `device_sync_push/pull`. Consulte [MATRIZ_COMPATIBILIDADE_LEGADA_20261027.md](../MATRIZ_COMPATIBILIDADE_LEGADA_20261027.md).
+
+Nao alterar URL, token, fila, cursor nem banco SQLite nos aplicativos Flutter existentes com base nesse resultado. O teste de compatibilidade e apenas a primeira camada de seguranca.

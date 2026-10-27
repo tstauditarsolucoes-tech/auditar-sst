@@ -26,6 +26,10 @@ Android APK Flutter, Windows EXE Flutter e nova Web React/TypeScript devem compa
 
 O script privado tools/inventory-legacy-backup.mjs lê somente uma cópia local de backup e mostra contagens/tamanhos por tipo sem revelar nomes ou conteúdos. Não é um importador e não substitui a conferência manual. Consulte infra/GUIA_PRIVADO_JULIO.md.
 
+## Nova auditoria do protocolo Flutter → Node (sem migrar dados)
+
+Foi conferido o servico legado `device_sync_service.dart`: 16 tabelas SQLite, fila de mudancas, marcadores de exclusao, cursor e confirmacao das operacoes, atualmente usados via Apps Script. Criado um diagnostico autenticado, **somente com contagens ficticias** e retornando explicitamente `BLOCKED_FOR_REAL_SYNC`. O servidor NOVO nao recebe registros, nao confirma fila e nao substitui backend antigo. Veja [MATRIZ_COMPATIBILIDADE_LEGADA_20261027.md](MATRIZ_COMPATIBILIDADE_LEGADA_20261027.md).
+
 ## Bloqueios reais antes da produção
 
 - [ ] Inventariar Apps Script, Sheets e Drive; exportar tudo com autorização específica.

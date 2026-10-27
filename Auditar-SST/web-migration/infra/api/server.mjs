@@ -7,6 +7,7 @@ import { createTaskService } from './taskService.mjs';
 import { createPortalService } from './portalService.mjs';
 import { createEvidenceService } from './evidenceService.mjs';
 import { createReportService } from './reportService.mjs';
+import {legacyCompatibilityCapabilities,inspectLegacyManifest} from './legacyCompatibility.mjs';
 
 /**
  * Auth NOVA opcional, injetada internamente na homologacao.
@@ -59,6 +60,23 @@ export function createApp({pool, authService, resolvePrincipal, evidenceDir} = {
         send(200,{ok:true,service:'auditar-sst-web',environment:'homologacao-isolada',
           productionDataConnected:false});
         return;
+      }
+
+      // Diagnostico da migração: contagens somente, jamais aceitar linhas legadas.
+      // Este endpoint NAO e device_sync_pull/push nem muda Apps Script.
+      const compatibilityRead=pathname==='/api/v1/migration/compatibility';
+      const compatibilityCheck=pathname==='/api/v1/migration/compatibility/check';
+      if((compatibilityRead&&req.method==='GET')||
+         (compatibilityCheck&&req.method==='POST')){
+        const resolver=authService
+          ?authService.resolvePrincipal.bind(authService):resolvePrincipal;
+        const principal=typeof resolver==='function'?await resolver(req):null;
+        if(!principal){send(401,{ok:false,code:'UNAUTHENTICATED'});return;}
+        if(compatibilityCheck&&authService)authService.requireMutation(req);
+        if(compatibilityRead){
+          send(200,legacyCompatibilityCapabilities(principal));return;
+        }
+        send(200,inspectLegacyManifest(principal,await readJson()));return;
       }
 
       const authPath=pathname.startsWith('/api/v1/auth/');

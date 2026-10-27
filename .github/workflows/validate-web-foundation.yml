@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: '24'
       - name: Testes HTTP sem dados ou dependencias externas
-        run: node --test Auditar-SST/web-migration/infra/api/server.test.mjs Auditar-SST/web-migration/infra/api/ncService.test.mjs Auditar-SST/web-migration/infra/api/inspectionService.test.mjs Auditar-SST/web-migration/infra/api/taskService.test.mjs Auditar-SST/web-migration/infra/api/portalService.test.mjs Auditar-SST/web-migration/infra/api/evidenceService.test.mjs Auditar-SST/web-migration/infra/api/reportService.test.mjs
+        run: node --test Auditar-SST/web-migration/infra/api/server.test.mjs Auditar-SST/web-migration/infra/api/ncService.test.mjs Auditar-SST/web-migration/infra/api/inspectionService.test.mjs Auditar-SST/web-migration/infra/api/taskService.test.mjs Auditar-SST/web-migration/infra/api/portalService.test.mjs Auditar-SST/web-migration/infra/api/evidenceService.test.mjs Auditar-SST/web-migration/infra/api/reportService.test.mjs Auditar-SST/web-migration/infra/api/legacyCompatibility.test.mjs
       - name: Inventario de backup legado em copia ficticia (somente leitura)
         run: node --test Auditar-SST/web-migration/infra/tools/inventory-legacy-backup.test.mjs
       - name: Testar regras migradas e compilar React TypeScript
