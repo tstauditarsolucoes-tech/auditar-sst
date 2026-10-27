@@ -1,7 +1,7 @@
 /** Treinamentos, DDS e Integracao: piloto isolado sem certificados nem dados do legado. */
 import {createHash} from 'node:crypto';
 import {ApiError,withTenant} from './ncService.mjs';
-const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
+const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const KINDS=new Set(['treinamento','dds','integracao']);
 const STAFF=new Set(['adm','gestor','tecnico']);
 const MANAGERS=new Set(['adm','gestor']);
