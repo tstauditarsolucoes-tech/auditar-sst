@@ -4,7 +4,7 @@
  * Sem chamadas remotas, login, IA, banco, fotos ou dados reais.
  * NRs sao SUGESTOES e exigem validacao tecnica pelo TST.
  */
-import { matrixScore, priorityFromMatrix } from './nc';
+import { matrixScore, priorityFromMatrix } from './nc.ts';
 import type { Priority } from './nc';
 
 type RuleProfile = {
