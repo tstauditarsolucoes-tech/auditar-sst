@@ -284,3 +284,18 @@ jobs:
         run: |
           cd Auditar-SST/web-migration/infra
           docker compose -p auditar-sst-web-ci -f compose.staging.yml down || true
+
+  native-probe:
+    name: Sondagem Dart Android/Windows (sem dados, sem escrita)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - name: Executar teste Dart puro de bloqueio e handshake
+        run: |
+          dart --version
+          dart run Auditar-SST/web-migration/native/flutter_probe/native_backend_probe_test.dart
+          echo 'DART_NATIVE_READ_ONLY_PROBE_CI_OK'

@@ -259,3 +259,8 @@ Na VPS, executar migração 012 **apenas sobre banco NOVO de homologação** ap�
 O PDF do ambiente novo mantém **até 2 achados por página**. Se descrição, título ou recomendação não couberem na área de resumo, todo o restante vai para **páginas de continuação**, evitando omissão de texto cadastrado. Fotos JPEG/PNG vinculadas a cada NC são verificadas pelo serviço privado e apresentadas **até 2 por NC, uma por página ampliada**; o original não é regravado nem extraído do Drive.
 
 O piloto continua identificado como HOMOLOGAÇÃO, **não é o Padrão Auditar 3 aprovado**, não tem assinaturas oficiais e não está pronto para clientes. A CI utiliza dados fictícios e testa textos extensos, fotos múltiplas, permissões e geração; a **conferência visual em PC/Android** e validação do layout/marca Auditar continuam obrigatórias antes de publicação. Não migrar dados antigos. Não alterar o domínio atual.
+
+
+## Diagnóstico Dart nativo, opcional e sem escrita
+
+O novo endpoint `GET /api/v1/native/handshake` não exige login, não revela dados de empresas nem permite escrita. É apenas um handshake para futuras versões de testes, com `native.syncEnabled=false`, `native.writesEnabled=false`, `native.authentication=not-implemented` e `productionDataConnected=false`. O código Dart em `../native/flutter_probe` NÃO está conectado ao Android/Windows instalado e está desativado por padrão. Não mexer na configuração do Apps Script, não usar o domínio atual, não provisionar contas reais. Para consultar a sonda de modo privado, o Júlio pode abrir o endpoint HTTPS na homologação sem dados e verificar os campos, sem habilitar mudanças de servidor no aplicativo.

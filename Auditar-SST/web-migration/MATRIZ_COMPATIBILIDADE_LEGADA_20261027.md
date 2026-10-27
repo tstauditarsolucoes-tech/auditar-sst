@@ -69,3 +69,8 @@ A resposta retorna `BLOCKED_FOR_REAL_SYNC`, `safeToSwitchEndpoint:false`, `write
 7. Comparar resultados em paralelo e so depois de aceite formal pensar em desligar Apps Script/Drive e alterar proxy do dominio.
 
 **Decisao atual: nao conectar aplicativos existentes ao backend novo.** Este trabalho entrega mapeamento e testes de diagnostico seguro; a integracao real depende de desenvolvimento e homologacao que ainda nao aconteceram.
+
+
+## Atualização de 27/10/2026 — Sonda nativa independente (somente leitura)
+
+Foi criado `native/flutter_probe/native_backend_probe.dart`, **sem vínculo com o sincronizador Flutter legado**. O recurso de teste exige flag explícita desligada por padrão, URL HTTPS privada, faz somente GET em `/api/v1/native/handshake` e devolve sempre `canSync=false`. Nenhuma tabela será importada (decisão atual de iniciar Web NOVA vazia), nenhum cursor legado será reaproveitado. Futuro desenvolvimento deve focar novos registros, novas contas e fila nova, sem reaproveitar dados antigos ou apontar a configuração existente para Node. Ver [native/flutter_probe/README.md](native/flutter_probe/README.md).

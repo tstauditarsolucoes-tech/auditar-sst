@@ -70,6 +70,18 @@ export function createApp({pool, authService, resolvePrincipal, evidenceDir} = {
         return;
       }
 
+      // Handshake nativo estritamente informativo. NAO autentica, NAO sincroniza,
+      // NAO consulta dados de clientes, NAO autoriza troca de endpoint nos apps.
+      if(pathname==='/api/v1/native/handshake'&&req.method==='GET'){
+        send(200,{
+          ok:true,service:'auditar-sst-web',contract:'sst-native-probe-v1',
+          apiVersion:1,environment:'homologacao-isolada',
+          productionDataConnected:false,
+          native:{android:false,windows:false,syncEnabled:false,
+            writesEnabled:false,authentication:'not-implemented'},
+        });return;
+      }
+
       // Diagnostico da migração: contagens somente, jamais aceitar linhas legadas.
       // Este endpoint NAO e device_sync_pull/push nem muda Apps Script.
       const compatibilityRead=pathname==='/api/v1/migration/compatibility';

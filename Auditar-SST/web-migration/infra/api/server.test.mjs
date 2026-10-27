@@ -161,3 +161,27 @@ test('Participantes e PDF de treinamento nao aceitam headers falsos como sessao'
   }
  });
 });
+
+test('handshake nativo e somente leitura e informa que sincronizacao esta bloqueada',async()=>{
+ await withServer(async base=>{
+  const r=await fetch(base+'/api/v1/native/handshake',{
+   headers:{'x-role':'adm','x-company-id':'tentativa-forjada'},
+  });
+  assert.equal(r.status,200);
+  assert.equal(r.headers.get('cache-control'),'no-store');
+  const body=await r.json();
+  assert.deepEqual(body,{
+    ok:true,service:'auditar-sst-web',contract:'sst-native-probe-v1',
+    apiVersion:1,environment:'homologacao-isolada',
+    productionDataConnected:false,
+    native:{android:false,windows:false,syncEnabled:false,
+      writesEnabled:false,authentication:'not-implemented'},
+  });
+  const post=await fetch(base+'/api/v1/native/handshake',{method:'POST'});
+  assert.equal(post.status,404);
+  for(const path of ['/api/v1/native/sync/push','/api/v1/native/sync/pull']){
+    const denied=await fetch(base+path,{method:'POST'});
+    assert.equal(denied.status,404);
+  }
+ });
+});

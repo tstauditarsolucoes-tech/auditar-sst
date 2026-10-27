@@ -27,7 +27,7 @@ Android APK Flutter, Windows EXE Flutter e nova Web React/TypeScript devem compa
 | Central ADM e última atividade da Web | Piloto e CI |
 | Fotos privadas JPEG/PNG/WebP no Docker | Piloto e CI, máximo 2 MB |
 | PDF de vistoria de teste | Candidato com texto excedente em páginas de continuação e até 2 fotos/NC ampliadas; validação visual e Padrão Auditar 3 ainda pendentes |
-| Android/Windows existentes | Preservados, sem migração de API |
+| Android/Windows existentes | Preservados; sonda Dart de leitura opcional, DESLIGADA, sem autenticação ou sincronização |
 
 ## Primeiro passo disponível para inventário de cópias
 
@@ -58,3 +58,8 @@ Não apagar/mover dados reais; não reutilizar credenciais de produção; não e
 O Júlio deve seguir o guia privado [infra/GUIA_PRIVADO_JULIO.md](infra/GUIA_PRIVADO_JULIO.md), escolher URL HTTPS exclusiva de homologação e realizar testes com dados sintéticos e Access List NPM. O usuário só autorizará a virada após validação de integridade, paridade e restauração.
 
 **CI bem-sucedida é evidência de testes de código, não homologação física ou liberação para produção.**
+
+
+## Sondagem nativa da nova API (sem sincronização e sem dados antigos)
+
+O contrato público de diagnóstico `GET /api/v1/native/handshake` responde explicitamente `native.syncEnabled=false`, `native.writesEnabled=false` e `native.authentication=not-implemented`. O cliente Dart em [native/flutter_probe](native/flutter_probe/README.md) é independente dos arquivos do aplicativo antigo, usa somente GET/HTTPS, desativado por padrão, e **nunca** confirma ou envia fila offline. Uma checagem de conexão bem-sucedida não equivale a suporte de Android/Windows ao backend. Os builds atuais não foram alterados ou gerados. A CI testa o bloqueio com simulações sintéticas em Dart e HTTP.
