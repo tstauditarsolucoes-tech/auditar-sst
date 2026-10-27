@@ -26,7 +26,7 @@ Android APK Flutter, Windows EXE Flutter e nova Web React/TypeScript devem compa
 | Painel Cliente, tickets e conversas | Piloto e CI |
 | Central ADM e última atividade da Web | Piloto e CI |
 | Fotos privadas JPEG/PNG/WebP no Docker | Piloto e CI, máximo 2 MB |
-| PDF de vistoria de teste | Candidato com recomendação técnica e anexo de fotos maiores; sem Padrão Auditar 3 oficial |
+| PDF de vistoria de teste | Candidato com texto excedente em páginas de continuação e até 2 fotos/NC ampliadas; validação visual e Padrão Auditar 3 ainda pendentes |
 | Android/Windows existentes | Preservados, sem migração de API |
 
 ## Primeiro passo disponível para inventário de cópias

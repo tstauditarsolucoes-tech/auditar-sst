@@ -26,7 +26,7 @@ test('gera PDF concluido com dois achados por pagina e isola empresa',async()=>{
     const report=createReportService(pool,dir);
     const inspection=await inspections.create(techA,{
       inspectionType:'vistoria',title:'Ronda ficticia PDF',sector:'Area de teste',
-      location:'Extintor hipotetico',description:'Apenas para CI, sem dados pessoais.',
+      location:'Extintor hipotetico',description:'Observacao extensa CI: '+('O'.repeat(3450)),
       clientRequestId:'c1000000-0000-4000-8000-000000000001',
     });
     const id=inspection.id;
@@ -35,8 +35,9 @@ test('gera PDF concluido com dois achados por pagina e isola empresa',async()=>{
     for(let i=0;i<3;i++){
       created.push(await inspections.addFinding(techA,id,{
         shortTitle:'Achado teste '+(i+1),
-        description:'Foto e recomendacao ficticias de seguranca.',
-        recommendation:'Corrigir a NC de teste, fotografar e validar a correção fictícia.',
+        description:i===0?'Situação longa CI: '+('D'.repeat(3700)):'Foto e recomendacao ficticias de seguranca.',
+        recommendation:i===0?'Recomendação integral CI: '+('R'.repeat(1400)):
+          'Corrigir a NC de teste, fotografar e validar a correção fictícia.',
         probability:3,severity:4,
         clientRequestId:'c1000000-0000-4000-8000-00000000000'+(i+2),
       }));
@@ -45,12 +46,16 @@ test('gera PDF concluido com dois achados por pagina e isola empresa',async()=>{
       mimeType:'image/png',contentBase64:png,nonConformityId:created[0].id,
       clientRequestId:'c1000000-0000-4000-8000-000000000008',
     });
+    await createEvidenceService(pool,dir).upload(techA,{
+      mimeType:'image/png',contentBase64:png,nonConformityId:created[0].id,
+      clientRequestId:'c1000000-0000-4000-8000-000000000009',
+    });
     await inspections.complete(techA,id);
     const pdf=await report.inspectionPdf(clientA,id);
     assert.equal(pdf.subarray(0,5).toString('ascii'),'%PDF-');
     assert.ok(pdf.length>1500);
-    // 1 capa + 2 paginas de achados (ate 2/pagina) + 1 pagina foto ampliada.
-    assert.ok((pdf.toString('latin1').match(/\/Type \/Page\b/g)||[]).length>=4);
+    // Capa, 2 paginas de achados, continuacoes integrais e 2 paginas de fotos.
+    assert.ok((pdf.toString('latin1').match(/\/Type \/Page\b/g)||[]).length>=7);
     await assert.rejects(report.inspectionPdf(techB,id),e=>e.status===404);
   }finally{
     await pool.end();

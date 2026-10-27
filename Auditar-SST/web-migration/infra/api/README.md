@@ -89,3 +89,10 @@ A criação de achado em `POST /api/v1/inspections/:id/findings` aceita `recomme
 ## Minuta de lista de participantes — piloto 012
 
 `POST /api/v1/training-sessions/:id/participants` registra nome fictício, `presence` como `nao_confirmada` ou `declarada`, observação curta e UUID de envio; somente criador/gestor/ADM no tenant autenticado. `GET /api/v1/training-sessions/:id` retorna `attendance` para a equipe. `GET /api/v1/reports/trainings/:id/attendance.pdf` gera minuta paginada com faixa de advertência explícita: **não comprova presença**. Nenhuma assinatura/certificado/credencial profissional é gerada, e dados legados não são importados. Ver CI `integration.training-attendance.ci.test.mjs`.
+
+
+## Layout PDF sem perda de trechos visíveis (homologação)
+
+`reportTextPagination.mjs` calcula quanto texto cabe em cada área pelo PDFKit e devolve o excedente sem descartar caracteres; `reportService.mjs` renderiza continuações do resumo e dos achados em páginas dedicadas. O PDF apresenta até 2 achados por página de resumo e até 2 fotos privadas por NC, cada uma numa página ampliada. `reportTextPagination.test.mjs` verifica a preservação de texto longo, inclusive sem espaços; `integration.reports.ci.test.mjs` usa descrição longa, recomendação longa, duas imagens sintéticas e testa isolamento entre empresas.
+
+Não se trata de relatório oficial Padrão Auditar 3, que ainda exige revisão visual, identidade corporativa definitiva, documentos de assinatura e aprovação técnica. Não reutilizar dados do sistema antigo.
