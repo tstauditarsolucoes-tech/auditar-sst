@@ -79,3 +79,8 @@ api/reportService.mjs usa a nova base PostgreSQL/Node, sem fontes legadas. GET /
 ## CIPA Web — piloto 010
 
 `cipaService.mjs` e `CipaPilot.tsx` permitem cadastrar mandato fictício, composição (empregados/empregador/designado, titular/suplente), reunião, resumo de reunião e transições administrativas do mandato. Rotas protegidas: `GET/POST /api/v1/cipa/mandates`, `GET /api/v1/cipa/mandates/:id`, `POST /api/v1/cipa/mandates/:id/members`, `POST /api/v1/cipa/mandates/:id/meetings`, `POST /api/v1/cipa/meetings/:id/status`, `POST /api/v1/cipa/mandates/:id/status`. A aplicação exige sessão verificada, Origin, CSRF nas escritas e RLS multiempresa. Cliente recebe 403; mudança de status do mandato é reservada a gestor/ADM. **Não é módulo de eleição, certificação, ata assinada ou conformidade NR-5.** Teste PostgreSQL fictício em `integration.cipa.ci.test.mjs`.
+
+
+## PDF ampliado e recomendação de NC — piloto 011
+
+A criação de achado em `POST /api/v1/inspections/:id/findings` aceita `recommendation` opcional (até 1600 caracteres), com controle de idempotência. `GET /api/v1/reports/inspections/:id/pdf` apresenta até dois quadros de NC por página e anexo fotográfico ampliado, com no máximo duas imagens por página e **apenas a primeira JPEG/PNG de cada NC**. O gerador não importa fotografias do legado nem grava PDF no Drive. Ainda trunca a visualização de texto excessivamente longo em cartões e não possui modelo Padrão Auditar 3 aprovado, assinatura e checklist completo. Não utilizar em documento oficial.

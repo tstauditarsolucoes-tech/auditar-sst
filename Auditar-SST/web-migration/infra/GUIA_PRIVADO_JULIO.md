@@ -61,7 +61,7 @@ Começar com o Compose **padrão, sem login**; isto cria apenas os serviços ded
 docker compose -p auditar-sst-web-hml -f compose.staging.yml up --build -d --wait
 ```
 
-Só num banco **novo e vazio**, aplicar migrações 001, 002, 003, 004, 005, 006, 007, 008, 009 e 010 nessa ordem, uma única vez:
+Só num banco **novo e vazio**, aplicar migrações 001, 002, 003, 004, 005, 006, 007, 008, 009, 010 e 011 nessa ordem, uma única vez:
 
 ```bash
 docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
@@ -93,6 +93,9 @@ docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
 
 docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
   psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/010_cipa_pilot.sql
+
+docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
+  psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/011_nc_recommendation_pdf.sql
 ```
 
 **Não executar** arquivos em `db/tests/seed_*.sql` na VPS. Eles contêm identidades e senhas fictícias públicas **exclusivas da CI descartável**.
@@ -230,3 +233,10 @@ Teste uma atividade fictícia planejada, edite duração e participantes, marque
 A nova aba CIPA da homologação privada tem mandato (início/fim, data de eleição declarada), representantes com tipo e condição, agenda de reunião, resumo de reunião informada, andamento administrativo e linha do tempo somente para inclusão. A API exige login novo, empresa ativa e CSRF em todas as mutações. Contas do cliente NÃO acessam este módulo; somente gestor/ADM pode marcar mandato como ativo ou encerrado.
 
 Este cadastro **não valida dimensionamento, eleição, votação, listas de presença, atas assinadas, designação formal, carga horária, atas eleitorais nem conformidade com a NR-5**. Não cadastrar nomes verdadeiros, não enviar fotografias ou documentos reais e não considerar a área como entrega legal. Testar mandatário fictício, representante fictício, reunião, conclusão, mudança de empresa e a vedação para cliente. O sistema Flutter e o Apps Script atual não são modificados.
+
+
+## Revisão do PDF de vistoria e recomendações (migração 011, somente homologação)
+
+Uma NC registrada dentro da vistoria pode armazenar uma **recomendação técnica** separada da descrição, com limite de 1.600 caracteres. O PDF piloto apresenta até 2 achados por página e cria páginas adicionais com fotos maiores (até duas evidências por página). O PDF consulta **apenas a primeira foto JPEG/PNG de cada NC** na base NOVA de teste, não faz cópia das mídias nem migra o Google Drive.
+
+O modelo ainda NÃO está homologado como **Padrão Auditar 3**: falta assinatura, conferência tipográfica/visual em celular e PC, aprovar logo/marca oficial, texto integral dos campos que excedem o espaço do cartão e referências legais completas. Textos longos nos cartões podem ser reduzidos visualmente; o registro original permanece íntegro no PostgreSQL. Não enviar a clientes nem substituir o relatório oficial. Antes de aprovar, gerar PDF com 0, 1, 2, 3 e 30 NCs fictícias e fotos horizontais/verticais; conferir renderização e anexos, sem usar dados pessoais.

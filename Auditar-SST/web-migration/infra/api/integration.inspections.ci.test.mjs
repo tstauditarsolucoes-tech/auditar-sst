@@ -62,13 +62,18 @@ test('API de vistorias: rascunho, deduplicacao, versao, achado, fechamento e RLS
     }),e=>e.status===404);
     const findingPayload={
       shortTitle:'Protecao removida',
-      description:'Protecao ficticia retirada da esteira',probability:4,severity:5,
+      description:'Protecao ficticia retirada da esteira',
+      recommendation:'Reinstalar protecao fixa e conferir antes do retorno ficticio.',
+      probability:4,severity:5,
       recurring:true,clientRequestId:findingRequestId,
     };
     const nc=await service.addFinding(techA,created.id,findingPayload);
     assert.equal(nc.short_title,'Protecao removida');
+    assert.match(nc.recommendation,/Reinstalar protecao/);
     assert.equal(nc.inspection_id,created.id);
     assert.equal((await service.addFinding(techA,created.id,findingPayload)).id,nc.id);
+    await assert.rejects(service.addFinding(techA,created.id,{...findingPayload,
+      recommendation:'Recomendacao diferente'}),e=>e.code==='IDEMPOTENCY_CONFLICT');
     await assert.rejects(service.addFinding(techA,created.id,{...findingPayload,shortTitle:'Outro'}),
       e=>e.code==='IDEMPOTENCY_CONFLICT');
     assert.equal((await service.get(techA,created.id)).inspection.revision,3);
@@ -83,6 +88,7 @@ test('API de vistorias: rascunho, deduplicacao, versao, achado, fechamento e RLS
     const view=await service.get(techA,created.id);
     assert.equal(view.inspection.status,'concluida');
     assert.equal(view.findings.length,1);
+    assert.equal(view.findings[0].recommendation,findingPayload.recommendation);
     assert.deepEqual(view.events.map(event=>event.kind),[
       'criada','editada','achado_incluido','concluida',
     ]);

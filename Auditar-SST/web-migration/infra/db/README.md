@@ -90,3 +90,8 @@ Executar depois da migração 008 e somente em PostgreSQL NOVO de teste, uma vez
 ## Migração 010 — CIPA Web (somente teste privado)
 
 `migrations/010_cipa_pilot.sql` depende de 001–009 e acrescenta `sst.cipa_mandate`, `sst.cipa_member`, `sst.cipa_meeting` e `sst.cipa_event`, com chaves (empresa, entidade), RLS obrigatório e trilha de eventos append-only. As tabelas representam **somente controles administrativos**; não processam votos, não aplicam cálculo da NR-5, não importam dados reais e não validam documentos oficiais.
+
+
+## Migração 011 — Recomendação técnica separada no achado da vistoria Web
+
+`011_nc_recommendation_pdf.sql` depende de 001–010 e acrescenta `recommendation` opcional à tabela de NC para orientar o relatório PDF de homologação. Nada é preenchido automaticamente por IA, e NCs antigas de teste permanecem com recomendação vazia. A mudança não migra dados nem edita Apps Script, Drive ou Flutter.

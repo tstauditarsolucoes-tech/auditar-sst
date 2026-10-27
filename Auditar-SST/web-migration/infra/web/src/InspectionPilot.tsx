@@ -13,7 +13,7 @@ type Inspection={
   revision:number;created_at:string;completed_at:string|null;
 };
 type Finding={
-  id:string;short_title:string;description:string;probability:number;
+  id:string;short_title:string;description:string;recommendation:string;probability:number;
   severity:number;recurring:boolean;status:string;
 };
 type InspectionEvent={id:string;kind:string;message:string;created_at:string};
@@ -73,6 +73,7 @@ export function InspectionPilot({session}:{session:PilotSession}){
   const [editLocation,setEditLocation]=useState('');
   const [findingName,setFindingName]=useState('');
   const [findingDescription,setFindingDescription]=useState('');
+  const [findingRecommendation,setFindingRecommendation]=useState('');
   const [findingProbability,setFindingProbability]=useState(3);
   const [findingSeverity,setFindingSeverity]=useState(3);
   const [findingRecurring,setFindingRecurring]=useState(false);
@@ -130,12 +131,12 @@ export function InspectionPilot({session}:{session:PilotSession}){
   async function addFinding(){
     if(!detail)return;
     await api('inspections/'+detail.inspection.id+'/findings','POST',{
-      shortTitle:findingName,description:findingDescription,
+      shortTitle:findingName,description:findingDescription,recommendation:findingRecommendation,
       probability:findingProbability,severity:findingSeverity,recurring:findingRecurring,
       clientRequestId:findingKey,
     },session.csrfToken);
     setFindingKey(newRequestId());
-    setFindingName('');setFindingDescription('');
+    setFindingName('');setFindingDescription('');setFindingRecommendation('');
     setFindingProbability(3);setFindingSeverity(3);setFindingRecurring(false);
     await open(detail.inspection.id);
     await refresh();
@@ -228,6 +229,11 @@ export function InspectionPilot({session}:{session:PilotSession}){
             <textarea rows={3} maxLength={4000} required
               value={findingDescription} onChange={event=>setFindingDescription(event.target.value)}/>
           </label>
+          <label>Recomendação técnica (opcional)
+            <textarea rows={3} maxLength={1600}
+              value={findingRecommendation} onChange={event=>setFindingRecommendation(event.target.value)}
+              placeholder="Ex.: Instalar proteção fixa adequada e validar antes de liberar a máquina."/>
+          </label>
           <div className="inspection-two">
             <label>Probabilidade
               <select value={findingProbability} onChange={event=>setFindingProbability(Number(event.target.value))}>
@@ -261,6 +267,7 @@ export function InspectionPilot({session}:{session:PilotSession}){
           <small>Risco: {item.probability} × {item.severity} · {item.status.replaceAll('_',' ')}
             {item.recurring?' · Recorrente':''}</small>
           <p>{item.description}</p>
+          {item.recommendation&&<p><strong>Recomendação:</strong> {item.recommendation}</p>}
         </div>
       </article>)}</div>
       {canWrite&&<EvidencePilot session={session} targetType="inspection" targetId={detail.inspection.id}/>}

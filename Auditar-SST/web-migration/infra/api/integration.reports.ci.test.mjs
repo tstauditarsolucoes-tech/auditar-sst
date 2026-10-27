@@ -36,6 +36,7 @@ test('gera PDF concluido com dois achados por pagina e isola empresa',async()=>{
       created.push(await inspections.addFinding(techA,id,{
         shortTitle:'Achado teste '+(i+1),
         description:'Foto e recomendacao ficticias de seguranca.',
+        recommendation:'Corrigir a NC de teste, fotografar e validar a correção fictícia.',
         probability:3,severity:4,
         clientRequestId:'c1000000-0000-4000-8000-00000000000'+(i+2),
       }));
@@ -48,7 +49,8 @@ test('gera PDF concluido com dois achados por pagina e isola empresa',async()=>{
     const pdf=await report.inspectionPdf(clientA,id);
     assert.equal(pdf.subarray(0,5).toString('ascii'),'%PDF-');
     assert.ok(pdf.length>1500);
-    assert.ok((pdf.toString('latin1').match(/\/Type \/Page\b/g)||[]).length>=3);
+    // 1 capa + 2 paginas de achados (ate 2/pagina) + 1 pagina foto ampliada.
+    assert.ok((pdf.toString('latin1').match(/\/Type \/Page\b/g)||[]).length>=4);
     await assert.rejects(report.inspectionPdf(techB,id),e=>e.status===404);
   }finally{
     await pool.end();

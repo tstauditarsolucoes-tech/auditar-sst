@@ -51,6 +51,7 @@ function finding(payload) {
   return {
     description:field(payload.description,4000,'Descricao'),
     shortTitle:field(payload.shortTitle,140,'Nome da NC',true),
+    recommendation:field(payload.recommendation,1600,'Recomendacao',true),
     probability:risk(payload.probability,'Probabilidade'),
     severity:risk(payload.severity,'Severidade'),
     recurring:payload.recurring??false,
@@ -89,6 +90,7 @@ function assertSameFinding(existing,inspectionId,values) {
   if (existing.inspection_id!==inspectionId||
     existing.description!==values.description||
     existing.short_title!==values.shortTitle||
+    existing.recommendation!==values.recommendation||
     existing.probability!==values.probability||
     existing.severity!==values.severity||
     existing.recurring!==values.recurring) {
@@ -114,7 +116,7 @@ export function createInspectionService(pool) {
       return withTenant(pool,principal,async(db,p)=>{
         const inspection=await inspectionRow(db,p,requiredUuid(id,'Vistoria'));
         const findings=await db.query(
-          'SELECT id,short_title,description,probability,severity,recurring,status,created_at '+
+          'SELECT id,short_title,description,recommendation,probability,severity,recurring,status,created_at '+
           'FROM sst.non_conformity WHERE company_id=$1 AND inspection_id=$2 '+
           'ORDER BY created_at,id', [p.companyId,inspection.id],
         );
@@ -182,7 +184,7 @@ export function createInspectionService(pool) {
         const values=finding(payload);
         const inspected=await inspectionRow(db,p,inspectionId,true);
         const previous=await db.query(
-          'SELECT id,inspection_id,short_title,description,probability,severity,recurring,status '+
+          'SELECT id,inspection_id,short_title,description,recommendation,probability,severity,recurring,status '+
           'FROM sst.non_conformity WHERE company_id=$1 AND client_request_id=$2',
           [p.companyId,requestId],
         );
@@ -193,16 +195,16 @@ export function createInspectionService(pool) {
         if (inspected.status!=='rascunho') throw new ApiError(409,'INVALID_STATE','Vistoria ja concluida');
         const created=await db.query(
           'INSERT INTO sst.non_conformity '+
-          '(company_id,inspection_id,short_title,description,probability,severity,recurring,'+
-          'client_request_id,created_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) '+
+          '(company_id,inspection_id,short_title,description,recommendation,probability,severity,recurring,'+
+          'client_request_id,created_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) '+
           'ON CONFLICT (company_id,client_request_id) WHERE client_request_id IS NOT NULL '+
-          'DO NOTHING RETURNING id,inspection_id,short_title,description,probability,severity,recurring,status',
-          [p.companyId,inspectionId,values.shortTitle,values.description,values.probability,
-            values.severity,values.recurring,requestId,p.userId],
+          'DO NOTHING RETURNING id,inspection_id,short_title,description,recommendation,probability,severity,recurring,status',
+          [p.companyId,inspectionId,values.shortTitle,values.description,values.recommendation,
+            values.probability,values.severity,values.recurring,requestId,p.userId],
         );
         if (!created.rowCount) {
           const duplicate=await db.query(
-            'SELECT id,inspection_id,short_title,description,probability,severity,recurring,status '+
+            'SELECT id,inspection_id,short_title,description,recommendation,probability,severity,recurring,status '+
             'FROM sst.non_conformity WHERE company_id=$1 AND client_request_id=$2',
             [p.companyId,requestId],
           );

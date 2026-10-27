@@ -13,13 +13,13 @@ function label(value){
 }
 function displayTime(value){
   if(!value)return 'Não informada';
-  return new Date(value).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'});
+  return new Date(value).toLocaleString('pt-BR',{timeZone:'America/Fortaleza'});
 }
 function risk(score){
   return score>=20?'Crítica':score>=12?'Alta':score>=6?'Média':'Baixa';
 }
 function drawHeader(doc,title,subtitle){
-  doc.rect(0,0,595,92).fill('#075a45');
+  doc.rect(0,0,595,92).fill('#10365b');
   doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(20)
     .text('AUDITAR SST',48,23,{width:495});
   doc.font('Helvetica').fontSize(10).text(title,48,54,{width:495});
@@ -64,7 +64,7 @@ export function createReportService(pool,evidenceDir){
             photo=blob.data;
           }
         }
-        media.push(photo);
+        media.push(photo?{id:nc.id,title:nc.short_title||nc.description,bytes:photo}:null);
       }
       // Importar PDFKit somente quando requisitado. API desativada por padrao
       // nao precisa carregar bibliotecas de PDF na inicializacao.
@@ -105,33 +105,61 @@ export function createReportService(pool,evidenceDir){
           width:493,height:230,ellipsis:true,
         });
       footer(doc,page);
+      // Sumario visual: ate dois achados por pagina. Fotos sao grandes em anexo
+      // separado, sem reduzir o espaco de leitura das recomendacoes.
       for(let i=0;i<detail.findings.length;i+=2){
         page++;doc.addPage();
-        drawHeader(doc,'Achados e evidências - piloto','No máximo dois achados por página');
-        for(let col=0;col<2;col++){
-          const index=i+col;if(index>=detail.findings.length)continue;
-          const nc=detail.findings[index],photo=media[index],top=150+col*310;
-          doc.roundedRect(48,top,499,287,9).lineWidth(1).strokeColor('#cfdfd8').stroke();
-          doc.font('Helvetica-Bold').fontSize(13).fillColor('#075a45')
-            .text((index+1)+'. '+label(nc.short_title||nc.description),62,top+12,{
-              width:465,height:36,ellipsis:true,
-            });
-          doc.font('Helvetica').fillColor('#53675d').fontSize(9)
-            .text('Risco: '+nc.probability+' × '+nc.severity+' = '+(nc.probability*nc.severity)+
-              ' ('+risk(nc.probability*nc.severity)+') · '+nc.status.replaceAll('_',' '),
-              62,top+57,{width:465,height:16});
-          doc.font('Helvetica').fillColor('#233d32').fontSize(9).text(label(nc.description),62,top+79,{
-            width:465,height:52,ellipsis:true,
-          });
-          if(photo){
-            try{
-              doc.image(photo,62,top+143,{fit:[465,120],align:'center',valign:'center'});
-            }catch{
-              doc.fillColor('#7a5b2a').fontSize(9).text('Imagem não renderizada neste piloto.',62,top+169);
-            }
-          }else{
-            doc.fillColor('#637a70').fontSize(9)
-              .text('Sem foto JPEG/PNG anexada na nova base.',62,top+166,{width:465});
+        drawHeader(doc,'Achados e orientações - piloto','Até dois achados por página');
+        for(let position=0;position<2;position++){
+          const index=i+position;
+          if(index>=detail.findings.length)continue;
+          const nc=detail.findings[index],top=145+position*310;
+          const score=nc.probability*nc.severity;
+          doc.roundedRect(48,top,499,297,9).lineWidth(1).strokeColor('#ccd9e3').stroke();
+          doc.fillColor('#10365b').font('Helvetica-Bold').fontSize(13)
+            .text((index+1)+'. '+label(nc.short_title||nc.description),
+              62,top+12,{width:465,height:35,ellipsis:true});
+          doc.fillColor('#425c72').font('Helvetica').fontSize(9)
+            .text('Risco: '+nc.probability+' x '+nc.severity+' = '+score+
+              ' ('+risk(score)+') | '+nc.status.replaceAll('_',' ')+
+              (nc.recurring?' | Recorrente':''),
+              62,top+53,{width:465,height:18,ellipsis:true});
+          doc.font('Helvetica-Bold').fillColor('#10365b').fontSize(9.5)
+            .text('SITUAÇÃO ENCONTRADA',62,top+82,{width:463,height:16});
+          doc.font('Helvetica').fillColor('#182f41').fontSize(9)
+            .text(label(nc.description),62,top+99,{width:461,height:77,ellipsis:true});
+          doc.font('Helvetica-Bold').fillColor('#08795c').fontSize(9.5)
+            .text('RECOMENDAÇÃO TÉCNICA',62,top+185,{width:461,height:16});
+          doc.font('Helvetica').fillColor('#182f41').fontSize(9)
+            .text(label(nc.recommendation)||'Não registrada neste piloto.',
+              62,top+202,{width:461,height:67,ellipsis:true});
+          doc.fillColor('#587283').font('Helvetica').fontSize(8)
+            .text(media[index]?'Evidência ampliada no anexo fotográfico.':'Sem foto JPEG/PNG associada à NC.',
+              62,top+278,{width:460,height:12});
+        }
+        footer(doc,page);
+      }
+      // Uma foto por NC nesta fase. Cada foto aparece em area de ate 460x225 pt.
+      // O arquivo original do volume privado nao e alterado nem recomprimido.
+      const photos=media.filter(Boolean);
+      for(let i=0;i<photos.length;i+=2){
+        page++;doc.addPage();
+        drawHeader(doc,'Registro fotográfico - piloto','Fotos ampliadas das NCs desta vistoria');
+        for(let position=0;position<2;position++){
+          const photo=photos[i+position];
+          if(!photo)continue;
+          const top=148+position*308;
+          const ncIndex=detail.findings.findIndex(n=>n.id===photo.id);
+          doc.roundedRect(48,top,499,294,8).lineWidth(1).strokeColor('#ccd9e3').stroke();
+          doc.fillColor('#10365b').font('Helvetica-Bold').fontSize(11)
+            .text('NC '+(ncIndex+1)+' - '+label(photo.title),62,top+11,
+              {width:465,height:30,ellipsis:true});
+          try {
+            doc.image(photo.bytes,62,top+48,{fit:[465,226],align:'center',valign:'center'});
+          } catch {
+            doc.font('Helvetica').fillColor('#86542b').fontSize(10)
+              .text('Esta imagem não pôde ser exibida na homologação.',62,top+145,
+                {width:455,height:24});
           }
         }
         footer(doc,page);
