@@ -128,8 +128,12 @@ jobs:
             up -d --no-deps --wait --wait-timeout 180 db
           docker compose -p auditar-sst-web-ci -f compose.staging.yml -f compose.private-auth.example.yml \
             exec -T db sh /db-init/scripts/create_private_roles.sh
-          docker compose -p auditar-sst-web-ci -f compose.staging.yml -f compose.private-auth.example.yml \
-            up --build -d --no-deps --wait --wait-timeout 180 api
+          if ! docker compose -p auditar-sst-web-ci -f compose.staging.yml -f compose.private-auth.example.yml \
+            up --build -d --no-deps --wait --wait-timeout 180 api; then
+            echo 'Bootstrap privado falhou; exibindo log sanitizado para diagnostico' >&2
+            docker compose -p auditar-sst-web-ci -f compose.staging.yml -f compose.private-auth.example.yml logs --no-color --tail=80 api
+            exit 1
+          fi
           docker compose -p auditar-sst-web-ci -f compose.staging.yml -f compose.private-auth.example.yml \
             exec -T -e AUDITAR_SST_EPHEMERAL_CI_DB=FAKE_DATA_CI_ONLY \
             api node private-bootstrap.smoke.ci.mjs
