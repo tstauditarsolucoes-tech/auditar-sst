@@ -1,0 +1,7 @@
+secrets/*
+!secrets/.gitkeep
+.env
+.env.*
+!.env.example
+*.pem
+*.key

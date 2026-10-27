@@ -1,0 +1,38 @@
+name: Auditar SST Web - validar fundacao Docker (sem deploy)
+on:
+  push:
+    branches: [migration/preparacao-web-20261027]
+    paths:
+      - 'Auditar-SST/web-migration/**'
+      - '.github/workflows/validate-web-foundation.yml'
+  pull_request:
+    branches: [organize/sst-em-pasta-20261027]
+    paths:
+      - 'Auditar-SST/web-migration/**'
+      - '.github/workflows/validate-web-foundation.yml'
+permissions:
+  contents: read
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Testes HTTP sem dados ou dependencias externas
+        run: node --test Auditar-SST/web-migration/infra/api/server.test.mjs
+      - name: Validar YAML e isolamento sem subir conteineres
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          mkdir -p secrets
+          printf 'ci-test-only-not-a-production-password-123456\n' > secrets/postgres_password
+          docker compose -f compose.staging.yml config --quiet
+          if docker compose -f compose.staging.yml config --format json | jq -e '.services[] | has("ports")' | grep -q true; then
+            echo 'ERRO: porta publicada na VPS' >&2
+            exit 1
+          fi
+          echo 'WEB_FOUNDATION_ISOLATED_OK'

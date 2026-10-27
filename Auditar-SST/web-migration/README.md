@@ -21,6 +21,10 @@ Esta pasta foi criada numa branch isolada para o programador avaliar a migraçã
 - Planejar importação com backups e conferência de contagens/checksums.
 - Não utilizar chaves embutidas em JavaScript entregue ao navegador.
 
+## Infraestrutura informada pelo programador (27/10/2026)
+
+A hospedagem será em VPS compartilhada com outros sistemas, com Docker, Node.js e banco em contêiner permitidos. Preparação isolada: [infra/README.md](infra/README.md) e [infra/compose.staging.yml](infra/compose.staging.yml). **Nenhum contêiner foi iniciado no servidor real.** Ainda faltam proxy reverso, domínio e política de backup.
+
 ## Escolha técnica proposta, a confirmar com o programador
 
 - **Se houver VPS/servidor com Node:** frontend React + TypeScript + Vite; API Node.js + TypeScript (por exemplo Fastify); PostgreSQL; armazenamento privado de objetos; HTTPS/reverse proxy.

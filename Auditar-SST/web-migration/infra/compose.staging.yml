@@ -1,0 +1,65 @@
+# Ambiente de homologacao isolado. Nenhuma porta publicada no host.
+# Nao utilizar com dados reais sem auditoria/backup/autorizacao.
+services:
+  web:
+    build:
+      context: ./web
+    depends_on:
+      api:
+        condition: service_healthy
+    expose:
+      - "8080"
+    networks:
+      - frontend_net
+      - backend
+    restart: "no"
+  api:
+    build:
+      context: ./api
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+    expose:
+      - "3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 10s
+    restart: "no"
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: auditar_web_hml
+      POSTGRES_DB: auditar_web_hml
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auditar_web_hml -d auditar_web_hml"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 15s
+    restart: "no"
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password
+volumes:
+  postgres_data:
+networks:
+  backend:
+    internal: true
+  frontend_net:
+    # Rede exclusiva do projeto; conectar ao proxy existente so apos aprovacao.
+    driver: bridge

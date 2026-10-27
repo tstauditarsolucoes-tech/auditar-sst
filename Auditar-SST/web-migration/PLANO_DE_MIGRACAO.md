@@ -2,6 +2,10 @@
 
 **Proposta técnica não implantada.** Prioridade: não perder registros/fotos/assinaturas nem interromper Android e Windows.
 
+## Infraestrutura confirmada em 27/10/2026
+
+O programador informou uma VPS compartilhada com Docker, Node.js e bancos em contêiner disponíveis. A primeira base de homologação está em infra/ e foi projetada sem publicar portas no host, sem dados de cliente e sem conexão com a Central atual. Essa confirmação **não autoriza** implantação em produção nem alteração dos outros sistemas da VPS.
+
 ## 1. Arquitetura sugerida
 
 Navegador (PC/celular)
