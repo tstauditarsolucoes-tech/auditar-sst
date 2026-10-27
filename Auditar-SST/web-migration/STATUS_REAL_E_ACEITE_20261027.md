@@ -2,6 +2,10 @@
 
 **Branch:** migration/preparacao-web-20261027 · PR #23 DRAFT. **NÃO PUBLICAR NO DOMÍNIO FINAL.**
 
+## Decisão atual de escopo: NÃO migrar dados antigos
+
+A Auditar optou por **iniciar a nova plataforma sem importação de dados legados**, mantendo a Central Online, o Apps Script, Google Drive, Android e Windows existentes intactos. Não apagar registros, fotos, assinaturas ou histórico. O banco Web novo começa vazio para empresas e operações novas. Esta decisão **não resolve** a conexão dos aplicativos Android/Windows nem libera o sistema para produção. Leia [INICIO_LIMPO_SEM_MIGRACAO_20261027.md](INICIO_LIMPO_SEM_MIGRACAO_20261027.md).
+
 ## Objetivo final
 
 Android APK Flutter, Windows EXE Flutter e nova Web React/TypeScript devem compartilhar futuramente um backend Node/PostgreSQL na VPS. As interfaces instaladas não podem perder funções, arquivos, histórico ou uso offline. A origem Apps Script/Google Drive fica preservada até migração com backup, verificação e aceite.
@@ -35,11 +39,10 @@ Foi conferido o servico legado `device_sync_service.dart`: 16 tabelas SQLite, fi
 
 ## Bloqueios reais antes da produção
 
-- [ ] Inventariar Apps Script, Sheets e Drive; exportar tudo com autorização específica.
-- [ ] Conciliar contagens, IDs, históricos e hashes de arquivos por empresa sem sobrescrever origem.
+- [x] Escopo definido: não importar o histórico antigo para o novo banco; preservar todos os arquivos e acessos existentes.
 - [ ] Migrar autenticação de usuários com processo auditado, recuperação de acesso e revisão de segurança.
 - [ ] Implementar cliente Android e Windows para nova API, fila offline e resolução de conflitos.
-- [ ] Migrar fotografias, assinaturas, documentos e PDFs preservando referências e visual.
+- [ ] Implementar fotos, assinaturas, documentos e PDFs NOVOS (sem migração de arquivos legados), com testes e política de retenção.
 - [ ] Finalizar módulos faltantes e paridade: CIPA legal e eleitoral, certificados/listas de presença e importação do histórico de DDS/treinamentos, integração do Plano de Ação legado, IA, notificações, relatórios Auditar 3, Supervisão completa.
 - [ ] Cotas, varredura de mídia, criptografia, retenção, logs, backups regulares do banco + volume e teste de restauração.
 - [ ] Testes físicos Android, Windows e navegador: offline, câmera, assinatura, PDF, grupos, permissões e conexão lenta.

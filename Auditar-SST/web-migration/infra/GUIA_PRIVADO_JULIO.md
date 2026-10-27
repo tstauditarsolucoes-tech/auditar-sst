@@ -1,3 +1,5 @@
+> **Escopo atualizado:** a Auditar decidiu **não migrar dados antigos**. A Web nova será iniciada vazia quando homologada; o sistema antigo permanece preservado e não deverá ser apagado. Consulte [INICIO_LIMPO_SEM_MIGRACAO_20261027.md](../INICIO_LIMPO_SEM_MIGRACAO_20261027.md). Isso não autoriza implantação no domínio atual.
+
 # Auditar SST — Homologação PRIVADA para Júlio (sem trocar o domínio atual)
 
 **Data:** 27/10/2026. **Somente branch** `migration/preparacao-web-20261027`, PR #23 DRAFT.  
