@@ -68,3 +68,7 @@ O contrato público de diagnóstico `GET /api/v1/native/handshake` responde expl
 ## Leituras nativas piloto (somente nova base)
 
 A autenticação nativa opcional, ainda DESLIGADA por padrão, oferece duas rotas **somente GET** de consulta de NC e vistorias recém-criadas na nova base. A empresa é extraída do bearer validado, não de parâmetros do dispositivo. Sem criação/alteração, sem acesso à sincronização Flutter legada ou upload de evidência, sem APK/EXE novo. CI cobre logout, acesso não autenticado, escrita bloqueada e tentativa de selecionar empresa por query string. Não se trata ainda de sincronização Android/Windows.
+
+### Rascunhos nativos novos (ainda sem cliente Flutter)
+
+API opcional com opt-in duplo, criação de vistoria e achado com idempotência UUID no PostgreSQL NOVO, perfil autenticado e segregação por empresa. Sem mídia, conclusão, atualização, importação ou ACK legado; desativada na hospedagem por padrão. O aplicativo Android/Windows existente permanece intocado.

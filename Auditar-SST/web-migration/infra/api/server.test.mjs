@@ -201,3 +201,17 @@ test('Login nativo permanece desligado quando servidor inicia normalmente',async
   }
  });
 });
+
+test('rascunhos nativos nao escrevem com flag padrao e nao aceitam pacote legado',async()=>{
+ await withServer(async base=>{
+  for(const [method,path] of [
+    ['POST','/api/v1/native/drafts/inspections'],
+    ['POST','/api/v1/native/drafts/inspections/10000000-0000-4000-8000-000000000001/findings'],
+  ]){
+    const r=await fetch(base+path,{method,headers:{'content-type':'application/json'},
+      body:JSON.stringify({changes:[],syncKey:'legado'})});
+    assert.equal(r.status,404);
+    assert.equal((await r.json()).code,'NATIVE_DRAFTS_DISABLED');
+  }
+ });
+});

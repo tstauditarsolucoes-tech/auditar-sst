@@ -97,7 +97,10 @@ const authService=createAuthService({pool:authPool,allowedOrigin:config.allowedO
 // Opt-in separado e explicito, por padrão INATIVO até na VPS privada.
 const nativeAuthService=process.env.AUDITAR_ENABLE_NATIVE_AUTH==='PRIVATE_STAGING_NATIVE_ONLY'
   ?createNativeAuthService({pool:authPool}):undefined;
-const server=createApp({pool:dataPool,authService,nativeAuthService,
+// Escritas de rascunhos NOVOS requerem um segundo opt-in independente.
+const nativeDraftsEnabled=Boolean(nativeAuthService) &&
+  process.env.AUDITAR_ENABLE_NATIVE_DRAFTS==='PRIVATE_STAGING_NATIVE_DRAFTS_ONLY';
+const server=createApp({pool:dataPool,authService,nativeAuthService,nativeDraftsEnabled,
   evidenceDir:config.evidenceDir});
 let closing=false;
 async function close() {

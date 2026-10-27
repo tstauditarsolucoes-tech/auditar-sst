@@ -23,7 +23,7 @@ test('sessao nativa: token independente, sem acesso business, 2 empresas e revog
  const origin='https://homologacao-ci.auditarsolucoes.invalid';
  const nativeAuthService=createNativeAuthService({pool:authPool});
  const authService=createAuthService({pool:authPool,allowedOrigin:origin});
- const app=createApp({pool:dataPool,authService,nativeAuthService});
+ const app=createApp({pool:dataPool,authService,nativeAuthService,nativeDraftsEnabled:true});
  app.listen(0,'0.0.0.0');await once(app,'listening');
  const base='http://127.0.0.1:'+app.address().port+'/api/v1/';
  const email='tecnico-ci-a@example.invalid',password='SenhaFicticiaCI-2026!';
@@ -89,6 +89,81 @@ test('sessao nativa: token independente, sem acesso business, 2 empresas e revog
     {headers:bearer});
   assert.equal(forged.status,200);
   assert.deepEqual((await forged.json()).items,ncItems.items);
+  // Escrita EXCLUSIVA de dados NOVOS, opt-in, sem nenhuma fila ou protocolo legado.
+  const draft={
+    inspectionType:'vistoria',title:'Vistoria NATIVA CI fictícia',
+    description:'Somente homologação',sector:'Setor TESTE',
+    location:'Lugar TESTE',clientRequestId:'91000000-0000-4000-8000-000000000001',
+  };
+  const create=(body,route='native/drafts/inspections')=>fetch(base+route,{
+    method:'POST',headers:{...bearer,'content-type':'application/json'},
+    body:JSON.stringify(body),
+  });
+  const first=await create(draft);
+  assert.equal(first.status,201);
+  const firstBody=await first.json();
+  assert.equal(firstBody.syncEnabled,false);
+  assert.equal(firstBody.legacyQueueAcknowledged,false);
+  const id=firstBody.item.id;
+  assert.equal(firstBody.item.status,'rascunho');
+  const replay=await create(draft);
+  assert.equal(replay.status,201);
+  assert.equal((await replay.json()).item.id,id,'Reenvio nao pode duplicar vistoria');
+  const changed=await create({...draft,title:'Vistoria DIVERGENTE'});
+  assert.equal(changed.status,409);
+  assert.equal((await changed.json()).code,'IDEMPOTENCY_CONFLICT');
+  for(const wrong of [
+    {...draft,companyId:'20000000-0000-4000-8000-000000000002'},
+    {...draft,syncKey:'sync legado'}, {...draft,changes:[]},
+    {...draft,clientRequestId:'sem-id'},
+  ]){
+    const result=await create(wrong);
+    assert.equal(result.status,400);
+  }
+  const finding={
+    shortTitle:'Proteção removida CI',description:'Achado fictício',
+    recommendation:'Reinstalar proteção teste',probability:4,severity:3,
+    recurring:false,clientRequestId:'91000000-0000-4000-8000-000000000002',
+  };
+  const route='native/drafts/inspections/'+id+'/findings';
+  const found=await create(finding,route);
+  assert.equal(found.status,201);
+  const ncId=(await found.json()).item.id;
+  assert.equal((await create(finding,route)).status,201);
+  const different=await create({...finding,recommendation:'Alterada'},route);
+  assert.equal(different.status,409);
+  assert.equal((await different.json()).code,'IDEMPOTENCY_CONFLICT');
+  assert.equal((await create({...finding,clientRequestId:
+    '91000000-0000-4000-8000-000000000003'},'native/drafts/inspections/20000000-0000-4000-8000-000000000002/findings')).status,404);
+  const draftList=await fetch(base+'native/data/inspections',{headers:bearer});
+  assert.equal(draftList.status,200);
+  assert.ok((await draftList.json()).items.some(x=>x.id===id));
+  const ncList=await fetch(base+'native/data/nonconformities',{headers:bearer});
+  assert.equal(ncList.status,200);
+  assert.ok((await ncList.json()).items.some(x=>x.id===ncId));
+  // Troca sintética de vinculo: perfil cliente na empresa B nao cria nem ve A.
+  const authConn=await authPool.connect();
+  try {
+    await authConn.query('BEGIN');
+    await authConn.query('SET LOCAL ROLE sst_auth_runtime');
+    await authConn.query(
+      'UPDATE sst.native_session SET company_id=$2 WHERE token_hash=$1',
+      [h,'20000000-0000-4000-8000-000000000002']);
+    await authConn.query('COMMIT');
+  } finally {authConn.release();}
+  const tenantB=await fetch(base+'native/data/inspections',{headers:bearer});
+  assert.equal(tenantB.status,200);
+  assert.ok(!(await tenantB.json()).items.some(x=>x.id===id));
+  assert.equal((await create({...draft,clientRequestId:'91000000-0000-4000-8000-000000000004'})).status,403);
+  assert.equal((await create({...finding,clientRequestId:'91000000-0000-4000-8000-000000000005'},route)).status,403);
+  const authConn2=await authPool.connect();
+  try {
+    await authConn2.query('BEGIN');
+    await authConn2.query('SET LOCAL ROLE sst_auth_runtime');
+    await authConn2.query('UPDATE sst.native_session SET company_id=$2 WHERE token_hash=$1',
+      [h,'10000000-0000-4000-8000-000000000001']);
+    await authConn2.query('COMMIT');
+  } finally {authConn2.release();}
   for(const [method,path] of [
     ['POST','native/data/nonconformities'],
     ['PATCH','native/data/inspections'],
@@ -107,6 +182,7 @@ test('sessao nativa: token independente, sem acesso business, 2 empresas e revog
   assert.equal(logout.status,200);
   assert.equal((await fetch(base+'native/auth/session',{headers:bearer})).status,401);
   assert.equal((await fetch(base+'native/data/nonconformities',{headers:bearer})).status,401);
+  assert.equal((await create({...draft,clientRequestId:'91000000-0000-4000-8000-000000000006'})).status,401);
   assert.equal((await fetch(base+'native/auth/logout',{method:'POST',headers:bearer})).status,401);
   // A role de dados RLS nao deve poder consultar tokens nativos nem senhas.
   const direct=await dataPool.connect();

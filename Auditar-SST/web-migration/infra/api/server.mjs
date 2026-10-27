@@ -12,13 +12,15 @@ import { createEvidenceService } from './evidenceService.mjs';
 import { createReportService } from './reportService.mjs';
 import { createTrainingReportService } from './trainingReportService.mjs';
 import {legacyCompatibilityCapabilities,inspectLegacyManifest} from './legacyCompatibility.mjs';
+import {nativeDraftPayload} from './nativeDraftContract.mjs';
 
 /**
  * Auth NOVA opcional, injetada internamente na homologacao.
  * Sem authService e sem resolvePrincipal, nao ha nenhuma rota de negocios livre.
  * NUNCA montar resolvePrincipal a partir de headers x-company-id/x-role.
  */
-export function createApp({pool, authService, nativeAuthService, resolvePrincipal, evidenceDir} = {}) {
+export function createApp({pool, authService, nativeAuthService, nativeDraftsEnabled=false, resolvePrincipal, evidenceDir} = {}) {
+  if(nativeDraftsEnabled && !nativeAuthService)throw new Error('Rascunho nativo exige sessao nativa verificada');
   if (authService && resolvePrincipal) {
     throw new Error('Nao misturar autenticador real com resolver de teste');
   }
@@ -68,6 +70,25 @@ export function createApp({pool, authService, nativeAuthService, resolvePrincipa
         send(200,{ok:true,service:'auditar-sst-web',environment:'homologacao-isolada',
           productionDataConnected:false});
         return;
+      }
+
+      // Criacao NATIVA de rascunhos NOVOS, segundo opt-in INDEPENDENTE.
+      // Sem sync Flutter, sem dados legados, sem trocas de empresa ou ACK da fila.
+      const nativeCreate=pathname==='/api/v1/native/drafts/inspections';
+      const nativeFinding=pathname.match(
+        /^\/api\/v1\/native\/drafts\/inspections\/([0-9a-f-]{36})\/findings$/i);
+      if(nativeCreate||nativeFinding){
+        if(!nativeAuthService||!nativeDraftsEnabled){
+          send(404,{ok:false,code:'NATIVE_DRAFTS_DISABLED'});return;
+        }
+        if(req.method!=='POST'){send(405,{ok:false,code:'METHOD_NOT_ALLOWED'});return;}
+        const p=await nativeAuthService.principal(req);
+        const body=nativeDraftPayload(await readJson(6200),
+          nativeCreate?'inspection':'finding');
+        const item=nativeCreate
+          ?await inspectionService.create(p,body)
+          :await inspectionService.addFinding(p,nativeFinding[1],body);
+        send(201,{item,syncEnabled:false,legacyQueueAcknowledged:false});return;
       }
 
       // Consultas NATIVAS SOMENTE leitura, usando dados NOVOS no tenant do token.
