@@ -18,7 +18,7 @@ import {legacyCompatibilityCapabilities,inspectLegacyManifest} from './legacyCom
  * Sem authService e sem resolvePrincipal, nao ha nenhuma rota de negocios livre.
  * NUNCA montar resolvePrincipal a partir de headers x-company-id/x-role.
  */
-export function createApp({pool, authService, resolvePrincipal, evidenceDir} = {}) {
+export function createApp({pool, authService, nativeAuthService, resolvePrincipal, evidenceDir} = {}) {
   if (authService && resolvePrincipal) {
     throw new Error('Nao misturar autenticador real com resolver de teste');
   }
@@ -68,6 +68,25 @@ export function createApp({pool, authService, resolvePrincipal, evidenceDir} = {
         send(200,{ok:true,service:'auditar-sst-web',environment:'homologacao-isolada',
           productionDataConnected:false});
         return;
+      }
+
+      // Auth NATIVA opcional: apenas login/me/logout e tokens exclusivos do app.
+      // Nenhuma rota de dados/NC/foto aceita este bearer; cookie Web fica separado.
+      const nativeLogin=pathname==='/api/v1/native/auth/login';
+      const nativeMe=pathname==='/api/v1/native/auth/session';
+      const nativeLogout=pathname==='/api/v1/native/auth/logout';
+      if(nativeLogin||nativeMe||nativeLogout){
+        if(!nativeAuthService){send(404,{ok:false,code:'NATIVE_AUTH_DISABLED'});return;}
+        if(nativeLogin&&req.method==='POST'){
+          send(200,await nativeAuthService.login(req,await readJson(1200)));return;
+        }
+        if(nativeMe&&req.method==='GET'){
+          send(200,await nativeAuthService.session(req));return;
+        }
+        if(nativeLogout&&req.method==='POST'){
+          send(200,await nativeAuthService.logout(req));return;
+        }
+        send(405,{ok:false,code:'METHOD_NOT_ALLOWED'});return;
       }
 
       // Handshake nativo estritamente informativo. NAO autentica, NAO sincroniza,

@@ -34,3 +34,8 @@ Essas flags **não fazem nada sozinhas**: ainda seria necessário chamar o clien
 5. Manter o sistema anterior preservado e utilizável. Não eliminar arquivos legados.
 
 **Sondagem conectada não significa aplicativo pronto, e não autoriza migração de dados nem publicação.**
+
+
+## Atualização: sessão nativa de backend, mas aplicativo AINDA não conectado
+
+O servidor tem o módulo opt-in `nativeAuthService.mjs` com login/consulta/logout para futura utilização por clientes nativos novos, token de 30 minutos e revogação, na migração de esquema 013. Esse código NÃO é importado pelo Flutter atual e **não autoriza** acessar dados de negócio, NC, fotos ou fila offline. Esta sonda continua um GET desativado por padrão; não colocar senha/credencial/token em código Dart ou `--dart-define`. O uso de secure storage e fluxo nativo completo exige nova etapa específica com testes físicos.

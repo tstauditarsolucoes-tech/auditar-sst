@@ -96,3 +96,8 @@ A criação de achado em `POST /api/v1/inspections/:id/findings` aceita `recomme
 `reportTextPagination.mjs` calcula quanto texto cabe em cada área pelo PDFKit e devolve o excedente sem descartar caracteres; `reportService.mjs` renderiza continuações do resumo e dos achados em páginas dedicadas. O PDF apresenta até 2 achados por página de resumo e até 2 fotos privadas por NC, cada uma numa página ampliada. `reportTextPagination.test.mjs` verifica a preservação de texto longo, inclusive sem espaços; `integration.reports.ci.test.mjs` usa descrição longa, recomendação longa, duas imagens sintéticas e testa isolamento entre empresas.
 
 Não se trata de relatório oficial Padrão Auditar 3, que ainda exige revisão visual, identidade corporativa definitiva, documentos de assinatura e aprovação técnica. Não reutilizar dados do sistema antigo.
+
+
+## Piloto 013 — Autenticação nativa separada e inativa por padrão
+
+`nativeAuthService.mjs` introduz somente login nativo com credenciais NOVAS da homologação (scrypt), controle persistente de tentativas, sessão revogável com bearer de 256 bits e hash de token no PostgreSQL. `POST /api/v1/native/auth/login` aceita somente `email` e `password`; `GET /api/v1/native/auth/session` e `POST /api/v1/native/auth/logout` exigem bearer. Sem Origin/cookie. Ativação apenas por variável explícita `AUDITAR_ENABLE_NATIVE_AUTH=PRIVATE_STAGING_NATIVE_ONLY` no servidor de homologação privada. **Não implementa API de dados, sincronização, envio de fotos, login Flutter conectado nem suporte de produção.** Os demais serviços ignoram tokens nativos. Teste `integration.native-auth.ci.test.mjs` com PostgreSQL efêmero e contas fictícias.

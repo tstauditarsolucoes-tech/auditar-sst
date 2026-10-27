@@ -63,7 +63,7 @@ Começar com o Compose **padrão, sem login**; isto cria apenas os serviços ded
 docker compose -p auditar-sst-web-hml -f compose.staging.yml up --build -d --wait
 ```
 
-Só num banco **novo e vazio**, aplicar migrações 001, 002, 003, 004, 005, 006, 007, 008, 009, 010, 011 e 012 nessa ordem, uma única vez:
+Só num banco **novo e vazio**, aplicar migrações 001, 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012 e 013 nessa ordem, uma única vez:
 
 ```bash
 docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
@@ -101,6 +101,9 @@ docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
 
 docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
   psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/012_training_attendance_draft.sql
+
+docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
+  psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/013_native_auth_pilot.sql
 ```
 
 **Não executar** arquivos em `db/tests/seed_*.sql` na VPS. Eles contêm identidades e senhas fictícias públicas **exclusivas da CI descartável**.
@@ -264,3 +267,10 @@ O piloto continua identificado como HOMOLOGAÇÃO, **não é o Padrão Auditar 3
 ## Diagnóstico Dart nativo, opcional e sem escrita
 
 O novo endpoint `GET /api/v1/native/handshake` não exige login, não revela dados de empresas nem permite escrita. É apenas um handshake para futuras versões de testes, com `native.syncEnabled=false`, `native.writesEnabled=false`, `native.authentication=not-implemented` e `productionDataConnected=false`. O código Dart em `../native/flutter_probe` NÃO está conectado ao Android/Windows instalado e está desativado por padrão. Não mexer na configuração do Apps Script, não usar o domínio atual, não provisionar contas reais. Para consultar a sonda de modo privado, o Júlio pode abrir o endpoint HTTPS na homologação sem dados e verificar os campos, sem habilitar mudanças de servidor no aplicativo.
+
+
+## Autenticação Nativa (piloto 013) — SOMENTE login/consulta/logout
+
+A nova tabela `sst.native_session` armazena somente SHA-256 de tokens aleatórios, empresa e usuário NOVOS, expiração de **30 minutos**, revogação e vínculo ativo com conta. Usa **conta auth restrita**, e reutiliza credenciais criadas no PostgreSQL de homologação (jamais contas/cookies Apps Script). Endpoints `POST /api/v1/native/auth/login`, `GET /api/v1/native/auth/session` e `POST /api/v1/native/auth/logout` aceitam `Authorization: Bearer ...` (exceto login) e NÃO dão acesso às rotas Web de dados. Origin/cookie Web são recusados no subsistema nativo. Contador de tentativas por identidade é compartilhado com o login Web.
+
+**OFF POR PADRÃO:** mesmo com o Docker privado e Web funcionando, essas rotas respondem 404 sem a variável `AUDITAR_ENABLE_NATIVE_AUTH=PRIVATE_STAGING_NATIVE_ONLY` passada somente ao serviço privado de teste. **Não habilite isso na VPS sem revisar HTTPS, política de uso de credenciais nativas, conta/segredos e plano de testes.** A sonda Dart permanece independente/desligada, APK e EXE antigos não foram recompilados. Tokens nativos ainda **não autorizam** escrever/ler NCs, vistorias, fotos, arquivos, ou emitir relatórios. Falta implementar esses recursos com controles específicos antes de compilar. O projeto não importa dados antigos.

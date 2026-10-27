@@ -185,3 +185,17 @@ test('handshake nativo e somente leitura e informa que sincronizacao esta bloque
   }
  });
 });
+
+test('Login nativo permanece desligado quando servidor inicia normalmente',async()=>{
+ await withServer(async base=>{
+  for(const [method,path] of [
+   ['POST','/api/v1/native/auth/login'],
+   ['GET','/api/v1/native/auth/session'],
+   ['POST','/api/v1/native/auth/logout'],
+  ]){
+   const r=await fetch(base+path,{method});
+   assert.equal(r.status,404);
+   assert.equal((await r.json()).code,'NATIVE_AUTH_DISABLED');
+  }
+ });
+});

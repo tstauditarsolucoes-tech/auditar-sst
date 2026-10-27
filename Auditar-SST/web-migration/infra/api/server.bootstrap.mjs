@@ -6,6 +6,7 @@ import { readFile } from 'node:fs/promises';
 import pg from 'pg';
 import { createApp } from './server.mjs';
 import { createAuthService } from './authService.mjs';
+import { createNativeAuthService } from './nativeAuthService.mjs';
 
 function configuration() {
   if (typeof process.getuid==='function' && process.getuid()===0) {
@@ -93,7 +94,11 @@ try {
   throw error;
 }
 const authService=createAuthService({pool:authPool,allowedOrigin:config.allowedOrigin});
-const server=createApp({pool:dataPool,authService,evidenceDir:config.evidenceDir});
+// Opt-in separado e explicito, por padrão INATIVO até na VPS privada.
+const nativeAuthService=process.env.AUDITAR_ENABLE_NATIVE_AUTH==='PRIVATE_STAGING_NATIVE_ONLY'
+  ?createNativeAuthService({pool:authPool}):undefined;
+const server=createApp({pool:dataPool,authService,nativeAuthService,
+  evidenceDir:config.evidenceDir});
 let closing=false;
 async function close() {
   if (closing) return;

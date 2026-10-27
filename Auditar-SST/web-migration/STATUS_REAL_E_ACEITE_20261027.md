@@ -27,7 +27,7 @@ Android APK Flutter, Windows EXE Flutter e nova Web React/TypeScript devem compa
 | Central ADM e última atividade da Web | Piloto e CI |
 | Fotos privadas JPEG/PNG/WebP no Docker | Piloto e CI, máximo 2 MB |
 | PDF de vistoria de teste | Candidato com texto excedente em páginas de continuação e até 2 fotos/NC ampliadas; validação visual e Padrão Auditar 3 ainda pendentes |
-| Android/Windows existentes | Preservados; sonda Dart de leitura opcional, DESLIGADA, sem autenticação ou sincronização |
+| Android/Windows existentes | Preservados; sonda Dart desligada. Backend com autenticação nativa piloto 013 também desligada, SEM sincronização ou conexão dos apps |
 
 ## Primeiro passo disponível para inventário de cópias
 

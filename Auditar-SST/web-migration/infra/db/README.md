@@ -100,3 +100,8 @@ Executar depois da migração 008 e somente em PostgreSQL NOVO de teste, uma vez
 ## Migração 012 — Participantes declarados, sem assinatura
 
 Apenas PostgreSQL NOVO de homologação. `012_training_attendance_draft.sql` depende de 001–011. Cria `sst.training_attendance` (até 100 por evento via API) com FK composta empresa/treinamento, RLS forçado e somente inclusão para o runtime. **Não contém certificado, CPF, assinatura ou prova de comparecimento** e não importa dados de Apps Script/Drive. Não carregar nomes reais até homologação jurídica/técnica e procedimentos LGPD.
+
+
+## Migração 013 — Token separado para futura autenticação Android/Windows
+
+Executar no PostgreSQL NOVO de testes após 001–012. `013_native_auth_pilot.sql` cria `sst.native_session` com token armazenado por hash SHA-256, expiração de 30 minutos, revogação, chaves empresa/usuário e grants apenas ao `sst_auth_runtime`. Nenhum dado de autenticação Flutter/Apps Script é importado. Ainda NÃO há protocolo de sincronização nativo e o serviço está desligado por padrão, inclusive em homologação privada.
