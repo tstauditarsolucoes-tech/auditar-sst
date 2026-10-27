@@ -71,6 +71,20 @@ export function WebAuthPilot() {
   const [severity, setSeverity] = useState(3);
   const [note, setNote] = useState('');
   const [actionId, setActionId] = useState<string | null>(null);
+  const [workspaceTab, setWorkspaceTab] = useState<'pendencias'|'vistorias'|'agenda'|'planos'|'atendimento'|'gestao'>('pendencias');
+  const workspaceItems = [
+    {id:'pendencias',label:'Não conformidades'},
+    {id:'vistorias',label:'Vistorias e Ronda'},
+    {id:'agenda',label:'Agenda SST'},
+    {id:'planos',label:'Plano de Ação'},
+    {id:'atendimento',label:'Atendimento'},
+    {id:'gestao',label:'Central ADM'},
+  ] as const;
+  const allowedItems = workspaceItems.filter(item =>
+    item.id==='pendencias'||item.id==='atendimento' ||
+    (session?.role!=='cliente'&&item.id!=='gestao') ||
+    ((session?.role==='adm'||session?.role==='gestor')&&item.id==='gestao')
+  );
 
   async function refresh() {
     const [usersCompanies, ncData] = await Promise.all([
@@ -130,7 +144,7 @@ export function WebAuthPilot() {
       'auth/company','POST',{companyId},session?.csrfToken,
     );
     setSession((current) => current ? {...current,companyId:changed.companyId,role:changed.role} : null);
-    setHistories({});setNcs([]);
+    setHistories({});setNcs([]);setWorkspaceTab('pendencias');
     await refresh();
     setMessage('Empresa de homologação alterada.');
   }
@@ -199,14 +213,25 @@ export function WebAuthPilot() {
               {companies.map((c)=><option key={c.company_id} value={c.company_id}>{c.name} ({c.role})</option>)}
             </select>
           </label>
-          <div className="auth-divider" />
-          <ClientPortalPilot key={'portal-'+session.companyId} session={session} />
-          {['adm','gestor'].includes(session.role)&&<AdminOverviewPilot key={'admin-'+session.companyId} />}
-          <div className="auth-divider" />
-          <InspectionPilot key={'inspection-'+session.companyId} session={session} />
-          {session.role!=='cliente'&&<TaskPilot key={'tasks-'+session.companyId} session={session} userId={session.user.id} />}
-          {session.role!=='cliente'&&<ActionPlanPilot key={'plans-'+session.companyId} session={session} />}
-          <div className="auth-divider" />
+          <nav className="workspace-nav" aria-label="Módulos do Auditar SST Web">
+            {allowedItems.map(item => <button key={item.id} type="button"
+              className={workspaceTab===item.id?'workspace-tab workspace-tab-active':'workspace-tab'}
+              aria-current={workspaceTab===item.id?'page':undefined}
+              disabled={busy}
+              onClick={()=>setWorkspaceTab(item.id)}>
+              {item.label}
+            </button>)}
+          </nav>
+          <p className="muted workspace-intro">Empresa selecionada: use as abas para abrir apenas o módulo desejado. Nenhum dado do aplicativo atual é carregado aqui.</p>
+          {workspaceTab==='atendimento'&&<ClientPortalPilot key={'portal-'+session.companyId} session={session} />}
+          {workspaceTab==='gestao'&&['adm','gestor'].includes(session.role)&&
+            <AdminOverviewPilot key={'admin-'+session.companyId} />}
+          {workspaceTab==='vistorias'&&<InspectionPilot key={'inspection-'+session.companyId} session={session} />}
+          {workspaceTab==='agenda'&&session.role!=='cliente'&&
+            <TaskPilot key={'tasks-'+session.companyId} session={session} userId={session.user.id} />}
+          {workspaceTab==='planos'&&session.role!=='cliente'&&
+            <ActionPlanPilot key={'plans-'+session.companyId} session={session} />}
+          {workspaceTab==='pendencias'&&<>
           {session.role !== 'cliente' && (
             <form className="auth-form" onSubmit={(event)=>{event.preventDefault();void run(createNc);}}>
               <h3>Criar NC de teste</h3>
@@ -287,6 +312,7 @@ export function WebAuthPilot() {
               </article>
             ))}
           </div>
+          </>}
         </>
       )}
     </section>
