@@ -1,0 +1,235 @@
+import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
+
+import '../brand.dart';
+import '../database.dart';
+import '../models.dart';
+import 'improvements_screen.dart';
+import 'new_inspection_screen.dart';
+
+class FieldQuickScreen extends StatefulWidget {
+  const FieldQuickScreen({super.key});
+
+  @override
+  State<FieldQuickScreen> createState() => _FieldQuickScreenState();
+}
+
+class _FieldQuickScreenState extends State<FieldQuickScreen> {
+  final _name = TextEditingController();
+  final _cnpj = TextEditingController();
+  final _location = TextEditingController();
+  bool _busy = false;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _cnpj.dispose();
+    _location.dispose();
+    super.dispose();
+  }
+
+  Future<void> _startStandaloneInspection() async {
+    final name = _name.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Informe o cliente ou local da vistoria.')),
+      );
+      return;
+    }
+
+    setState(() => _busy = true);
+    try {
+      final id = const Uuid().v4();
+      final company = Company(
+        id: 'field_$id',
+        name: name,
+        cnpj: _cnpj.text.trim().isEmpty ? null : _cnpj.text.trim(),
+        city: _location.text.trim().isEmpty ? null : _location.text.trim(),
+        active: false,
+      );
+      await AppDatabase.instance.insertCompany(company);
+
+      final sector = Sector(
+        id: 'field_sector_$id',
+        companyId: company.id,
+        name: 'Local visitado',
+        description: _location.text.trim(),
+        active: true,
+      );
+      await AppDatabase.instance.insertSector(sector);
+
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => NewInspectionScreen(
+            initialCompany: company,
+            fieldMode: true,
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _openStandaloneDialog() async {
+    _name.clear();
+    _cnpj.clear();
+    _location.clear();
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Vistoria avulsa'),
+        content: SizedBox(
+          width: 460,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _name,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Cliente ou local *',
+                  hintText: 'Ex.: Obra Alphaville Q13',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _cnpj,
+                decoration: const InputDecoration(
+                  labelText: 'CNPJ',
+                  hintText: 'Opcional',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _location,
+                decoration: const InputDecoration(
+                  labelText: 'Endereço / referência',
+                  hintText: 'Opcional',
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Esse registro fica como avulso e não aparece na lista de empresas cadastradas.',
+                style: TextStyle(fontSize: 11.5, color: Colors.black54),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: _busy
+                ? null
+                : () async {
+                    Navigator.pop(dialogContext);
+                    await _startStandaloneInspection();
+                  },
+            child: const Text('Continuar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Campo rápido')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [AuditarBrand.navyDark, AuditarBrand.navy],
+              ),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.location_on_outlined, color: Colors.white),
+                    SizedBox(width: 8),
+                    Text(
+                      'Campo rápido',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 17,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 6),
+                Text(
+                  'Use quando a visita ainda não pertence a uma empresa cadastrada.',
+                  style: TextStyle(color: Colors.white70),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          _actionCard(
+            icon: Icons.fact_check_outlined,
+            title: 'Vistoria avulsa',
+            subtitle: 'Faça checklist e relatório sem cadastrar a empresa na sua carteira.',
+            onTap: _busy ? null : _openStandaloneDialog,
+          ),
+          _actionCard(
+            icon: Icons.business_outlined,
+            title: 'Vistoria em empresa cadastrada',
+            subtitle: 'Escolha empresa e PGR antes de iniciar.',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const NewInspectionScreen()),
+            ),
+          ),
+          _actionCard(
+            icon: Icons.auto_awesome_outlined,
+            title: 'Registrar melhoria',
+            subtitle: 'Guarde uma melhoria ou oportunidade identificada em campo.',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ImprovementsScreen()),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _actionCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback? onTap,
+  }) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+        leading: Container(
+          width: 46,
+          height: 46,
+          decoration: BoxDecoration(
+            color: AuditarBrand.navySoft,
+            borderRadius: BorderRadius.circular(13),
+          ),
+          child: Icon(icon, color: AuditarBrand.navy),
+        ),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+        subtitle: Text(subtitle),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: onTap,
+      ),
+    );
+  }
+}

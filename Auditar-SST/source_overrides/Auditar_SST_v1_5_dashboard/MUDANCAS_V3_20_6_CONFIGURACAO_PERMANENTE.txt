@@ -1,0 +1,22 @@
+AUDITAR SST v3.20.6
+
+CONFIGURAÇÃO PERMANENTE DA CENTRAL ONLINE
+
+- A URL permanente do Google Apps Script e a chave de sincronização agora
+  podem ser incluídas automaticamente durante a compilação.
+- Em novas instalações, atualizações e outros aparelhos, não é mais necessário
+  preencher novamente os dois campos.
+- Quando a configuração permanente está presente, os campos são substituídos
+  por uma confirmação simples na tela de Configurações.
+- Painel Gerencial, CIPA, Google Drive, Assistente IA e importações continuam
+  usando a mesma Central Online.
+- O preenchimento manual continua disponível como segurança em compilações
+  feitas sem a configuração permanente.
+
+CONFIGURAÇÃO DO GITHUB ACTIONS
+
+Segredo do repositório:
+  AUDITAR_SYNC_KEY
+
+A URL permanente do Apps Script já está incluída no aplicativo. O parâmetro
+AUDITAR_APPS_SCRIPT_URL continua disponível apenas para uma futura troca de URL.

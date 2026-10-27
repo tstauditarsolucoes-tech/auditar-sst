@@ -1,0 +1,17 @@
+AUDITAR SST v3.21.1
+
+FUNCOES VISIVEIS E VERSAO DE COMPUTADOR COMPLETA
+
+- A tela do celular voltou a mostrar diretamente todos os módulos do app.
+- Trabalhadores, treinamentos, alertas, CIPA, checklists, Rotina SST,
+  melhorias e indicadores não ficam mais escondidos dentro de Gestão SST.
+- A coleta em campo mantém acessos rápidos para empresas, vistorias,
+  não conformidades e planos de ação.
+- A versão Windows ganhou navegação lateral permanente e painel inicial amplo.
+- No computador, todos os módulos gerenciais ficam visíveis ao mesmo tempo.
+- Recursos específicos, como obras, setores, extintores, atos e condições,
+  documentos e painel gerencial, continuam organizados dentro de cada empresa.
+- A sincronização automática da versão 3.21.0 foi preservada.
+- Nenhum cadastro, histórico, checklist, relatório ou regra foi removido.
+
+Versão: 3.21.1+70.

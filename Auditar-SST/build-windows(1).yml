@@ -1,0 +1,96 @@
+name: Gerar Windows Auditar SST
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "Auditar_SST_v1.5_dashboard_completo.zip"
+      - ".github/workflows/build-windows.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    name: Compilar Auditar SST para Windows
+    runs-on: windows-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Baixar arquivos
+        uses: actions/checkout@v4
+
+      - name: Extrair projeto
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path app | Out-Null
+          Expand-Archive -Path "Auditar_SST_v1.5_dashboard_completo.zip" -DestinationPath app -Force
+
+      - name: Instalar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Preparar Windows
+        shell: pwsh
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+
+          $pubspec = Get-Content pubspec.yaml -Raw
+          $pubspec = $pubspec -replace 'archive: \^4\.2\.0', 'archive: ^4.0.9'
+          $pubspec = $pubspec -replace 'file_picker: \^8\.1\.7', 'file_picker: ^10.3.8'
+          Set-Content pubspec.yaml $pubspec -Encoding UTF8
+
+          flutter pub get
+          flutter doctor -v
+
+      - name: Compilar versão Windows
+        shell: pwsh
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: flutter build windows --release
+
+      - name: Preparar pacote para PC
+        shell: pwsh
+        run: |
+          $release = "app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Release"
+          if (!(Test-Path $release)) {
+            throw "Pasta de compilação Windows não encontrada: $release"
+          }
+
+          $exe = Get-ChildItem -Path $release -Filter *.exe | Select-Object -First 1
+          if ($null -eq $exe) {
+            throw "Executável Windows não encontrado."
+          }
+
+          if ($exe.Name -ne "Auditar SST.exe") {
+            Rename-Item -Path $exe.FullName -NewName "Auditar SST.exe"
+          }
+
+          $destino = "Auditar-SST-Windows"
+          New-Item -ItemType Directory -Force -Path $destino | Out-Null
+          Copy-Item -Path "$release/*" -Destination $destino -Recurse -Force
+
+          @"
+          AUDITAR SST - WINDOWS
+
+          1. Extraia todos os arquivos deste pacote para uma pasta do computador.
+          2. Abra o arquivo "Auditar SST.exe".
+          3. Não mova somente o .exe: mantenha os demais arquivos na mesma pasta.
+
+          Esta versão foi gerada a partir do mesmo projeto Flutter usado no aplicativo Android.
+          "@ | Set-Content "$destino/LEIA-ME.txt" -Encoding UTF8
+
+          Compress-Archive -Path "$destino/*" -DestinationPath "Auditar-SST-Windows.zip" -Force
+
+      - name: Disponibilizar versão para PC
+        uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-Windows
+          path: Auditar-SST-Windows.zip
+          if-no-files-found: error
+          retention-days: 14

@@ -1,0 +1,16 @@
+AUDITAR EPI — ATIVAR SINCRONIZAÇÃO CAMPO + GESTÃO
+
+No arquivo Code.gs, dentro de function doPost(e), logo depois de validar AUDITAR_SYNC_KEY e antes do return "Requisição inválida", adicione:
+
+    if (request.action === 'epi_sync_merge') {
+      if (request.syncKey !== expectedKey) return jsonResponse_({ok: false, message: 'Chave de sincronização inválida.'});
+      return jsonResponse_(epiSyncMerge_(request));
+    }
+
+Depois:
+1. Crie no mesmo projeto Apps Script um arquivo chamado EpiSync.gs e cole o conteúdo do arquivo EpiSync.gs deste repositório.
+2. Salve.
+3. Execute configurarAuditarEpi() uma vez e autorize o Drive, se solicitado.
+4. Em Implantar > Gerenciar implantações > Editar > Nova versão > Implantar.
+
+A URL /exec permanece a mesma. A mesma AUDITAR_SYNC_KEY do Auditar SST é usada pelas versões Campo e Gestão.
