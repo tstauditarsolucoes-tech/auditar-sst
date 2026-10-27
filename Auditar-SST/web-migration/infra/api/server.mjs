@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { ApiError, createNcService } from './ncService.mjs';
+import { createInspectionService } from './inspectionService.mjs';
 
 /**
  * Auth NOVA opcional, injetada internamente na homologacao.
@@ -13,6 +14,7 @@ export function createApp({pool, authService, resolvePrincipal} = {}) {
     throw new Error('Nao misturar autenticador real com resolver de teste');
   }
   const ncService=createNcService(pool);
+  const inspectionService=createInspectionService(pool);
   return createServer(async (req,res)=>{
     const pathname=new URL(req.url || '/', 'http://localhost').pathname;
     res.setHeader('Content-Type','application/json; charset=utf-8');
@@ -80,6 +82,47 @@ export function createApp({pool, authService, resolvePrincipal} = {}) {
           const result=await authService.logout(req);
           res.setHeader('Set-Cookie',result.cookie);
           send(200,result.body);
+          return;
+        }
+      }
+
+      // Vistorias NOVAS na base dedicada de homologacao: nunca usar headers de identidade.
+      const inspectionCollection=pathname==='/api/v1/inspections';
+      const inspectionPath=pathname.match(
+        /^\/api\/v1\/inspections\/([a-f0-9-]{36})(?:\/(findings|complete))?$/i,
+      );
+      if ((inspectionCollection||inspectionPath)&&['GET','POST','PATCH'].includes(req.method)) {
+        const resolver=authService
+          ? authService.resolvePrincipal.bind(authService)
+          : resolvePrincipal;
+        const principal=typeof resolver==='function' ? await resolver(req) : null;
+        if (!principal) {
+          send(401,{ok:false,code:'UNAUTHENTICATED'});
+          return;
+        }
+        if (req.method!=='GET'&&authService) authService.requireMutation(req);
+        if (inspectionCollection&&req.method==='GET') {
+          send(200,{items:await inspectionService.list(principal)});
+          return;
+        }
+        if (inspectionPath&&!inspectionPath[2]&&req.method==='GET') {
+          send(200,await inspectionService.get(principal,inspectionPath[1]));
+          return;
+        }
+        if (inspectionCollection&&req.method==='POST') {
+          send(201,{item:await inspectionService.create(principal,await readJson())});
+          return;
+        }
+        if (inspectionPath&&!inspectionPath[2]&&req.method==='PATCH') {
+          send(200,{item:await inspectionService.update(principal,inspectionPath[1],await readJson())});
+          return;
+        }
+        if (inspectionPath?.[2]==='findings'&&req.method==='POST') {
+          send(201,{item:await inspectionService.addFinding(principal,inspectionPath[1],await readJson())});
+          return;
+        }
+        if (inspectionPath?.[2]==='complete'&&req.method==='POST') {
+          send(200,{item:await inspectionService.complete(principal,inspectionPath[1])});
           return;
         }
       }

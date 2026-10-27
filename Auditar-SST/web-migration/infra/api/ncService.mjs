@@ -76,7 +76,7 @@ export function createNcService(pool) {
     list(principal) {
       return withTenant(pool, principal, async (db, p) => {
         const result = await db.query(
-          'SELECT id, description, probability, severity, recurring, status, created_at, updated_at ' +
+          'SELECT id, short_title, description, probability, severity, recurring, status, created_at, updated_at ' +
           'FROM sst.non_conformity WHERE company_id=$1 ORDER BY updated_at DESC, id DESC LIMIT 200',
           [p.companyId],
         );
@@ -87,15 +87,16 @@ export function createNcService(pool) {
       return withTenant(pool, principal, async (db, p) => {
         requireRole(p, ['adm','gestor','tecnico']);
         const description = textValue(payload.description, 4000, 'descricao');
+        const shortTitle = textValue(payload.shortTitle ?? '', 140, 'nome da NC', true);
         const probability = riskNumber(payload.probability, 'probabilidade');
         const severity = riskNumber(payload.severity, 'severidade');
         if (typeof payload.recurring !== 'undefined' && typeof payload.recurring !== 'boolean') {
           throw new ApiError(400, 'INVALID_INPUT', 'recorrencia invalida');
         }
         const result = await db.query(
-          'INSERT INTO sst.non_conformity (company_id,description,probability,severity,recurring,created_by) ' +
-          'VALUES ($1,$2,$3,$4,$5,$6) RETURNING id,description,status,created_at',
-          [p.companyId,description,probability,severity,payload.recurring ?? false,p.userId],
+          'INSERT INTO sst.non_conformity (company_id,short_title,description,probability,severity,recurring,created_by) ' +
+          'VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id,short_title,description,status,created_at',
+          [p.companyId,shortTitle,description,probability,severity,payload.recurring ?? false,p.userId],
         );
         await db.query(
           'INSERT INTO sst.nc_treatment_event (company_id,non_conformity_id,kind,message,created_by) ' +

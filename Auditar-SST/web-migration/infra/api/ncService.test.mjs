@@ -15,13 +15,13 @@ function fakePool(status = 'aberta') {
   const client = {
     async query(sql, params = []) {
       queries.push({sql,params});
-      if (sql.includes('RETURNING id,description,status,created_at')) {
-        return {rows:[{id:ncId,description:params[1],status:'aberta'}],rowCount:1};
+      if (sql.includes('RETURNING id,short_title,description,status,created_at')) {
+        return {rows:[{id:ncId,short_title:params[1],description:params[2],status:'aberta'}],rowCount:1};
       }
       if (sql.startsWith('SELECT status')) return {rows:[{status}],rowCount:1};
       if (sql.startsWith('SELECT id FROM sst.non_conformity')) return {rows:[{id:ncId}],rowCount:1};
       if (sql.startsWith('SELECT id,kind,message')) return {rows:[{id:'test-event',kind:'identificada'}],rowCount:1};
-      if (sql.startsWith('SELECT id, description, probability')) return {rows:[],rowCount:0};
+      if (sql.startsWith('SELECT id, short_title, description, probability')) return {rows:[],rowCount:0};
       return {rows:[],rowCount:0};
     },
     release() { released = true; },

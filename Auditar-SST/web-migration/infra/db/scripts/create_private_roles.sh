@@ -21,8 +21,8 @@ fi
 psql -X -q -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 <<'SQL'
 DO $$
 BEGIN
-  IF (SELECT count(*) FROM sst.schema_migrations WHERE version IN (1,2,3)) <> 3 THEN
-    RAISE EXCEPTION 'Migracoes SST 001,002,003 necessarias';
+  IF (SELECT count(*) FROM sst.schema_migrations WHERE version IN (1,2,3,4)) <> 4 THEN
+    RAISE EXCEPTION 'Migracoes SST 001,002,003,004 necessarias';
   END IF;
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname IN ('sst_web_data_hml','sst_web_auth_hml')) THEN
     RAISE EXCEPTION 'Roles de homologacao ja existem; nao redefinir credenciais automaticamente';

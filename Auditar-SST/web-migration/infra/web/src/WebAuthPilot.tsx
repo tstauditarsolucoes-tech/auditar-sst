@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { InspectionPilot } from './InspectionPilot';
 
 type WebSession = {
   ok: true;
@@ -11,6 +12,7 @@ type Company = { company_id: string; name: string; role: WebSession['role'] };
 type Nc = {
   id: string;
   description: string;
+  short_title: string;
   probability: number;
   severity: number;
   recurring: boolean;
@@ -60,6 +62,7 @@ export function WebAuthPilot() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [description, setDescription] = useState('');
+  const [ncShortTitle, setNcShortTitle] = useState('');
   const [probability, setProbability] = useState(3);
   const [severity, setSeverity] = useState(3);
   const [note, setNote] = useState('');
@@ -114,15 +117,15 @@ export function WebAuthPilot() {
       'auth/company','POST',{companyId},session?.csrfToken,
     );
     setSession((current) => current ? {...current,companyId:changed.companyId,role:changed.role} : null);
-    setHistories({});
+    setHistories({});setNcs([]);
     await refresh();
     setMessage('Empresa de homologação alterada.');
   }
   async function createNc() {
     await request<{item:Nc}>('nonconformities','POST',{
-      description,probability,severity,
+      description,shortTitle:ncShortTitle,probability,severity,
     },session?.csrfToken);
-    setDescription('');
+    setDescription('');setNcShortTitle('');
     await refresh();
     setMessage('NC criada no banco de homologação.');
   }
@@ -184,9 +187,14 @@ export function WebAuthPilot() {
             </select>
           </label>
           <div className="auth-divider" />
+          <InspectionPilot key={session.companyId} session={session} />
+          <div className="auth-divider" />
           {session.role !== 'cliente' && (
             <form className="auth-form" onSubmit={(event)=>{event.preventDefault();void run(createNc);}}>
               <h3>Criar NC de teste</h3>
+              <label>Nome da NC (opcional)
+                <input value={ncShortTitle} maxLength={140} onChange={(event)=>setNcShortTitle(event.target.value)} placeholder="Ex.: Proteção removida" />
+              </label>
               <label>Descrição
                 <textarea value={description} maxLength={4000} rows={3} required
                   onChange={(event)=>setDescription(event.target.value)} placeholder="Somente situação fictícia" />
@@ -216,7 +224,8 @@ export function WebAuthPilot() {
             {ncs.map((nc)=>(
               <article key={nc.id} className="nc-card">
                 <p className="nc-code">{nc.id}</p>
-                <h3>{nc.description}</h3>
+                <h3>{nc.short_title||nc.description}</h3>
+                {nc.short_title&&<p className="muted">{nc.description}</p>}
                 <p className="muted">Probabilidade {nc.probability} × Severidade {nc.severity}</p>
                 <span className="status">{statusText[nc.status]}</span>
                 <div className="auth-actions">

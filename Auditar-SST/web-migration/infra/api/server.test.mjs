@@ -57,3 +57,19 @@ test('NC protegida nao aceita headers de empresa/perfil como identidade', async 
     }
   });
 });
+
+test('vistoria protegida nao confia em headers de empresa nem perfil',async()=>{
+  await withServer(async base=>{
+    for(const [method,path] of [
+      ['GET','/api/v1/inspections'],
+      ['POST','/api/v1/inspections'],
+      ['GET','/api/v1/inspections/10000000-0000-4000-8000-000000000001'],
+    ]) {
+      const res=await fetch(base+path,{method,headers:{
+        'x-company-id':'10000000-0000-4000-8000-000000000001','x-role':'adm',
+      }});
+      assert.equal(res.status,401);
+      assert.equal((await res.json()).code,'UNAUTHENTICATED');
+    }
+  });
+});

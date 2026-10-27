@@ -18,3 +18,18 @@
 .auth-timeline li{position:relative;padding:3px 0 15px 16px}.auth-timeline li:before{content:'';position:absolute;left:-26px;top:7px;background:#13ad86;width:9px;height:9px;border-radius:50%}
 .auth-timeline strong{text-transform:capitalize}.auth-timeline p{margin:4px 0}.auth-timeline small{color:#597184}
 @media (max-width:640px){.auth-session{flex-direction:column;align-items:stretch}.auth-numbers{flex-direction:column}.auth-pilot{min-width:0}}
+
+/* Piloto de vistorias na area autenticada de homologacao; responsivo e legivel. */
+.inspection-pilot{margin:22px 0;padding:18px;border:1px solid #cee7e2;background:#f8fcfb;border-radius:14px}
+.inspection-pilot h3,.inspection-pilot h4{color:#1b5260;margin:12px 0 10px}
+.inspection-list{display:flex;flex-direction:column;gap:9px;margin:12px 0 18px}
+.inspection-item{display:flex;gap:14px;align-items:center;justify-content:space-between;background:white;border:1px solid #d8e7eb;border-radius:10px;padding:13px 16px;overflow-wrap:anywhere}
+.inspection-item strong,.inspection-item small{display:block}.inspection-item strong{font-size:15px;color:#1e4157}
+.inspection-item small{color:#5e7582;font-size:13px;margin-top:5px}.inspection-item p{margin:7px 0 0;font-size:13px}
+.inspection-item button{flex-shrink:0}.inspection-detail{border-top:2px solid #d2e5e3;padding-top:16px}
+.inspection-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.inspection-pilot .auth-form{max-width:760px}
+.inspection-check{display:flex!important;flex-direction:row!important;gap:10px!important;align-items:center;font-size:14px;font-weight:600}
+.inspection-check input{width:19px!important;height:19px;flex:none}
+.inspection-complete{padding:16px;border-radius:10px;border:1px solid #d3e8dc;background:#effaf4;display:grid;gap:13px;margin:22px 0}
+@media(max-width:640px){.inspection-pilot{padding:12px}.inspection-two{grid-template-columns:1fr}.inspection-item{flex-direction:column;align-items:stretch}.inspection-item button{width:100%}}

@@ -55,3 +55,8 @@ docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
 `migrations/003_auth_login_limit.sql` cria `sst.auth_login_counter` (hash SHA-256 do email normalizado, contagem/janela/atualização) e grants restritos ao role de autenticação. O serviço recusa a 11ª tentativa da mesma identidade em 15 minutos e limpa o contador após login correto. Não é defesa completa contra ataques distribuídos: manter controle de acesso privado no proxy e revisar segurança antes de produção.
 
 **Provisionamento:** `db/scripts/create_private_roles.sh` só roda dentro do contêiner PostgreSQL de homologação e cria papéis separados quando as migrações 001–003 existem. Nunca passar senha como argumento de comando; segredos Docker locais `data_db_password` e `auth_db_password`. O primeiro administrador fictício é criado por `scripts/provision-first-admin.sh` apenas se a base SST estiver vazia. Ver [../GUIA_PRIVADO_JULIO.md](../GUIA_PRIVADO_JULIO.md).
+
+
+## Migração 004 — vistorias da homologação
+
+Aplicar **após** 001/002/003, somente no banco novo `auditar_web_hml`, uma vez. Acrescenta setor/local, versão de rascunho, conclusão, idempotência de envio, nome amigável da NC e linha do tempo imutável das vistorias. O `sst_app_runtime` recebe apenas operações da empresa selecionada via RLS; perfis `cliente` só leem vistorias concluídas pela API. Sem fotos, assinaturas, PDF ou dados de clientes importados nesta fase.

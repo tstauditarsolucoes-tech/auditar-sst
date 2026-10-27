@@ -21,10 +21,47 @@ const cookie=login.headers.get('set-cookie').split(';')[0];
 assert.equal(session.role,'tecnico');
 const nc=await fetch(base+'nonconformities',{headers:{cookie}});
 assert.equal(nc.status,200);
+const inspectionUnauthorized=await fetch(base+'inspections',{headers:{
+  'x-company-id':'20000000-0000-4000-8000-000000000002','x-role':'adm',
+}});
+assert.equal(inspectionUnauthorized.status,401);
+const inspectionPayload={
+  inspectionType:'vistoria',title:'Teste HTTP ficticio CI',sector:'Setor sintético',
+  location:'Local ficticio',description:'Somente CI',
+  clientRequestId:'98000000-0000-4000-8000-000000000001',
+};
+const headers={'content-type':'application/json',cookie,origin,'x-csrf-token':session.csrfToken};
+const createdInspection=await fetch(base+'inspections',{
+  method:'POST',headers,body:JSON.stringify(inspectionPayload),
+});
+assert.equal(createdInspection.status,201);
+const inspectionId=(await createdInspection.json()).item.id;
+const duplicateInspection=await fetch(base+'inspections',{
+  method:'POST',headers,body:JSON.stringify(inspectionPayload),
+});
+assert.equal((await duplicateInspection.json()).item.id,inspectionId);
+const findingResponse=await fetch(base+'inspections/'+inspectionId+'/findings',{
+  method:'POST',headers,body:JSON.stringify({
+    shortTitle:'Extintor ficticio',description:'Vencido apenas no teste',
+    probability:4,severity:4,clientRequestId:'98000000-0000-4000-8000-000000000002',
+  }),
+});
+assert.equal(findingResponse.status,201);
+const completedInspection=await fetch(base+'inspections/'+inspectionId+'/complete',{
+  method:'POST',headers,
+});
+assert.equal(completedInspection.status,200);
+const detailInspection=await fetch(base+'inspections/'+inspectionId,{headers:{cookie}});
+assert.equal(detailInspection.status,200);
+const detail=(await detailInspection.json());
+assert.equal(detail.inspection.status,'concluida');
+assert.equal(detail.findings.length,1);
 const logout=await fetch(base+'auth/logout',{
   method:'POST',headers:{cookie,origin,'x-csrf-token':session.csrfToken},
 });
 assert.equal(logout.status,200);
 const revoked=await fetch(base+'auth/session',{headers:{cookie}});
 assert.equal(revoked.status,401);
+const afterLogout=await fetch(base+'inspections',{headers:{cookie}});
+assert.equal(afterLogout.status,401);
 process.stdout.write('PRIVATE_AUTH_BOOTSTRAP_SMOKE_OK\n');
