@@ -59,6 +59,16 @@ jobs:
           docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T web sh -c 'wget -qO- http://127.0.0.1:8080/ | grep -q "Auditar SST Web"'
           docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T web sh -c 'wget -qO- http://127.0.0.1:8080/api/v1/health | grep -q productionDataConnected'
           echo 'DOCKER_SMOKE_OK'
+      - name: Aplicar esquema PostgreSQL de homologacao e testar isolamento de empresas
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
+            psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/001_initial.sql
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
+            psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/tests/tenant_isolation.sql
+          echo 'POSTGRES_MULTIEMPRESA_STAGING_OK'
       - name: Validar integracao Nginx Proxy Manager sem deploy
         shell: bash
         env:

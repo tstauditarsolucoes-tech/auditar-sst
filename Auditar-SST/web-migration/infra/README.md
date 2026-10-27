@@ -2,6 +2,8 @@
 
 **Protótipo funcional com DADOS FICTÍCIOS. Não é versão completa e NÃO usa dados de produção.**
 
+**Esquema PostgreSQL inicial:** [db/README.md](db/README.md) — tabelas de homologação para empresas, vistorias, NCs, tratativas e agenda com testes de isolamento; ainda sem autenticação ou dados reais.
+
 O pacote contém:
 - `web/`: interface React 19 + TypeScript + Vite, responsiva para computador e celular, com regras reais **portadas de Dart** para matriz de prioridade, nomes amigáveis de NCs e Assistente Offline textual (21 perfis de risco e 15 NRs sugeridas). Filtros e edição nesta tela estão funcionais, mas não persistem ao recarregar;
 - `api/`: Node.js 24, somente GET /api/v1/health;

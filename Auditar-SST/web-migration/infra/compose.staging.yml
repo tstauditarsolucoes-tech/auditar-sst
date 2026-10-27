@@ -43,6 +43,7 @@ services:
       - postgres_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./db:/db-init:ro
     networks:
       - backend
     healthcheck:
