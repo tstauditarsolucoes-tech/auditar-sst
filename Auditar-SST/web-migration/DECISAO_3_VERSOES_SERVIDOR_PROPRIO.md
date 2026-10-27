@@ -1,6 +1,8 @@
 # Decisão de arquitetura — UM Auditar SST, TRÊS interfaces, servidor próprio
 Data: 27/10/2026. Diretriz confirmada pelo proprietário (Luan/Auditar).
 
+**Decisão complementar aprovada:** todas as informações e mídias do sistema novo serão armazenadas no servidor próprio. O Drive será somente fonte legada de migração e não fará parte da arquitetura final. Ver [ARMAZENAMENTO_PROPRIO_SEM_DRIVE.md](ARMAZENAMENTO_PROPRIO_SEM_DRIVE.md).
+
 ## Objetivo de produto, sem ambiguidade
 
 **Preservar o aplicativo Auditar SST atual como produto Android e Windows e adicionar uma versão Web nativa de navegador.** As três versões devem compartilhar os mesmos dados e regras no backend da Auditar, **substituindo a dependência operacional do Google Apps Script/Central Online por serviços próprios**, após migração verificada. Não é um projeto de substituir o APK e EXE por um simples site/PWA.
@@ -17,7 +19,7 @@ O objetivo é **paridade funcional**, não igualdade de pixels entre desktop, te
 
 - API Node.js hospedada em contêiner Docker na VPS compartilhada, atrás do Nginx Proxy Manager e HTTPS.
 - PostgreSQL isolado por banco/volume próprio com migrações versionadas e backups/restauração testados.
-- Mídia privada: fotos, assinaturas, evidências e PDFs com autorização por usuário/empresa e integridade verificável.
+- Mídia privada **no servidor próprio**: fotos, assinaturas, evidências e PDFs em armazenamento de objetos privado, acessados via API com autorização por usuário/empresa e integridade verificável; sem Drive operacional. Backups criptografados em local independente da VPS.
 - Identidade e autorização: perfis cliente, técnico, gestor, ADM; vinculação por empresa e grupos; trilha de auditoria.
 - Agenda, NC, vistorias, relatórios e tratativas como serviços/contratos compartilhados pelos três clientes.
 - Um único sistema de identificação e eventos com IDs imutáveis, autoria e históricos preservados.

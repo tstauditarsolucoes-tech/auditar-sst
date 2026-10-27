@@ -2,13 +2,18 @@
 
 **Estado: primeira parte funcional migrada; não é o sistema completo nem release de produção.**
 
+**Armazenamento aprovado:** banco de dados, fotografias, assinaturas e PDFs ficarão no servidor próprio da Auditar após migração validada, sem dependência operacional de Google Drive/Apps Script. Ver [ARMAZENAMENTO_PROPRIO_SEM_DRIVE.md](ARMAZENAMENTO_PROPRIO_SEM_DRIVE.md). O Drive atual deve ser preservado até a conferência de integridade e o aceite.
+
 O objetivo é preparar uma nova tecnologia web na branch isolada `migration/preparacao-web-20261027` para o programador Júlio César Angelim. As versões Android/Windows, a Central Online e a Gestão EPI continuam intactas.
 
-**Entrega para hospedagem em ambiente de testes:** [infra/ENTREGA_JULIO_HOSPEDAGEM.md](infra/ENTREGA_JULIO_HOSPEDAGEM.md). Não substituir o domínio em uso antes de completar a migração e a homologação.\n\n## O que já foi convertido de Flutter/Dart
+**Entrega para hospedagem em ambiente de testes:** [infra/ENTREGA_JULIO_HOSPEDAGEM.md](infra/ENTREGA_JULIO_HOSPEDAGEM.md). Não substituir o domínio em uso antes de completar a migração e a homologação.
+
+## O que já foi convertido de Flutter/Dart
 
 - **Matriz de risco:** cálculo de pontuação (1 a 25), bônus de recorrência (+2, limitado a 25) e faixas Baixa/Média/Alta/Crítica portados para `infra/web/src/domain/nc.ts`.
 - **Nomes amigáveis das NCs:** normalização, limite de 80 caracteres, fallback da primeira frase, preservação do ID e da descrição original. Esta demonstração edita nomes somente em memória (sem persistência).
-- **Assistente Offline integral (parte de regras puras):** 21 famílias de risco, 15 famílias normativas (NRs sugeridas), riscos/consequências, recomendações, evidências, responsáveis e prazos portados do Dart. O resultado depende de análise humana pelo TST.\n- **Interface React + TypeScript:** dashboard responsivo, simulador de prioridade, Assistente Offline textual, filtros de NCs fictícias e edição de nomes, no diretório `infra/web/src/`.
+- **Assistente Offline integral (parte de regras puras):** 21 famílias de risco, 15 famílias normativas (NRs sugeridas), riscos/consequências, recomendações, evidências, responsáveis e prazos portados do Dart. O resultado depende de análise humana pelo TST.
+- **Interface React + TypeScript:** dashboard responsivo, simulador de prioridade, Assistente Offline textual, filtros de NCs fictícias e edição de nomes, no diretório `infra/web/src/`.
 - **Testes automatizados** das funções portadas e build de frontend na GitHub Actions.
 
 Veja os detalhes em [infra/web/MIGRACAO_DART_PARA_TYPESCRIPT.md](infra/web/MIGRACAO_DART_PARA_TYPESCRIPT.md) e os comandos Docker em [infra/README.md](infra/README.md).
@@ -17,7 +22,11 @@ Veja os detalhes em [infra/web/MIGRACAO_DART_PARA_TYPESCRIPT.md](infra/web/MIGRA
 
 Não há acesso a NCs reais, autenticação, sincronização, banco de clientes, fotos, assinaturas, relatórios/PDF, agenda, CIPA, IA, painel do cliente ou Central ADM. Backend Node responde somente no endpoint de saúde. O banco PostgreSQL de staging está vazio. A migração dos dados exigirá consentimento específico, backup, validação de permissões e homologação. Não confundir com produto pronto.
 
-## Decisão confirmada: Android, Windows e Web\n\nO objetivo **não é substituir o app instalado por um site**. São três clientes do mesmo Auditar SST: APK Android e EXE Windows atuais, preservados em aparência/fluxo/offline; mais um novo portal Web com paridade de funcionalidades. O Apps Script será substituído gradualmente por um **backend único próprio** após testes de migração e segurança. Leia [DECISAO_3_VERSOES_SERVIDOR_PROPRIO.md](DECISAO_3_VERSOES_SERVIDOR_PROPRIO.md).\n\n## Documentos técnicos para o programador
+## Decisão confirmada: Android, Windows e Web
+
+O objetivo **não é substituir o app instalado por um site**. São três clientes do mesmo Auditar SST: APK Android e EXE Windows atuais, preservados em aparência/fluxo/offline; mais um novo portal Web com paridade de funcionalidades. O Apps Script será substituído gradualmente por um **backend único próprio** após testes de migração e segurança. Leia [DECISAO_3_VERSOES_SERVIDOR_PROPRIO.md](DECISAO_3_VERSOES_SERVIDOR_PROPRIO.md).
+
+## Documentos técnicos para o programador
 
 1. [AUDITORIA_DO_CODIGO.md](AUDITORIA_DO_CODIGO.md) — diagnóstico de fontes e obstáculos de portabilidade.
 2. [PLANO_DE_MIGRACAO.md](PLANO_DE_MIGRACAO.md) — plano de arquitetura e etapas com critérios de aceite.

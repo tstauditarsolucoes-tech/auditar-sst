@@ -5,6 +5,8 @@
 
 ## 1. O produto que a Auditar quer receber
 
+**Armazenamento principal definido:** PostgreSQL e mídia privada (fotos, assinaturas, PDFs) integralmente no servidor próprio; **não usar Google Drive na arquitetura final**. O Drive atual permanece intocado para migração auditada. Júlio deve dimensionar espaço e backups independentes conforme [../ARMAZENAMENTO_PROPRIO_SEM_DRIVE.md](../ARMAZENAMENTO_PROPRIO_SEM_DRIVE.md).
+
 **Um Auditar SST com três clientes**: Android APK Flutter atual, Windows instalador EXE Flutter atual e nova Web React responsiva, conectados futuramente à MESMA API Node/PostgreSQL. A arquitetura oficial está em [../DECISAO_3_VERSOES_SERVIDOR_PROPRIO.md](../DECISAO_3_VERSOES_SERVIDOR_PROPRIO.md). Manter fluxo visual e offline das versões instaladas; migrar a comunicação com a Central Online/Apps Script progressivamente e com testes. Nenhuma funcionalidade das versões originais deve desaparecer por causa do servidor novo.
 
 ## 2. O que esta branch contém hoje
@@ -82,7 +84,7 @@ bash scripts/smoke-staging.sh --npm
 
 **Ainda não atendidos:**
 1. Backend Node com autenticação, controle multiempresa, auditoria e API SST completa, testado contra acesso indevido.
-2. Esquema de banco/versionamento, backup automático, ensaio de recuperação, armazenamento de mídia privado e integridade de anexos.
+2. Esquema de banco/versionamento, backup automático fora da VPS, ensaio de recuperação, armazenamento privado de mídia dentro do servidor e integridade de anexos.
 3. Migração funcional Web: vistorias, NCs/tratativas, agenda, relatórios, fotos, assinaturas, painel Cliente, ADM, CIPA e módulos em uso.
 4. Adaptar Android e Windows à nova API mantendo offline, testar uploads/filas/conflitos e instalar versões de homologação em aparelhos reais.
 5. Ensaiar migração legada sem perdas e compatibilidade entre os três clientes.

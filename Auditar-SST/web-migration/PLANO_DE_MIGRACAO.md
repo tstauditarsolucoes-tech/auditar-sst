@@ -1,10 +1,14 @@
 # Roteiro de migração para 3 interfaces e servidor próprio
 
-**Diretriz atual:** preservar Android e Windows instalados (Flutter), acrescentar Web (React) e fazer as três versões usarem a mesma API em servidor próprio; descontinuar o Apps Script apenas após migração e homologação. Leia primeiro [DECISAO_3_VERSOES_SERVIDOR_PROPRIO.md](DECISAO_3_VERSOES_SERVIDOR_PROPRIO.md).\n\n**Proposta técnica não implantada.** Prioridade: não perder registros/fotos/assinaturas nem interromper Android e Windows.
+**Diretriz atual:** preservar Android e Windows instalados (Flutter), acrescentar Web (React) e fazer as três versões usarem a mesma API em servidor próprio; descontinuar o Apps Script apenas após migração e homologação. Leia primeiro [DECISAO_3_VERSOES_SERVIDOR_PROPRIO.md](DECISAO_3_VERSOES_SERVIDOR_PROPRIO.md).
+
+**Proposta técnica não implantada.** Prioridade: não perder registros/fotos/assinaturas nem interromper Android e Windows.
 
 ## Infraestrutura confirmada em 27/10/2026
 
 O programador informou uma VPS compartilhada com Docker, Node.js e bancos em contêiner disponíveis. A primeira base de homologação está em infra/ e foi projetada sem publicar portas no host, sem dados de cliente e sem conexão com a Central atual. Essa confirmação **não autoriza** implantação em produção nem alteração dos outros sistemas da VPS.
+
+**Armazenamento final escolhido:** 100% próprio (PostgreSQL + arquivos privados no servidor), sem Drive como storage operacional. Drive atual preservado até migração, conferência e aceite. Ver [ARMAZENAMENTO_PROPRIO_SEM_DRIVE.md](ARMAZENAMENTO_PROPRIO_SEM_DRIVE.md).
 
 ## 1. Arquitetura sugerida
 
