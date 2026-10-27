@@ -30,7 +30,7 @@ test('health responde com ambiente isolado e sem dados de producao', async () =>
 
 test('outras rotas nao simulam login nem dados reais', async () => {
   await withServer(async base => {
-    for (const pathname of ['/api/v1/session', '/api/v1/companies', '/api/v1/nonconformities']) {
+    for (const pathname of ['/api/v1/session', '/api/v1/companies']) {
       const res = await fetch(base + pathname);
       assert.equal(res.status, 404);
       assert.equal((await res.json()).code, 'NOT_IMPLEMENTED');
@@ -42,5 +42,18 @@ test('health nao aceita escrita', async () => {
   await withServer(async base => {
     const res = await fetch(base + '/api/v1/health', { method: 'POST' });
     assert.equal(res.status, 404);
+  });
+});
+
+test('NC protegida nao aceita headers de empresa/perfil como identidade', async () => {
+  await withServer(async base => {
+    for (const method of ['GET','POST']) {
+      const res = await fetch(base + '/api/v1/nonconformities', {
+        method,
+        headers: {'x-company-id':'10000000-0000-4000-8000-000000000001','x-role':'adm'},
+      });
+      assert.equal(res.status, 401);
+      assert.equal((await res.json()).code, 'UNAUTHENTICATED');
+    }
   });
 });
