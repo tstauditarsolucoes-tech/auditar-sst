@@ -14,11 +14,11 @@
 | Componente | Entregue agora | Limitação |
 | --- | --- | --- |
 | Web | React/TypeScript/Vite, layout celular/PC, matriz de risco e título amigável de NC migrados de Dart | NCs demonstrativas em memória, não existe CRUD real |
-| API | Node.js 24, health e lógica/rotas de NCs: criar, listar, histórico, informar/validar/rejeitar correções; testes com pool simulado | Sem autenticação real ou conexão de banco configurada: rotas de NC retornam 401 por segurança |
-| Banco | PostgreSQL 17, migração 001: empresas, vínculos, vistorias, NCs, histórico, evidências (metadados), tarefas, auditoria e RLS multiempresa | Ainda sem credenciais, dados reais, backup operacional ou upload privado |
+| API | Node.js 24, NCs e módulo NOVO de autenticação web com sessão por cookie seguro, permissões por empresa e CSRF; integração testada contra banco efêmero | O serviço Docker continua sem configurar pools/login: rotas protegidas retornam 401 até hardening e implantação específica |
+| Banco | PostgreSQL 17, migrações 001 e 002: domínio SST/RLS e tabelas separadas de credenciais/sessões para web | Ainda sem usuários reais, secrets de operação, backup real ou upload privado |
 | Proxy | Nginx serve React e repassa /api/ internamente | Sem acesso público ou certificado neste pacote |
 | Docker | Compose isolado, nenhum host port, segredo via arquivo externo | Não conectado à VPS nem ao NPM |
-| Testes | Regras TypeScript, Node NCs com pool simulado E teste ponta a ponta API×PostgreSQL real de CI efêmera, com conta restrita, duas empresas fictícias, RLS, build React e smoke Docker | Não valida sessões reais, mídias nem integrações legadas |
+| Testes | TypeScript, NCs×PostgreSQL e NOVO login×PostgreSQL de CI efêmera, troca de empresa, cookie e proteção CSRF, React e smoke Docker | Não valida contas reais, mídia, autenticação Flutter nem integrações legadas |
 
 A pasta `web/static` contém a sonda antiga, não é usada no build React. **Nenhum segredo, foto, assinatura ou dado de cliente foi enviado ao repositório público.**
 
@@ -83,7 +83,7 @@ bash scripts/smoke-staging.sh --npm
 ## 5. Critérios para a hospedagem REAL do Auditar SST
 
 **Ainda não atendidos:**
-1. Integrar backend Node a credenciais PostgreSQL de mínimo privilégio e autenticador de sessão verificado, expandir testes reais NC×PostgreSQL já preparados na CI e desenvolver toda API SST com autorização/monitoramento.
+1. Ativar com segurança a autenticação nova já prototipada em CI: contas de banco separadas, provisionamento/recuperação, rate limit, proxy HTTPS, testes reais com sessões e desenvolver API SST completa.
 2. Expandir esquema inicial e migrações versionadas, backup automático fora da VPS, ensaio de recuperação, armazenamento privado de mídia dentro do servidor e integridade de anexos.
 3. Migração funcional Web: vistorias, NCs/tratativas, agenda, relatórios, fotos, assinaturas, painel Cliente, ADM, CIPA e módulos em uso.
 4. Adaptar Android e Windows à nova API mantendo offline, testar uploads/filas/conflitos e instalar versões de homologação em aparelhos reais.

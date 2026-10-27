@@ -22,3 +22,12 @@ Os testes `api/ncService.test.mjs` e `api/server.test.mjs` exercitam a lógica c
 6. Homologar comportamento offline, fotos/assinaturas, backups e migração de dados antes do domínio final.
 
 O que está no GitHub é uma base de negócio e um contrato HTTP protegido por padrão. **Não afirmar que o CRUD real está acessível na VPS ou que o sistema está pronto para produção.**
+
+
+## Nova autenticação web — migração 002 (SOMENTE homologação)
+
+`infra/db/migrations/002_web_auth.sql` cria credenciais com scrypt e sessões contendo apenas hash SHA-256 do token. O novo `api/authService.mjs` valida e-mail/senha, vínculo ativo por empresa e revogação; usa cookie `__Host-` com `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/` e expiração de 8 horas, mais checagem de `Origin` HTTPS fixo e token CSRF nas mutações. A seleção de empresa consulta o vínculo real na nova base a cada troca. O role `sst_auth_runtime` recebe acesso às tabelas de autenticação **mas não a vistorias e NCs**, enquanto `sst_app_runtime` não lê senhas/sessões. São conexões separadas.
+
+**CI:** `api/integration.auth.ci.test.mjs` testa o login apenas com usuário/senha de exemplo (`example.invalid`) em PostgreSQL efêmero, autorizações, CSRF, isolamento entre empresas, troca de vínculo e logout. A seed `db/tests/seed_auth_integration_ci.sql` não deve ser usada na VPS.
+
+**Não habilitado no contêiner entregue:** o `server.mjs` continua chamando `createApp()` sem pools nem `authService`; assim, endpoints de login/NC retornam 401 por padrão. Antes da ativação, implementar configuração segura de credenciais de duas contas de DB, validação de proxy HTTPS, proteção contra força bruta/rate limiting, provisionamento e recuperação de senhas, logs de segurança, revisão de cookies/CSRF, limpeza de sessões, backup e ensaio real de homologação. Nenhuma conta legada foi importada. **Isto não é login de produção.**

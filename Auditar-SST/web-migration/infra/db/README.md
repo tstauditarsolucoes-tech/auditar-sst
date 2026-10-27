@@ -1,4 +1,4 @@
-# Banco PostgreSQL próprio — primeira migração de homologação
+# Banco PostgreSQL próprio — migrações isoladas de homologação
 
 Este módulo é o **primeiro esquema real de dados para o NOVO servidor**. **Não migra dados antigos e não modifica Apps Script, Drive, Android ou Windows.** O banco de staging continua sem empresas reais.
 
@@ -14,7 +14,7 @@ Os eventos de tratativa/auditoria são somente inseríveis pelo role runtime (se
 
 ## Como testar em homologação sem dados reais
 
-Os testes automatizados da GitHub Actions iniciam um PostgreSQL novo e isolado, executam a migração 001, criam dados fictícios dentro de uma transação e validam:
+Os testes automatizados da GitHub Actions iniciam um PostgreSQL novo e isolado, executam migrações 001 e 002, criam dados fictícios e validam:
 - Sem empresa definida: nenhuma vistoria fica visível;
 - Empresa A: não vê registros da B;
 - Empresa A: não consegue inserir vistoria B;
@@ -36,8 +36,15 @@ docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
 
 ## Ainda falta
 
-- API Node com login/autorização real, regras de mudança de status, transações, validação e auditoria.
+- Ativação segura do NOVO login web (módulo e teste CI criados, mas sem contas reais/entrypoint), provisionamento de contas, rate limiting e auditoria de autenticação; ampliar API SST.
 - Conta runtime não superuser e separação operacional entre migrador e API.
 - Armazenamento privado de bytes de foto/assinatura/PDF, antivírus/validação, backups criptografados fora da VPS.
 - Migração verificada de dados legados, endereçamento dos arquivos offline, idempotência/conflitos e testes dos três clientes.
 - Revisão de segurança independente e ensaio de restauração antes de publicar o sistema.
+
+
+## Migração 002 — login WEB isolado (não é migração de senhas antigas)
+
+`migrations/002_web_auth.sql` adiciona `sst.auth_credential` (verificador scrypt, nunca senha em claro), `sst.auth_session` (apenas hash SHA-256 de token, revogação/expiração) e `sst_auth_runtime`. Este role NÃO consulta NCs/vistorias. O role SST existente NÃO tem concessão de leitura a credenciais/sessões. A autenticação de homologação usa `SET LOCAL ROLE sst_auth_runtime` em transação e conexão distinta da API de NC.
+
+**Apenas num banco novo de homologação**, após aplicar 001 e antes de testes fictícios, aplicar 002 com usuário de MIGRAÇÃO autorizado. NÃO executar `seed_auth_integration_ci.sql` na VPS: contém identidades e senha sintéticas públicas para teste automático descartável. Não criar usuários reais sem um processo auditado de provisionamento e recuperação. Sem autenticação habilitada em produção nem migração da Central Online.
