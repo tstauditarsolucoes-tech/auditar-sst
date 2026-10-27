@@ -92,3 +92,12 @@ test('foto autenticada falha fechada sem volume nem login',async()=>{
     }
   });
 });
+
+test('PDF de vistoria exige autenticacao e nao aceita headers forjados',async()=>{
+  await withServer(async base=>{
+    const response=await fetch(base+'/api/v1/reports/inspections/10000000-0000-4000-8000-000000000001/pdf',{
+      headers:{'x-company-id':'10000000-0000-4000-8000-000000000001','x-role':'adm'},
+    });
+    assert.equal(response.status,401);
+  });
+});

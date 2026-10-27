@@ -1,6 +1,6 @@
 # Auditar SST Web — migração incremental (27/10/2026)
 
-**Estado: primeira parte funcional migrada; não é o sistema completo nem release de produção.**
+**Estado em 27/10/2026: pilotos com CI para login, NC, vistorias, agenda, Portal/ADM, fotos e PDF de teste. NÃO é o sistema completo nem release de produção.**
 
 **Armazenamento aprovado:** banco de dados, fotografias, assinaturas e PDFs ficarão no servidor próprio da Auditar após migração validada, sem dependência operacional de Google Drive/Apps Script. Ver [ARMAZENAMENTO_PROPRIO_SEM_DRIVE.md](ARMAZENAMENTO_PROPRIO_SEM_DRIVE.md). O Drive atual deve ser preservado até a conferência de integridade e o aceite.
 
@@ -18,9 +18,9 @@ O objetivo é preparar uma nova tecnologia web na branch isolada `migration/prep
 
 Veja os detalhes em [infra/web/MIGRACAO_DART_PARA_TYPESCRIPT.md](infra/web/MIGRACAO_DART_PARA_TYPESCRIPT.md) e os comandos Docker em [infra/README.md](infra/README.md).
 
-### O que NÃO foi migrado ainda
+### O que ainda NÃO foi migrado
 
-Não há acesso a NCs reais, autenticação, sincronização, banco de clientes, fotos, assinaturas, relatórios/PDF, agenda, CIPA, IA, painel do cliente ou Central ADM. Backend Node responde somente no endpoint de saúde. O banco PostgreSQL de staging está vazio. A migração dos dados exigirá consentimento específico, backup, validação de permissões e homologação. Não confundir com produto pronto.
+Nenhuma empresa, conta, NC, fotografia, assinatura ou PDF existente foi importado da Central/Drive. Há **pilotos novos na base fictícia** para web, login, NC, agenda, vistorias, Portal/ADM, fotos e PDF resumido, porém sem paridade funcional, IA completa, CIPA, DDS, assinatura, portal de produção, migração legada ou sincronização dos APK/EXE. Veja [STATUS_REAL_E_ACEITE_20261027.md](STATUS_REAL_E_ACEITE_20261027.md) para critérios verificáveis de conclusão.
 
 ## Decisão confirmada: Android, Windows e Web
 

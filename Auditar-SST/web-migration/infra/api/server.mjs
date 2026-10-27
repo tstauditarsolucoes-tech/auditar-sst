@@ -6,6 +6,7 @@ import { createInspectionService } from './inspectionService.mjs';
 import { createTaskService } from './taskService.mjs';
 import { createPortalService } from './portalService.mjs';
 import { createEvidenceService } from './evidenceService.mjs';
+import { createReportService } from './reportService.mjs';
 
 /**
  * Auth NOVA opcional, injetada internamente na homologacao.
@@ -21,6 +22,7 @@ export function createApp({pool, authService, resolvePrincipal, evidenceDir} = {
   const taskService=createTaskService(pool);
   const portalService=createPortalService(pool);
   const evidenceService=createEvidenceService(pool,evidenceDir);
+  const reportService=createReportService(pool,evidenceDir);
   return createServer(async (req,res)=>{
     const pathname=new URL(req.url || '/', 'http://localhost').pathname;
     res.setHeader('Content-Type','application/json; charset=utf-8');
@@ -92,6 +94,20 @@ export function createApp({pool, authService, resolvePrincipal, evidenceDir} = {
         }
       }
 
+
+      // PDF de vistoria concluida: download autenticado, gerado em memoria.
+      const reportPath=pathname.match(/^\/api\/v1\/reports\/inspections\/([a-f0-9-]{36})\/pdf$/i);
+      if(reportPath&&req.method==='GET'){
+        const resolver=authService?authService.resolvePrincipal.bind(authService):resolvePrincipal;
+        const principal=typeof resolver==='function'?await resolver(req):null;
+        if(!principal){send(401,{ok:false,code:'UNAUTHENTICATED'});return;}
+        const pdf=await reportService.inspectionPdf(principal,reportPath[1]);
+        res.setHeader('Content-Type','application/pdf');
+        res.setHeader('Content-Disposition','attachment; filename="auditar-sst-vistoria-hml.pdf"');
+        res.writeHead(200);
+        res.end(pdf);
+        return;
+      }
 
       // Midia de homologacao: nome privado aleatorio, sem links publicos.
       const evidenceCollection=pathname==='/api/v1/evidence';

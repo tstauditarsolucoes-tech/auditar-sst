@@ -59,3 +59,8 @@ portalService.mjs cria solicitações de apoio, mensagens com histórico imutáv
 ## Fotos no volume privado (piloto 007)
 
 api/evidenceService.mjs grava somente JPEG/PNG/WebP fictícios de até 2 MB no volume novo configurado no bootstrap HTTPS privado; arquivo tem nome aleatório, verificação básica do formato, SHA-256 e chave de idempotência. Os metadados ficam em sst.evidence, cujo tenant RLS está ativo desde 001. Endpoints GET /api/v1/evidence?inspectionId=UUID (ou nonConformityId), POST /api/v1/evidence e GET /api/v1/evidence/:id/content. Sem configuração de volume, a API nega o acesso. Não há mídia pública, uso do Drive, migração de fotos/assinaturas antigas ou assinatura digital nesta fase. Atenção a possíveis arquivos órfãos por falha após gravação: reconciliar e testar backup/restauração antes de produção.
+
+
+## PDF em memória de vistoria concluída (piloto)
+
+api/reportService.mjs usa a nova base PostgreSQL/Node, sem fontes legadas. GET /api/v1/reports/inspections/:id/pdf exige sessão, tenant e vistoria concluída; gera relatório resumido em PDF com página de capa, até dois achados/página e foto JPEG/PNG opcional vinda do volume privado. Download direto pelo navegador, sem window.print. Arquivo não persiste em disco, sem Drive, assinatura digital, log de envio ou nome/logo oficial. Não confundir com Padrão Auditar 3 homologado. Limite 30 NCs e 24 MiB para reduzir risco de consumo excessivo; requer revisar paginação, fontes e layout em aparelhos reais.

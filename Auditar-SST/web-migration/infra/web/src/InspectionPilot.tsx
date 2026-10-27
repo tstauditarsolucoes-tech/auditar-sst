@@ -264,6 +264,7 @@ export function InspectionPilot({session}:{session:PilotSession}){
         </div>
       </article>)}</div>
       {canWrite&&<EvidencePilot session={session} targetType="inspection" targetId={detail.inspection.id}/>}
+      {detail.inspection.status==='concluida'&&<p><a className="secondary-button" href={'/api/v1/reports/inspections/'+detail.inspection.id+'/pdf'} download="auditar-sst-vistoria-hml.pdf">Baixar PDF de vistoria (piloto)</a></p>}
       <h4>Histórico da vistoria</h4>
       <ol className="auth-timeline">{detail.events.map(event=><li key={event.id}>
         <strong>{event.kind.replaceAll('_',' ')}</strong>

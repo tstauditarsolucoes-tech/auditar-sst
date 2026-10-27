@@ -152,6 +152,7 @@ Criar um Proxy Host **novo** para a URL privada:
 - Registrar correção de NC no painel e validar/rejeitar pela equipe; verificar que somente gestor/ADM vê a Central Administrativa.
 - Conferir atividade Web recente na Central ADM (não indica presença do Android/Windows) e a troca de empresa.
 - Anexar foto **fictícia** de até 2 MB a NC e vistoria, abrir no painel autenticado e validar que outra empresa não acessa nem o arquivo nem seus metadados. Não carregar fotografias reais.
+- Concluir vistoria de teste com ao menos três achados e baixar PDF: capa seguida de páginas de até dois achados; conferir foto, tamanho, quebras, acentos e leitura em Android/Windows. PDF piloto não inclui assinatura e não substitui o Padrão Auditar 3.
 - Repetir o envio da vistoria com a mesma chave e confirmar que não gera duplicatas; testar rascunho em duas abas.
 - Conferir histórico e verificar que outra empresa não vê os dados anteriores.
 - Sair/entrar e conferir expiração/negação de sessões revogadas.
@@ -177,7 +178,7 @@ docker compose -p auditar-sst-web-hml -f compose.staging.yml \
 
 ### Ainda NÃO entregue em produção
 
-Vistorias/agenda/painel do cliente/ADM/fotos de teste são pilotos isolados, não integram sistemas legados; PDF, assinaturas e fotografias reais ainda não foram migrados; os apps Flutter não usam esta API; não houve transferência de dados/Drive nem homologação geral. A implantação no domínio final exigirá backup testado, auditoria de permissões, restauração, rate limiting avançado, monitoramento, tratamento de senhas, carga e aprovação expressa da Auditar.
+Vistorias/agenda/painel do cliente/ADM/fotos de teste são pilotos isolados, não integram sistemas legados; PDF definitivo Padrão Auditar 3, assinaturas e fotografias reais ainda não foram migrados; os apps Flutter não usam esta API; não houve transferência de dados/Drive nem homologação geral. A implantação no domínio final exigirá backup testado, auditoria de permissões, restauração, rate limiting avançado, monitoramento, tratamento de senhas, carga e aprovação expressa da Auditar.
 
 
 ## Armazenamento próprio: primeira entrega de homologação (007)
@@ -185,3 +186,8 @@ Vistorias/agenda/painel do cliente/ADM/fotos de teste são pilotos isolados, nã
 Fotos **fictícias** JPEG/PNG/WebP (até 2 MB) são enviadas em sessão HTTPS da web nova, armazenadas no volume nomeado `evidence_data_hml` em caminho não exposto ao NPM, e registradas no PostgreSQL com hash SHA-256, tamanho, perfil/empresa e identificador estável. Leitura exige login e escopo de empresa; não há URL pública nem cópia para Google Drive. A implementação confirma cabeçalho básico do arquivo, mas ainda exige validação mais profunda, antivírus, cotas por empresa, retenção, integridade/restauração em caso de falha entre disco e banco e estratégia de backup antes de uso real. Não colocar assinatura biométrica nem dado sensível neste piloto.
 
 **Atenção:** um backup de banco sozinho não recupera fotos; um backup de volume sozinho não recupera vínculos. Planejar cópia consistente dos dois recursos com teste de restauração. O entrypoint padrão não monta o volume de mídia e permanece fechado.
+
+
+## PDF de vistoria — piloto 008 lógico (sem nova migração SQL)
+
+O endpoint autenticado GET /api/v1/reports/inspections/:id/pdf gera PDF de vistoria **concluída** inteiramente em memória (sem arquivo persistente), com capa, nome da empresa da sessão, risco e até dois achados por página, incorporando a primeira foto JPEG/PNG de teste de cada NC, quando houver. PDFs ainda não representam o relatório profissional final, não incluem assinatura nem todas as informações do Flutter/Apps Script; fotos WebP continuam visíveis apenas no painel. Não enviar esse material de homologação a clientes nem considerar como relatório oficial. Testar visualmente e aprovar modelo antes de produção.

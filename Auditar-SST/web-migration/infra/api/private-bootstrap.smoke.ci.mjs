@@ -118,6 +118,11 @@ const photoReplay=await fetch(base+'evidence',{
   }),
 });
 assert.equal((await photoReplay.json()).replayed,true);
+const reportResponse=await fetch(base+'reports/inspections/'+inspectionId+'/pdf',{headers:{cookie}});
+assert.equal(reportResponse.status,200);
+assert.equal(reportResponse.headers.get('content-type'),'application/pdf');
+const pdfBytes=Buffer.from(await reportResponse.arrayBuffer());
+assert.equal(pdfBytes.subarray(0,5).toString('ascii'),'%PDF-');
 const logout=await fetch(base+'auth/logout',{
   method:'POST',headers:{cookie,origin,'x-csrf-token':session.csrfToken},
 });
