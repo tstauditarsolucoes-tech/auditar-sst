@@ -8,7 +8,7 @@ const png='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCA
 test('evidencia de homologacao falha fechada sem volume configurado',async()=>{
   const svc=createEvidenceService();
   await assert.rejects(svc.upload(p,{}),e=>e.code==='STORAGE_DISABLED');
-  await assert.rejects(svc.list(p,{inspectionId:userId}),e=>e.code==='STORAGE_DISABLED');
+  assert.throws(()=>svc.list(p,{inspectionId:userId}),e=>e.code==='STORAGE_DISABLED');
 });
 test('valida mime, origem e tamanho antes de tocar o banco',async()=>{
   const svc=createEvidenceService(null,'/tmp/evidencia-piloto-inexistente');
