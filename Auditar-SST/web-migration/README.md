@@ -4,7 +4,7 @@
 
 O objetivo é preparar uma nova tecnologia web na branch isolada `migration/preparacao-web-20261027` para o programador Júlio César Angelim. As versões Android/Windows, a Central Online e a Gestão EPI continuam intactas.
 
-## O que já foi convertido de Flutter/Dart
+**Entrega para hospedagem em ambiente de testes:** [infra/ENTREGA_JULIO_HOSPEDAGEM.md](infra/ENTREGA_JULIO_HOSPEDAGEM.md). Não substituir o domínio em uso antes de completar a migração e a homologação.\n\n## O que já foi convertido de Flutter/Dart
 
 - **Matriz de risco:** cálculo de pontuação (1 a 25), bônus de recorrência (+2, limitado a 25) e faixas Baixa/Média/Alta/Crítica portados para `infra/web/src/domain/nc.ts`.
 - **Nomes amigáveis das NCs:** normalização, limite de 80 caracteres, fallback da primeira frase, preservação do ID e da descrição original. Esta demonstração edita nomes somente em memória (sem persistência).

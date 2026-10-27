@@ -15,7 +15,7 @@ permissions:
 jobs:
   foundation:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -44,6 +44,21 @@ jobs:
             exit 1
           fi
           echo 'WEB_FOUNDATION_ISOLATED_OK'
+      - name: Verificar projeto com script de preflight sem deploy
+        shell: bash
+        run: |
+          cd Auditar-SST/web-migration/infra
+          bash scripts/preflight.sh
+      - name: Compilar imagens Docker e realizar smoke de homologacao isolada
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml up --build -d --wait --wait-timeout 180
+          # O smoke usa o nome de projeto de homologacao; testes diretos em CI:
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T web sh -c 'wget -qO- http://127.0.0.1:8080/ | grep -q "Auditar SST Web"'
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T web sh -c 'wget -qO- http://127.0.0.1:8080/api/v1/health | grep -q productionDataConnected'
+          echo 'DOCKER_SMOKE_OK'
       - name: Validar integracao Nginx Proxy Manager sem deploy
         shell: bash
         env:
@@ -56,3 +71,8 @@ jobs:
           docker compose -f compose.staging.yml -f compose.npm.example.yml config --format json | jq -e '.services.api.networks | has("npm_proxy") | not'
           docker compose -f compose.staging.yml -f compose.npm.example.yml config --format json | jq -e '.services.db.networks | has("npm_proxy") | not'
           echo 'NPM_OVERLAY_ISOLATION_OK'
+      - name: Encerrar containers efemeros do runner (preservar volumes)
+        if: always()
+        run: |
+          cd Auditar-SST/web-migration/infra
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml down || true

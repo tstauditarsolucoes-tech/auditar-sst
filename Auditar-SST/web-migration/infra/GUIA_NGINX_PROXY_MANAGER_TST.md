@@ -47,7 +47,7 @@ Conferir primeiro que o domínio está livre ou que a transição do serviço ex
 | Websocket Support | somente se a interface futura usar WebSocket |
 | Access control | restringir homologação a equipe autorizada; revisar impacto em login final |
 
-Atenção: **não apontar o domínio real para a página de teste como se fosse sistema final**. A interface atual só mostra o estado da API e NÃO possui login nem dados. Prefira um subdomínio exclusivo de homologação (nome definido com o dono do DNS) enquanto o endereço principal estiver em uso.
+Atenção: **não apontar o domínio real para a página de teste como se fosse sistema final**. A interface atual é um protótipo React com matriz de risco e NCs fictícias, sem login nem dados reais; NÃO é o sistema completo. Prefira um subdomínio exclusivo de homologação (nome definido com o dono do DNS) enquanto o endereço principal estiver em uso.
 
 ## 4. Checklist de segurança antes de expor qualquer rota
 

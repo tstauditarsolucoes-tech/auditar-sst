@@ -1,4 +1,4 @@
-# Primeira interface React/TypeScript do Auditar SST — Docker isolado
+# Primeira interface React/TypeScript do Auditar SST — Docker isolado\n\n**Guia operacional para Júlio:** [ENTREGA_JULIO_HOSPEDAGEM.md](ENTREGA_JULIO_HOSPEDAGEM.md) — pré-validação, smoke dos containers, integração segura com NPM e bloqueios da produção.
 
 **Protótipo funcional com DADOS FICTÍCIOS. Não é versão completa e NÃO usa dados de produção.**
 

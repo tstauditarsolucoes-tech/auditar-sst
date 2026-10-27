@@ -30,7 +30,7 @@ Julio deverá identificar e registrar **fora do Git público**:
 6. Verificar login, empresas, permissões, NC, agenda, chat/tratativas, foto, PDF, relatórios e layout PC/celular.
 7. Obter aceite de usuário/gestão e congelar contrato de migração dos aplicativos antigos.
 
-O código atual em infra/ é **somente uma sonda de saúde**; não implementa login ou funcionalidades. Não deve substituir o serviço real.
+O código atual em infra/ tem uma **primeira interface React com dados fictícios e API de saúde**, sem login, dados reais ou os módulos completos. Não deve substituir o serviço real.
 
 ## 4. Pré-virada — pontos de controle (go/no-go)
 
