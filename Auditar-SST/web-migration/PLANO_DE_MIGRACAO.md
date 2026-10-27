@@ -1,6 +1,6 @@
-# Roteiro de migração para aplicação web em servidor próprio
+# Roteiro de migração para 3 interfaces e servidor próprio
 
-**Proposta técnica não implantada.** Prioridade: não perder registros/fotos/assinaturas nem interromper Android e Windows.
+**Diretriz atual:** preservar Android e Windows instalados (Flutter), acrescentar Web (React) e fazer as três versões usarem a mesma API em servidor próprio; descontinuar o Apps Script apenas após migração e homologação. Leia primeiro [DECISAO_3_VERSOES_SERVIDOR_PROPRIO.md](DECISAO_3_VERSOES_SERVIDOR_PROPRIO.md).\n\n**Proposta técnica não implantada.** Prioridade: não perder registros/fotos/assinaturas nem interromper Android e Windows.
 
 ## Infraestrutura confirmada em 27/10/2026
 
@@ -8,8 +8,7 @@ O programador informou uma VPS compartilhada com Docker, Node.js e bancos em con
 
 ## 1. Arquitetura sugerida
 
-Navegador (PC/celular)
--> Frontend responsivo React + TypeScript (Vite)
+Android Flutter + Windows Flutter + navegador React/TypeScript (Vite)
 -> HTTPS / reverse proxy
 -> API autenticada /api/v1 em servidor próprio
 -> banco relacional com empresas/perfis/ocorrências/eventos

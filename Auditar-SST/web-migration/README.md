@@ -17,7 +17,7 @@ Veja os detalhes em [infra/web/MIGRACAO_DART_PARA_TYPESCRIPT.md](infra/web/MIGRA
 
 Não há acesso a NCs reais, autenticação, sincronização, banco de clientes, fotos, assinaturas, relatórios/PDF, agenda, CIPA, IA, painel do cliente ou Central ADM. Backend Node responde somente no endpoint de saúde. O banco PostgreSQL de staging está vazio. A migração dos dados exigirá consentimento específico, backup, validação de permissões e homologação. Não confundir com produto pronto.
 
-## Documentos técnicos para o programador
+## Decisão confirmada: Android, Windows e Web\n\nO objetivo **não é substituir o app instalado por um site**. São três clientes do mesmo Auditar SST: APK Android e EXE Windows atuais, preservados em aparência/fluxo/offline; mais um novo portal Web com paridade de funcionalidades. O Apps Script será substituído gradualmente por um **backend único próprio** após testes de migração e segurança. Leia [DECISAO_3_VERSOES_SERVIDOR_PROPRIO.md](DECISAO_3_VERSOES_SERVIDOR_PROPRIO.md).\n\n## Documentos técnicos para o programador
 
 1. [AUDITORIA_DO_CODIGO.md](AUDITORIA_DO_CODIGO.md) — diagnóstico de fontes e obstáculos de portabilidade.
 2. [PLANO_DE_MIGRACAO.md](PLANO_DE_MIGRACAO.md) — plano de arquitetura e etapas com critérios de aceite.
