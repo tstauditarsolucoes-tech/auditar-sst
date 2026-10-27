@@ -227,8 +227,8 @@ export function createActionPlanService(pool) {
           throw new ApiError(409,'INVALID_STATE','Transicao nao permitida');
         }
         const updated=await db.query(
-          'UPDATE sst.action_plan SET status=$3,revision=revision+1,updated_at=now(),'+
-          "completed_at=CASE WHEN $3='concluida' THEN now() ELSE completed_at END "+
+          'UPDATE sst.action_plan SET status=$3::varchar,revision=revision+1,updated_at=now(),'+
+          "completed_at=CASE WHEN $3::varchar='concluida' THEN now() ELSE completed_at END "+
           'WHERE company_id=$1 AND id=$2 RETURNING id,status,revision',
           [p.companyId,planId,next],
         );
