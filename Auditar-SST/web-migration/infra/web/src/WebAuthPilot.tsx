@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { InspectionPilot } from './InspectionPilot';
 import { TaskPilot } from './TaskPilot';
+import { ClientPortalPilot } from './ClientPortalPilot';
+import { AdminOverviewPilot } from './AdminOverviewPilot';
 
 type WebSession = {
   ok: true;
@@ -93,6 +95,15 @@ export function WebAuthPilot() {
       .catch(() => { /* padrão sem login novo: nenhuma sessão real */ });
     return () => {mounted = false;};
   }, []);
+
+  useEffect(() => {
+    if (!session || session.role==='cliente') return;
+    let live=true;
+    const heartbeat=()=>request<{ok:boolean}>('activity/ping','POST',{},session.csrfToken).catch(()=>{});
+    void heartbeat();
+    const timer=window.setInterval(()=>{if(live)void heartbeat();},60000);
+    return ()=>{live=false;window.clearInterval(timer);};
+  },[session?.companyId,session?.role,session?.csrfToken]);
 
   async function run(action: () => Promise<void>) {
     setBusy(true);
@@ -187,6 +198,9 @@ export function WebAuthPilot() {
               {companies.map((c)=><option key={c.company_id} value={c.company_id}>{c.name} ({c.role})</option>)}
             </select>
           </label>
+          <div className="auth-divider" />
+          <ClientPortalPilot key={'portal-'+session.companyId} session={session} />
+          {['adm','gestor'].includes(session.role)&&<AdminOverviewPilot key={'admin-'+session.companyId} />}
           <div className="auth-divider" />
           <InspectionPilot key={'inspection-'+session.companyId} session={session} />
           {session.role!=='cliente'&&<TaskPilot key={'tasks-'+session.companyId} session={session} userId={session.user.id} />}

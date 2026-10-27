@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { ApiError, createNcService } from './ncService.mjs';
 import { createInspectionService } from './inspectionService.mjs';
 import { createTaskService } from './taskService.mjs';
+import { createPortalService } from './portalService.mjs';
 
 /**
  * Auth NOVA opcional, injetada internamente na homologacao.
@@ -17,6 +18,7 @@ export function createApp({pool, authService, resolvePrincipal} = {}) {
   const ncService=createNcService(pool);
   const inspectionService=createInspectionService(pool);
   const taskService=createTaskService(pool);
+  const portalService=createPortalService(pool);
   return createServer(async (req,res)=>{
     const pathname=new URL(req.url || '/', 'http://localhost').pathname;
     res.setHeader('Content-Type','application/json; charset=utf-8');
@@ -85,6 +87,54 @@ export function createApp({pool, authService, resolvePrincipal} = {}) {
           res.setHeader('Set-Cookie',result.cookie);
           send(200,result.body);
           return;
+        }
+      }
+
+
+      // Portal do Cliente e Central ADM: base NOVA, tenants e papeis da sessao.
+      const portalDashboard=pathname==='/api/v1/portal/dashboard';
+      const portalThreads=pathname==='/api/v1/portal/threads';
+      const portalThread=pathname.match(/^\/api\/v1\/portal\/threads\/([a-f0-9-]{36})(?:\/(messages|close|reopen))?$/i);
+      const adminOverview=pathname==='/api/v1/admin/overview';
+      const adminTeam=pathname==='/api/v1/admin/team';
+      const activityPing=pathname==='/api/v1/activity/ping';
+      if ((portalDashboard||portalThreads||portalThread||adminOverview||adminTeam||activityPing)&&['GET','POST'].includes(req.method)) {
+        const resolver=authService
+          ? authService.resolvePrincipal.bind(authService)
+          : resolvePrincipal;
+        const principal=typeof resolver==='function'?await resolver(req):null;
+        if (!principal) {send(401,{ok:false,code:'UNAUTHENTICATED'});return;}
+        if(req.method==='POST'&&authService)authService.requireMutation(req);
+        if(portalDashboard&&req.method==='GET'){
+          send(200,await portalService.dashboard(principal));return;
+        }
+        if(portalThreads&&req.method==='GET'){
+          send(200,{items:await portalService.threads(principal)});return;
+        }
+        if(portalThreads&&req.method==='POST'){
+          send(201,{item:await portalService.createThread(principal,await readJson())});return;
+        }
+        if(portalThread&&!portalThread[2]&&req.method==='GET'){
+          send(200,await portalService.thread(principal,portalThread[1]));return;
+        }
+        if(portalThread?.[2]==='messages'&&req.method==='POST'){
+          send(200,{item:await portalService.reply(principal,portalThread[1],await readJson())});return;
+        }
+        if(portalThread?.[2]==='close'&&req.method==='POST'){
+          send(200,{item:await portalService.changeStatus(principal,portalThread[1],'close',await readJson())});return;
+        }
+        if(portalThread?.[2]==='reopen'&&req.method==='POST'){
+          send(200,{item:await portalService.changeStatus(principal,portalThread[1],'reopen',await readJson())});return;
+        }
+        if(adminOverview&&req.method==='GET'){
+          send(200,await portalService.overview(principal));return;
+        }
+        if(adminTeam&&req.method==='GET'){
+          send(200,{items:await portalService.team(principal)});return;
+        }
+        if(activityPing&&req.method==='POST'){
+          await readJson();
+          send(200,await portalService.ping(principal));return;
         }
       }
 

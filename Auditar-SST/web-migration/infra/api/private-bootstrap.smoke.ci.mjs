@@ -79,6 +79,25 @@ const taskDetail=await fetch(base+'tasks/'+taskId,{headers:{cookie}});
 assert.equal(taskDetail.status,200);
 assert.deepEqual((await taskDetail.json()).events.map(e=>e.kind),
   ['criada','em_andamento','concluida']);
+const dashboard=await fetch(base+'portal/dashboard',{headers:{cookie}});
+assert.equal(dashboard.status,200);
+const visible=(await dashboard.json()).pending;
+assert.ok(visible.some(item=>item.id===detail.findings[0].id));
+const support=await fetch(base+'portal/threads',{
+  method:'POST',headers,body:JSON.stringify({
+    subject:'Atendimento HTTP ficticio',message:'Preciso de apoio de teste',
+    clientRequestId:'a9000000-0000-4000-8000-000000000001',
+  }),
+});
+assert.equal(support.status,201);
+const ticketId=(await support.json()).item.id;
+const messages=await fetch(base+'portal/threads/'+ticketId,{headers:{cookie}});
+assert.equal(messages.status,200);
+assert.equal((await messages.json()).messages.length,1);
+const heartbeat=await fetch(base+'activity/ping',{
+  method:'POST',headers,body:'{}',
+});
+assert.equal(heartbeat.status,200);
 const logout=await fetch(base+'auth/logout',{
   method:'POST',headers:{cookie,origin,'x-csrf-token':session.csrfToken},
 });

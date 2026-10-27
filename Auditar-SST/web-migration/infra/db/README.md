@@ -65,3 +65,8 @@ Aplicar **após** 001/002/003, somente no banco novo `auditar_web_hml`, uma vez.
 ## Migração 005 — Agenda e validação de equipe (homologação)
 
 Somente após 001–004 em base nova: prioridades, prazos, atribuição, revisão e idempotência de tarefas; RLS para nomes e vínculos de funcionários da empresa ativa, sem expor dados de usuários de outras empresas. O autenticador mantém role separado para credenciais, e a API de tarefas usa somente a role de dados com `SET LOCAL`. Eventos de tarefa não são substituídos. Sem sincronização real de agenda Flutter nesta etapa.
+
+
+## Migração 006 — portal e supervisão web isolados
+
+Em banco NOVO, aplicar após 005: migrations/006_client_portal_admin.sql. Cria support_thread, support_message (append-only para runtime) e web_user_activity, com FKs de tenant e RLS forçado. Backend controla cliente dono do ticket, status e gestão por empresa. Não conecta Apps Script, Drive, fotos ou usuários existentes. Não executar migração em volume com dados reais sem backup, revisão e aprovação.

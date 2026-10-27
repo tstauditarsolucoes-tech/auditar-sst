@@ -61,7 +61,7 @@ Começar com o Compose **padrão, sem login**; isto cria apenas os serviços ded
 docker compose -p auditar-sst-web-hml -f compose.staging.yml up --build -d --wait
 ```
 
-Só num banco **novo e vazio**, aplicar migrações 001, 002, 003, 004 e 005 nessa ordem, uma única vez:
+Só num banco **novo e vazio**, aplicar migrações 001, 002, 003, 004, 005 e 006 nessa ordem, uma única vez:
 
 ```bash
 docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
@@ -78,6 +78,9 @@ docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
 
 docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
   psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/005_agenda_pilot.sql
+
+docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
+  psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/006_client_portal_admin.sql
 ```
 
 **Não executar** arquivos em `db/tests/seed_*.sql` na VPS. Eles contêm identidades e senhas fictícias públicas **exclusivas da CI descartável**.
@@ -141,6 +144,9 @@ Criar um Proxy Host **novo** para a URL privada:
 - Entrar com o usuário fictício criado e selecionar a empresa.
 - Criar uma vistoria fictícia, incluir achado/NC, concluir e verificar o histórico; depois informar correção, rejeitar com motivo e validar.
 - Criar tarefa de agenda fictícia; gestor atribui a técnico, técnico inicia/conclui e registra comentário. Verificar que outra empresa não lê tarefas.
+- Abrir solicitação de apoio no painel do cliente, responder como técnico, encerrar e reabrir; verificar que empresa B não vê os tickets de A.
+- Registrar correção de NC no painel e validar/rejeitar pela equipe; verificar que somente gestor/ADM vê a Central Administrativa.
+- Conferir atividade Web recente na Central ADM (não indica presença do Android/Windows) e a troca de empresa.
 - Repetir o envio da vistoria com a mesma chave e confirmar que não gera duplicatas; testar rascunho em duas abas.
 - Conferir histórico e verificar que outra empresa não vê os dados anteriores.
 - Sair/entrar e conferir expiração/negação de sessões revogadas.
@@ -165,4 +171,4 @@ docker compose -p auditar-sst-web-hml -f compose.staging.yml \
 
 ### Ainda NÃO entregue em produção
 
-Vistorias/agenda/painel do cliente/ADM/PDF/fotos/assinaturas não estão integralmente migrados ao Node/Web; os apps Flutter não usam esta API; não houve transferência de dados/Drive nem homologação geral. A implantação no domínio final exigirá backup testado, auditoria de permissões, restauração, rate limiting avançado, monitoramento, tratamento de senhas, carga e aprovação expressa da Auditar.
+Vistorias/agenda/painel do cliente/ADM são apenas pilotos isolados, não estão integralmente migrados ao Node/Web; PDF/fotos/assinaturas ainda não estão migrados; os apps Flutter não usam esta API; não houve transferência de dados/Drive nem homologação geral. A implantação no domínio final exigirá backup testado, auditoria de permissões, restauração, rate limiting avançado, monitoramento, tratamento de senhas, carga e aprovação expressa da Auditar.
