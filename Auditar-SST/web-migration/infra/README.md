@@ -3,7 +3,7 @@
 **Protótipo funcional com DADOS FICTÍCIOS. Não é versão completa e NÃO usa dados de produção.**
 
 O pacote contém:
-- `web/`: interface React 19 + TypeScript + Vite, responsiva para computador e celular, com funcionalidades reais **portadas de Dart** para matrizes de prioridade e nomes amigáveis das NCs. Filtros e edição nesta tela estão funcionais, mas não persistem ao recarregar;
+- `web/`: interface React 19 + TypeScript + Vite, responsiva para computador e celular, com regras reais **portadas de Dart** para matriz de prioridade, nomes amigáveis de NCs e Assistente Offline textual (21 perfis de risco e 15 NRs sugeridas). Filtros e edição nesta tela estão funcionais, mas não persistem ao recarregar;
 - `api/`: Node.js 24, somente GET /api/v1/health;
 - `db`: PostgreSQL 17 com volume de teste próprio, sem tabelas de clientes e sem conexão com o aplicativo;
 - Nginx web na porta 8080 **somente dentro das redes Docker**, com proxy /api/ para Node.

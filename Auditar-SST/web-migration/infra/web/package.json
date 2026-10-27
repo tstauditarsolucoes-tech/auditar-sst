@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "test": "node --test src/domain/nc.test.ts",
+    "test": "node --test src/domain/*.test.ts",
     "build": "tsc --noEmit && vite build",
     "dev": "vite --host 0.0.0.0"
   },

@@ -8,7 +8,7 @@ O objetivo é preparar uma nova tecnologia web na branch isolada `migration/prep
 
 - **Matriz de risco:** cálculo de pontuação (1 a 25), bônus de recorrência (+2, limitado a 25) e faixas Baixa/Média/Alta/Crítica portados para `infra/web/src/domain/nc.ts`.
 - **Nomes amigáveis das NCs:** normalização, limite de 80 caracteres, fallback da primeira frase, preservação do ID e da descrição original. Esta demonstração edita nomes somente em memória (sem persistência).
-- **Interface React + TypeScript:** dashboard responsivo, simulador de prioridade, filtros de NCs fictícias e edição de nomes, no diretório `infra/web/src/`.
+- **Assistente Offline integral (parte de regras puras):** 21 famílias de risco, 15 famílias normativas (NRs sugeridas), riscos/consequências, recomendações, evidências, responsáveis e prazos portados do Dart. O resultado depende de análise humana pelo TST.\n- **Interface React + TypeScript:** dashboard responsivo, simulador de prioridade, Assistente Offline textual, filtros de NCs fictícias e edição de nomes, no diretório `infra/web/src/`.
 - **Testes automatizados** das funções portadas e build de frontend na GitHub Actions.
 
 Veja os detalhes em [infra/web/MIGRACAO_DART_PARA_TYPESCRIPT.md](infra/web/MIGRACAO_DART_PARA_TYPESCRIPT.md) e os comandos Docker em [infra/README.md](infra/README.md).
