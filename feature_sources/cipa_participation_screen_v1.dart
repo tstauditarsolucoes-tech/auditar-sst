@@ -87,6 +87,22 @@ extension _CipaParticipation on _CipaManagementScreenState {
     if (item.companyId != widget.companyId || busy) return;
     if (!restore && !CipaParticipationRules.canArchive(
         item.type, item.status, item.payload['signed'] == true)) return;
+    // Older clients attach signed files without setting payload['signed'].
+    // Keep any minutes with attachments visible instead of guessing their content.
+    if (!restore && item.type == CipaManagementService.minutesType) {
+      try {
+        final attachments = await CipaManagementService.attachments(
+          entityType: 'cipa_minutes', entityId: item.id);
+        if (!mounted) return;
+        if (attachments.isNotEmpty) {
+          _message('Ata com anexos preservada na lista. Use uma nova revisão para corrigir o conteúdo.');
+          return;
+        }
+      } catch (_) {
+        _message('Não foi possível conferir os anexos. O arquivamento foi bloqueado por segurança.');
+        return;
+      }
+    }
     final reason = await _cipaReason(restore ? 'Restaurar registro' : 'Arquivar registro',
       '${item.title}\nO registro e seus anexos serão preservados. '
       'Pendências abertas e atas finalizadas não podem ser ocultadas por este botão.');
@@ -457,6 +473,19 @@ extension _CipaParticipation on _CipaManagementScreenState {
             title: Text(_cipaEventLabel(e.kind)), subtitle: Text(
               '${_dateTime.format(e.date)} • ${e.data['title'] ?? _cipaMandateName(e.targetId)}\n'
               '${e.data['reason'] ?? e.data['detail'] ?? (e.kind == 'handover' ? '${(e.data['actionIds'] as List?)?.length ?? 0} ação(ões) mantidas com origem preservada' : e.data['status'] ?? '')}'),
+            onTap: e.kind != 'handover' ? null : () => showDialog<void>(context: context,
+              builder: (dialog) => AlertDialog(title: const Text('Pendências na passagem de mandato'),
+                content: SizedBox(width: 520, child: SingleChildScrollView(child: Column(
+                  mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Registro de ${_dateTime.format(e.date)}. Situação daquele momento:'),
+                    for (final snapshot in (e.data['snapshots'] as List? ?? []).whereType<Map>())
+                      ListTile(title: Text('${snapshot['title'] ?? ''}'), subtitle: Text(
+                        '${_cipaMandateName('${snapshot['sourceMandateId'] ?? ''}')} • ${snapshot['status'] ?? ''}\n'
+                        'Responsável: ${snapshot['responsible'] ?? '-'}')),
+                  ],
+                ))), actions: [TextButton(onPressed: () => Navigator.pop(dialog), child: const Text('Fechar'))],
+              )),
           )).toList()),
       ],
     ]);
