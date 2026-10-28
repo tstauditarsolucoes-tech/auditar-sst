@@ -28,24 +28,30 @@ de homologação, em PC e celular.
 ## Melhorias do aplicativo atual
 
 Branch: `feature/client-panel-permissions-v329106`, PR #15 em draft.
-Correção mais recente do patch: `1eedf9d4c6d8631afd893c9ea9eeba0806227f71`.
+Código candidato mais recente: `0faad3df25d18c650f8c7b3147540cf6c86a1c9a`.
 
 Sete melhorias no código: passagem de mandato sem duplicar ações; pedido de apoio;
 resumo mensal PDF; visão simplificada; sugestão de pauta; arquivamento/restauração
 e revisão de atas sem copiar assinaturas; vitrine de resultados coletivos.
 
-As regras e os patches Android/Windows passaram na validação:
-https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/runs/40787186799
+As regras e os patches Android/Windows passaram na validação anterior
+40787186799. A validação da correção mais recente é:
+https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/runs/40789760881
 
 A primeira compilação completa parou no patch porque o formatador quebrou campos
 em linhas diferentes. O patch passou a aceitar essas variações, com teste de
-regressão e conferência no arquivo real que falhou. As compilações completas
-abaixo ainda precisam ter seu resultado final conferido antes de distribuir:
+regressão e conferência no arquivo real que falhou. A execução seguinte aplicou
+o patch preservando os outros 170 arquivos do app, mas a análise Flutter apontou
+um erro de tipo: registros legados podem ter `companyId` nulo. O domínio foi
+corrigido para aceitar e ignorar explicitamente esses registros, sem assumir uma
+empresa, com dois testes adicionais. A rotina também ignora telas já desmontadas.
+As novas compilações completas abaixo precisam ter seu resultado final conferido
+antes de distribuir. Não há APK/EXE deste lote confirmado neste registro:
 
 - Android candidato 3.29.199+341:
-  https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/runs/40787180134
+  https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/runs/40789754441
 - Windows candidato 3.30.127+314:
-  https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/runs/40787180013
+  https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/runs/40789754587
 
 Não distribuir APK/EXE antigos como se incluíssem este lote. Homologação em aparelhos,
 fotos, anexos, assinaturas e sincronização existente continua obrigatória.
