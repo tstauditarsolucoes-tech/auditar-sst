@@ -63,16 +63,16 @@ def transform(source, platform):
     s = s[:a] + '  Widget _annualCipaCalendarCard() => _cipaCalendar();\n\n' + s[b:]
 
     # Add agenda suggestions without silently replacing user-entered text.
-    s = replace_once(s, "decoration: const InputDecoration(labelText: 'Pauta'),",
-        "decoration: const InputDecoration(labelText: 'Pauta'),")
-    pattern = r"(TextField\(\s*controller: agenda,[\s\S]*?labelText: 'Pauta'\),\s*\),)"
+    # Full platform builds reformat nested fields differently from the base
+    # fixture. Match whitespace/trailing commas, never a different label.
+    pattern = r"(TextField\(\s*controller: agenda,[\s\S]*?labelText:\s*'Pauta'\s*,?\s*\),\s*\),)"
     s = regex_once(s, pattern, lambda m: m[1] + """
                   TextButton.icon(onPressed: () => _cipaSuggestAgenda(agenda),
                     icon: const Icon(Icons.playlist_add), label: const Text('Sugerir pendências para a pauta')),
 """)
     # Monotonic revision numbers include archived versions, independent of sorting.
-    s = replace_once(s, 'final existing = mandateMinutes', 'final existing = minutes')
-    s = regex_once(s, r"version: existing\.isEmpty\s*\? 1\s*:[\s\S]*?\+ 1,",
+    s = regex_once(s, r'final existing\s*=\s*mandateMinutes', lambda m: 'final existing = minutes')
+    s = regex_once(s, r"version:\s*existing\.isEmpty\s*\?\s*1\s*:[\s\S]*?\+\s*1,",
         lambda m: "version: CipaParticipationRules.nextVersion(existing.map((a) => a.payload['version'])),")
     # Preserve original mandate when a carried action is updated.
     a = s.index('  Future<void> _editAction(')

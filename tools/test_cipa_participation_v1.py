@@ -71,5 +71,22 @@ class CipaPatchTest(unittest.TestCase):
     def test_missing_anchor_fails(self):
         with self.assertRaises(RuntimeError): patch.transform('unrelated screen', 'android')
 
+    def test_full_build_multiline_formatting(self):
+        # Regression: full Android build 40784312082 had multiline decorations
+        # and assignments unlike the shorter fixture formatted in isolation.
+        for platform in ('android', 'windows'):
+            source = self.fixture(platform)
+            source, n = re.subn(r"InputDecoration\(\s*labelText:\s*'Pauta'\s*,?\s*\)",
+                "InputDecoration(\n labelText: 'Pauta',\n )", source)
+            self.assertEqual(n, 1)
+            source, n = re.subn(r'final existing\s*=\s*mandateMinutes',
+                'final existing =\n mandateMinutes', source)
+            self.assertEqual(n, 1)
+            source = re.sub(r'version:\s*existing\.isEmpty', 'version:\n existing.isEmpty', source)
+            output = patch.transform(source, platform)
+            self.assertIn('_cipaSuggestAgenda(agenda)', output)
+            self.assertIn('final existing = minutes', output)
+            self.assertIn('CipaParticipationRules.nextVersion', output)
+
 
 if __name__ == '__main__': unittest.main()
