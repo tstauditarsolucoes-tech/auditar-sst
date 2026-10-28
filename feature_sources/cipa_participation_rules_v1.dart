@@ -32,6 +32,9 @@ class CipaParticipationRules {
 
   bool archived(String id) => latest(id, {'archive', 'restore'})?.kind == 'archive';
 
+  bool hiddenByArchive(String id, String type, String status, bool signed) =>
+      archived(id) && canArchive(type, status, signed);
+
   CipaParticipationEvent? support(String id) {
     final event = latest(id, {'support_requested', 'support_completed'});
     return event?.kind == 'support_requested' ? event : null;
@@ -76,7 +79,7 @@ class CipaParticipationRules {
       case 'CIPA_REUNIAO': return status == 'Cancelada';
       case 'CIPA_ACAO': return status == 'Resolvida';
       case 'CIPA_ATA': return status == 'Rascunho' && !signed;
-      case 'CIPA_DOCUMENTO': return true;
+      case 'CIPA_DOCUMENTO': return status == 'Arquivado' || status == 'Concluído';
       default: return false;
     }
   }

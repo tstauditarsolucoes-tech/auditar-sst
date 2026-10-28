@@ -57,5 +57,9 @@ void main() {
   check(!CipaParticipationRules.inMonth(DateTime(2025, 10), DateTime(2026, 10)), 'year boundary');
   final malformed = CipaParticipationRules('A', [event('bad-list', 'A', 'handover', 'm', 1, {'actionIds': 'a'})]);
   check(!malformed.carriedTo('a', 'm'), 'malformed legacy list fails safely');
+  final archived = CipaParticipationRules('A', [event('archive', 'A', 'archive', 'action', 1)]);
+  check(archived.hiddenByArchive('action', 'CIPA_ACAO', 'Resolvida', false), 'resolved action can be hidden');
+  check(!archived.hiddenByArchive('action', 'CIPA_ACAO', 'Aberta', false), 'reopened action reappears despite earlier archive');
+  check(!CipaParticipationRules.canArchive('CIPA_DOCUMENTO', 'Pendente de anexo', false), 'pending document remains visible');
   print('CIPA_PARTICIPATION_RULES_OK $count checks');
 }

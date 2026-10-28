@@ -12,8 +12,11 @@ extension _CipaParticipation on _CipaManagementScreenState {
         CipaParticipationEvent(r.id, r.companyId, r.date, r.payload)),
   );
 
+  bool _cipaArchived(SstRecord r) => _cipaRules.hiddenByArchive(
+      r.id, r.type, r.status, r.payload['signed'] == true);
+
   bool _cipaVisible(SstRecord r) => r.companyId == widget.companyId &&
-      !_cipaIsEvent(r) && !_cipaRules.archived(r.id);
+      !_cipaIsEvent(r) && !_cipaArchived(r);
 
   List<SstRecord> get _cipaAllRecords =>
       [...mandates, ...members, ...meetings, ...minutes, ...actions, ...documents]
@@ -384,7 +387,7 @@ extension _CipaParticipation on _CipaManagementScreenState {
     final visible = pending.where((a) => query.isEmpty ||
         '${a.payload['responsible'] ?? ''}'.toLowerCase().contains(query));
     final resolved = mandateActions.where((a) => a.status == 'Resolvida').toList();
-    final archived = _cipaAllRecords.where((r) => rules.archived(r.id)).toList();
+    final archived = _cipaAllRecords.where(_cipaArchived).toList();
     return ListView(padding: const EdgeInsets.fromLTRB(16, 16, 16, 90), children: [
       const Text('CIPA em ação', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
       Text(company?.name ?? ''),
