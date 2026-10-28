@@ -55,7 +55,7 @@ test('individual portal: real DB auth, RLS, workflow, reset/revoke and HTTP cook
     await svc.post(tech,m.id,{...key(),kind:'aviso',message:'Synthetic mandate-wide announcement'},true);
     const mine=await svc.get(p,m.id),theirs=await svc.get(p2,m.id);
     assert.equal(mine.entries.filter(x=>x.kind==='sugestao').length,1);assert.ok(mine.entries.some(x=>x.kind==='orientacao'));assert.deepEqual(theirs.entries.map(x=>x.kind),['aviso']);
-    await assert.rejects(svc.post(p,m.id,{...key(),kind:'aviso',message:'Member cannot broadcast'}),e=>e.status===400);
+    assert.throws(()=>svc.post(p,m.id,{...key(),kind:'aviso',message:'Member cannot broadcast'}),e=>e.status===400);
     const meeting=await c.addMeeting(manager,m.id,{...key(),title:'Synthetic meeting',scheduledAt:'2027-02-01T12:00:00Z'});
     await svc.post(p,m.id,{...key(),kind:'ciencia_reuniao',meetingId:meeting.id,message:'Read'});
     assert.match((await svc.get(p,m.id)).entries.find(x=>x.kind==='ciencia_reuniao').message,/Nao comprova presenca/);

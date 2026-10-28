@@ -1,5 +1,5 @@
 # Auditar SST — entrega atualizada ao Júlio (VPS compartilhada, sem importação de dados)
-**Atualizado em 27/10/2026 · Branch `migration/preparacao-web-20261027` · PR #23 DRAFT**
+**Atualizado em 28/10/2026 · Branch `migration/preparacao-web-20261027` · PR #23 DRAFT**
 
 ## Pedido do Júlio
 Migrar a tecnologia para **Web no navegador, sem depender de instalar o aplicativo Flutter** para acessar a interface. Infraestrutura confirmada: VPS compartilhada com Docker, outros sistemas no mesmo servidor, Node.js autorizado, PostgreSQL em contêiner e Nginx Proxy Manager (NPM). **Domínio definitivo previsto:** `tst.auditarsolucoes.com.br`.
@@ -9,7 +9,8 @@ Migrar a tecnologia para **Web no navegador, sem depender de instalar o aplicati
 ## O que a equipe já preparou no repositório
 - **Web:** React + TypeScript responsivo (PC e celular), interface autenticada por módulos; NC, vistoria/Ronda, agenda, Plano de Ação, solicitações do cliente, Central ADM, CIPA e treinamentos/DDS em diferentes graus de piloto.
 - **Backend:** Node.js 24, sessões/cookie HttpOnly/CSRF para Web, autenticação nativa opcional segregada, RLS no PostgreSQL e controle de acesso por empresa.
-- **Banco:** PostgreSQL 17 em contêiner exclusivo, migrações **001–013** e volumes privados próprios de homologação.
+- **Banco:** PostgreSQL 17 em contêiner exclusivo, migrações **001–014** e volumes privados próprios de homologação.
+- **Portal individual CIPA:** login separado, troca de senha, mandatos autorizados, ações do membro, apoio, reuniões, avisos e validação pela equipe. Desligado por padrão; [guia específico e limites](PORTAL_CIPA_HOMOLOGACAO.md). Não usa os dados CIPA do app atual.
 - **Documentos:** relatório de vistoria PDF piloto com recomendações e fotografias ampliadas e minuta educativa sem validade de comprovação de presença.
 - **Clientes Android/Windows:** os aplicativos Flutter originais continuam independentes e **não utilizam o novo backend**. Existem uma sonda Dart desligada, autenticação nativa opcional e endpoints de consulta/criação de rascunho **para homologação técnica**; ainda não são sincronização instalada.
 - **CI:** testes automatizados para React, API, PostgreSQL multiempresa, Docker, PDF e contratos Dart usando identidades e dados sintéticos. CI aprovada não substitui testes físicos.
@@ -43,3 +44,4 @@ Ainda há desenvolvimento para tornar a Web equivalente ao aplicativo SST inteir
 Links: [PR #23](https://github.com/tstauditarsolucoes-tech/auditar-sst/pull/23) · [Guia NPM](GUIA_NGINX_PROXY_MANAGER_TST.md) · [Plano de virada](PLANO_DE_VIRADA_DO_DOMINIO_TST.md) · [Início limpo sem migração](../INICIO_LIMPO_SEM_MIGRACAO_20261027.md).
 
 **Estado técnico: Web de homologação e base própria preparadas, mas NÃO homologadas como produto final e ainda NÃO publicadas na VPS.**
+

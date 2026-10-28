@@ -67,7 +67,7 @@ Começar com o Compose **padrão, sem login**; isto cria apenas os serviços ded
 docker compose -p auditar-sst-web-hml -f compose.staging.yml up --build -d --wait
 ```
 
-Só num banco **novo e vazio**, aplicar migrações 001, 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012 e 013 nessa ordem, uma única vez:
+Só num banco **novo e vazio**, aplicar migrações 001–014 nessa ordem, uma única vez. Se o banco de homologação já existe, parar para verificar versões e backup; não reaplicar as migrações antigas.
 
 ```bash
 docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
@@ -108,9 +108,16 @@ docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
 
 docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
   psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/013_native_auth_pilot.sql
+
+docker compose -p auditar-sst-web-hml -f compose.staging.yml exec -T db \
+  psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/014_cipa_member_portal.sql
 ```
 
 **Não executar** arquivos em `db/tests/seed_*.sql` na VPS. Eles contêm identidades e senhas fictícias públicas **exclusivas da CI descartável**.
+
+O portal individual CIPA tem opt-in próprio e continua desligado por padrão.
+Seguir [PORTAL_CIPA_HOMOLOGACAO.md](PORTAL_CIPA_HOMOLOGACAO.md) para ativação e aceite.
+Não conectar registros do aplicativo antigo automaticamente.
 
 ## 4. Criar papéis distintos e ativar API privada
 
@@ -295,3 +302,4 @@ Essas rotas continuam 404 com `NATIVE_DRAFTS_DISABLED` até ativar separadamente
 O arquivo `native_draft_outbox.dart` modela uma fila inteiramente nova, separada de `device_sync_changes` e do cursor do Apps Script. A operação só entra na fila depois do armazenamento solicitado por `NativeDraftJournalStore.replaceAtomically`; esse adaptador **ainda não foi implementado**, nem há integração com o Flutter instalado. Cada rascunho usa UUID `clientRequestId` que jamais muda nos reenvios. Apenas resposta HTTP 201 com `item.id` válido, `syncEnabled=false` e `legacyQueueAcknowledged=false` reconhece o rascunho NOVO; 409 vira conflito visível, 401/403 interrompe o lote, falha de conexão mantém pendência. CI usa armazenamento FICTÍCIO em memória apenas para testar a política de estado e reinício simulado; NÃO comprova durabilidade em Android/Windows.
 
 **Pendência crítica:** criar armazenamento nativo seguro/atômico e teste real de desligamento, backup, câmera, sessão expirada, conectividade, conflitos e retomada. Antes disso não compilar ou distribuir APK/EXE de migração e não trocar o backend legado. 
+

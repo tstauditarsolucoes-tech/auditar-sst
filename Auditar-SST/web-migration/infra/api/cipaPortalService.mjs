@@ -46,7 +46,9 @@ async function workspace(db,p,id,isStaff){
   const actions=await db.query('SELECT id,mandate_id,assigned_to,title,description,due_on,priority,status,revision,updated_at FROM sst.cipa_portal_action WHERE company_id=$1 AND mandate_id=$2 ORDER BY due_on,id LIMIT 200',[p.companyId,m.id]);
   const meetings=await db.query('SELECT id,title,scheduled_at,summary,status FROM sst.cipa_meeting WHERE company_id=$1 AND mandate_id=$2 ORDER BY scheduled_at DESC,id LIMIT 100',[p.companyId,m.id]);
   const entries=await db.query('SELECT id,kind,message,action_id,meeting_id,author_account_id,created_at FROM sst.cipa_portal_entry WHERE company_id=$1 AND mandate_id=$2 ORDER BY created_at DESC,id LIMIT 300',[p.companyId,m.id]);
-  const result={mandate:m,actions:actions.rows,meetings:meetings.rows,entries:entries.rows,limits:{actions:200,meetings:100,entries:300}};
+  const counts=(await db.query("SELECT count(*) FILTER (WHERE status<>'concluida')::integer AS pending, count(*) FILTER (WHERE status='aguardando_validacao')::integer AS reviewing FROM sst.cipa_portal_action WHERE company_id=$1 AND mandate_id=$2",[p.companyId,m.id])).rows[0];
+  const scheduled=(await db.query("SELECT count(*)::integer AS count FROM sst.cipa_meeting WHERE company_id=$1 AND mandate_id=$2 AND status='planejada'",[p.companyId,m.id])).rows[0].count;
+  const result={mandate:m,actions:actions.rows,meetings:meetings.rows,entries:entries.rows,counts:{...counts,scheduled},limits:{actions:200,meetings:100,entries:300}};
   if(isStaff){
     result.accounts=(await db.query('SELECT a.id,a.display_name,a.email,a.active,a.must_change_password,g.member_id,g.active AS grant_active FROM sst.cipa_portal_grant g JOIN sst.cipa_portal_account a ON a.company_id=g.company_id AND a.id=g.account_id WHERE g.company_id=$1 AND g.mandate_id=$2 ORDER BY a.display_name,a.id',[p.companyId,m.id])).rows;
     result.members=(await db.query('SELECT id,display_name FROM sst.cipa_member WHERE company_id=$1 AND mandate_id=$2 ORDER BY display_name,id',[p.companyId,m.id])).rows;
