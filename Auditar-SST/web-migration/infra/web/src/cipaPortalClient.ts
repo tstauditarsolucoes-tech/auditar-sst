@@ -18,12 +18,19 @@ const messages:Record<string,string>={
   INVALID_STATE:'A mudança solicitada não está disponível no estado atual. Atualize a tela.',
   NOT_FOUND:'Registro não encontrado ou sem permissão.',CSRF_DENIED:'Atualize sua sessão antes de continuar.',
   IDEMPOTENCY_CONFLICT:'Esta chave de envio já foi usada. Atualize a tela e confira se o registro foi salvo.',
+  INVALID_RESPONSE:'O servidor do portal não respondeu corretamente. Nenhum acesso foi confirmado; tente novamente mais tarde.',
+  LINK_CONFLICT:'Este membro já tem outra conta vinculada neste mandato. Confira os vínculos antes de continuar.',
 };
-export class PortalError extends Error{constructor(public code:string){super(messages[code]||'Não foi possível concluir. Atualize e confira antes de reenviar.');}}
+export class PortalError extends Error{code:string;constructor(code:string){super(messages[code]||'Não foi possível concluir. Atualize e confira antes de reenviar.');this.code=code;}}
 export async function portalRequest<T>(path:string,body?:object,csrf?:string,signal?:AbortSignal):Promise<T>{
   const r=await fetch('/api/v1/'+path,{method:body?'POST':'GET',credentials:'same-origin',cache:'no-store',signal,
     headers:{...(body?{'Content-Type':'application/json'}:{}),...(csrf?{'X-CSRF-Token':csrf}:{})},body:body?JSON.stringify(body):undefined});
-  const value=await r.json().catch(()=>({}));if(!r.ok)throw new PortalError(value.code||'HTTP_'+r.status);return value as T;
+  if(!r.headers.get('content-type')?.toLowerCase().includes('application/json'))throw new PortalError('INVALID_RESPONSE');
+  const value=await r.json().catch(()=>null);if(!value||typeof value!=='object'||Array.isArray(value))throw new PortalError('INVALID_RESPONSE');
+  if(!r.ok)throw new PortalError(value.code||'HTTP_'+r.status);
+  if(/^cipa-portal\/auth\/(session|login|password)$/.test(path)&&
+    (value.ok!==true||typeof value.name!=='string'||typeof value.companyId!=='string'||typeof value.csrfToken!=='string'||typeof value.mustChangePassword!=='boolean'))throw new PortalError('INVALID_RESPONSE');
+  return value as T;
 }
 export const statusLabel:Record<string,string>={aberta:'Aberta',andamento:'Em andamento',aguardando_validacao:'Aguardando validação',concluida:'Concluída',planejada:'Agendada',realizada:'Realizada',cancelada:'Cancelada',ativo:'Ativo',preparacao:'Em preparação',encerrado:'Encerrado'};
 export const entryLabel:Record<string,string>={sugestao:'Sugestão de prevenção',apoio:'Pedido de apoio',atualizacao:'Atualização do membro',decisao:'Validação da equipe',orientacao:'Orientação da equipe',aviso:'Aviso do mandato',ciencia_reuniao:'Ciência da reunião',acesso:'Gestão de acesso'};

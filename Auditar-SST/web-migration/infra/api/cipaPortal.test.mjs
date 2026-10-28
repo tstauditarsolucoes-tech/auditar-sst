@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {once} from 'node:events';
 import {cipaToken,CIPA_COOKIE,createCipaPortalAuth} from './cipaPortalAuth.mjs';
 import {nextPortalStatus,portalId,portalText,withCipaMember,createCipaPortalService} from './cipaPortalService.mjs';
-import {csrfForToken} from './authService.mjs';
+import {csrfForToken,createAuthService} from './authService.mjs';
 import {createApp} from './server.mjs';
 const UUID='10000000-0000-4000-8000-000000000001',token='a'.repeat(43),origin='https://hml.invalid';
 test('member cookie is exclusive, bounded and rejects ambiguity',()=>{
@@ -55,4 +55,10 @@ test('portal routes disabled by default; no spoofed headers grant access',async(
     const r=await fetch(`http://127.0.0.1:${app.address().port}/api/v1/${path}`,{headers:{'x-role':'adm','x-company-id':UUID}});
     assert.equal(r.status,404);assert.equal((await r.json()).code,'CIPA_PORTAL_DISABLED');
   }}finally{await new Promise(r=>app.close(r));}
+});
+test('enabled staff portal uses the existing real auth resolver and denies a member-only cookie',async()=>{
+  const app=createApp({authService:createAuthService({allowedOrigin:origin}),cipaPortalAuth:createCipaPortalAuth({allowedOrigin:origin})});
+  app.listen(0,'127.0.0.1');await once(app,'listening');
+  try{const r=await fetch(`http://127.0.0.1:${app.address().port}/api/v1/cipa-portal-admin/accounts`,{headers:{cookie:`${CIPA_COOKIE}=${token}`}});assert.equal(r.status,401);assert.equal((await r.json()).code,'UNAUTHENTICATED');}
+  finally{await new Promise(r=>app.close(r));}
 });

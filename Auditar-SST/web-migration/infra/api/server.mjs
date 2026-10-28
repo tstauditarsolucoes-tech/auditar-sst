@@ -93,7 +93,7 @@ export function createApp({pool, authService, cipaPortalAuth, nativeAuthService,
       }
       if(pathname.startsWith('/api/v1/cipa-portal-admin/')){
         if(!cipaPortalAuth){send(404,{ok:false,code:'CIPA_PORTAL_DISABLED'});return;}
-        const p=authService?await authService.principal(req):resolvePrincipal?await resolvePrincipal(req):null;
+        const p=authService?await authService.resolvePrincipal(req):resolvePrincipal?await resolvePrincipal(req):null;
         if(!p)throw new ApiError(401,'UNAUTHENTICATED','Sessao da equipe necessaria');
         const route=pathname.slice('/api/v1/cipa-portal-admin/'.length);
         if(route==='accounts'&&req.method==='GET'){send(200,{items:await cipaPortal.accounts(p)});return;}

@@ -4,13 +4,14 @@ import './cipaPortal.css';
 const base='cipa-portal/';
 export function CipaMemberPortal(){
   const [session,setSession]=useState<CipaSession|null>(null),[checking,setChecking]=useState(true);
+  const [editingPassword,setEditingPassword]=useState(false);
   const [companyId,setCompanyId]=useState(new URLSearchParams(location.search).get('empresa')||'');
   const [email,setEmail]=useState(''),[password,setPassword]=useState(''),[nextPassword,setNextPassword]=useState(''),[confirm,setConfirm]=useState('');
   const [mandates,setMandates]=useState<Mandate[]>([]),[selected,setSelected]=useState(''),[data,setData]=useState<PortalWorkspace|null>(null);
   const [busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[tab,setTab]=useState<'acoes'|'reunioes'|'mural'|'historico'>('acoes');
   const [actionId,setActionId]=useState(''),[actionKind,setActionKind]=useState('andamento'),[note,setNote]=useState(''),[suggestion,setSuggestion]=useState('');
   const pending=useRef<{signature:string;id:string}|null>(null),generation=useRef(0);
-  function clear(){generation.current++;setSession(null);setData(null);setMandates([]);setSelected('');setPassword('');setNextPassword('');setConfirm('');setNote('');setSuggestion('');pending.current=null;}
+  function clear(){generation.current++;setSession(null);setEditingPassword(false);setData(null);setMandates([]);setSelected('');setPassword('');setNextPassword('');setConfirm('');setNote('');setSuggestion('');pending.current=null;}
   function failure(e:unknown){if(e instanceof PortalError&&e.code==='UNAUTHENTICATED')clear();setNotice(e instanceof Error?e.message:'Não foi possível conectar.');}
   async function loadList(s:CipaSession){const n=++generation.current;const r=await portalRequest<{items:Mandate[]}>(base+'mandates');if(n!==generation.current)return;
     setMandates(r.items);setSelected(r.items[0]?.id||'');if(!r.items.length)setNotice('Nenhum mandato liberado para sua conta.');}
@@ -22,7 +23,7 @@ export function CipaMemberPortal(){
   async function run(fn:()=>Promise<void>){if(busy)return;setBusy(true);setNotice('');try{await fn();}catch(e){failure(e);}finally{setBusy(false);}}
   async function login(e:FormEvent){e.preventDefault();await run(async()=>{const s=await portalRequest<CipaSession>(base+'auth/login',{companyId,email,password});setPassword('');setSession(s);});}
   async function changePassword(e:FormEvent){e.preventDefault();if(nextPassword!==confirm){setNotice('A confirmação da nova senha não confere.');return;}
-    await run(async()=>{const s=await portalRequest<CipaSession>(base+'auth/password',{currentPassword:password,password:nextPassword},session?.csrfToken);setPassword('');setNextPassword('');setConfirm('');setSession(s);setNotice('Senha alterada. As outras sessões foram encerradas.');});}
+    await run(async()=>{const s=await portalRequest<CipaSession>(base+'auth/password',{currentPassword:password,password:nextPassword},session?.csrfToken);setPassword('');setNextPassword('');setConfirm('');setEditingPassword(false);setSession(s);setNotice('Senha alterada. As outras sessões foram encerradas.');});}
   async function post(path:string,payload:object){const signature=JSON.stringify([path,payload]);if(pending.current?.signature!==signature)pending.current={signature,id:crypto.randomUUID()};
     await portalRequest(base+path,{...payload,clientRequestId:pending.current.id},session?.csrfToken);pending.current=null;setNotice('Registro salvo.');setNote('');setActionId('');
     try{await refresh();}catch{setNotice('Registro salvo, mas a lista não atualizou. Use Atualizar; não é preciso reenviar.');}}
@@ -37,11 +38,11 @@ export function CipaMemberPortal(){
       <label>E-mail<input required type="email" value={email} onChange={e=>setEmail(e.target.value)} maxLength={254} autoComplete="username" /></label>
       <label>Senha<input required type="password" value={password} onChange={e=>setPassword(e.target.value)} maxLength={256} autoComplete="current-password" /></label>
       <button disabled={busy}>{busy?'Entrando…':'Entrar com segurança'}</button></form><p>Esqueceu a senha? Peça à gestão da sua empresa para emitir uma senha temporária. Não envie sua senha atual.</p></section>:<>
-      <div className="cipa-toolbar"><div><strong>Olá, {session.name}</strong><small>Empresa: {session.companyId}</small></div><button className="secondary" disabled={busy} onClick={()=>void run(async()=>{await portalRequest(base+'auth/logout',{},session.csrfToken);clear();setNotice('Sessão encerrada.');})}>Sair</button></div>
-      {session.mustChangePassword?<section className="cipa-box cipa-login"><h2>Defina sua senha pessoal</h2><p>A senha temporária não libera os dados antes desta troca.</p><form onSubmit={changePassword}>
-        <label>Senha temporária<input required type="password" value={password} onChange={e=>setPassword(e.target.value)} maxLength={256} autoComplete="current-password" /></label>
+      <div className="cipa-toolbar"><div><strong>Olá, {session.name}</strong><small>Empresa: {session.companyId}</small></div>{!session.mustChangePassword&&<button className="secondary" disabled={busy} onClick={()=>setEditingPassword(true)}>Alterar minha senha</button>}<button className="secondary" disabled={busy} onClick={()=>void run(async()=>{await portalRequest(base+'auth/logout',{},session.csrfToken);clear();setNotice('Sessão encerrada.');})}>Sair</button></div>
+      {session.mustChangePassword||editingPassword?<section className="cipa-box cipa-login"><h2>Defina sua senha pessoal</h2><p>{session.mustChangePassword?'A senha temporária não libera os dados antes desta troca.':'Informe sua senha atual. A alteração encerra as outras sessões da sua conta.'}</p><form onSubmit={changePassword}>
+        <label>{session.mustChangePassword?'Senha temporária':'Senha atual'}<input required type="password" value={password} onChange={e=>setPassword(e.target.value)} maxLength={256} autoComplete="current-password" /></label>
         <label>Nova senha (mínimo de 12 caracteres)<input required type="password" minLength={12} maxLength={256} value={nextPassword} onChange={e=>setNextPassword(e.target.value)} autoComplete="new-password" /></label>
-        <label>Repita a nova senha<input required type="password" minLength={12} maxLength={256} value={confirm} onChange={e=>setConfirm(e.target.value)} autoComplete="new-password" /></label><button disabled={busy}>Salvar minha senha</button></form></section>:<>
+        <label>Repita a nova senha<input required type="password" minLength={12} maxLength={256} value={confirm} onChange={e=>setConfirm(e.target.value)} autoComplete="new-password" /></label><button disabled={busy}>Salvar minha senha</button>{!session.mustChangePassword&&<button className="secondary" type="button" disabled={busy} onClick={()=>{setEditingPassword(false);setPassword('');setNextPassword('');setConfirm('');}}>Cancelar</button>}</form></section>:<>
         <div className="cipa-toolbar"><label>Mandato<select value={selected} onChange={e=>{generation.current++;setSelected(e.target.value);}} disabled={busy}><option value="">Selecione</option>{mandates.map(m=><option key={m.id} value={m.id}>{m.name} · {statusLabel[m.status]||m.status}</option>)}</select></label><button className="secondary" disabled={busy||!selected} onClick={()=>void run(refresh)}>Atualizar</button></div>
         {selected&&!data?<p>Carregando mandato…</p>:data&&<>
           {closed&&<p className="cipa-environment">Mandato encerrado: os registros permanecem disponíveis para consulta.</p>}

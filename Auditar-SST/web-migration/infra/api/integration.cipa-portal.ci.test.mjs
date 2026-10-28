@@ -66,6 +66,8 @@ test('individual portal: real DB auth, RLS, workflow, reset/revoke and HTTP cook
     // Real member auth on HTTP; no test resolver on this server.
     const staffAuth=createAuthService({pool:authPool,allowedOrigin:origin});server=createApp({pool,authService:staffAuth,cipaPortalAuth:auth});server.listen(0,'127.0.0.1');await once(server,'listening');
     const url=`http://127.0.0.1:${server.address().port}/api/v1/`;
+    const staffLogin=await staffAuth.login(req(),{email:'tecnico-ci-a@example.invalid',password:'SenhaFicticiaCI-2026!'});
+    const staffRead=await fetch(url+'cipa-portal-admin/mandates/'+m.id,{headers:{cookie:cookieOf(staffLogin)}});assert.equal(staffRead.status,200);
     for(const path of ['cipa-portal-admin/accounts','nonconformities']){const r=await fetch(url+path,{headers:{cookie,'x-role':'adm','x-company-id':B}});assert.equal(r.status,401);}
     const csrfDenied=await fetch(url+'cipa-portal/mandates/'+m.id+'/entries',{method:'POST',headers:{cookie,origin,'Content-Type':'application/json'},body:JSON.stringify({...key(),kind:'sugestao',message:'Missing CSRF'})});assert.equal(csrfDenied.status,403);
     const ok=await fetch(url+'cipa-portal/mandates/'+m.id,{headers:{cookie}});assert.equal(ok.status,200);
