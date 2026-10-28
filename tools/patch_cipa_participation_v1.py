@@ -158,9 +158,9 @@ def snapshot(root):
     # hand-picked protected list. Catch accidental changes to app infrastructure.
     allowed = {'lib/screens/cipa_management_screen.dart', 'lib/screens/cipa_participation_screen.dart',
         'lib/services/cipa_participation_rules.dart', 'test/cipa_participation_rules_test.dart'}
-    return {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
+    return {p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
         for base in ('lib', 'painel_web_google_apps_script')
-        for p in (root / base).rglob('*') if p.is_file() and str(p.relative_to(root)) not in allowed}
+        for p in (root / base).rglob('*') if p.is_file() and p.relative_to(root).as_posix() not in allowed}
 
 
 def main(root, platform):

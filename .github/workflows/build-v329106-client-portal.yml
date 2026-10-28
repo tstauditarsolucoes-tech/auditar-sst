@@ -1621,13 +1621,16 @@ jobs:
       - name: Participacao CIPA preservando dados e sincronizacao
         run: |
           set -euo pipefail
-          python3 tools/test_cipa_participation_v1.py
-          python3 tools/patch_cipa_participation_v1.py "$APP_DIR" android
-          python3 tools/bump_cipa_release_v1.py "$APP_DIR" android
-          cd "$APP_DIR"
-          dart format lib/screens/cipa_management_screen.dart lib/screens/cipa_participation_screen.dart lib/services/cipa_participation_rules.dart test/cipa_participation_rules_test.dart
-          flutter analyze --no-fatal-infos --no-fatal-warnings
-          dart test/cipa_participation_rules_test.dart
+          python3 tools/run_cipa_validation_v1.py "$APP_DIR" android
+
+      - name: Salvar diagnostico CIPA Android
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: CIPA-Diagnostico-android
+          path: dist/CIPA-Diagnostico-android
+          if-no-files-found: ignore
+          retention-days: 3
 
       - name: Testar mini tutorial opcional original
         run: |

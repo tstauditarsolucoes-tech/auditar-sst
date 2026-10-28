@@ -2069,20 +2069,17 @@ jobs:
       - name: Participacao CIPA preservando dados e sincronizacao
         shell: pwsh
         run: |
-          python tools/test_cipa_participation_v1.py
-          if ($LASTEXITCODE -ne 0) { throw 'Falha regressao CIPA' }
-          python tools/patch_cipa_participation_v1.py "$env:APP_DIR" windows
-          if ($LASTEXITCODE -ne 0) { throw 'Falha patch protegido CIPA' }
-          python tools/bump_cipa_release_v1.py "$env:APP_DIR" windows
-          if ($LASTEXITCODE -ne 0) { throw 'Falha versao CIPA' }
-          Push-Location "$env:APP_DIR"
-          dart format lib/screens/cipa_management_screen.dart lib/screens/cipa_participation_screen.dart lib/services/cipa_participation_rules.dart test/cipa_participation_rules_test.dart
-          if ($LASTEXITCODE -ne 0) { throw 'Falha formatacao CIPA' }
-          flutter analyze --no-fatal-infos --no-fatal-warnings
-          if ($LASTEXITCODE -ne 0) { throw 'Falha analise CIPA' }
-          dart test/cipa_participation_rules_test.dart
-          if ($LASTEXITCODE -ne 0) { throw 'Falha regras CIPA' }
-          Pop-Location
+          python tools/run_cipa_validation_v1.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Falha validacao CIPA; consultar artefato diagnostico' }
+
+      - name: Salvar diagnostico CIPA Windows
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: CIPA-Diagnostico-windows
+          path: dist/CIPA-Diagnostico-windows
+          if-no-files-found: ignore
+          retention-days: 3
 
       - name: Salvar diagnostico da interface Windows montada
         if: always()

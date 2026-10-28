@@ -30,7 +30,7 @@ class CipaPatchTest(unittest.TestCase):
             with tempfile.TemporaryDirectory() as td:
                 p = Path(td) / 'screen.dart'
                 p.write_text(source, encoding='utf-8')
-                subprocess.run(['dart', 'format', str(p)], check=True, capture_output=True)
+                subprocess.run([shutil.which('dart'), 'format', str(p)], check=True, capture_output=True)
                 source = p.read_text(encoding='utf-8')
         return source
 
@@ -62,9 +62,9 @@ class CipaPatchTest(unittest.TestCase):
                     self.assertIn('Icons.volunteer_activism_outlined', output)
                     self.assertIn('final controller = DefaultTabController.of(tabsContext);', output)
                 if shutil.which('dart'):
-                    subprocess.run(['dart', 'format', str(screen),
+                    subprocess.run([shutil.which('dart'), 'format', str(screen),
                         str(app / 'lib/screens/cipa_participation_screen.dart')], check=True)
-                    subprocess.run(['dart', str(app / 'test/cipa_participation_rules_test.dart')], check=True)
+                    subprocess.run([shutil.which('dart'), str(app / 'test/cipa_participation_rules_test.dart')], check=True)
                 with self.assertRaises(RuntimeError):
                     patch.main(app, platform)
 
