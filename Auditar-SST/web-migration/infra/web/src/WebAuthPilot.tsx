@@ -4,6 +4,7 @@ import { TaskPilot } from './TaskPilot';
 import { ActionPlanPilot } from './ActionPlanPilot';
 import { TrainingPilot } from './TrainingPilot';
 import { CipaPilot } from './CipaPilot';
+import { CipaPortalAdmin } from './CipaPortalAdmin';
 import { ClientPortalPilot } from './ClientPortalPilot';
 import { AdminOverviewPilot } from './AdminOverviewPilot';
 
@@ -238,7 +239,8 @@ export function WebAuthPilot() {
           {workspaceTab==='treinamentos'&&session.role!=='cliente'&&
             <TrainingPilot key={'training-'+session.companyId} session={session} />}
           {workspaceTab==='cipa'&&session.role!=='cliente'&&
-            <CipaPilot key={'cipa-'+session.companyId} session={session} />}
+            <><CipaPilot key={'cipa-'+session.companyId} session={session} />
+            <CipaPortalAdmin key={'cipa-portal-'+session.companyId} session={session} /></>}
           {workspaceTab==='pendencias'&&<>
           {session.role !== 'cliente' && (
             <form className="auth-form" onSubmit={(event)=>{event.preventDefault();void run(createNc);}}>
@@ -326,3 +328,4 @@ export function WebAuthPilot() {
     </section>
   );
 }
+

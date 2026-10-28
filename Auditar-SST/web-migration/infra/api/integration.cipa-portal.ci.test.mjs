@@ -1,0 +1,79 @@
+// Synthetic CI only. Never run against a user database.
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {randomUUID} from 'node:crypto';
+import {once} from 'node:events';
+import pg from 'pg';
+import {createCipaService} from './cipaService.mjs';
+import {createCipaPortalService,withCipaMember} from './cipaPortalService.mjs';
+import {createCipaPortalAuth,CIPA_COOKIE} from './cipaPortalAuth.mjs';
+import {createAuthService,csrfForToken} from './authService.mjs';
+import {createApp} from './server.mjs';
+const A='10000000-0000-4000-8000-000000000001',B='20000000-0000-4000-8000-000000000002';
+const manager={companyId:A,userId:'33000000-0000-4000-8000-000000000003',role:'gestor'};
+const tech={companyId:A,userId:'11000000-0000-4000-8000-000000000001',role:'tecnico'};
+const techB={companyId:B,userId:'22000000-0000-4000-8000-000000000002',role:'tecnico'};
+const origin='https://portal-ci.invalid',temporary='Fictional-CIPA-temporary-28!',personal='Fictional-CIPA-personal-28!';
+const req=(cookie,csrf)=>({headers:{origin,...(cookie?{cookie}:{}),...(csrf?{'x-csrf-token':csrf}:{})}});
+const cookieOf=result=>result.cookie.split(';')[0];
+const key=()=>({clientRequestId:randomUUID()});
+test('individual portal: real DB auth, RLS, workflow, reset/revoke and HTTP cookie isolation',async()=>{
+  assert.equal(process.env.AUDITAR_SST_EPHEMERAL_CI_DB,'FAKE_DATA_CI_ONLY');assert.equal(process.env.PGHOST,'db');assert.equal(process.env.PGDATABASE,'auditar_web_hml');assert.equal(process.env.PGUSER,'sst_ci_runner');
+  const pool=new pg.Pool({max:3,connectionTimeoutMillis:5000}),authPool=new pg.Pool({max:2,user:'sst_ci_auth_runner',password:'ci-auth-synthetic-test-only-7416'});
+  let server;
+  try{
+    const role=(await pool.query('SELECT rolsuper,rolbypassrls FROM pg_roles WHERE rolname=current_user')).rows[0];assert.equal(role.rolsuper,false);assert.equal(role.rolbypassrls,false);
+    const c=createCipaService(pool),svc=createCipaPortalService(pool),auth=createCipaPortalAuth({pool:authPool,allowedOrigin:origin});
+    const m=await c.create(manager,{...key(),name:'Portal CIPA synthetic A',startsOn:'2027-01-01',endsOn:'2027-12-31'});
+    const other=await c.create(techB,{...key(),name:'Portal CIPA synthetic B',startsOn:'2027-01-01',endsOn:'2027-12-31'});
+    const members=[];for(const displayName of ['Member one synthetic','Member two synthetic'])members.push(await c.addMember(manager,m.id,{...key(),displayName,representation:'empregados',seat:'titular'}));
+    const accounts=[];for(let i=0;i<2;i++)accounts.push(await svc.createAccount(manager,m.id,{...key(),memberId:members[i].id,displayName:members[i].display_name,email:`member${i}@synthetic.invalid`,password:temporary}));
+    assert.equal(accounts[0].password_verifier,undefined);
+    await assert.rejects(auth.login(req(),{companyId:B,email:'member0@synthetic.invalid',password:temporary}),e=>e.status===401);
+    const first=await auth.login(req(),{companyId:A,email:'member0@synthetic.invalid',password:temporary});assert.equal(first.body.mustChangePassword,true);
+    assert.match(first.cookie,/HttpOnly; Secure; SameSite=Strict/);assert.ok(!first.cookie.includes('Domain='));
+    const fp=await auth.principal(req(cookieOf(first)));await assert.rejects(svc.mandates(fp),e=>e.code==='PASSWORD_CHANGE_REQUIRED');
+    await assert.rejects(auth.password(req(cookieOf(first)),{currentPassword:temporary,password:personal}),e=>e.code==='CSRF_DENIED');
+    const changed=await auth.password(req(cookieOf(first),first.body.csrfToken),{currentPassword:temporary,password:personal});const cookie=cookieOf(changed);
+    assert.equal(await auth.principal(req(cookieOf(first))),null);assert.notEqual(changed.cookie,first.cookie);
+    const p=await auth.principal(req(cookie));assert.equal(p.accountId,accounts[0].id);assert.equal(p.mustChangePassword,false);
+    assert.deepEqual((await svc.mandates(p)).map(x=>x.id),[m.id]);await assert.rejects(svc.get(p,other.id),e=>e.status===404);
+    const second=await auth.login(req(),{companyId:A,email:'member1@synthetic.invalid',password:temporary});const secondChanged=await auth.password(req(cookieOf(second),second.body.csrfToken),{currentPassword:temporary,password:personal+'2'});const p2=await auth.principal(req(cookieOf(secondChanged)));
+    const a=await svc.createAction(tech,m.id,{...key(),assignedTo:p.accountId,title:'Synthetic protection',description:'Check only synthetic task',dueOn:'2027-02-01',priority:'alta'});
+    const otherAction=await svc.createAction(tech,m.id,{...key(),assignedTo:p2.accountId,title:'Other private action',description:'',dueOn:'2027-02-02',priority:'media'});
+    assert.deepEqual((await svc.get(p,m.id)).actions.map(x=>x.id),[a.id]);assert.equal((await svc.get(p2,m.id)).actions[0].id,otherAction.id);
+    await assert.rejects(svc.status(p,otherAction.id,{...key(),status:'andamento',message:'Spoof',expectedRevision:1}),e=>e.status===404);
+    await assert.rejects(svc.status(p,a.id,{...key(),status:'concluida',message:'Self approval forbidden',expectedRevision:1}),e=>e.code==='INVALID_STATE');
+    const update={...key(),status:'aguardando_validacao',message:'Ready for review',expectedRevision:1};
+    assert.equal((await svc.status(p,a.id,update)).revision,2);assert.equal((await svc.status(p,a.id,update)).revision,2);
+    await assert.rejects(svc.status(p,a.id,{...update,message:'Different replay'}),e=>e.code==='IDEMPOTENCY_CONFLICT');
+    await assert.rejects(svc.status(tech,a.id,{...key(),status:'concluida',message:'Stale',expectedRevision:1},true),e=>e.code==='STALE_REVISION');
+    assert.equal((await svc.status(tech,a.id,{...key(),status:'concluida',message:'Reviewed synthetic evidence',expectedRevision:2},true)).revision,3);
+    const suggestion={...key(),kind:'sugestao',message:'Synthetic prevention suggestion'};await svc.post(p,m.id,suggestion);await svc.post(p,m.id,suggestion);
+    await svc.post(p,m.id,{...key(),kind:'apoio',actionId:a.id,message:'Synthetic support needed'});
+    await svc.post(tech,m.id,{...key(),kind:'orientacao',actionId:a.id,message:'Synthetic staff answer'},true);
+    await svc.post(tech,m.id,{...key(),kind:'aviso',message:'Synthetic mandate-wide announcement'},true);
+    const mine=await svc.get(p,m.id),theirs=await svc.get(p2,m.id);
+    assert.equal(mine.entries.filter(x=>x.kind==='sugestao').length,1);assert.ok(mine.entries.some(x=>x.kind==='orientacao'));assert.deepEqual(theirs.entries.map(x=>x.kind),['aviso']);
+    await assert.rejects(svc.post(p,m.id,{...key(),kind:'aviso',message:'Member cannot broadcast'}),e=>e.status===400);
+    const meeting=await c.addMeeting(manager,m.id,{...key(),title:'Synthetic meeting',scheduledAt:'2027-02-01T12:00:00Z'});
+    await svc.post(p,m.id,{...key(),kind:'ciencia_reuniao',meetingId:meeting.id,message:'Read'});
+    assert.match((await svc.get(p,m.id)).entries.find(x=>x.kind==='ciencia_reuniao').message,/Nao comprova presenca/);
+    // Direct role checks: no access to generic company NCs, auth secrets or another member's tasks.
+    await assert.rejects(withCipaMember(pool,p,db=>db.query('SELECT * FROM sst.non_conformity')),e=>e.code==='42501');
+    await assert.rejects(withCipaMember(pool,p,db=>db.query('SELECT password_verifier FROM sst.cipa_portal_account')),e=>e.code==='42501');
+    const direct=await withCipaMember(pool,p,db=>db.query('SELECT id FROM sst.cipa_portal_action'));assert.deepEqual(direct.rows.map(x=>x.id),[a.id]);
+    // Real member auth on HTTP; no test resolver on this server.
+    const staffAuth=createAuthService({pool:authPool,allowedOrigin:origin});server=createApp({pool,authService:staffAuth,cipaPortalAuth:auth});server.listen(0,'127.0.0.1');await once(server,'listening');
+    const url=`http://127.0.0.1:${server.address().port}/api/v1/`;
+    for(const path of ['cipa-portal-admin/accounts','nonconformities']){const r=await fetch(url+path,{headers:{cookie,'x-role':'adm','x-company-id':B}});assert.equal(r.status,401);}
+    const csrfDenied=await fetch(url+'cipa-portal/mandates/'+m.id+'/entries',{method:'POST',headers:{cookie,origin,'Content-Type':'application/json'},body:JSON.stringify({...key(),kind:'sugestao',message:'Missing CSRF'})});assert.equal(csrfDenied.status,403);
+    const ok=await fetch(url+'cipa-portal/mandates/'+m.id,{headers:{cookie}});assert.equal(ok.status,200);
+    await svc.reset(manager,m.id,{...key(),accountId:p.accountId,password:temporary+'reset'});assert.equal(await auth.principal(req(cookie)),null);
+    const reset=await auth.login(req(),{companyId:A,email:'member0@synthetic.invalid',password:temporary+'reset'});assert.equal(reset.body.mustChangePassword,true);
+    await svc.revoke(manager,m.id,{...key(),accountId:p.accountId});assert.equal(await auth.principal(req(cookieOf(reset))),null);
+    await assert.rejects(auth.login(req(),{companyId:A,email:'member0@synthetic.invalid',password:temporary+'reset'}),e=>e.status===401);
+    assert.equal((await svc.adminGet(manager,m.id)).actions.length,2); // revocation never deletes history.
+    console.log('CIPA_MEMBER_PORTAL_RLS_AUTH_WORKFLOW_CI_ONLY_OK');
+  }finally{if(server)await new Promise(r=>server.close(r));await pool.end();await authPool.end();}
+});

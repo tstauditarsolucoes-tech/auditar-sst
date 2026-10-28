@@ -7,6 +7,7 @@ import { createTaskService } from './taskService.mjs';
 import { createActionPlanService } from './actionPlanService.mjs';
 import { createTrainingService } from './trainingService.mjs';
 import { createCipaService } from './cipaService.mjs';
+import { createCipaPortalService } from './cipaPortalService.mjs';
 import { createPortalService } from './portalService.mjs';
 import { createEvidenceService } from './evidenceService.mjs';
 import { createReportService } from './reportService.mjs';
@@ -19,7 +20,7 @@ import {nativeDraftPayload} from './nativeDraftContract.mjs';
  * Sem authService e sem resolvePrincipal, nao ha nenhuma rota de negocios livre.
  * NUNCA montar resolvePrincipal a partir de headers x-company-id/x-role.
  */
-export function createApp({pool, authService, nativeAuthService, nativeDraftsEnabled=false, resolvePrincipal, evidenceDir} = {}) {
+export function createApp({pool, authService, cipaPortalAuth, nativeAuthService, nativeDraftsEnabled=false, resolvePrincipal, evidenceDir} = {}) {
   if(nativeDraftsEnabled && !nativeAuthService)throw new Error('Rascunho nativo exige sessao nativa verificada');
   if (authService && resolvePrincipal) {
     throw new Error('Nao misturar autenticador real com resolver de teste');
@@ -30,6 +31,7 @@ export function createApp({pool, authService, nativeAuthService, nativeDraftsEna
   const actionPlanService=createActionPlanService(pool);
   const trainingService=createTrainingService(pool);
   const cipaService=createCipaService(pool);
+  const cipaPortal=createCipaPortalService(pool);
   const portalService=createPortalService(pool);
   const evidenceService=createEvidenceService(pool,evidenceDir);
   const reportService=createReportService(pool,evidenceDir);
@@ -66,6 +68,51 @@ export function createApp({pool, authService, nativeAuthService, nativeDraftsEna
     }
 
     try {
+      // Dedicated credentials: a CIPA member is NEVER a staff/client principal.
+      if(pathname.startsWith('/api/v1/cipa-portal/')){
+        if(!cipaPortalAuth){send(404,{ok:false,code:'CIPA_PORTAL_DISABLED'});return;}
+        const route=pathname.slice('/api/v1/cipa-portal/'.length);
+        if(route==='auth/session'&&req.method==='GET'){send(200,await cipaPortalAuth.session(req));return;}
+        if(['auth/login','auth/logout','auth/password'].includes(route)&&req.method==='POST'){
+          const result=route==='auth/login'?await cipaPortalAuth.login(req,await readJson(1600)):
+            route==='auth/password'?await cipaPortalAuth.password(req,await readJson(1600)):await cipaPortalAuth.logout(req);
+          res.setHeader('Set-Cookie',result.cookie);send(200,result.body);return;
+        }
+        const p=await cipaPortalAuth.principal(req);
+        if(!p)throw new ApiError(401,'UNAUTHENTICATED','Sessao individual expirada');
+        if(route==='mandates'&&req.method==='GET'){send(200,{items:await cipaPortal.mandates(p)});return;}
+        const detail=route.match(/^mandates\/([0-9a-f-]{36})$/i);
+        if(detail&&req.method==='GET'){send(200,await cipaPortal.get(p,detail[1]));return;}
+        const post=route.match(/^mandates\/([0-9a-f-]{36})\/entries$/i);
+        const status=route.match(/^actions\/([0-9a-f-]{36})\/status$/i);
+        if(req.method==='POST'&&(post||status)){
+          cipaPortalAuth.mutation(req);const body=await readJson(12000);
+          send(200,{item:post?await cipaPortal.post(p,post[1],body):await cipaPortal.status(p,status[1],body)});return;
+        }
+        send(404,{ok:false,code:'NOT_FOUND'});return;
+      }
+      if(pathname.startsWith('/api/v1/cipa-portal-admin/')){
+        if(!cipaPortalAuth){send(404,{ok:false,code:'CIPA_PORTAL_DISABLED'});return;}
+        const p=authService?await authService.principal(req):resolvePrincipal?await resolvePrincipal(req):null;
+        if(!p)throw new ApiError(401,'UNAUTHENTICATED','Sessao da equipe necessaria');
+        const route=pathname.slice('/api/v1/cipa-portal-admin/'.length);
+        if(route==='accounts'&&req.method==='GET'){send(200,{items:await cipaPortal.accounts(p)});return;}
+        const detail=route.match(/^mandates\/([0-9a-f-]{36})$/i);
+        if(detail&&req.method==='GET'){send(200,await cipaPortal.adminGet(p,detail[1]));return;}
+        const post=route.match(/^mandates\/([0-9a-f-]{36})\/(accounts|link|revoke|reset|actions|entries)$/i);
+        const status=route.match(/^actions\/([0-9a-f-]{36})\/status$/i);
+        if(req.method==='POST'&&(post||status)){
+          if(authService)authService.requireMutation(req);
+          const body=await readJson(12000);let item;
+          if(status)item=await cipaPortal.status(p,status[1],body,true);
+          else if(post[2]==='accounts')item=await cipaPortal.createAccount(p,post[1],body);
+          else if(post[2]==='actions')item=await cipaPortal.createAction(p,post[1],body);
+          else if(post[2]==='entries')item=await cipaPortal.post(p,post[1],body,true);
+          else item=await cipaPortal[post[2]](p,post[1],body);
+          send(200,{item});return;
+        }
+        send(404,{ok:false,code:'NOT_FOUND'});return;
+      }
       if (pathname==='/api/v1/health' && req.method==='GET') {
         send(200,{ok:true,service:'auditar-sst-web',environment:'homologacao-isolada',
           productionDataConnected:false});
@@ -522,3 +569,4 @@ if (process.argv[1] && resolve(process.argv[1])===fileURLToPath(import.meta.url)
   // A ativacao exige duas contas DB restritas, HTTPS e revisao de seguranca.
   createApp().listen(port,'0.0.0.0');
 }
+

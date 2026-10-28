@@ -11,6 +11,7 @@ services:
       NODE_ENV: production
       PORT: "3000"
       AUDITAR_ENABLE_PRIVATE_AUTH: PRIVATE_STAGING_CONFIRMED
+      AUDITAR_ENABLE_CIPA_PORTAL: ${AUDITAR_ENABLE_CIPA_PORTAL:-disabled}
       AUDITAR_ALLOWED_ORIGIN: ${AUDITAR_ALLOWED_ORIGIN:?Use HTTPS privado e separado do dominio final}
       AUDITAR_DATA_DB_USER: ${AUDITAR_DATA_DB_USER:-sst_web_data_hml}
       AUDITAR_AUTH_DB_USER: ${AUDITAR_AUTH_DB_USER:-sst_web_auth_hml}
@@ -36,3 +37,4 @@ secrets:
 
 volumes:
   evidence_data_hml:
+

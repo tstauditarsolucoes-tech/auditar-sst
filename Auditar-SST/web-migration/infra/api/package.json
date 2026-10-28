@@ -5,10 +5,11 @@
   "type": "module",
   "description": "API SST isolada para homologacao; sem autenticacao de producao",
   "scripts": {
-    "test": "node --test server.test.mjs ncService.test.mjs inspectionService.test.mjs taskService.test.mjs portalService.test.mjs evidenceService.test.mjs reportService.test.mjs reportTextPagination.test.mjs legacyCompatibility.test.mjs nativeDraftContract.test.mjs"
+    "test": "node --test server.test.mjs ncService.test.mjs inspectionService.test.mjs taskService.test.mjs portalService.test.mjs evidenceService.test.mjs reportService.test.mjs reportTextPagination.test.mjs legacyCompatibility.test.mjs nativeDraftContract.test.mjs cipaPortal.test.mjs"
   },
   "dependencies": {
     "pg": "8.16.3",
     "pdfkit": "0.20.2"
   }
 }
+

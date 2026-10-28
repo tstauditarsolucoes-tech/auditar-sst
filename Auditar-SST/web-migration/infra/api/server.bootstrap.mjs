@@ -7,6 +7,7 @@ import pg from 'pg';
 import { createApp } from './server.mjs';
 import { createAuthService } from './authService.mjs';
 import { createNativeAuthService } from './nativeAuthService.mjs';
+import { createCipaPortalAuth } from './cipaPortalAuth.mjs';
 
 function configuration() {
   if (typeof process.getuid==='function' && process.getuid()===0) {
@@ -94,13 +95,15 @@ try {
   throw error;
 }
 const authService=createAuthService({pool:authPool,allowedOrigin:config.allowedOrigin});
+const cipaPortalAuth=process.env.AUDITAR_ENABLE_CIPA_PORTAL==='PRIVATE_STAGING_CIPA_ONLY'
+  ?createCipaPortalAuth({pool:authPool,allowedOrigin:config.allowedOrigin}):undefined;
 // Opt-in separado e explicito, por padrão INATIVO até na VPS privada.
 const nativeAuthService=process.env.AUDITAR_ENABLE_NATIVE_AUTH==='PRIVATE_STAGING_NATIVE_ONLY'
   ?createNativeAuthService({pool:authPool}):undefined;
 // Escritas de rascunhos NOVOS requerem um segundo opt-in independente.
 const nativeDraftsEnabled=Boolean(nativeAuthService) &&
   process.env.AUDITAR_ENABLE_NATIVE_DRAFTS==='PRIVATE_STAGING_NATIVE_DRAFTS_ONLY';
-const server=createApp({pool:dataPool,authService,nativeAuthService,nativeDraftsEnabled,
+const server=createApp({pool:dataPool,authService,cipaPortalAuth,nativeAuthService,nativeDraftsEnabled,
   evidenceDir:config.evidenceDir});
 let closing=false;
 async function close() {
@@ -114,3 +117,4 @@ process.on('SIGINT',()=>{void close();});
 dataPool.on('error',()=>{ /* nao imprimir segredos/conexao */ });
 authPool.on('error',()=>{ /* nao imprimir segredos/conexao */ });
 server.listen(config.port,'0.0.0.0');
+
