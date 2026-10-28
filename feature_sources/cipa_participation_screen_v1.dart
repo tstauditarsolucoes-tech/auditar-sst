@@ -50,7 +50,7 @@ extension _CipaParticipation on _CipaManagementScreenState {
   }
 
   Future<void> _cipaRun(Future<void> Function() task) async {
-    if (busy) return;
+    if (!mounted || busy) return;
     setState(() => busy = true);
     try {
       await task();

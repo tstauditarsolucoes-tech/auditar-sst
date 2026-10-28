@@ -1,7 +1,9 @@
 /// CIPA presentation rules. No database, transport, authentication or UI imports.
 class CipaParticipationEvent {
   final String id;
-  final String companyId;
+  // SstRecord.companyId is nullable for legacy/unscoped records. Keep that
+  // absence explicit; CipaParticipationRules filters it out, never assigns it.
+  final String? companyId;
   final DateTime date;
   final Map<String, dynamic> data;
   const CipaParticipationEvent(this.id, this.companyId, this.date, this.data);

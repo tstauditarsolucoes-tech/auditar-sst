@@ -61,5 +61,13 @@ void main() {
   check(archived.hiddenByArchive('action', 'CIPA_ACAO', 'Resolvida', false), 'resolved action can be hidden');
   check(!archived.hiddenByArchive('action', 'CIPA_ACAO', 'Aberta', false), 'reopened action reappears despite earlier archive');
   check(!CipaParticipationRules.canArchive('CIPA_DOCUMENTO', 'Pendente de anexo', false), 'pending document remains visible');
+  final noCompany = CipaParticipationRules('A', [
+    CipaParticipationEvent('unscoped', null, DateTime(2026, 10, 31), {
+      'workspaceEvent': CipaParticipationRules.marker,
+      'kind': 'archive', 'targetId': 'action',
+    }),
+  ]);
+  check(noCompany.events.isEmpty, 'nullable legacy company must not be assumed');
+  check(!noCompany.archived('action'), 'unscoped record cannot hide company action');
   print('CIPA_PARTICIPATION_RULES_OK $count checks');
 }
