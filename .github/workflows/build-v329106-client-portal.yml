@@ -1,4 +1,4 @@
-name: Auditar SST Android v3.29.198 Biblioteca NRs
+name: Auditar SST Android v3.29.199 CIPA Participacao
 # Clean rebuild v3.29.145 after protected productivity consolidation
 # Rebuild v3.29.113 logo recovery
 
@@ -7,6 +7,9 @@ on:
   push:
     branches: [feature/client-panel-permissions-v329106]
     paths:
+      - 'feature_sources/cipa_participation*'
+      - 'tools/patch_cipa_participation_v1.py'
+      - 'tools/bump_cipa_release_v1.py'
       - 'tools/patch_client_treatment_inbox_v329182_v330105.py'
       - 'tools/patch_treatment_outbox_v329185_v330108.py'
       - 'tools/patch_treatment_conversation_v329186_v330109.py'
@@ -1615,6 +1618,17 @@ jobs:
           python3 tools/bump_polish_release_version_v1.py "$APP_DIR" android
           grep -Fq 'version: 3.29.198+340' "$APP_DIR/pubspec.yaml"
 
+      - name: Participacao CIPA preservando dados e sincronizacao
+        run: |
+          set -euo pipefail
+          python3 tools/test_cipa_participation_v1.py
+          python3 tools/patch_cipa_participation_v1.py "$APP_DIR" android
+          python3 tools/bump_cipa_release_v1.py "$APP_DIR" android
+          cd "$APP_DIR"
+          dart format lib/screens/cipa_management_screen.dart lib/screens/cipa_participation_screen.dart lib/services/cipa_participation_rules.dart test/cipa_participation_rules_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          dart test/cipa_participation_rules_test.dart
+
       - name: Testar mini tutorial opcional original
         run: |
           set -euo pipefail
@@ -1704,14 +1718,15 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.198-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.198-Android.apk > dist/Auditar-SST-v3.29.198-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.199-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.199-Android.apk > dist/Auditar-SST-v3.29.199-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.198-Android-Biblioteca-Ampliada
+          name: Auditar-SST-v3.29.199-Android-Biblioteca-Ampliada
           path: dist/*
           retention-days: 30
 
 # retry-ronda-final-20261003
+
 
