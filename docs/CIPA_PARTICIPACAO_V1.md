@@ -19,8 +19,9 @@ O calendário diferencia reunião agendada, realizada, cancelada e necessidade d
 
 - O módulo **Participação** inclui roteiro mensal com quatro itens marcáveis: observação segura do ambiente, acompanhamento de pendências, conferência de reunião e registro de melhoria.
 - Cada marcação ou desmarcação registra novo evento `monthly_check` no envelope de `CIPA_DOCUMENTO` já existente, associado à empresa, mandato, competência `YYYY-MM` e identificador conhecido da atividade. Não há alteração em tabela, sincronização ou Apps Script.
-- A lista de **situações observadas** permite informar local e descrição simples; o registro é `observation`, sem classificação automática como NC e sem canal de denúncias. Fotos podem ser adicionadas depois com a função **Anexar foto**, reaproveitando o registro e o fluxo de mídia `cipa_document` já usados pelo app.
-- **Guia de reuniões** com orientações antes, durante e depois e atalho ao cadastro existente de reunião/pauta. Não cria assinatura, presença nem ata automática.
+- A lista de **situações observadas** permite informar local e descrição simples; o registro é `observation`, sem classificação automática como NC e sem canal de denúncias. Foto opcional pode ser selecionada **na sequência da gravação** ou depois pelo menu de anexos. Usa o fluxo de mídia existente `cipa_document`, sem alterar Drive ou Apps Script.
+- **Guia de reuniões** com orientações antes, durante e depois. A opção **Preparar reunião guiada** reúne título, tipo, data, local e pauta editável; permite escolher pendências e agenda via `CipaManagementService.saveMeeting` com lista de presentes **vazia**, nunca presumida. Reaproveita os lembretes da agenda existente. Não cria assinatura, presença nem ata automaticamente.
+- A visão simplificada apresenta **Por onde começar?**, atalhos, orientações em linguagem comum e um roteiro de cinco passos para novos integrantes. A ação **Informar andamento** salva um evento `progress_reported` sem modificar status da ação, sem aprovar conclusão e sem encerrar NC. O técnico continua responsável pelas validações.
 - Estes recursos são visíveis na conta já autenticada e os marcadores mensais representam acompanhamento **compartilhado da equipe**, não prova de atividade individual, autoria do membro ou cumprimento legal da NR-05.
 - **Web e VPS do Júlio permanecem fora do escopo e parados.** Esta entrega é somente do aplicativo atual.
 - Antes da liberação, homologar em Android e Windows com empresa e mandatos de teste: itens de meses diferentes, marcar/desmarcar, observação com foto e recuperação da foto em outro aparelho com o fluxo existente, offline, sincronização e encerramento de mandato.
@@ -47,3 +48,15 @@ O calendário diferencia reunião agendada, realizada, cancelada e necessidade d
 - Evitar uso simultâneo de clientes antigos e novos durante a homologação: versões antigas não conhecem o marcador administrativo e podem listar esses eventos entre documentos. Numeração de revisões e ordenação de eventos são locais; conflitos entre aparelhos precisam de homologação, não se presume garantia transacional distribuída.
 
 Compilar e passar testes automatizados não substitui a homologação nos aparelhos. Não executar importação, limpeza, migração de dados nem publicação web como parte deste lote.
+
+## Pendente para um portal **individual** dos integrantes
+
+O modo simplificado entregue no aplicativo atual **não** possui login ou autorização independente por membro da CIPA. O filtro por nome e a possibilidade de informar andamento são apenas recursos da conta do técnico/gestor que já está conectada; não restringem dados aos membros. Não distribuir credenciais de técnico/ADM aos integrantes. Para liberar acesso individual no sistema atual, é necessário estudar autorização por empresa/mandato, credenciais, revogação, trilha de autoria e o contrato do backend atual **antes** de alterar autenticação/sincronização ou publicar GS, com homologação e reversão. A migração web e a VPS do Júlio seguem fora do escopo.
+
+## Testes do incremento 29/10/2026
+
+- [x] Código de interface atualizado com foto após observação, reunião guiada e informe de andamento não técnico.
+- [x] Regras e testes focados de participação incluem isolamento da anotação por empresa e ação.
+- [ ] Compilações Android/Windows do commit mais recente comprovadas.
+- [ ] Homologar no aparelho: salvar observação com/sem foto; sincronizar foto em outro aparelho com a Central Online atual; agendar reunião guiada e conferir lembretes; informar andamento e conferir que status não mudou; retorno offline/online.
+- [ ] Verificar abertura, fonte ampliada, 360/412 px e navegação desktop; obter aceite do responsável antes de substituir instaladores usados em produção.
