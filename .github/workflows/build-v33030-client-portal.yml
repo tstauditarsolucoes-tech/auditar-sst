@@ -131,6 +131,8 @@ on:
       - 'tools/patch_ronda_ai_report_busy_v329141_v33060.py'
       - 'tools/patch_report_busy_exclusive_v329142_v33061.py'
       - 'tools/patch_ai_photo_speed_v329145_v33064.py'
+      - 'tools/patch_checklist_builder_reliability_v329200_v330128.py'
+      - 'tools/regression_checklist_builder_reliability_v329200_v330128.py'
       - 'tools/regression_ai_photo_speed_v329145_v33064.py'
       - 'tools/patch_report_progress_v329146_v33065.py'
       - 'tools/regression_report_progress_v329146_v33065.py'
@@ -2071,6 +2073,23 @@ jobs:
         run: |
           python tools/run_cipa_validation_v1.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Falha validacao CIPA; consultar artefato diagnostico' }
+
+      - name: Corrigir timeout do criador de checklist com IA Windows
+        shell: pwsh
+        run: |
+          python tools/patch_checklist_builder_reliability_v329200_v330128.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Patch do criador de checklist IA falhou' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/services/ai_assistant_service.dart lib/screens/checklist_templates_screen.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Formatacao do criador de checklist IA falhou' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Analise Flutter apos patch do checklist IA falhou' }
+          flutter test
+          if ($LASTEXITCODE -ne 0) { throw 'Testes Flutter apos patch do checklist IA falharam' }
+          Pop-Location
+          python tools/regression_checklist_builder_reliability_v329200_v330128.py "$env:APP_DIR" windows
+          if ($LASTEXITCODE -ne 0) { throw 'Regressao do criador de checklist IA falhou' }
+          if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch "version: 3.30.128+315")) { throw 'Versao Windows incorreta' }
 
       - name: Salvar diagnostico CIPA Windows
         if: always()
