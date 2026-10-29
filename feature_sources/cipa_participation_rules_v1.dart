@@ -55,6 +55,34 @@ class CipaParticipationRules {
     return event?.data['status'] == 'Resolvida' ? event?.date : null;
   }
 
+  // Shared work checklist in the existing authenticated technician/management app.
+  // It is NOT a personal CIPA member login or proof of a completed inspection.
+  static const monthlyTasks = <String>{
+    'verificar_ambiente',
+    'acompanhar_pendencias',
+    'consultar_reuniao',
+    'registrar_melhoria',
+  };
+
+  static String monthKey(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}';
+
+  bool monthlyDone(String mandateId, DateTime month, String task) {
+    if (mandateId.isEmpty || !monthlyTasks.contains(task)) return false;
+    final targetId = '$mandateId|${monthKey(month)}|$task';
+    final event = latest(targetId, {'monthly_check'});
+    return event?.data['done'] == true &&
+        event?.data['mandateId'] == mandateId &&
+        event?.data['monthKey'] == monthKey(month) &&
+        event?.data['taskKey'] == task;
+  }
+
+  Iterable<CipaParticipationEvent> observations(String mandateId) =>
+      events.where((event) =>
+          event.kind == 'observation' &&
+          mandateId.isNotEmpty &&
+          event.data['mandateId'] == mandateId);
+
   static bool inMonth(DateTime date, DateTime month) =>
       date.year == month.year && date.month == month.month;
 
