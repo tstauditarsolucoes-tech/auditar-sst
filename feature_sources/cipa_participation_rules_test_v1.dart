@@ -35,6 +35,18 @@ void main() {
   final requestAgain = CipaParticipationRules('A', [...rules.events,
     event('request-2', 'A', 'support_requested', 'action', 12, {'categoryName': 'Orientação'})]);
   check(requestAgain.support('action')?.data['categoryName'] == 'Orientação', 'new support request');
+  final progress = CipaParticipationRules('A', [
+    event('older-note', 'A', 'progress_reported', 'action', 10,
+      {'detail': 'Iniciado'}),
+    event('other-company-note', 'B', 'progress_reported', 'action', 30,
+      {'detail': 'Não deve aparecer'}),
+    event('newer-note', 'A', 'progress_reported', 'action', 12,
+      {'detail': 'Em avaliação técnica'}),
+  ]);
+  check(progress.progress('action')?.data['detail'] == 'Em avaliação técnica',
+    'only latest scoped progress note is shown');
+  check(progress.progress('unknown') == null,
+    'no unverified progress for unrelated actions');
   check(CipaParticipationRules.nextVersion([2, 7, 1, '4', null]) == 8, 'maximum version, not first');
   check(CipaParticipationRules.nextVersion([]) == 1, 'first revision');
   check(CipaParticipationRules.nextVersion(['bad', -5]) == 1, 'invalid legacy revisions');
