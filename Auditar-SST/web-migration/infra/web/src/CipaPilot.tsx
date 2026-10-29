@@ -45,9 +45,11 @@ export function CipaPilot({session}:{session:Session}){
  const [memberKey,setMemberKey]=useState(()=>crypto.randomUUID());
  const [meetingTitle,setMeetingTitle]=useState('');
  const [meetingDate,setMeetingDate]=useState('');
+ const [meetingAgenda,setMeetingAgenda]=useState('');
  const [meetingKey,setMeetingKey]=useState(()=>crypto.randomUUID());
  const [decisionId,setDecisionId]=useState<string|null>(null);
  const [summary,setSummary]=useState('');
+ const [discussed,setDiscussed]=useState(''),[decisions,setDecisions]=useState(''),[responsible,setResponsible]=useState(''),[followUp,setFollowUp]=useState('');
  const [closeNote,setCloseNote]=useState('');
  const [busy,setBusy]=useState(false);
  const [notice,setNotice]=useState('');
@@ -88,9 +90,9 @@ export function CipaPilot({session}:{session:Session}){
  async function addMeeting(){
   if(!selected)return;
   await request('cipa/mandates/'+selected.mandate.id+'/meetings','POST',{
-   title:meetingTitle,scheduledAt:new Date(meetingDate).toISOString(),clientRequestId:meetingKey,
+   title:meetingTitle,scheduledAt:new Date(meetingDate).toISOString(),agenda:meetingAgenda,clientRequestId:meetingKey,
   },session.csrfToken);
-  setMeetingTitle('');setMeetingDate('');setMeetingKey(crypto.randomUUID());
+  setMeetingTitle('');setMeetingDate('');setMeetingAgenda('');setMeetingKey(crypto.randomUUID());
   await open(selected.mandate.id);setNotice('Reunião fictícia agendada.');
  }
  async function decideMeeting(id:string,status:'realizada'|'cancelada',revision:number){
@@ -98,7 +100,7 @@ export function CipaPilot({session}:{session:Session}){
   await request('cipa/meetings/'+id+'/status','POST',{
    status,summary,expectedRevision:revision,
   },session.csrfToken);
-  setSummary('');setDecisionId(null);
+  setSummary('');setDiscussed('');setDecisions('');setResponsible('');setFollowUp('');setDecisionId(null);
   await open(selected.mandate.id);setNotice('Andamento da reunião registrado.');
  }
  async function changeMandate(status:'ativo'|'encerrado'){
@@ -174,9 +176,25 @@ export function CipaPilot({session}:{session:Session}){
     {m.summary&&<p>{m.summary}</p>}
     {m.status==='planejada'&&selected.mandate.status!=='encerrado'&&(manager||session.user.id===m.created_by)&&<>
      <button className="secondary-button" disabled={busy} onClick={()=>{
-      setDecisionId(decisionId===m.id?null:m.id);setSummary('');
+      setDecisionId(decisionId===m.id?null:m.id);setSummary('');setDiscussed('');setDecisions('');setResponsible('');setFollowUp('');
      }}>Registrar resultado</button>
      {decisionId===m.id&&<div className="auth-form">
+      <p><strong>Registro guiado:</strong> descreva o que foi discutido e decidido. O texto será uma minuta para revisão, não uma ata assinada.</p>
+      <label>Assuntos discutidos<textarea maxLength={950} rows={2} value={discussed} onChange={e=>setDiscussed(e.target.value)} placeholder="Ex.: avaliação das condições observadas no setor" /></label>
+      <label>Decisões e encaminhamentos<textarea maxLength={950} rows={2} value={decisions} onChange={e=>setDecisions(e.target.value)} placeholder="Ex.: solicitar avaliação técnica do equipamento" /></label>
+      <label>Quem ficou responsável?<input maxLength={250} value={responsible} onChange={e=>setResponsible(e.target.value)} placeholder="Ex.: responsável da manutenção" /></label>
+      <label>Prazo ou próxima verificação<input maxLength={150} value={followUp} onChange={e=>setFollowUp(e.target.value)} placeholder="Ex.: próxima reunião / data combinada" /></label>
+      <button type="button" className="secondary-button" disabled={busy||!discussed.trim()||!decisions.trim()} onClick={()=>{
+        const text=['MINUTA DE REUNIÃO — REVISÃO OBRIGATÓRIA',
+          'Pauta prevista: '+(m.summary||'não informada'),
+          'Assuntos discutidos: '+discussed.trim(),
+          'Decisões e encaminhamentos: '+decisions.trim(),
+          'Responsável(is): '+(responsible.trim()||'a definir'),
+          'Acompanhamento/prazo: '+(followUp.trim()||'a definir'),
+          'Atenção: esta minuta não comprova presença, aprovação ou assinatura.'].join('\\n');
+        if(text.length>4000){setNotice('Minuta muito longa. Resuma os campos antes de gerar.');return;}
+        setSummary(text);
+      }}>Montar minuta para revisão</button>
       <label>Resumo da reunião ou motivo<textarea maxLength={4000} rows={3} required
        value={summary} onChange={e=>setSummary(e.target.value)}/></label>
       <div className="auth-actions">
@@ -193,6 +211,8 @@ export function CipaPilot({session}:{session:Session}){
     <label>Assunto<input required maxLength={200} value={meetingTitle} onChange={e=>setMeetingTitle(e.target.value)}/></label>
     <label>Data e horário<input type="datetime-local" required value={meetingDate}
      onChange={e=>setMeetingDate(e.target.value)}/></label>
+    <label>Pauta da reunião (opcional)<textarea rows={4} maxLength={1800} value={meetingAgenda} onChange={e=>setMeetingAgenda(e.target.value)} placeholder="Quais assuntos precisam ser tratados?" /></label>
+    <button type="button" className="secondary-button" onClick={()=>setMeetingAgenda('1. Verificação das pendências do mês.\\n2. Situações observadas pelos membros.\\n3. Acompanhamento das ações e responsáveis.\\n4. Próxima reunião e encaminhamentos.')}>Usar pauta sugerida</button>
     <button className="secondary-button" type="submit" disabled={busy||!meetingTitle.trim()||!meetingDate}>Agendar</button>
    </form>}
    <h4>Linha do tempo</h4>
