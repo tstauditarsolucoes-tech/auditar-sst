@@ -380,6 +380,137 @@ extension _CipaParticipation on _CipaManagementScreenState {
         '${record.status}\n${record.payload['description'] ?? record.payload['content'] ?? record.payload['notes'] ?? ''}')),
       actions: [TextButton(onPressed: () => Navigator.pop(dialog), child: const Text('Fechar'))]));
 
+
+  Widget _cipaMonthlyGuide(CipaParticipationRules rules) {
+    final mandate = activeMandate;
+    if (mandate == null) return const Card(child: ListTile(
+      title: Text('Roteiro mensal da CIPA'),
+      subtitle: Text('Selecione um mandato para começar.')));
+    final month = DateTime.now();
+    final monthKey = CipaParticipationRules.monthKey(month);
+    const items = <Map<String, String>>[
+      {'key':'verificar_ambiente','title':'Observar as condições de segurança',
+       'hint':'Observe sem se aproximar do perigo. Avise o técnico em caso de risco.'},
+      {'key':'acompanhar_pendencias','title':'Acompanhar ações pendentes',
+       'hint':'Confira os responsáveis, prazos e pedidos de apoio.'},
+      {'key':'consultar_reuniao','title':'Conferir a próxima reunião',
+       'hint':'Veja a data e os assuntos que precisam ser conversados.'},
+      {'key':'registrar_melhoria','title':'Registrar oportunidade de melhoria',
+       'hint':'Anote local e situação observada, sem precisar citar uma NR.'},
+    ];
+    final count = items.where((i) => rules.monthlyDone(mandate.id, month, i['key']!)).length;
+    return Card(child: ExpansionTile(
+      leading: const Icon(Icons.fact_check_outlined),
+      title: Text('Roteiro mensal • ${month.month.toString().padLeft(2, '0')}/${month.year}'),
+      subtitle: Text('$count de ${items.length} atividades acompanhadas'),
+      initiallyExpanded: _cipaSimpleMode,
+      children: [
+        const Padding(padding: EdgeInsets.all(12), child: Text(
+          'Roteiro compartilhado da conta atual. Não comprova participação individual, '
+          'presença em reunião ou realização de inspeção técnica.')),
+        ...items.map((i) => CheckboxListTile(
+          title: Text(i['title']!), subtitle: Text(i['hint']!),
+          value: rules.monthlyDone(mandate.id, month, i['key']!),
+          isThreeLine: true, controlAffinity: ListTileControlAffinity.leading,
+          onChanged: busy ? null : (value) {
+            if (value == null) return;
+            _cipaRun(() => _cipaEvent('monthly_check',
+              '${mandate.id}|$monthKey|${i['key']}',
+              {'monthKey': monthKey, 'taskKey': i['key'],
+                'done': value, 'title': i['title']}, mandateId: mandate.id));
+          },
+        )),
+      ],
+    ));
+  }
+
+  Future<void> _cipaNewObservation() async {
+    final mandate = activeMandate;
+    if (mandate == null || busy) return;
+    final place = TextEditingController();
+    final detail = TextEditingController();
+    final confirmed = await showDialog<bool>(context: context, builder: (dialog) =>
+      StatefulBuilder(builder: (context, update) => AlertDialog(
+        title: const Text('Registrar situação observada'),
+        content: SizedBox(width: 520, child: SingleChildScrollView(child: Column(
+          mainAxisSize: MainAxisSize.min, children: [
+            const Text('Escreva com suas palavras. Não se exponha a riscos para registrar. '
+              'O técnico avaliará a situação; ela não vira NC automaticamente.'),
+            TextField(controller: place, maxLength: 120, onChanged: (_) => update(() {}),
+              decoration: const InputDecoration(labelText: 'Local', hintText: 'Ex.: expedição')),
+            TextField(controller: detail, maxLength: 1200, maxLines: 5,
+              onChanged: (_) => update(() {}),
+              decoration: const InputDecoration(labelText: 'O que foi observado?',
+                hintText: 'Ex.: caixas obstruindo a passagem')),
+            const Text('Depois de salvar, será possível anexar uma foto pelo menu do registro.'),
+          ],
+        ))),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialog, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: place.text.trim().isEmpty || detail.text.trim().isEmpty ?
+            null : () => Navigator.pop(dialog, true), child: const Text('Salvar')),
+        ],
+      )),
+    );
+    final location = place.text.trim(), message = detail.text.trim();
+    place.dispose(); detail.dispose();
+    if (confirmed != true || !mounted || mandate.id != activeMandate?.id) return;
+    await _cipaRun(() => _cipaEvent('observation', const Uuid().v4(),
+      {'title': 'Situação observada • $location', 'location': location, 'detail': message},
+      mandateId: mandate.id));
+  }
+
+  Widget _cipaObservationList(CipaParticipationRules rules) {
+    final mandate = activeMandate;
+    if (mandate == null) return const SizedBox.shrink();
+    final records = rules.observations(mandate.id).toList().reversed.toList();
+    return Card(child: ExpansionTile(
+      leading: const Icon(Icons.visibility_outlined),
+      title: Text('Situações observadas (${records.length})'),
+      subtitle: const Text('Registrar e acompanhar sem classificar automaticamente como NC'),
+      children: [
+        OutlinedButton.icon(onPressed: busy ? null : _cipaNewObservation,
+          icon: const Icon(Icons.add_photo_alternate_outlined),
+          label: const Text('Registrar situação')),
+        if (records.isEmpty) const ListTile(title: Text('Nenhuma situação registrada.')),
+        ...records.map((e) => ListTile(
+          title: Text('${e.data['location'] ?? 'Local não informado'}'),
+          subtitle: Text('${_dateTime.format(e.date)} • ${e.data['detail'] ?? ''}'),
+          trailing: PopupMenuButton<String>(
+            tooltip: 'Foto e anexos',
+            onSelected: (value) {
+              if (value == 'add') _attachTo(entityType: 'cipa_document', entityId: e.id);
+              if (value == 'view') _showAttachments(entityType: 'cipa_document', entityId: e.id);
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'add', child: Text('Anexar foto')),
+              PopupMenuItem(value: 'view', child: Text('Ver anexos')),
+            ],
+          ),
+        )),
+      ],
+    ));
+  }
+
+  Widget _cipaMeetingGuide() => Card(child: ExpansionTile(
+    leading: const Icon(Icons.menu_book_outlined),
+    title: const Text('Guia rápido para reunião'),
+    subtitle: const Text('Como preparar, registrar e acompanhar uma reunião da CIPA'),
+    children: [
+      const ListTile(title: Text('1. Prepare a pauta'),
+        subtitle: Text('Inclua pendências, riscos observados e sugestões de prevenção.')),
+      const ListTile(title: Text('2. Registre as decisões'),
+        subtitle: Text('Anote encaminhamentos, responsáveis e prazos.')),
+      const ListTile(title: Text('3. Revise a ata'),
+        subtitle: Text('Conferir presença, texto e assinaturas conforme o procedimento da empresa.')),
+      const ListTile(title: Text('4. Acompanhe'),
+        subtitle: Text('Verifique as ações na reunião seguinte. A minuta não substitui ata assinada.')),
+      OutlinedButton.icon(
+        onPressed: busy || activeMandate == null ? null : () => _editMeeting(),
+        icon: const Icon(Icons.event_note_outlined), label: const Text('Abrir reunião e pauta')),
+    ],
+  ));
+
   Widget _cipaWorkspaceTab() {
     final rules = _cipaRules;
     final pending = _cipaSortedActions(mandateActions.where((a) => a.status != 'Resolvida'));
@@ -409,6 +540,9 @@ extension _CipaParticipation on _CipaManagementScreenState {
         subtitle: Text('Próxima reunião: ${_dateTime.format(nextMeeting!.date)}'),
         onTap: () => _editMeeting(nextMeeting))),
       const SizedBox(height: 12),
+      _cipaMonthlyGuide(rules),
+      _cipaObservationList(rules),
+      _cipaMeetingGuide(),
       TextField(onChanged: (value) => setState(() => _cipaResponsibleFilter = value),
         decoration: const InputDecoration(prefixIcon: Icon(Icons.search),
           labelText: 'Filtrar ações por nome do responsável', helperText: 'Somente filtro de visualização')),
@@ -498,6 +632,8 @@ extension _CipaParticipation on _CipaManagementScreenState {
     'handover': 'Passagem de mandato', 'archive': 'Arquivado', 'restore': 'Restaurado',
     'support_requested': 'Apoio solicitado', 'support_completed': 'Apoio atendido',
     'action_status': 'Situação da ação registrada',
+    'monthly_check': 'Roteiro mensal da CIPA',
+    'observation': 'Situação observada',
   }[kind] ?? 'Registro de gestão';
 
   Widget _cipaCalendar() {
