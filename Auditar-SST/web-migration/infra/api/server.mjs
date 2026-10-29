@@ -97,6 +97,8 @@ export function createApp({pool, authService, cipaPortalAuth, nativeAuthService,
         if(!p)throw new ApiError(401,'UNAUTHENTICATED','Sessao da equipe necessaria');
         const route=pathname.slice('/api/v1/cipa-portal-admin/'.length);
         if(route==='accounts'&&req.method==='GET'){send(200,{items:await cipaPortal.accounts(p)});return;}
+        const summary=route.match(/^mandates\/([0-9a-f-]{36})\/summary$/i);
+        if(summary&&req.method==='GET'){send(200,await cipaPortal.monthlySummary(p,summary[1],new URL(req.url,'http://localhost').searchParams.get('month')));return;}
         const detail=route.match(/^mandates\/([0-9a-f-]{36})$/i);
         if(detail&&req.method==='GET'){send(200,await cipaPortal.adminGet(p,detail[1]));return;}
         const post=route.match(/^mandates\/([0-9a-f-]{36})\/(accounts|link|revoke|reset|actions|entries)$/i);
