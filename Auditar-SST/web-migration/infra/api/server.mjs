@@ -8,6 +8,7 @@ import { createActionPlanService } from './actionPlanService.mjs';
 import { createTrainingService } from './trainingService.mjs';
 import { createCipaService } from './cipaService.mjs';
 import { createCipaPortalService } from './cipaPortalService.mjs';
+import { createCipaPortalMediaService } from './cipaPortalMediaService.mjs';
 import { createPortalService } from './portalService.mjs';
 import { createEvidenceService } from './evidenceService.mjs';
 import { createReportService } from './reportService.mjs';
@@ -32,6 +33,7 @@ export function createApp({pool, authService, cipaPortalAuth, nativeAuthService,
   const trainingService=createTrainingService(pool);
   const cipaService=createCipaService(pool);
   const cipaPortal=createCipaPortalService(pool);
+  const cipaMedia=createCipaPortalMediaService(pool,evidenceDir);
   const portalService=createPortalService(pool);
   const evidenceService=createEvidenceService(pool,evidenceDir);
   const reportService=createReportService(pool,evidenceDir);
@@ -80,6 +82,17 @@ export function createApp({pool, authService, cipaPortalAuth, nativeAuthService,
         }
         const p=await cipaPortalAuth.principal(req);
         if(!p)throw new ApiError(401,'UNAUTHENTICATED','Sessao individual expirada');
+        const mediaUpload=route.match(/^mandates\/([0-9a-f-]{36})\/observations$/i);
+        const mediaDownload=route.match(/^observations\/([0-9a-f-]{36})\/photo$/i);
+        if(mediaDownload&&req.method==='GET'){
+          const photo=await cipaMedia.download(p,mediaDownload[1]);
+          res.setHeader('Content-Type',photo.mimeType);res.setHeader('Content-Disposition','inline');
+          res.writeHead(200);res.end(photo.data);return;
+        }
+        if(mediaUpload&&req.method==='POST'){
+          cipaPortalAuth.mutation(req);
+          send(201,await cipaMedia.upload(p,mediaUpload[1],await readJson(3*1024*1024)));return;
+        }
         if(route==='mandates'&&req.method==='GET'){send(200,{items:await cipaPortal.mandates(p)});return;}
         const detail=route.match(/^mandates\/([0-9a-f-]{36})$/i);
         if(detail&&req.method==='GET'){send(200,await cipaPortal.get(p,detail[1]));return;}
@@ -96,6 +109,12 @@ export function createApp({pool, authService, cipaPortalAuth, nativeAuthService,
         const p=authService?await authService.resolvePrincipal(req):resolvePrincipal?await resolvePrincipal(req):null;
         if(!p)throw new ApiError(401,'UNAUTHENTICATED','Sessao da equipe necessaria');
         const route=pathname.slice('/api/v1/cipa-portal-admin/'.length);
+        const mediaDownload=route.match(/^observations\/([0-9a-f-]{36})\/photo$/i);
+        if(mediaDownload&&req.method==='GET'){
+          const photo=await cipaMedia.download(p,mediaDownload[1],true);
+          res.setHeader('Content-Type',photo.mimeType);res.setHeader('Content-Disposition','inline');
+          res.writeHead(200);res.end(photo.data);return;
+        }
         if(route==='accounts'&&req.method==='GET'){send(200,{items:await cipaPortal.accounts(p)});return;}
         const summary=route.match(/^mandates\/([0-9a-f-]{36})\/summary$/i);
         if(summary&&req.method==='GET'){send(200,await cipaPortal.monthlySummary(p,summary[1],new URL(req.url,'http://localhost').searchParams.get('month')));return;}
