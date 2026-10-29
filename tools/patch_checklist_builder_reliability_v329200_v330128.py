@@ -154,6 +154,14 @@ if f"version: {new_version}" not in pub:
     pub = replace_once(pub, f"version: {old_version}", f"version: {new_version}", "versão-base")
 write(rel, pub)
 
+if platform == "windows":
+    home_rel = "lib/screens/home_screen.dart"
+    home = read(home_rel)
+    old_label = "Auditar SST para Windows • versão 3.30.127"
+    new_label = "Auditar SST para Windows • versão 3.30.128"
+    home = replace_once(home, old_label, new_label, "versão visível no início do Windows")
+    write(home_rel, home)
+
 changed = [
     name for name, digest in before.items()
     if hashlib.sha256((root / name).read_bytes()).hexdigest() != digest
