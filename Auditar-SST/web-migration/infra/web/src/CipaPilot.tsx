@@ -191,7 +191,7 @@ export function CipaPilot({session}:{session:Session}){
           'Decisões e encaminhamentos: '+decisions.trim(),
           'Responsável(is): '+(responsible.trim()||'a definir'),
           'Acompanhamento/prazo: '+(followUp.trim()||'a definir'),
-          'Atenção: esta minuta não comprova presença, aprovação ou assinatura.'].join('\\n');
+          'Atenção: esta minuta não comprova presença, aprovação ou assinatura.'].join('\n');
         if(text.length>4000){setNotice('Minuta muito longa. Resuma os campos antes de gerar.');return;}
         setSummary(text);
       }}>Montar minuta para revisão</button>
@@ -212,7 +212,7 @@ export function CipaPilot({session}:{session:Session}){
     <label>Data e horário<input type="datetime-local" required value={meetingDate}
      onChange={e=>setMeetingDate(e.target.value)}/></label>
     <label>Pauta da reunião (opcional)<textarea rows={4} maxLength={1800} value={meetingAgenda} onChange={e=>setMeetingAgenda(e.target.value)} placeholder="Quais assuntos precisam ser tratados?" /></label>
-    <button type="button" className="secondary-button" onClick={()=>setMeetingAgenda('1. Verificação das pendências do mês.\\n2. Situações observadas pelos membros.\\n3. Acompanhamento das ações e responsáveis.\\n4. Próxima reunião e encaminhamentos.')}>Usar pauta sugerida</button>
+    <button type="button" className="secondary-button" onClick={()=>setMeetingAgenda('1. Verificação das pendências do mês.\n2. Situações observadas pelos membros.\n3. Acompanhamento das ações e responsáveis.\n4. Próxima reunião e encaminhamentos.')}>Usar pauta sugerida</button>
     <button className="secondary-button" type="submit" disabled={busy||!meetingTitle.trim()||!meetingDate}>Agendar</button>
    </form>}
    <h4>Linha do tempo</h4>
