@@ -65,11 +65,11 @@ test('individual portal: real DB auth, RLS, workflow, reset/revoke and HTTP cook
     await svc.post(p,m.id,{...key(),kind:'checklist',period:'2027-02',itemKey:'verificar_ambiente',checked:false});
     assert.deepEqual((await svc.get(p,m.id)).checklist.map(x=>x.message),['2027-02|verificar_ambiente|pendente']);
     assert.deepEqual((await svc.get(p2,m.id)).checklist,[]);
-    await assert.rejects(svc.post(p,m.id,{...key(),kind:'checklist',period:'2027-13',itemKey:'verificar_ambiente',checked:true}),e=>e.code==='INVALID_INPUT');
-    await assert.rejects(svc.post(p,m.id,{...key(),kind:'checklist',period:'2027-02',itemKey:'invented',checked:true}),e=>e.code==='INVALID_INPUT');
+    assert.throws(()=>svc.post(p,m.id,{...key(),kind:'checklist',period:'2027-13',itemKey:'verificar_ambiente',checked:true}),e=>e.code==='INVALID_INPUT');
+    assert.throws(()=>svc.post(p,m.id,{...key(),kind:'checklist',period:'2027-02',itemKey:'invented',checked:true}),e=>e.code==='INVALID_INPUT');
     const observed={...key(),kind:'observacao',location:'Corredor ficticio',message:'Obstrucao sintetica'};
     await svc.post(p,m.id,observed);await svc.post(p,m.id,observed);
-    await assert.rejects(svc.post(p,m.id,{...key(),kind:'observacao',location:' ',message:'x'}),e=>e.code==='INVALID_INPUT');
+    assert.throws(()=>svc.post(p,m.id,{...key(),kind:'observacao',location:' ',message:'x'}),e=>e.code==='INVALID_INPUT');
     const mine=await svc.get(p,m.id),theirs=await svc.get(p2,m.id);
     assert.equal(mine.entries.filter(x=>x.kind==='sugestao').length,1);assert.ok(mine.entries.some(x=>x.kind==='orientacao'));assert.deepEqual(theirs.entries.map(x=>x.kind),['aviso']);
     assert.throws(()=>svc.post(p,m.id,{...key(),kind:'aviso',message:'Member cannot broadcast'}),e=>e.status===400);
@@ -97,8 +97,8 @@ test('individual portal: real DB auth, RLS, workflow, reset/revoke and HTTP cook
     assert.ok(monthly.meetings.some(x=>x.status==='planejada'&&x.total===1));
     assert.equal(monthly.activeMembers,2);
     await assert.rejects(svc.monthlySummary(techB,m.id,'2027-02'),e=>e.status===404);
-    await assert.rejects(svc.monthlySummary(p,m.id,'2027-02'),e=>e.status===403);
-    await assert.rejects(svc.monthlySummary(manager,m.id,'2027-00'),e=>e.code==='INVALID_INPUT');
+    assert.throws(()=>svc.monthlySummary(p,m.id,'2027-02'),e=>e.status===403);
+    assert.throws(()=>svc.monthlySummary(manager,m.id,'2027-00'),e=>e.code==='INVALID_INPUT');
     // Direct role checks: no access to generic company NCs, auth secrets or another member's tasks.
     await assert.rejects(withCipaMember(pool,p,db=>db.query('SELECT * FROM sst.non_conformity')),e=>e.code==='42501');
     await assert.rejects(withCipaMember(pool,p,db=>db.query('SELECT password_verifier FROM sst.cipa_portal_account')),e=>e.code==='42501');
