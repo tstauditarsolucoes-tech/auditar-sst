@@ -202,6 +202,17 @@ extension _CipaParticipation on _CipaManagementScreenState {
       {'categoryName': category, 'detail': detail, 'title': action.title}));
   }
 
+  Future<void> _cipaReportProgress(SstRecord action) async {
+    if (busy || !_cipaVisible(action) || action.status == 'Resolvida') return;
+    final note = await _cipaReason('Informar andamento',
+      'Conte o que mudou em ${action.title}. Isso registra sua informação '
+      'para a equipe, mas não conclui ou valida automaticamente a ação.');
+    if (note == null || !mounted) return;
+    await _cipaRun(() => _cipaEvent('progress_reported', action.id,
+      {'detail': note, 'title': action.title},
+      mandateId: '${action.payload['mandateId'] ?? activeMandate?.id ?? ''}'));
+  }
+
   Future<void> _cipaCompleteSupport(SstRecord action) async {
     final reason = await _cipaReason('Registrar apoio atendido',
       'Descreva o apoio prestado para ${action.title}. Isso não encerra a ação automaticamente.');
@@ -741,7 +752,8 @@ extension _CipaParticipation on _CipaManagementScreenState {
       const SizedBox(height: 12),
       if (_cipaSimpleMode) _cipaQuickStart(),
       Wrap(spacing: 8, runSpacing: 8, children: [
-        FilledButton.icon(onPressed: busy || activeMandate == null ? null : () => _editAction(),
+        if (!_cipaSimpleMode) FilledButton.icon(
+          onPressed: busy || activeMandate == null ? null : () => _editAction(),
           icon: const Icon(Icons.add_task), label: const Text('Nova ação')),
         OutlinedButton.icon(onPressed: busy || activeMandate == null ||
              activeMandate?.status == 'Encerrado' ? null : _cipaGuidedMeeting,
@@ -767,6 +779,7 @@ extension _CipaParticipation on _CipaManagementScreenState {
       if (visible.isEmpty) const Padding(padding: EdgeInsets.all(16), child: Text('Nenhuma ação neste filtro.')),
       ...visible.map((a) {
         final help = rules.support(a.id);
+        final progress = rules.progress(a.id);
         final original = '${a.payload['mandateId'] ?? ''}';
         return Card(child: Padding(padding: const EdgeInsets.all(12), child: Column(
           crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -779,8 +792,15 @@ extension _CipaParticipation on _CipaManagementScreenState {
             if (help != null) Padding(padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text('APOIO NECESSÁRIO • ${help.data['categoryName']}\n${help.data['detail']}',
                 style: const TextStyle(fontWeight: FontWeight.w700))),
+            if (progress != null) Padding(padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text('ÚLTIMO ANDAMENTO INFORMADO • ${_dateTime.format(progress.date)}\n'
+                '${progress.data['detail'] ?? ''}')),
             Wrap(spacing: 8, children: [
-              TextButton(onPressed: busy ? null : () => _editAction(current: a), child: const Text('Atualizar ação')),
+              if (!_cipaSimpleMode) TextButton(
+                onPressed: busy ? null : () => _editAction(current: a),
+                child: const Text('Atualizar ação tecnicamente')),
+              TextButton(onPressed: busy ? null : () => _cipaReportProgress(a),
+                child: const Text('Informar andamento')),
               TextButton(onPressed: busy ? null : () => _cipaSupport(a), child: const Text('Preciso de apoio')),
               if (help != null) TextButton(onPressed: busy ? null : () => _cipaCompleteSupport(a),
                 child: const Text('Apoio atendido')),
@@ -848,6 +868,7 @@ extension _CipaParticipation on _CipaManagementScreenState {
     'handover': 'Passagem de mandato', 'archive': 'Arquivado', 'restore': 'Restaurado',
     'support_requested': 'Apoio solicitado', 'support_completed': 'Apoio atendido',
     'action_status': 'Situação da ação registrada',
+    'progress_reported': 'Andamento informado (aguarda avaliação)',
     'monthly_check': 'Roteiro mensal da CIPA',
     'observation': 'Situação observada',
   }[kind] ?? 'Registro de gestão';
