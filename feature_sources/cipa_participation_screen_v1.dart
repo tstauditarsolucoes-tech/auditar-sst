@@ -30,8 +30,9 @@ extension _CipaParticipation on _CipaManagementScreenState {
   }
 
   Future<void> _cipaEvent(String kind, String targetId,
-      Map<String, dynamic> details, {String? mandateId}) async {
+      Map<String, dynamic> details, {String? mandateId, String? eventId}) async {
     await CipaManagementService.saveRecord(
+      id: eventId,
       companyId: widget.companyId,
       type: CipaManagementService.documentType,
       title: 'Registro de gestão CIPA • $kind',
@@ -429,6 +430,7 @@ extension _CipaParticipation on _CipaManagementScreenState {
     if (mandate == null || busy) return;
     final place = TextEditingController();
     final detail = TextEditingController();
+    var attachPhotoNow = false;
     final confirmed = await showDialog<bool>(context: context, builder: (dialog) =>
       StatefulBuilder(builder: (context, update) => AlertDialog(
         title: const Text('Registrar situação observada'),
@@ -442,7 +444,14 @@ extension _CipaParticipation on _CipaManagementScreenState {
               onChanged: (_) => update(() {}),
               decoration: const InputDecoration(labelText: 'O que foi observado?',
                 hintText: 'Ex.: caixas obstruindo a passagem')),
-            const Text('Depois de salvar, será possível anexar uma foto pelo menu do registro.'),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              value: attachPhotoNow,
+              onChanged: (selected) => update(() => attachPhotoNow = selected == true),
+              title: const Text('Adicionar foto depois de salvar'),
+              subtitle: const Text('Opcional. Você também pode anexar mais tarde. Não se aproxime de riscos para fotografar.'),
+              controlAffinity: ListTileControlAffinity.leading,
+            ),
           ],
         ))),
         actions: [
@@ -455,9 +464,15 @@ extension _CipaParticipation on _CipaManagementScreenState {
     final location = place.text.trim(), message = detail.text.trim();
     place.dispose(); detail.dispose();
     if (confirmed != true || !mounted || mandate.id != activeMandate?.id) return;
-    await _cipaRun(() => _cipaEvent('observation', const Uuid().v4(),
-      {'title': 'Situação observada • $location', 'location': location, 'detail': message},
-      mandateId: mandate.id));
+    final eventId = const Uuid().v4();
+    await _cipaRun(() async {
+      await _cipaEvent('observation', eventId,
+        {'title': 'Situação observada • $location', 'location': location, 'detail': message},
+        mandateId: mandate.id, eventId: eventId);
+      if (attachPhotoNow && mounted) {
+        await _attachTo(entityType: 'cipa_document', entityId: eventId);
+      }
+    });
   }
 
   Widget _cipaObservationList(CipaParticipationRules rules) {
