@@ -59,7 +59,7 @@ export function CipaPortalAdmin({session}:{session:StaffSession}){
              <p>Total: {report.actions.total} · Pendentes: {report.actions.pending} · Aguardando validação: {report.actions.reviewing} · Concluídas: {report.actions.done} · Atrasadas: {report.actions.overdue}</p>
              <h4>Reuniões programadas nesta competência</h4>
              <p>{report.meetings.length?report.meetings.map(m=>(statusLabel[m.status]||m.status)+': '+m.total).join(' · '):'Nenhuma reunião neste mês.'}</p>
-             <h4>Participação registrada neste mês</h4>
+             <h4>Roteiro mensal dos membros</h4><ul>{report.checklists.map(item=><li key={item.account_id}>{item.display_name}: {item.completed} de 4 etapas informadas</li>)}</ul><p>Etapas declaradas pelos membros; não equivalem a inspeção validada ou presença.</p><h4>Participação registrada neste mês</h4>
              <p>{report.participation.length?report.participation.map(e=>(entryLabel[e.kind]||e.kind)+': '+e.total).join(' · '):'Sem registros nesta competência.'}</p>
              <p className="cipa-footnote">{report.note}</p>
              <p className="cipa-footnote">Relatório gerencial de acompanhamento. Não substitui ata assinada, registro de presença ou documentos obrigatórios.</p>
