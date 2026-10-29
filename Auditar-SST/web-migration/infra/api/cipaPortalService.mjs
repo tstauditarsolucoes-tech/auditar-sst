@@ -64,7 +64,7 @@ async function workspace(db,p,id,isStaff){
 export function createCipaPortalService(pool){return {
   monthlySummary(p,id,period){
     staff(p);portalId(id);
-    if(typeof period!=='string'||!/^\\d{4}-(0[1-9]|1[0-2])$/.test(period))throw new ApiError(400,'INVALID_INPUT','Competencia mensal invalida');
+    if(typeof period!=='string'||!/^\d{4}-(0[1-9]|1[0-2])$/.test(period))throw new ApiError(400,'INVALID_INPUT','Competencia mensal invalida');
     return withTenant(pool,p,async db=>{
       const m=await mandate(db,p,id);
       const actions=(await db.query("SELECT count(*)::integer AS total, " +
@@ -177,7 +177,7 @@ export function createCipaPortalService(pool){return {
     if(!allowed.includes(b.kind))throw new ApiError(400,'INVALID_INPUT','Tipo nao permitido');
     const data={mandateId:portalId(id),kind:b.kind,message:b.kind==='checklist'?'':portalText(b.message)};
     if(b.kind==='checklist'){
-      if(typeof b.period!=='string'||!/^\\d{4}-(0[1-9]|1[0-2])$/.test(b.period)||
+      if(typeof b.period!=='string'||!/^\d{4}-(0[1-9]|1[0-2])$/.test(b.period)||
          !['verificar_ambiente','acompanhar_acoes','consultar_reuniao','sugerir_melhoria'].includes(b.itemKey)||
          typeof b.checked!=='boolean')throw new ApiError(400,'INVALID_INPUT','Roteiro mensal invalido');
       // No free text or attachments in checklist state; immutable individual event.
@@ -185,7 +185,7 @@ export function createCipaPortalService(pool){return {
     }
     if(b.kind==='observacao'){
       const location=portalText(b.location,140),description=portalText(b.message,1600);
-      data.message='Local: '+location+'\\nSituacao observada: '+description;
+      data.message='Local: '+location+'\nSituacao observada: '+description;
     }
     if(['apoio','orientacao'].includes(b.kind))data.actionId=portalId(b.actionId);
     if(b.kind==='ciencia_reuniao')data.meetingId=portalId(b.meetingId);
