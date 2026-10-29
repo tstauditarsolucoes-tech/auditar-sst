@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState,type FormEvent} from 'react';
 import {portalRequest,PortalError,statusLabel,entryLabel,shortDate,localTime,type CipaSession,type Mandate,type PortalWorkspace} from './cipaPortalClient';
 import './cipaPortal.css';
+import {buildCipaIcs,upcomingCipaMeetings} from './domain/cipaCalendar';
 const base='cipa-portal/';
 export function CipaMemberPortal(){
   const [session,setSession]=useState<CipaSession|null>(null),[checking,setChecking]=useState(true);
@@ -59,6 +60,7 @@ export function CipaMemberPortal(){
     const closed=data?.mandate.status==='encerrado';
   const chosen=data?.actions.find(a=>a.id===actionId);
   const notices=data?.entries.filter(e=>e.kind==='aviso')||[];
+  const nextMeetings=upcomingCipaMeetings(data?.meetings||[]);
   return <main className="cipa-portal"><header className="cipa-hero"><div className="cipa-brand">AUDITAR <span>SOLUÇÕES</span></div><p>Participação que vira prevenção</p><h1>Portal do membro da CIPA</h1><p>Suas ações, reuniões e avisos em um só lugar.</p></header>
     <aside className="cipa-environment">Homologação privada • dados do novo servidor. Não sincronizado com o aplicativo atual.</aside>
     <div className="cipa-notice" role="status" aria-live="polite">{notice}</div>
@@ -99,6 +101,17 @@ export function CipaMemberPortal(){
             {guideOpen&&<div><h3>Orientações para começar</h3><p><strong>Observe sem se arriscar:</strong> não toque em instalações, máquinas ou equipamentos para verificar problemas.</p><p><strong>Comunique:</strong> relate o local e o que viu usando palavras simples. Evite nomes e informações pessoais desnecessárias.</p><p><strong>Peça apoio:</strong> a equipe técnica avalia os riscos e orienta as medidas adequadas.</p><p><strong>Reuniões:</strong> leia as convocações e leve sugestões. Confirmar leitura não significa presença ou assinatura da ata.</p></div>}
           </section>
           <div className="cipa-metrics"><div><strong>{data.counts.pending}</strong><span>Minhas ações pendentes</span></div><div><strong>{data.counts.reviewing}</strong><span>Em validação</span></div><div><strong>{data.counts.scheduled}</strong><span>Reuniões agendadas</span></div></div>
+          {nextMeetings.length>0&&<section className="cipa-box">
+            <h2>Próxima reunião</h2>
+            <p><strong>{nextMeetings[0].title}</strong> · {localTime(nextMeetings[0].scheduled_at)}</p>
+            <p>Você pode adicionar as reuniões previstas ao calendário pessoal com um lembrete de um dia antes. A importação depende do aplicativo de calendário do seu celular ou computador.</p>
+            <button type="button" className="secondary" onClick={()=>{
+              const ics=buildCipaIcs(nextMeetings);
+              const url=URL.createObjectURL(new Blob([ics],{type:'text/calendar;charset=utf-8'}));
+              const link=document.createElement('a');link.href=url;link.download='cipa-reunioes.ics';link.click();
+              setTimeout(()=>URL.revokeObjectURL(url),1000);
+            }}>Adicionar ao meu calendário (.ics)</button>
+          </section>}
           <nav className="cipa-tabs" aria-label="Seções do portal">{(['acoes','reunioes','mural','historico'] as const).map((t,i)=><button key={t} className={tab===t?'selected':'secondary'} aria-pressed={tab===t} onClick={()=>setTab(t)}>{['Minhas ações','Reuniões','Avisos e sugestões','Meu histórico'][i]}</button>)}</nav>
           {tab==='acoes'&&<section><h2>O que precisa da sua participação</h2><p>Você informa o andamento. A equipe Auditar valida a conclusão.</p><div className="cipa-cards">{data.actions.map(a=><article className="cipa-box" key={a.id}><div className="cipa-tags"><span>{statusLabel[a.status]}</span><span>Prioridade {a.priority}</span></div><h3>{a.title}</h3><p className="cipa-pre">{a.description}</p><p>Prazo: <strong>{shortDate(a.due_on)}</strong></p><button className="secondary" disabled={busy||closed||a.status==='concluida'} onClick={()=>{setActionId(a.id);setActionKind(a.status==='aberta'||a.status==='aguardando_validacao'?'andamento':'aguardando_validacao');setNote('');}}>Atualizar / pedir apoio</button></article>)}</div>{!data.actions.length&&<p>Você não tem tarefas atribuídas agora. Consulte as reuniões ou envie uma sugestão de prevenção.</p>}
             {chosen&&!closed&&chosen.status!=='concluida'&&<form className="cipa-box" onSubmit={e=>{e.preventDefault();void run(()=>actionKind==='apoio'?post('mandates/'+selected+'/entries',{kind:'apoio',actionId:chosen.id,message:note}):post('actions/'+chosen.id+'/status',{status:actionKind,message:note,expectedRevision:chosen.revision}));}}><h3>Atualizar: {chosen.title}</h3><label>O que deseja registrar?<select value={actionKind} onChange={e=>setActionKind(e.target.value)}><option value="apoio">Preciso de apoio</option>{chosen.status!=='andamento'&&<option value="andamento">Em andamento</option>}{chosen.status!=='aguardando_validacao'&&<option value="aguardando_validacao">Enviei para validação da conclusão</option>}</select></label><label>Conte com suas palavras o que aconteceu ou qual ajuda precisa<textarea required maxLength={1900} rows={3} value={note} onChange={e=>setNote(e.target.value)} placeholder="Exemplo: Preciso de orientação para verificar a proteção da máquina." /></label><p>Se precisar de orientação, escolha “Preciso de apoio”. Não é necessário conhecer o número da NR.</p><button disabled={busy}>Salvar atualização</button></form>}
