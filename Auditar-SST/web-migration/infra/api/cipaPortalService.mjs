@@ -80,8 +80,20 @@ export function createCipaPortalService(pool){return {
       const participation=(await db.query("SELECT kind,count(*)::integer AS total FROM sst.cipa_portal_entry " +
         "WHERE company_id=$1 AND mandate_id=$2 AND to_char(created_at AT TIME ZONE 'America/Fortaleza','YYYY-MM')=$3 " +
         "GROUP BY kind",[p.companyId,m.id,period])).rows;
+      // Last declared state per task, per member, per month, without using the 300-entry display limit.
+      const checklists=(await db.query(
+        "WITH latest AS (SELECT DISTINCT ON (author_account_id,split_part(message,'|',2)) " +
+        "author_account_id,split_part(message,'|',3) AS state FROM sst.cipa_portal_entry " +
+        "WHERE company_id=$1 AND mandate_id=$2 AND kind='checklist' AND split_part(message,'|',1)=$3 " +
+        "ORDER BY author_account_id,split_part(message,'|',2),created_at DESC,id DESC) " +
+        "SELECT g.account_id,a.display_name,count(latest.state) FILTER (WHERE latest.state='feito')::integer AS completed " +
+        "FROM sst.cipa_portal_grant g JOIN sst.cipa_portal_account a ON a.company_id=g.company_id AND a.id=g.account_id " +
+        "LEFT JOIN latest ON latest.author_account_id=g.account_id " +
+        "WHERE g.company_id=$1 AND g.mandate_id=$2 AND g.active GROUP BY g.account_id,a.display_name " +
+        "ORDER BY a.display_name,g.account_id LIMIT 200",
+        [p.companyId,m.id,period])).rows;
       const members=(await db.query('SELECT count(*)::integer AS total FROM sst.cipa_portal_grant WHERE company_id=$1 AND mandate_id=$2 AND active',[p.companyId,m.id])).rows[0].total;
-      return {mandate:{id:m.id,name:m.name,status:m.status},period,actions,meetings,participation,activeMembers:members,
+      return {mandate:{id:m.id,name:m.name,status:m.status},period,actions,meetings,participation,checklists,activeMembers:members,
         note:'Acoes refletem situacao atual do mandato; reunioes e eventos referem-se a competencia informada. Ciencia de convocacao nao comprova presenca nem assinatura.'};
     });
   },
