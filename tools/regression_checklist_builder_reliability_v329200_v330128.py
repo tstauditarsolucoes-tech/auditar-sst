@@ -33,4 +33,7 @@ assert "insertChecklistTemplate(template)" in method
 
 version = "3.29.200+342" if platform == "android" else "3.30.128+315"
 assert f"version: {version}" in pub
+if platform == "windows":
+    home = (root / "lib/screens/home_screen.dart").read_text(encoding="utf-8")
+    assert "Auditar SST para Windows • versão 3.30.128" in home
 print("CHECKLIST_BUILDER_RELIABILITY_REGRESSION_OK", platform, version)
