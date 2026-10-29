@@ -2,6 +2,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {randomUUID} from 'node:crypto';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {createCipaPortalMediaService} from './cipaPortalMediaService.mjs';
 import {once} from 'node:events';
 import pg from 'pg';
 import {createCipaService} from './cipaService.mjs';
@@ -21,9 +25,10 @@ test('individual portal: real DB auth, RLS, workflow, reset/revoke and HTTP cook
   assert.equal(process.env.AUDITAR_SST_EPHEMERAL_CI_DB,'FAKE_DATA_CI_ONLY');assert.equal(process.env.PGHOST,'db');assert.equal(process.env.PGDATABASE,'auditar_web_hml');assert.equal(process.env.PGUSER,'sst_ci_runner');
   const pool=new pg.Pool({max:3,connectionTimeoutMillis:5000}),authPool=new pg.Pool({max:2,user:'sst_ci_auth_runner',password:'ci-auth-synthetic-test-only-7416'});
   let server;
+  const photoStorage=await mkdtemp(join(tmpdir(),'auditar-cipa-ci-'));
   try{
     const role=(await pool.query('SELECT rolsuper,rolbypassrls FROM pg_roles WHERE rolname=current_user')).rows[0];assert.equal(role.rolsuper,false);assert.equal(role.rolbypassrls,false);
-    const c=createCipaService(pool),svc=createCipaPortalService(pool),auth=createCipaPortalAuth({pool:authPool,allowedOrigin:origin});
+    const c=createCipaService(pool),svc=createCipaPortalService(pool),auth=createCipaPortalAuth({pool:authPool,allowedOrigin:origin}),media=createCipaPortalMediaService(pool,photoStorage);
     const m=await c.create(manager,{...key(),name:'Portal CIPA synthetic A',startsOn:'2027-01-01',endsOn:'2027-12-31'});
     const other=await c.create(techB,{...key(),name:'Portal CIPA synthetic B',startsOn:'2027-01-01',endsOn:'2027-12-31'});
     const members=[];for(const displayName of ['Member one synthetic','Member two synthetic'])members.push(await c.addMember(manager,m.id,{...key(),displayName,representation:'empregados',seat:'titular'}));
@@ -71,6 +76,20 @@ test('individual portal: real DB auth, RLS, workflow, reset/revoke and HTTP cook
     const meeting=await c.addMeeting(manager,m.id,{...key(),title:'Synthetic meeting',scheduledAt:'2027-02-01T12:00:00Z'});
     await svc.post(p,m.id,{...key(),kind:'ciencia_reuniao',meetingId:meeting.id,message:'Read'});
     assert.match((await svc.get(p,m.id)).entries.find(x=>x.kind==='ciencia_reuniao').message,/Nao comprova presenca/);
+    // Private photo evidence: owner-only for members, staff company visibility, replay safe.
+    const imageBytes=Buffer.from([137,80,78,71,13,10,26,10,0,0,0,0,73,69,78,68]);
+    const imageInput={...key(),location:'Area ficticia',description:'Caixas na passagem ficticia',mimeType:'image/png',contentBase64:imageBytes.toString('base64')};
+    const uploaded=await media.upload(p,m.id,imageInput);
+    assert.equal(uploaded.replayed,false);
+    assert.equal((await media.upload(p,m.id,imageInput)).replayed,true);
+    assert.deepEqual((await media.download(p,uploaded.item.id)).data,imageBytes);
+    assert.deepEqual((await media.download(tech,uploaded.item.id,true)).data,imageBytes);
+    await assert.rejects(media.download(p2,uploaded.item.id),e=>e.status===404);
+    await assert.rejects(media.download(techB,uploaded.item.id,true),e=>e.status===404);
+    await assert.rejects(media.upload(p,m.id,{...imageInput,description:'Changed fake observation'}),e=>e.code==='IDEMPOTENCY_CONFLICT');
+    await assert.rejects(media.upload(p,m.id,{...key(),location:'X',description:'Y',mimeType:'image/png',contentBase64:Buffer.from('wrong').toString('base64')}),e=>e.code==='MEDIA_SIGNATURE');
+    assert.equal((await svc.get(p,m.id)).photos.length,1);
+    assert.equal((await svc.get(p2,m.id)).photos.length,0);
     // Accurate monthly management summary comes from full scoped DB, not clipped UI lists.
     const monthly=await svc.monthlySummary(manager,m.id,'2027-02');
     assert.equal(monthly.actions.total,2);
@@ -85,7 +104,7 @@ test('individual portal: real DB auth, RLS, workflow, reset/revoke and HTTP cook
     await assert.rejects(withCipaMember(pool,p,db=>db.query('SELECT password_verifier FROM sst.cipa_portal_account')),e=>e.code==='42501');
     const direct=await withCipaMember(pool,p,db=>db.query('SELECT id FROM sst.cipa_portal_action'));assert.deepEqual(direct.rows.map(x=>x.id),[a.id]);
     // Real member auth on HTTP; no test resolver on this server.
-    const staffAuth=createAuthService({pool:authPool,allowedOrigin:origin});server=createApp({pool,authService:staffAuth,cipaPortalAuth:auth});server.listen(0,'127.0.0.1');await once(server,'listening');
+    const staffAuth=createAuthService({pool:authPool,allowedOrigin:origin});server=createApp({pool,authService:staffAuth,cipaPortalAuth:auth,evidenceDir:photoStorage});server.listen(0,'127.0.0.1');await once(server,'listening');
     const url=`http://127.0.0.1:${server.address().port}/api/v1/`;
     const staffLogin=await staffAuth.login(req(),{email:'tecnico-ci-a@example.invalid',password:'SenhaFicticiaCI-2026!'});
     const staffRead=await fetch(url+'cipa-portal-admin/mandates/'+m.id,{headers:{cookie:cookieOf(staffLogin)}});assert.equal(staffRead.status,200);
@@ -93,11 +112,12 @@ test('individual portal: real DB auth, RLS, workflow, reset/revoke and HTTP cook
     for(const path of ['cipa-portal-admin/accounts','nonconformities']){const r=await fetch(url+path,{headers:{cookie,'x-role':'adm','x-company-id':B}});assert.equal(r.status,401);}
     const csrfDenied=await fetch(url+'cipa-portal/mandates/'+m.id+'/entries',{method:'POST',headers:{cookie,origin,'Content-Type':'application/json'},body:JSON.stringify({...key(),kind:'sugestao',message:'Missing CSRF'})});assert.equal(csrfDenied.status,403);
     const ok=await fetch(url+'cipa-portal/mandates/'+m.id,{headers:{cookie}});assert.equal(ok.status,200);
+    const imageHTTP=await fetch(url+'cipa-portal/observations/'+uploaded.item.id+'/photo',{headers:{cookie}});assert.equal(imageHTTP.status,200);assert.equal(imageHTTP.headers.get('content-type'),'image/png');
     await svc.reset(manager,m.id,{...key(),accountId:p.accountId,password:temporary+'reset'});assert.equal(await auth.principal(req(cookie)),null);
     const reset=await auth.login(req(),{companyId:A,email:'member0@synthetic.invalid',password:temporary+'reset'});assert.equal(reset.body.mustChangePassword,true);
     await svc.revoke(manager,m.id,{...key(),accountId:p.accountId});assert.equal(await auth.principal(req(cookieOf(reset))),null);
     await assert.rejects(auth.login(req(),{companyId:A,email:'member0@synthetic.invalid',password:temporary+'reset'}),e=>e.status===401);
     assert.equal((await svc.adminGet(manager,m.id)).actions.length,2); // revocation never deletes history.
     console.log('CIPA_MEMBER_PORTAL_RLS_AUTH_WORKFLOW_CI_ONLY_OK');
-  }finally{if(server)await new Promise(r=>server.close(r));await pool.end();await authPool.end();}
+  }finally{if(server)await new Promise(r=>server.close(r));await pool.end();await authPool.end();await rm(photoStorage,{recursive:true,force:true});}
 });
