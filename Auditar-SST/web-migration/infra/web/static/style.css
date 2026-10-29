@@ -1,0 +1,11 @@
+:root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#17213a;background:#f1f5f7;color-scheme:light}
+*{box-sizing:border-box}body{margin:0;min-height:100vh}.wrap{max-width:880px;margin:0 auto;padding:48px 24px}
+.top{display:flex;align-items:center;gap:18px;margin-bottom:48px}.mark{width:62px;height:62px;border-radius:18px;display:grid;place-items:center;color:#fff;background:#123568;font-size:2rem;font-weight:900}
+.eyebrow{font-size:13px;font-weight:850;letter-spacing:.15em;color:#237a51}h1{font-size:clamp(1.75rem,5vw,2.6rem);margin:4px 0 0;color:#123568}h1 span{color:#237a51}
+.panel{background:#fff;padding:clamp(26px,5vw,56px);border-radius:24px;box-shadow:0 20px 70px #0d284612;border:1px solid #dbe5eb}
+.chip{display:inline-block;background:#dff3e7;color:#155c38;border-radius:999px;padding:9px 15px;font-size:14px;font-weight:800}
+h2{font-size:clamp(1.7rem,4vw,2.5rem);line-height:1.18;letter-spacing:-.03em;max-width:650px}
+p{font-size:1.05rem;line-height:1.65;color:#42536b}.status{margin-top:28px;display:flex;align-items:center;gap:12px;padding:16px 18px;background:#f3f7fb;border-radius:14px;font-size:1rem;font-weight:700}
+.dot{width:12px;height:12px;border-radius:50%;background:#adb6c5;flex:none}.status.ok .dot{background:#1c9b65}.status.fail .dot{background:#ca5050}
+.note{font-size:.93rem;margin:24px 0 0}footer{font-size:.9rem;color:#68788e;margin-top:28px}
+@media(max-width:560px){.wrap{padding:24px 16px}.top{margin-bottom:28px}.mark{width:50px;height:50px;border-radius:14px;font-size:1.6rem}.panel{border-radius:18px}}

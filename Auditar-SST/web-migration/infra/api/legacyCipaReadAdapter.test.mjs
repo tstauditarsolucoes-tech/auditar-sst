@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {normalizeLegacyCipaRecord,prepareLegacyCipaPreview} from './legacyCipaReadAdapter.mjs';
+const A='11111111-1111-4111-8111-111111111111',B='22222222-2222-4222-8222-222222222222';
+const sample={id:'33333333-3333-4333-8333-333333333333',companyId:A,type:'CIPA_ACAO',title:'Inspecionar extintor',status:'Pendente',payload:{signature:'secret',photo:'private'}};
+test('disabled by default',()=>assert.throws(()=>prepareLegacyCipaPreview([sample],A),/DISABLED/));
+test('rejects cross-company records',()=>assert.throws(()=>normalizeLegacyCipaRecord(sample,B),/TENANT_MISMATCH/));
+test('does not export attachments or signatures',()=>{const x=normalizeLegacyCipaRecord(sample,A);assert.equal(x.portalId,null);assert.equal(x.requiresMapping,true);assert.equal(JSON.stringify(x).includes('secret'),false);});
+test('rejects unknown type',()=>assert.throws(()=>normalizeLegacyCipaRecord({...sample,type:'NC'},A),/UNSUPPORTED/));
+test('rejects duplicate source record',()=>assert.throws(()=>prepareLegacyCipaPreview([sample,sample],A,{enabled:true}),/DUPLICATE/));
+test('preview is deterministic and read only',()=>{const x=prepareLegacyCipaPreview([sample],A,{enabled:true});assert.equal(x.mode,'preview_only');assert.equal(x.records[0].fingerprint,normalizeLegacyCipaRecord(sample,A).fingerprint);});

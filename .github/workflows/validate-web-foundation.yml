@@ -1,0 +1,365 @@
+name: Auditar SST Web - validar React e Docker (sem deploy)
+on:
+  push:
+    branches: [migration/preparacao-web-20261027]
+    paths:
+      - 'Auditar-SST/web-migration/**'
+      - '.github/workflows/validate-web-foundation.yml'
+  pull_request:
+    branches: [organize/sst-em-pasta-20261027]
+    paths:
+      - 'Auditar-SST/web-migration/**'
+      - '.github/workflows/validate-web-foundation.yml'
+permissions:
+  contents: read
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Testes HTTP sem dados ou dependencias externas
+        run: node --test Auditar-SST/web-migration/infra/api/server.test.mjs Auditar-SST/web-migration/infra/api/ncService.test.mjs Auditar-SST/web-migration/infra/api/inspectionService.test.mjs Auditar-SST/web-migration/infra/api/taskService.test.mjs Auditar-SST/web-migration/infra/api/portalService.test.mjs Auditar-SST/web-migration/infra/api/evidenceService.test.mjs Auditar-SST/web-migration/infra/api/reportService.test.mjs Auditar-SST/web-migration/infra/api/reportTextPagination.test.mjs Auditar-SST/web-migration/infra/api/legacyCompatibility.test.mjs Auditar-SST/web-migration/infra/api/nativeDraftContract.test.mjs
+      - name: Inventario de backup legado em copia ficticia (somente leitura)
+        run: node --test Auditar-SST/web-migration/infra/tools/inventory-legacy-backup.test.mjs
+      - name: Testar regras migradas e compilar React TypeScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra/web
+          npm install --no-audit --no-fund
+          npm run test
+          npm run build
+      - name: Validar YAML e isolamento sem subir conteineres
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          mkdir -p secrets
+          printf 'ci-test-only-not-a-production-password-123456\n' > secrets/postgres_password
+          openssl rand -base64 48 > secrets/data_db_password
+          openssl rand -base64 48 > secrets/auth_db_password
+          chmod 600 secrets/postgres_password secrets/data_db_password secrets/auth_db_password
+          docker compose -f compose.staging.yml config --quiet
+          if docker compose -f compose.staging.yml config --format json | jq -e '.services[] | has("ports")' | grep -q true; then
+            echo 'ERRO: porta publicada na VPS' >&2
+            exit 1
+          fi
+          echo 'WEB_FOUNDATION_ISOLATED_OK'
+      - name: Validar inspeção read-only de VPS compartilhada e bloquear uso do domínio ocupado
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          bash -n scripts/preflight-shared-vps.sh
+          if AUDITAR_NPM_NETWORK=rede-ci-inexistente \
+             AUDITAR_ALLOWED_ORIGIN=https://tst.auditarsolucoes.com.br \
+             bash scripts/preflight-shared-vps.sh >/tmp/auditar-shared-preflight.txt 2>&1; then
+            echo 'ERRO: script aceitou o dominio principal em teste' >&2
+            exit 1
+          fi
+          grep -q 'Dominio principal ocupado' /tmp/auditar-shared-preflight.txt
+          echo 'SHARED_VPS_PREFLIGHT_READ_ONLY_POLICY_OK'
+      - name: Verificar projeto com script de preflight sem deploy
+        shell: bash
+        run: |
+          cd Auditar-SST/web-migration/infra
+          bash scripts/preflight.sh
+      - name: Compilar imagens Docker e realizar smoke de homologacao isolada
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml up --build -d --wait --wait-timeout 180
+          # O smoke usa o nome de projeto de homologacao; testes diretos em CI:
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T web sh -c 'wget -qO- http://127.0.0.1:8080/ | grep -q "Auditar SST Web"'
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T web sh -c 'wget -qO- http://127.0.0.1:8080/api/v1/health | grep -q productionDataConnected'
+          echo 'DOCKER_SMOKE_OK'
+      - name: Aplicar esquema PostgreSQL de homologacao e testar isolamento de empresas
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
+            psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/001_initial.sql
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
+            psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/002_web_auth.sql
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
+            psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/003_auth_login_limit.sql
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
+            psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/004_inspections_pilot.sql
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
+            psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/005_agenda_pilot.sql
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
+            psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/006_client_portal_admin.sql
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
+            psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/007_private_media_pilot.sql
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
+            psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/008_action_plan_pilot.sql
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
+            psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/009_training_sessions_pilot.sql
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
+            psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/010_cipa_pilot.sql
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
+            psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/011_nc_recommendation_pdf.sql
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
+            psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/012_training_attendance_draft.sql
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
+            psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/013_native_auth_pilot.sql
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
+            psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/014_cipa_member_portal.sql
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
+            psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/015_cipa_guided_participation.sql
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
+            psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/016_cipa_private_observation_photos.sql
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
+            psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/tests/tenant_isolation.sql
+          echo 'POSTGRES_MULTIEMPRESA_STAGING_OK'
+      - name: Testar API NC com PostgreSQL real multiempresa e usuario restrito (CI efemera)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          # Dados sinteticos. Exige banco vazio CI, nao usar na VPS.
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
+            psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 \
+            -v AUDITAR_INTEGRATION_CI=1 -f /db-init/tests/seed_nc_integration_ci.sql
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T \
+            -e AUDITAR_SST_EPHEMERAL_CI_DB=FAKE_DATA_CI_ONLY \
+            -e PGHOST=db -e PGPORT=5432 -e PGDATABASE=auditar_web_hml \
+            -e PGUSER=sst_ci_runner \
+            -e PGPASSWORD=ci-synthetic-test-only-not-for-deploy-9274 \
+            api node --test integration.ci.test.mjs
+          echo 'NC_API_REAL_POSTGRES_CI_ONLY_OK'
+      - name: Testar fluxo real de vistorias, rascunhos, revisoes e idempotencia (CI efemera)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T \
+            -e AUDITAR_SST_EPHEMERAL_CI_DB=FAKE_DATA_CI_ONLY \
+            -e PGHOST=db -e PGPORT=5432 -e PGDATABASE=auditar_web_hml \
+            -e PGUSER=sst_ci_runner \
+            -e PGPASSWORD=ci-synthetic-test-only-not-for-deploy-9274 \
+            api node --test integration.inspections.ci.test.mjs
+          echo 'INSPECTIONS_POSTGRES_RLS_CI_ONLY_OK'
+      - name: Testar Agenda SST, atribuicao e historico multiempresa (CI efemera)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T \
+            -e AUDITAR_SST_EPHEMERAL_CI_DB=FAKE_DATA_CI_ONLY \
+            -e PGHOST=db -e PGPORT=5432 -e PGDATABASE=auditar_web_hml \
+            -e PGUSER=sst_ci_runner \
+            -e PGPASSWORD=ci-synthetic-test-only-not-for-deploy-9274 \
+            api node --test integration.tasks.ci.test.mjs
+          echo 'AGENDA_SST_POSTGRES_MULTIEMPRESA_CI_ONLY_OK'
+      - name: Testar Portal Cliente, equipe ADM e mensagens com RLS multiempresa (CI efemera)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T \
+            -e AUDITAR_SST_EPHEMERAL_CI_DB=FAKE_DATA_CI_ONLY \
+            -e PGHOST=db -e PGPORT=5432 -e PGDATABASE=auditar_web_hml \
+            -e PGUSER=sst_ci_runner \
+            -e PGPASSWORD=ci-synthetic-test-only-not-for-deploy-9274 \
+            api node --test integration.portal.ci.test.mjs
+          echo 'CLIENT_PORTAL_MULTIEMPRESA_CI_ONLY_OK'
+      - name: Testar fotos em volume privado, hash e permissao de cliente (CI efemera)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T \
+            -e AUDITAR_SST_EPHEMERAL_CI_DB=FAKE_DATA_CI_ONLY \
+            -e PGHOST=db -e PGPORT=5432 -e PGDATABASE=auditar_web_hml \
+            -e PGUSER=sst_ci_runner \
+            -e PGPASSWORD=ci-synthetic-test-only-not-for-deploy-9274 \
+            api node --test integration.evidence.ci.test.mjs
+          echo 'EVIDENCE_PRIVATE_STORAGE_CI_ONLY_OK'
+      - name: Gerar PDF de vistoria em memoria e testar permissoes (CI efemera)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T \
+            -e AUDITAR_SST_EPHEMERAL_CI_DB=FAKE_DATA_CI_ONLY \
+            -e PGHOST=db -e PGPORT=5432 -e PGDATABASE=auditar_web_hml \
+            -e PGUSER=sst_ci_runner \
+            -e PGPASSWORD=ci-synthetic-test-only-not-for-deploy-9274 \
+            api node --test integration.reports.ci.test.mjs
+          echo 'PDF_STAGING_PRIVATE_CI_ONLY_OK'
+      - name: Testar novo login web, cookies, CSRF e permissoes em duas empresas (CI efemera)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
+            psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 \
+            -v AUDITAR_INTEGRATION_CI=1 -f /db-init/tests/seed_auth_integration_ci.sql
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T \
+            -e AUDITAR_SST_EPHEMERAL_CI_DB=FAKE_DATA_CI_ONLY \
+            -e PGHOST=db -e PGPORT=5432 -e PGDATABASE=auditar_web_hml \
+            -e PGUSER=sst_ci_runner \
+            -e PGPASSWORD=ci-synthetic-test-only-not-for-deploy-9274 \
+            -e AUDITAR_PG_AUTH_USER=sst_ci_auth_runner \
+            -e AUDITAR_PG_AUTH_PASSWORD=ci-auth-synthetic-test-only-7416 \
+            api node --test integration.auth.ci.test.mjs
+          echo 'WEB_AUTH_POSTGRES_EPHEMERAL_CI_OK'
+      - name: Autenticacao nativa independente - login, token, revogacao e bloqueio de sync (CI efemera)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T \
+            -e AUDITAR_SST_EPHEMERAL_CI_DB=FAKE_DATA_CI_ONLY \
+            -e PGHOST=db -e PGPORT=5432 -e PGDATABASE=auditar_web_hml \
+            -e PGUSER=sst_ci_runner \
+            -e PGPASSWORD=ci-synthetic-test-only-not-for-deploy-9274 \
+            -e AUDITAR_PG_AUTH_USER=sst_ci_auth_runner \
+            -e AUDITAR_PG_AUTH_PASSWORD=ci-auth-synthetic-test-only-7416 \
+            api node --test integration.native-auth.ci.test.mjs
+          echo 'NATIVE_AUTH_SEPARATE_TOKENS_NO_SYNC_CI_OK'
+      - name: Validar opt-in privado Docker com roles segregados e login HTTP (CI efemera)
+        shell: bash
+        env:
+          AUDITAR_ALLOWED_ORIGIN: https://homologacao-ci.auditarsolucoes.invalid
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          bash -n scripts/preflight-private.sh
+          bash -n scripts/provision-first-admin.sh
+          sh -n api/private-entrypoint.sh
+          sh -n db/scripts/create_private_roles.sh
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml -f compose.private-auth.example.yml config --quiet
+          if docker compose -p auditar-sst-web-ci -f compose.staging.yml -f compose.private-auth.example.yml config --format json | jq -e '.services[] | has("ports")' | grep -q true; then
+            echo 'ERRO: portas de autenticacao expostas' >&2
+            exit 1
+          fi
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml -f compose.private-auth.example.yml \
+            up -d --no-deps --wait --wait-timeout 180 db
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml -f compose.private-auth.example.yml \
+            exec -T db sh /db-init/scripts/create_private_roles.sh
+          if ! docker compose -p auditar-sst-web-ci -f compose.staging.yml -f compose.private-auth.example.yml \
+            up --build -d --no-deps --wait --wait-timeout 180 api; then
+            echo 'Bootstrap privado falhou; exibindo log sanitizado para diagnostico' >&2
+            docker compose -p auditar-sst-web-ci -f compose.staging.yml -f compose.private-auth.example.yml logs --no-color --tail=80 api
+            exit 1
+          fi
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml -f compose.private-auth.example.yml \
+            exec -T -e AUDITAR_SST_EPHEMERAL_CI_DB=FAKE_DATA_CI_ONLY \
+            api node private-bootstrap.smoke.ci.mjs
+          echo 'PRIVATE_DOCKER_WITH_REAL_LOGIN_CI_OK'
+      - name: Testar Plano de Acao e historico por NC, RLS e revisoes (CI efemera)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T \
+            -e AUDITAR_SST_EPHEMERAL_CI_DB=FAKE_DATA_CI_ONLY \
+            -e PGHOST=db -e PGPORT=5432 -e PGDATABASE=auditar_web_hml \
+            -e PGUSER=sst_ci_runner \
+            -e PGPASSWORD=ci-synthetic-test-only-not-for-deploy-9274 \
+            api node --test integration.action-plans.ci.test.mjs
+          echo 'ACTION_PLANS_POSTGRES_RLS_CI_ONLY_OK'
+      - name: Validar Treinamentos, DDS e Integracao com RLS multiempresa (CI efemera)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T \
+            -e AUDITAR_SST_EPHEMERAL_CI_DB=FAKE_DATA_CI_ONLY \
+            -e PGHOST=db -e PGPORT=5432 -e PGDATABASE=auditar_web_hml \
+            -e PGUSER=sst_ci_runner \
+            -e PGPASSWORD=ci-synthetic-test-only-not-for-deploy-9274 \
+            api node --test integration.training.ci.test.mjs
+          echo 'TRAINING_DDS_POSTGRES_RLS_CI_ONLY_OK'
+      - name: Testar CIPA ficticia, reunioes, composicao e RLS multiempresa (CI efemera)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T \
+            -e AUDITAR_SST_EPHEMERAL_CI_DB=FAKE_DATA_CI_ONLY \
+            -e PGHOST=db -e PGPORT=5432 -e PGDATABASE=auditar_web_hml \
+            -e PGUSER=sst_ci_runner \
+            -e PGPASSWORD=ci-synthetic-test-only-not-for-deploy-9274 \
+            api node --test integration.cipa.ci.test.mjs
+          echo 'CIPA_POSTGRES_RLS_CI_ONLY_OK'
+      - name: Portal individual CIPA - auth e isolamento reais em PostgreSQL CI
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          mkdir -p portal-ci-diagnostic
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T \
+            -e AUDITAR_SST_EPHEMERAL_CI_DB=FAKE_DATA_CI_ONLY \
+            -e PGHOST=db -e PGPORT=5432 -e PGDATABASE=auditar_web_hml \
+            -e PGUSER=sst_ci_runner \
+            -e PGPASSWORD=ci-synthetic-test-only-not-for-deploy-9274 \
+            api node --test integration.cipa-portal.ci.test.mjs 2>&1 | tee portal-ci-diagnostic/portal.log
+      - name: Diagnostico focado do portal CIPA
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: CIPA-Portal-CI-Diagnostic
+          path: Auditar-SST/web-migration/infra/portal-ci-diagnostic
+          if-no-files-found: ignore
+          retention-days: 3
+      - name: Preservar build web para verificacao visual
+        uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-Web-CIPA-Preview
+          path: Auditar-SST/web-migration/infra/web/dist
+          retention-days: 3
+      - name: Testar participantes declarados, PDF e permissoes (CI efemera)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T \
+            -e AUDITAR_SST_EPHEMERAL_CI_DB=FAKE_DATA_CI_ONLY \
+            -e PGHOST=db -e PGPORT=5432 -e PGDATABASE=auditar_web_hml \
+            -e PGUSER=sst_ci_runner \
+            -e PGPASSWORD=ci-synthetic-test-only-not-for-deploy-9274 \
+            api node --test integration.training-attendance.ci.test.mjs
+          echo 'TRAINING_ATTENDANCE_DRAFT_PDF_CI_ONLY_OK'
+      - name: Validar integracao Nginx Proxy Manager sem deploy
+        shell: bash
+        env:
+          AUDITAR_NPM_NETWORK: rede-npm-ficticia-ci
+        run: |
+          set -euo pipefail
+          cd Auditar-SST/web-migration/infra
+          docker compose -f compose.staging.yml -f compose.npm.example.yml config --quiet
+          docker compose -f compose.staging.yml -f compose.npm.example.yml config --format json | jq -e '.services.web.networks | has("npm_proxy")'
+          docker compose -f compose.staging.yml -f compose.npm.example.yml config --format json | jq -e '.services.api.networks | has("npm_proxy") | not'
+          docker compose -f compose.staging.yml -f compose.npm.example.yml config --format json | jq -e '.services.db.networks | has("npm_proxy") | not'
+          echo 'NPM_OVERLAY_ISOLATION_OK'
+      - name: Encerrar containers efemeros do runner (preservar volumes)
+        if: always()
+        run: |
+          cd Auditar-SST/web-migration/infra
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml down || true
+
+  native-probe:
+    name: Sondagem Dart Android/Windows (sem dados, sem escrita)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - name: Executar teste Dart puro de bloqueio e handshake
+        run: |
+          dart --version
+          dart run Auditar-SST/web-migration/native/flutter_probe/native_backend_probe_test.dart
+          dart run Auditar-SST/web-migration/native/flutter_probe/native_draft_outbox_test.dart
+          echo 'DART_NATIVE_READ_ONLY_PROBE_CI_OK'
+
