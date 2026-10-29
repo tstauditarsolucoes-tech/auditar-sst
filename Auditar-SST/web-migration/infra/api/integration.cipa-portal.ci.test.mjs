@@ -96,6 +96,8 @@ test('individual portal: real DB auth, RLS, workflow, reset/revoke and HTTP cook
     assert.equal(monthly.actions.done,1);
     assert.ok(monthly.meetings.some(x=>x.status==='planejada'&&x.total===1));
     assert.equal(monthly.activeMembers,2);
+    assert.equal(monthly.checklists.length,2);
+    assert.equal(monthly.checklists[0].completed,0);
     await assert.rejects(svc.monthlySummary(techB,m.id,'2027-02'),e=>e.status===404);
     assert.throws(()=>svc.monthlySummary(p,m.id,'2027-02'),e=>e.status===401);
     assert.throws(()=>svc.monthlySummary(manager,m.id,'2027-00'),e=>e.code==='INVALID_INPUT');
