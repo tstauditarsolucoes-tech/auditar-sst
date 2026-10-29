@@ -53,7 +53,7 @@ function memberData(payload){
           representation,seat};
 }
 function meetingData(payload){
-  return {title:field(payload.title,200,'Assunto'),scheduledAt:moment(payload.scheduledAt)};
+  return {title:field(payload.title,200,'Assunto'),scheduledAt:moment(payload.scheduledAt),agenda:field(payload.agenda,1800,'Pauta',true)};
 }
 async function loadMandate(db,p,id,lock=false){
   const x=await db.query(
@@ -176,10 +176,10 @@ export function createCipaService(pool){
         if(mandate.status==='encerrado')throw new ApiError(409,'INVALID_STATE','Mandato encerrado');
         const inserted=await db.query(
           'INSERT INTO sst.cipa_meeting '+
-          '(company_id,mandate_id,title,scheduled_at,created_by,client_request_id,request_fingerprint) '+
-          'VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (company_id,client_request_id) DO NOTHING '+
+          '(company_id,mandate_id,title,scheduled_at,summary,created_by,client_request_id,request_fingerprint) '+
+          'VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT (company_id,client_request_id) DO NOTHING '+
           'RETURNING id,mandate_id,title,scheduled_at,summary,status,revision',
-          [p.companyId,id,data.title,data.scheduledAt,p.userId,requestId,hash]);
+          [p.companyId,id,data.title,data.scheduledAt,data.agenda,p.userId,requestId,hash]);
         if(inserted.rowCount){
           await event(db,p,id,'reuniao_agendada',data.title,inserted.rows[0].id);
           return inserted.rows[0];
