@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
-import {portalRequest,statusLabel,entryLabel,shortDate,localTime,type StaffSession,type Mandate,type PortalWorkspace,type PortalAccount} from './cipaPortalClient';
+import {portalRequest,statusLabel,entryLabel,shortDate,localTime,type StaffSession,type Mandate,type PortalWorkspace,type PortalAccount,type CipaMonthlySummary} from './cipaPortalClient';
 import './cipaPortal.css';
 const base='cipa-portal-admin/';
 export function CipaPortalAdmin({session}:{session:StaffSession}){
@@ -10,11 +10,12 @@ export function CipaPortalAdmin({session}:{session:StaffSession}){
   const [resetId,setResetId]=useState(''),[resetPassword,setResetPassword]=useState('');
   const [assignee,setAssignee]=useState(''),[title,setTitle]=useState(''),[description,setDescription]=useState(''),[due,setDue]=useState(''),[priority,setPriority]=useState('media');
   const [reviewId,setReviewId]=useState(''),[reviewStatus,setReviewStatus]=useState('concluida'),[reviewNote,setReviewNote]=useState(''),[announcement,setAnnouncement]=useState('');
+  const [reportMonth,setReportMonth]=useState(()=>new Date().toISOString().slice(0,7)),[report,setReport]=useState<CipaMonthlySummary|null>(null);
   const pending=useRef<{signature:string;id:string}|null>(null),generation=useRef(0);
   useEffect(()=>{return()=>{generation.current++;};},[]);
   async function refresh(){if(!id)return;const n=generation.current;const r=await portalRequest<PortalWorkspace>(base+'mandates/'+id);if(n===generation.current)setData(r);
     if(manager){const a=await portalRequest<{items:PortalAccount[]}>(base+'accounts');if(n===generation.current)setAllAccounts(a.items);}}
-  useEffect(()=>{generation.current++;setData(null);setMemberId('');setAccountId('');setAssignee('');setReviewId('');setResetId('');setPassword('');setResetPassword('');if(id)void refresh().catch(e=>setNotice(e.message));},[id]);
+  useEffect(()=>{generation.current++;setReport(null);setData(null);setMemberId('');setAccountId('');setAssignee('');setReviewId('');setResetId('');setPassword('');setResetPassword('');if(id)void refresh().catch(e=>setNotice(e.message));},[id]);
   async function run(fn:()=>Promise<void>){if(busy)return;setBusy(true);setNotice('');try{await fn();}catch(e){setNotice(e instanceof Error?e.message:'Falha de conexão.');}finally{setBusy(false);}}
   async function post(path:string,payload:object){const signature=JSON.stringify([path,payload]);if(pending.current?.signature!==signature)pending.current={signature,id:crypto.randomUUID()};
     await portalRequest(base+path,{...payload,clientRequestId:pending.current.id},session.csrfToken);pending.current=null;setNotice('Registro salvo.');
@@ -37,7 +38,35 @@ export function CipaPortalAdmin({session}:{session:StaffSession}){
         </details>}
         <details><summary>Atribuir ação e publicar aviso</summary><div className="cipa-cards"><form className="cipa-box" onSubmit={e=>{e.preventDefault();void run(async()=>{await post(root+'actions',{assignedTo:assignee,title,description,dueOn:due,priority});setTitle('');setDescription('');});}}><h4>Nova ação do membro</h4><label>Responsável<select required value={assignee} onChange={e=>setAssignee(e.target.value)}><option value="">Selecione uma conta com vínculo ativo</option>{data.accounts?.filter(a=>a.active&&a.grant_active).map(a=><option key={a.id} value={a.id}>{a.display_name}</option>)}</select></label><label>Título<input required maxLength={200} value={title} onChange={e=>setTitle(e.target.value)} /></label><label>Orientação<textarea maxLength={2000} value={description} onChange={e=>setDescription(e.target.value)} rows={3} /></label><label>Prazo<input required type="date" value={due} onChange={e=>setDue(e.target.value)} /></label><label>Prioridade<select value={priority} onChange={e=>setPriority(e.target.value)}>{['baixa','media','alta','critica'].map(p=><option key={p} value={p}>{p}</option>)}</select></label><button disabled={busy||closed}>Atribuir ação</button></form>
         <form className="cipa-box" onSubmit={e=>{e.preventDefault();void run(async()=>{await post(root+'entries',{kind:'aviso',message:announcement});setAnnouncement('');});}}><h4>Aviso para todos deste mandato</h4><label>Mensagem<textarea required maxLength={2000} rows={5} value={announcement} onChange={e=>setAnnouncement(e.target.value)} /></label><p>Não inclua dados pessoais ou informações sensíveis. Todos os membros vinculados poderão ler.</p><button disabled={busy||closed}>Publicar aviso</button></form></div></details>
-        <h4>Ações e validações</h4><div className="cipa-cards">{data.actions.map(a=><article className="cipa-box" key={a.id}><span className="cipa-tag">{statusLabel[a.status]}</span><h4>{a.title}</h4><p>{data.accounts?.find(x=>x.id===a.assigned_to)?.display_name||'Membro vinculado'} • Prazo {shortDate(a.due_on)}</p><p className="cipa-pre">{a.description}</p><button disabled={busy||closed} className="secondary" onClick={()=>{setReviewId(a.id);setReviewNote('');setReviewStatus(a.status==='aguardando_validacao'?'concluida':a.status==='concluida'?'andamento':'orientacao');}}>Orientar / validar</button></article>)}</div>{!data.actions.length&&<p>Nenhuma ação atribuída pelo portal.</p>}
+        <details><summary>Indicadores e relatório mensal da gestão</summary>
+           <div className="cipa-metrics">
+             <div><strong>{data.counts.pending}</strong><span>Ações não concluídas no mandato</span></div>
+             <div><strong>{data.counts.reviewing}</strong><span>Aguardando validação</span></div>
+             <div><strong>{data.counts.scheduled}</strong><span>Reuniões planejadas</span></div>
+           </div>
+           <div className="cipa-toolbar">
+             <label>Competência do relatório<input type="month" value={reportMonth} onChange={e=>{setReportMonth(e.target.value);setReport(null);}} /></label>
+             <button type="button" disabled={busy||!reportMonth} onClick={()=>void run(async()=>{
+               const n=generation.current;const result=await portalRequest<CipaMonthlySummary>(base+'mandates/'+id+'/summary?month='+encodeURIComponent(reportMonth));
+               if(n===generation.current)setReport(result);
+             })}>Gerar resumo mensal</button>
+           </div>
+           {report&&report.mandate.id===id&&report.period===reportMonth&&<section className="cipa-monthly-report cipa-box" aria-label="Resumo gerencial mensal">
+             <h3>Auditar Soluções — resumo de acompanhamento da CIPA</h3>
+             <p><strong>Mandato:</strong> {report.mandate.name} · <strong>Mês:</strong> {report.period.slice(5,7)}/{report.period.slice(0,4)}</p>
+             <p><strong>Membros com vínculo ativo:</strong> {report.activeMembers}</p>
+             <h4>Situação atual das ações do mandato</h4>
+             <p>Total: {report.actions.total} · Pendentes: {report.actions.pending} · Aguardando validação: {report.actions.reviewing} · Concluídas: {report.actions.done} · Atrasadas: {report.actions.overdue}</p>
+             <h4>Reuniões programadas nesta competência</h4>
+             <p>{report.meetings.length?report.meetings.map(m=>(statusLabel[m.status]||m.status)+': '+m.total).join(' · '):'Nenhuma reunião neste mês.'}</p>
+             <h4>Participação registrada neste mês</h4>
+             <p>{report.participation.length?report.participation.map(e=>(entryLabel[e.kind]||e.kind)+': '+e.total).join(' · '):'Sem registros nesta competência.'}</p>
+             <p className="cipa-footnote">{report.note}</p>
+             <p className="cipa-footnote">Relatório gerencial de acompanhamento. Não substitui ata assinada, registro de presença ou documentos obrigatórios.</p>
+             <button type="button" className="secondary cipa-print-button" onClick={()=>window.print()}>Imprimir ou salvar em PDF</button>
+           </section>}
+         </details>
+         <h4>Ações e validações</h4><div className="cipa-cards">{data.actions.map(a=><article className="cipa-box" key={a.id}><span className="cipa-tag">{statusLabel[a.status]}</span><h4>{a.title}</h4><p>{data.accounts?.find(x=>x.id===a.assigned_to)?.display_name||'Membro vinculado'} • Prazo {shortDate(a.due_on)}</p><p className="cipa-pre">{a.description}</p><button disabled={busy||closed} className="secondary" onClick={()=>{setReviewId(a.id);setReviewNote('');setReviewStatus(a.status==='aguardando_validacao'?'concluida':a.status==='concluida'?'andamento':'orientacao');}}>Orientar / validar</button></article>)}</div>{!data.actions.length&&<p>Nenhuma ação atribuída pelo portal.</p>}
         {review&&!closed&&<form className="cipa-box" onSubmit={e=>{e.preventDefault();void run(async()=>{if(reviewStatus==='orientacao')await post(root+'entries',{kind:'orientacao',actionId:review.id,message:reviewNote});else await post('actions/'+review.id+'/status',{status:reviewStatus,expectedRevision:review.revision,message:reviewNote});setReviewId('');setReviewNote('');});}}><h4>Tratar: {review.title}</h4><label>Decisão<select value={reviewStatus} onChange={e=>setReviewStatus(e.target.value)}><option value="orientacao">Enviar orientação, sem mudar o status</option>{review.status==='aguardando_validacao'&&<option value="concluida">Validar a conclusão</option>}{['aguardando_validacao','concluida'].includes(review.status)&&<option value="andamento">Devolver / reabrir com motivo</option>}</select></label><label>Motivo ou orientação<textarea required maxLength={1900} rows={3} value={reviewNote} onChange={e=>setReviewNote(e.target.value)} /></label><button disabled={busy}>Salvar tratamento</button></form>}
         <h4>Pedidos de apoio, sugestões e histórico</h4><p>Os pedidos e sugestões são identificados. O canal de denúncias não está incluído.</p>{data.entries.map(e=><article className="cipa-box" key={e.id}><strong>{entryLabel[e.kind]||e.kind}</strong><small>{localTime(e.created_at)}{e.author_account_id?' · '+(data.accounts?.find(a=>a.id===e.author_account_id)?.display_name||'Membro'):''}</small><p className="cipa-pre">{e.message}</p>{e.action_id&&<button className="secondary" onClick={()=>{setReviewId(e.action_id||'');setReviewStatus('orientacao');setReviewNote('');}}>Responder na ação</button>}</article>)}<p className="cipa-footnote">Limites de exibição: {data.limits.actions} ações, {data.limits.meetings} reuniões e {data.limits.entries} registros recentes. Nenhum registro antigo é excluído.</p>
       </>}
