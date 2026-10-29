@@ -19,3 +19,6 @@
   .cipa-monthly-report h3{font-size:22px;line-height:1.3}
   @page{size:A4;margin:12mm}
 }
+
+.cipa-evidence-photo{display:block;width:100%;max-width:460px;max-height:420px;object-fit:contain;border-radius:10px;border:1px solid #c7d8cf;margin:12px 0;background:#f3f7f4}
+.cipa-portal input[type=file]::file-selector-button{border-radius:8px;border:1px solid #a4c3b6;background:#e9f5ef;color:#245544;padding:7px 10px;margin-right:10px;cursor:pointer}
