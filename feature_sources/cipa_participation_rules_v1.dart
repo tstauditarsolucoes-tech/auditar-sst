@@ -42,6 +42,8 @@ class CipaParticipationRules {
     return event?.kind == 'support_requested' ? event : null;
   }
 
+  CipaParticipationEvent? progress(String id) => latest(id, {'progress_reported'});
+
   bool carriedTo(String actionId, String mandateId) => events.any((e) =>
       e.kind == 'handover' && e.targetId == mandateId &&
       (e.data['actionIds'] is List) &&
