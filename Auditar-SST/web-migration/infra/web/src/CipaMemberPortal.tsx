@@ -10,6 +10,7 @@ export function CipaMemberPortal(){
   const [mandates,setMandates]=useState<Mandate[]>([]),[selected,setSelected]=useState(''),[data,setData]=useState<PortalWorkspace|null>(null);
   const [busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[tab,setTab]=useState<'acoes'|'reunioes'|'mural'|'historico'>('acoes');
   const [actionId,setActionId]=useState(''),[actionKind,setActionKind]=useState('andamento'),[note,setNote]=useState(''),[suggestion,setSuggestion]=useState('');
+  const [observedLocation,setObservedLocation]=useState(''),[observation,setObservation]=useState('');
   const pending=useRef<{signature:string;id:string}|null>(null),generation=useRef(0);
   function clear(){generation.current++;setSession(null);setEditingPassword(false);setData(null);setMandates([]);setSelected('');setPassword('');setNextPassword('');setConfirm('');setNote('');setSuggestion('');pending.current=null;}
   function failure(e:unknown){if(e instanceof PortalError&&e.code==='UNAUTHENTICATED')clear();setNotice(e instanceof Error?e.message:'Não foi possível conectar.');}
@@ -28,11 +29,14 @@ export function CipaMemberPortal(){
     await portalRequest(base+path,{...payload,clientRequestId:pending.current.id},session?.csrfToken);pending.current=null;setNotice('Registro salvo.');setNote('');setActionId('');
     try{await refresh();}catch{setNotice('Registro salvo, mas a lista não atualizou. Use Atualizar; não é preciso reenviar.');}}
   const [guideOpen,setGuideOpen]=useState(false);
+  const calendarParts=new Intl.DateTimeFormat('en-US',{year:'numeric',month:'2-digit',timeZone:'America/Fortaleza'}).formatToParts(new Date());
+  const period=(calendarParts.find(x=>x.type==='year')?.value||'')+'-'+(calendarParts.find(x=>x.type==='month')?.value||'');
+  const checklistState=new Map((data?.checklist||[]).filter(e=>e.message.startsWith(period+'|')).map(e=>[e.message.split('|')[1],e.message.endsWith('|feito')]));
   const monthlyChecklist=[
-    {title:'Verificar se existem situações inseguras no setor',hint:'Observe passagens obstruídas, máquinas sem proteção ou extintores com acesso bloqueado. Não se exponha ao risco.'},
-    {title:'Acompanhar as ações atribuídas',hint:'Confira os prazos e use “Preciso de apoio” se tiver dúvidas.'},
-    {title:'Conferir a próxima reunião',hint:'Leia a convocação e anote assuntos para levar à reunião.'},
-    {title:'Compartilhar uma sugestão de prevenção',hint:'Descreva uma melhoria possível. Não é necessário citar normas técnicas.'}
+    {key:'verificar_ambiente',title:'Verificar se existem situações inseguras no setor',hint:'Observe passagens obstruídas, máquinas sem proteção ou extintores com acesso bloqueado. Não se exponha ao risco.'},
+    {key:'acompanhar_acoes',title:'Acompanhar as ações atribuídas',hint:'Confira os prazos e use “Preciso de apoio” se tiver dúvidas.'},
+    {key:'consultar_reuniao',title:'Conferir a próxima reunião',hint:'Leia a convocação e anote assuntos para levar à reunião.'},
+    {key:'sugerir_melhoria',title:'Compartilhar uma sugestão de prevenção',hint:'Descreva uma melhoria possível. Não é necessário citar normas técnicas.'}
   ];
     const closed=data?.mandate.status==='encerrado';
   const chosen=data?.actions.find(a=>a.id===actionId);
@@ -65,8 +69,14 @@ export function CipaMemberPortal(){
           </section>
           <section className="cipa-box" aria-label="Checklist de orientação mensal da CIPA">
             <h2>Meu roteiro do mês</h2>
-            <p>Use este roteiro como lembrete. Ele não substitui inspeção técnica, ata ou registro formal de atividade.</p>
-            <ol>{monthlyChecklist.map(item=><li key={item.title}><strong>{item.title}</strong><p>{item.hint}</p></li>)}</ol>
+            <p>Competência {period.slice(5,7)}/{period.slice(0,4)} · marque cada etapa que realizou. O registro fica vinculado à sua conta e ao mandato. Não substitui inspeção técnica, ata ou registro formal de atividade.</p>
+            <p><strong>{monthlyChecklist.filter(item=>checklistState.get(item.key)===true).length} de {monthlyChecklist.length} etapas acompanhadas</strong></p>
+            <ul className="cipa-monthly-list">{monthlyChecklist.map(item=><li key={item.key}>
+              <label><input type="checkbox" checked={checklistState.get(item.key)===true} disabled={busy||closed}
+                onChange={e=>void run(()=>post('mandates/'+selected+'/entries',{kind:'checklist',period,itemKey:item.key,checked:e.target.checked}))}/>
+                <span><strong>{item.title}</strong><small>{item.hint}</small></span>
+              </label>
+            </li>)}</ul>
             <button type="button" className="secondary" aria-expanded={guideOpen} onClick={()=>setGuideOpen(v=>!v)}>{guideOpen?'Fechar orientações':'Aprender: como participar da CIPA'}</button>
             {guideOpen&&<div><h3>Orientações para começar</h3><p><strong>Observe sem se arriscar:</strong> não toque em instalações, máquinas ou equipamentos para verificar problemas.</p><p><strong>Comunique:</strong> relate o local e o que viu usando palavras simples. Evite nomes e informações pessoais desnecessárias.</p><p><strong>Peça apoio:</strong> a equipe técnica avalia os riscos e orienta as medidas adequadas.</p><p><strong>Reuniões:</strong> leia as convocações e leve sugestões. Confirmar leitura não significa presença ou assinatura da ata.</p></div>}
           </section>
@@ -77,6 +87,14 @@ export function CipaMemberPortal(){
           </section>}
           {tab==='reunioes'&&<section><h2>Reuniões do mandato</h2><p>Confirmar ciência significa que você leu a convocação. Não substitui presença ou assinatura.</p>{data.meetings.map(m=><article className="cipa-box" key={m.id}><span className="cipa-tag">{statusLabel[m.status]}</span><h3>{m.title}</h3><p>{localTime(m.scheduled_at)}</p><p className="cipa-pre">{m.summary}</p>{data.entries.some(e=>e.kind==='ciencia_reuniao'&&e.meeting_id===m.id)?<p>Ciência registrada no seu histórico.</p>:<button className="secondary" disabled={busy||closed||m.status==='cancelada'} onClick={()=>void run(()=>post('mandates/'+selected+'/entries',{kind:'ciencia_reuniao',meetingId:m.id,message:'Li a convocação.'}))}>Confirmar que li</button>}</article>)}{!data.meetings.length&&<p>Nenhuma reunião cadastrada.</p>}</section>}
           {tab==='mural'&&<section><h2>Avisos da gestão</h2>{notices.map(e=><article key={e.id} className="cipa-box"><small>{localTime(e.created_at)}</small><p className="cipa-pre">{e.message}</p></article>)}{!notices.length&&<p>Nenhum aviso publicado neste mandato.</p>}
+            <form className="cipa-box" onSubmit={e=>{e.preventDefault();void run(async()=>{await post('mandates/'+selected+'/entries',{kind:'observacao',location:observedLocation,message:observation});setObservation('');setObservedLocation('');});}}>
+              <h3>Registrar uma situação observada</h3>
+              <p>Descreva algo que precisa da atenção da equipe. Não toque em instalações ou máquinas e não se aproxime de riscos para registrar.</p>
+              <label>Local observado<input required maxLength={140} value={observedLocation} onChange={e=>setObservedLocation(e.target.value)} disabled={closed} placeholder="Exemplo: corredor da expedição" /></label>
+              <label>O que você observou?<textarea required rows={3} maxLength={1600} value={observation} onChange={e=>setObservation(e.target.value)} disabled={closed} placeholder="Exemplo: corredor com caixas impedindo a passagem." /></label>
+              <p>O técnico avaliará a situação. Este registro não é automaticamente uma não conformidade. Fotos ainda não estão habilitadas neste piloto.</p>
+              <button disabled={busy||closed}>Enviar observação</button>
+            </form>
             <form className="cipa-box" onSubmit={e=>{e.preventDefault();void run(async()=>{await post('mandates/'+selected+'/entries',{kind:'sugestao',message:suggestion});setSuggestion('');});}}><h3>Sugerir uma melhoria de prevenção</h3><p>Sugestão identificada, visível à equipe e a você. Este não é um canal de denúncias; não insira dados sensíveis.</p><label>O que você observou e o que poderia melhorar?<textarea required rows={4} maxLength={2000} value={suggestion} onChange={e=>setSuggestion(e.target.value)} disabled={closed} placeholder="Exemplo: A passagem perto do estoque fica obstruída. Sugiro manter o corredor livre." /></label><button disabled={busy||closed}>Enviar sugestão</button></form></section>}
           {tab==='historico'&&<section><h2>Meu histórico e decisões da equipe</h2>{data.entries.filter(e=>e.kind!=='aviso').map(e=><article key={e.id} className="cipa-box"><strong>{entryLabel[e.kind]||e.kind}</strong><small>{localTime(e.created_at)}</small><p className="cipa-pre">{e.message}</p></article>)}{!data.entries.filter(e=>e.kind!=='aviso').length&&<p>Sem registros de participação ainda.</p>}</section>}
           <p className="cipa-footnote">Exibição limitada a {data.limits.actions} ações, {data.limits.meetings} reuniões e {data.limits.entries} registros recentes do mandato. Os registros anteriores não são apagados.</p>
