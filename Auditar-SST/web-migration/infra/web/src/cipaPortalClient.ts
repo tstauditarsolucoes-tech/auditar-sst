@@ -5,7 +5,7 @@ export type PortalAction={id:string;assigned_to:string;title:string;description:
 export type PortalEntry={id:string;kind:string;message:string;action_id:string|null;meeting_id:string|null;author_account_id:string|null;created_at:string};
 export type PortalMeeting={id:string;title:string;scheduled_at:string;summary:string;status:string};
 export type PortalAccount={id:string;display_name:string;email:string;active:boolean;grant_active?:boolean;member_id?:string;must_change_password?:boolean};
-export type PortalWorkspace={mandate:Mandate;actions:PortalAction[];meetings:PortalMeeting[];entries:PortalEntry[];accounts?:PortalAccount[];members?:{id:string;display_name:string}[];counts:{pending:number;reviewing:number;scheduled:number};limits:{actions:number;meetings:number;entries:number}};
+export type PortalWorkspace={mandate:Mandate;actions:PortalAction[];meetings:PortalMeeting[];entries:PortalEntry[];checklist?:{message:string;created_at:string}[];accounts?:PortalAccount[];members?:{id:string;display_name:string}[];counts:{pending:number;reviewing:number;scheduled:number};limits:{actions:number;meetings:number;entries:number}};
 const messages:Record<string,string>={
   CIPA_PORTAL_DISABLED:'O portal ainda não foi habilitado neste ambiente. Solicite a ativação da homologação à equipe.',
   UNAUTHENTICATED:'A sessão expirou. Entre novamente.',LOGIN_FAILED:'Empresa, e-mail ou senha não conferem.',
@@ -33,6 +33,6 @@ export async function portalRequest<T>(path:string,body?:object,csrf?:string,sig
   return value as T;
 }
 export const statusLabel:Record<string,string>={aberta:'Aberta',andamento:'Em andamento',aguardando_validacao:'Aguardando validação',concluida:'Concluída',planejada:'Agendada',realizada:'Realizada',cancelada:'Cancelada',ativo:'Ativo',preparacao:'Em preparação',encerrado:'Encerrado'};
-export const entryLabel:Record<string,string>={sugestao:'Sugestão de prevenção',apoio:'Pedido de apoio',atualizacao:'Atualização do membro',decisao:'Validação da equipe',orientacao:'Orientação da equipe',aviso:'Aviso do mandato',ciencia_reuniao:'Ciência da reunião',acesso:'Gestão de acesso'};
+export const entryLabel:Record<string,string>={checklist:'Checklist mensal',observacao:'Situação observada',sugestao:'Sugestão de prevenção',apoio:'Pedido de apoio',atualizacao:'Atualização do membro',decisao:'Validação da equipe',orientacao:'Orientação da equipe',aviso:'Aviso do mandato',ciencia_reuniao:'Ciência da reunião',acesso:'Gestão de acesso'};
 export function shortDate(value:string){const d=value.slice(0,10).split('-');return d.length===3?`${d[2]}/${d[1]}/${d[0]}`:value;}
 export function localTime(value:string){return new Date(value).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});}
