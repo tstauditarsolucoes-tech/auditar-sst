@@ -10,7 +10,7 @@ export function CipaMemberPortal(){
   const [mandates,setMandates]=useState<Mandate[]>([]),[selected,setSelected]=useState(''),[data,setData]=useState<PortalWorkspace|null>(null);
   const [busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[tab,setTab]=useState<'acoes'|'reunioes'|'mural'|'historico'>('acoes');
   const [actionId,setActionId]=useState(''),[actionKind,setActionKind]=useState('andamento'),[note,setNote]=useState(''),[suggestion,setSuggestion]=useState('');
-  const [observedLocation,setObservedLocation]=useState(''),[observation,setObservation]=useState('');
+  const [observedLocation,setObservedLocation]=useState(''),[observation,setObservation]=useState(''),[observationPhoto,setObservationPhoto]=useState<File|null>(null);
   const pending=useRef<{signature:string;id:string}|null>(null),generation=useRef(0);
   function clear(){generation.current++;setSession(null);setEditingPassword(false);setData(null);setMandates([]);setSelected('');setPassword('');setNextPassword('');setConfirm('');setNote('');setSuggestion('');pending.current=null;}
   function failure(e:unknown){if(e instanceof PortalError&&e.code==='UNAUTHENTICATED')clear();setNotice(e instanceof Error?e.message:'Não foi possível conectar.');}
@@ -25,6 +25,24 @@ export function CipaMemberPortal(){
   async function login(e:FormEvent){e.preventDefault();await run(async()=>{const s=await portalRequest<CipaSession>(base+'auth/login',{companyId,email,password});setPassword('');setSession(s);});}
   async function changePassword(e:FormEvent){e.preventDefault();if(nextPassword!==confirm){setNotice('A confirmação da nova senha não confere.');return;}
     await run(async()=>{const s=await portalRequest<CipaSession>(base+'auth/password',{currentPassword:password,password:nextPassword},session?.csrfToken);setPassword('');setNextPassword('');setConfirm('');setEditingPassword(false);setSession(s);setNotice('Senha alterada. As outras sessões foram encerradas.');});}
+  async function sendObservation(){
+    if(!observationPhoto){
+      await post('mandates/'+selected+'/entries',{kind:'observacao',location:observedLocation,message:observation});
+    }else{
+      if(!['image/jpeg','image/png','image/webp'].includes(observationPhoto.type)||observationPhoto.size>2*1024*1024||!observationPhoto.size){
+        throw new Error('Use uma foto JPEG, PNG ou WebP de até 2 MB.');
+      }
+      const encoded=await new Promise<string>((resolve,reject)=>{
+        const reader=new FileReader();
+        reader.onload=()=>typeof reader.result==='string'?resolve(reader.result.split(',')[1]||''):reject(new Error('Não foi possível ler a foto.'));
+        reader.onerror=()=>reject(new Error('Não foi possível ler a foto.'));
+        reader.readAsDataURL(observationPhoto);
+      });
+      await post('mandates/'+selected+'/observations',{location:observedLocation,description:observation,
+        mimeType:observationPhoto.type,contentBase64:encoded});
+    }
+    setObservation('');setObservedLocation('');setObservationPhoto(null);
+  }
   async function post(path:string,payload:object){const signature=JSON.stringify([path,payload]);if(pending.current?.signature!==signature)pending.current={signature,id:crypto.randomUUID()};
     await portalRequest(base+path,{...payload,clientRequestId:pending.current.id},session?.csrfToken);pending.current=null;setNotice('Registro salvo.');setNote('');setActionId('');
     try{await refresh();}catch{setNotice('Registro salvo, mas a lista não atualizou. Use Atualizar; não é preciso reenviar.');}}
@@ -87,16 +105,21 @@ export function CipaMemberPortal(){
           </section>}
           {tab==='reunioes'&&<section><h2>Reuniões do mandato</h2><p>Confirmar ciência significa que você leu a convocação. Não substitui presença ou assinatura.</p>{data.meetings.map(m=><article className="cipa-box" key={m.id}><span className="cipa-tag">{statusLabel[m.status]}</span><h3>{m.title}</h3><p>{localTime(m.scheduled_at)}</p><p className="cipa-pre">{m.summary}</p>{data.entries.some(e=>e.kind==='ciencia_reuniao'&&e.meeting_id===m.id)?<p>Ciência registrada no seu histórico.</p>:<button className="secondary" disabled={busy||closed||m.status==='cancelada'} onClick={()=>void run(()=>post('mandates/'+selected+'/entries',{kind:'ciencia_reuniao',meetingId:m.id,message:'Li a convocação.'}))}>Confirmar que li</button>}</article>)}{!data.meetings.length&&<p>Nenhuma reunião cadastrada.</p>}</section>}
           {tab==='mural'&&<section><h2>Avisos da gestão</h2>{notices.map(e=><article key={e.id} className="cipa-box"><small>{localTime(e.created_at)}</small><p className="cipa-pre">{e.message}</p></article>)}{!notices.length&&<p>Nenhum aviso publicado neste mandato.</p>}
-            <form className="cipa-box" onSubmit={e=>{e.preventDefault();void run(async()=>{await post('mandates/'+selected+'/entries',{kind:'observacao',location:observedLocation,message:observation});setObservation('');setObservedLocation('');});}}>
+            <form className="cipa-box" onSubmit={e=>{e.preventDefault();void run(async()=>{await sendObservation();});}}>
               <h3>Registrar uma situação observada</h3>
               <p>Descreva algo que precisa da atenção da equipe. Não toque em instalações ou máquinas e não se aproxime de riscos para registrar.</p>
               <label>Local observado<input required maxLength={140} value={observedLocation} onChange={e=>setObservedLocation(e.target.value)} disabled={closed} placeholder="Exemplo: corredor da expedição" /></label>
               <label>O que você observou?<textarea required rows={3} maxLength={1600} value={observation} onChange={e=>setObservation(e.target.value)} disabled={closed} placeholder="Exemplo: corredor com caixas impedindo a passagem." /></label>
-              <p>O técnico avaliará a situação. Este registro não é automaticamente uma não conformidade. Fotos ainda não estão habilitadas neste piloto.</p>
+              <label>Foto (opcional, até 2 MB)<input type="file" accept="image/jpeg,image/png,image/webp" capture="environment"
+                disabled={closed||busy} onChange={e=>setObservationPhoto(e.target.files?.[0]||null)} /></label>
+              {observationPhoto&&<small>Selecionada: {observationPhoto.name} ({Math.ceil(observationPhoto.size/1024)} KB)</small>}
+              <p>O técnico avaliará a situação. Este registro não é automaticamente uma não conformidade. A imagem ficará guardada no volume privado desta homologação, não no Drive atual.</p>
               <button disabled={busy||closed}>Enviar observação</button>
             </form>
             <form className="cipa-box" onSubmit={e=>{e.preventDefault();void run(async()=>{await post('mandates/'+selected+'/entries',{kind:'sugestao',message:suggestion});setSuggestion('');});}}><h3>Sugerir uma melhoria de prevenção</h3><p>Sugestão identificada, visível à equipe e a você. Este não é um canal de denúncias; não insira dados sensíveis.</p><label>O que você observou e o que poderia melhorar?<textarea required rows={4} maxLength={2000} value={suggestion} onChange={e=>setSuggestion(e.target.value)} disabled={closed} placeholder="Exemplo: A passagem perto do estoque fica obstruída. Sugiro manter o corredor livre." /></label><button disabled={busy||closed}>Enviar sugestão</button></form></section>}
-          {tab==='historico'&&<section><h2>Meu histórico e decisões da equipe</h2>{data.entries.filter(e=>e.kind!=='aviso').map(e=><article key={e.id} className="cipa-box"><strong>{entryLabel[e.kind]||e.kind}</strong><small>{localTime(e.created_at)}</small><p className="cipa-pre">{e.message}</p></article>)}{!data.entries.filter(e=>e.kind!=='aviso').length&&<p>Sem registros de participação ainda.</p>}</section>}
+          {tab==='historico'&&<section><h2>Meu histórico e decisões da equipe</h2>{data.entries.filter(e=>e.kind!=='aviso').map(e=><article key={e.id} className="cipa-box"><strong>{entryLabel[e.kind]||e.kind}</strong><small>{localTime(e.created_at)}</small><p className="cipa-pre">{e.message}</p>{data.photos?.filter(photo=>photo.entry_id===e.id).map(photo=>
+              <img className="cipa-evidence-photo" key={photo.id} loading="lazy" src={'/api/v1/cipa-portal/observations/'+photo.id+'/photo'} alt="Foto anexada ao registro de observação" />
+            )}</article>)}{!data.entries.filter(e=>e.kind!=='aviso').length&&<p>Sem registros de participação ainda.</p>}</section>}
           <p className="cipa-footnote">Exibição limitada a {data.limits.actions} ações, {data.limits.meetings} reuniões e {data.limits.entries} registros recentes do mandato. Os registros anteriores não são apagados.</p>
         </>}
       </>}
