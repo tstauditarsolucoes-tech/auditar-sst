@@ -27,7 +27,14 @@ export function CipaMemberPortal(){
   async function post(path:string,payload:object){const signature=JSON.stringify([path,payload]);if(pending.current?.signature!==signature)pending.current={signature,id:crypto.randomUUID()};
     await portalRequest(base+path,{...payload,clientRequestId:pending.current.id},session?.csrfToken);pending.current=null;setNotice('Registro salvo.');setNote('');setActionId('');
     try{await refresh();}catch{setNotice('Registro salvo, mas a lista não atualizou. Use Atualizar; não é preciso reenviar.');}}
-  const closed=data?.mandate.status==='encerrado';
+  const [guideOpen,setGuideOpen]=useState(false);
+  const monthlyChecklist=[
+    {title:'Verificar se existem situações inseguras no setor',hint:'Observe passagens obstruídas, máquinas sem proteção ou extintores com acesso bloqueado. Não se exponha ao risco.'},
+    {title:'Acompanhar as ações atribuídas',hint:'Confira os prazos e use “Preciso de apoio” se tiver dúvidas.'},
+    {title:'Conferir a próxima reunião',hint:'Leia a convocação e anote assuntos para levar à reunião.'},
+    {title:'Compartilhar uma sugestão de prevenção',hint:'Descreva uma melhoria possível. Não é necessário citar normas técnicas.'}
+  ];
+    const closed=data?.mandate.status==='encerrado';
   const chosen=data?.actions.find(a=>a.id===actionId);
   const notices=data?.entries.filter(e=>e.kind==='aviso')||[];
   return <main className="cipa-portal"><header className="cipa-hero"><div className="cipa-brand">AUDITAR <span>SOLUÇÕES</span></div><p>Participação que vira prevenção</p><h1>Portal do membro da CIPA</h1><p>Suas ações, reuniões e avisos em um só lugar.</p></header>
@@ -55,6 +62,13 @@ export function CipaMemberPortal(){
               <button type="button" className="secondary" onClick={()=>setTab('mural')}>Sugerir melhoria</button>
             </div>
             <p><strong>Como funciona:</strong> 1. Leia sua tarefa. 2. Informe o andamento ou peça ajuda. 3. Envie para validação quando terminar. A conclusão só é confirmada pela equipe responsável.</p>
+          </section>
+          <section className="cipa-box" aria-label="Checklist de orientação mensal da CIPA">
+            <h2>Meu roteiro do mês</h2>
+            <p>Use este roteiro como lembrete. Ele não substitui inspeção técnica, ata ou registro formal de atividade.</p>
+            <ol>{monthlyChecklist.map(item=><li key={item.title}><strong>{item.title}</strong><p>{item.hint}</p></li>)}</ol>
+            <button type="button" className="secondary" aria-expanded={guideOpen} onClick={()=>setGuideOpen(v=>!v)}>{guideOpen?'Fechar orientações':'Aprender: como participar da CIPA'}</button>
+            {guideOpen&&<div><h3>Orientações para começar</h3><p><strong>Observe sem se arriscar:</strong> não toque em instalações, máquinas ou equipamentos para verificar problemas.</p><p><strong>Comunique:</strong> relate o local e o que viu usando palavras simples. Evite nomes e informações pessoais desnecessárias.</p><p><strong>Peça apoio:</strong> a equipe técnica avalia os riscos e orienta as medidas adequadas.</p><p><strong>Reuniões:</strong> leia as convocações e leve sugestões. Confirmar leitura não significa presença ou assinatura da ata.</p></div>}
           </section>
           <div className="cipa-metrics"><div><strong>{data.counts.pending}</strong><span>Minhas ações pendentes</span></div><div><strong>{data.counts.reviewing}</strong><span>Em validação</span></div><div><strong>{data.counts.scheduled}</strong><span>Reuniões agendadas</span></div></div>
           <nav className="cipa-tabs" aria-label="Seções do portal">{(['acoes','reunioes','mural','historico'] as const).map((t,i)=><button key={t} className={tab===t?'selected':'secondary'} aria-pressed={tab===t} onClick={()=>setTab(t)}>{['Minhas ações','Reuniões','Avisos e sugestões','Meu histórico'][i]}</button>)}</nav>
