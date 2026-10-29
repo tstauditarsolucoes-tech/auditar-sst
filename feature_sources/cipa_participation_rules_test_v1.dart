@@ -69,5 +69,55 @@ void main() {
   ]);
   check(noCompany.events.isEmpty, 'nullable legacy company must not be assumed');
   check(!noCompany.archived('action'), 'unscoped record cannot hide company action');
+  final guide = CipaParticipationRules('A', [
+    event('done', 'A', 'monthly_check', 'mandate|2026-10|verificar_ambiente', 2, {
+      'done': true, 'monthKey': '2026-10',
+      'taskKey': 'verificar_ambiente', 'mandateId': 'mandate',
+    }),
+    event('other-month', 'A', 'monthly_check', 'mandate|2026-09|verificar_ambiente', 3, {
+      'done': false, 'monthKey': '2026-09',
+      'taskKey': 'verificar_ambiente', 'mandateId': 'mandate',
+    }),
+    event('other-company-check', 'B', 'monthly_check', 'mandate|2026-10|verificar_ambiente', 30, {
+      'done': false, 'monthKey': '2026-10',
+      'taskKey': 'verificar_ambiente', 'mandateId': 'mandate',
+    }),
+    event('observation-1', 'A', 'observation', 'obs-1', 4, {
+      'mandateId': 'mandate', 'location': 'Expedição', 'detail': 'Corredor obstruído',
+    }),
+    event('observation-2', 'B', 'observation', 'obs-2', 5, {
+      'mandateId': 'mandate', 'location': 'Outra empresa',
+    }),
+    event('observation-3', 'A', 'observation', 'obs-3', 6, {
+      'mandateId': 'other-mandate',
+    }),
+    event('not-a-guide', 'A', 'monthly_check', 'mandate|2026-10|invented', 7, {
+      'done': true, 'monthKey': '2026-10', 'taskKey': 'invented', 'mandateId': 'mandate',
+    }),
+  ]);
+  check(CipaParticipationRules.monthKey(DateTime(2026, 1, 31)) == '2026-01',
+    'month key normalized');
+  check(guide.monthlyDone('mandate', DateTime(2026, 10), 'verificar_ambiente'),
+    'monthly check persists for mandate');
+  check(!guide.monthlyDone('mandate', DateTime(2026, 9), 'verificar_ambiente'),
+    'different month not marked');
+  check(!guide.monthlyDone('other-mandate', DateTime(2026, 10), 'verificar_ambiente'),
+    'other mandate not marked');
+  check(!guide.monthlyDone('mandate', DateTime(2026, 10), 'invented'),
+    'unknown checklist item refused');
+  check(guide.observations('mandate').length == 1,
+    'observations restricted to company and mandate');
+  check(guide.observations('other-mandate').length == 1,
+    'separate mandate has separate observation list');
+  check(guide.observations('').isEmpty, 'no unscoped observations');
+  final uncheck = CipaParticipationRules('A', [
+    ...guide.events,
+    event('uncheck', 'A', 'monthly_check', 'mandate|2026-10|verificar_ambiente', 10, {
+      'done': false, 'monthKey': '2026-10',
+      'taskKey': 'verificar_ambiente', 'mandateId': 'mandate',
+    }),
+  ]);
+  check(!uncheck.monthlyDone('mandate', DateTime(2026, 10), 'verificar_ambiente'),
+    'reversing check records the new state without deleting history');
   print('CIPA_PARTICIPATION_RULES_OK $count checks');
 }
