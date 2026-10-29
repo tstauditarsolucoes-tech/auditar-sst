@@ -53,6 +53,18 @@ test('individual portal: real DB auth, RLS, workflow, reset/revoke and HTTP cook
     await svc.post(p,m.id,{...key(),kind:'apoio',actionId:a.id,message:'Synthetic support needed'});
     await svc.post(tech,m.id,{...key(),kind:'orientacao',actionId:a.id,message:'Synthetic staff answer'},true);
     await svc.post(tech,m.id,{...key(),kind:'aviso',message:'Synthetic mandate-wide announcement'},true);
+    // Member's monthly checklist is persisted and isolated, not confused with suggestions.
+    const checklist={...key(),kind:'checklist',period:'2027-02',itemKey:'verificar_ambiente',checked:true};
+    await svc.post(p,m.id,checklist);await svc.post(p,m.id,checklist);
+    assert.deepEqual((await svc.get(p,m.id)).checklist.map(x=>x.message),['2027-02|verificar_ambiente|feito']);
+    await svc.post(p,m.id,{...key(),kind:'checklist',period:'2027-02',itemKey:'verificar_ambiente',checked:false});
+    assert.deepEqual((await svc.get(p,m.id)).checklist.map(x=>x.message),['2027-02|verificar_ambiente|pendente']);
+    assert.deepEqual((await svc.get(p2,m.id)).checklist,[]);
+    await assert.rejects(svc.post(p,m.id,{...key(),kind:'checklist',period:'2027-13',itemKey:'verificar_ambiente',checked:true}),e=>e.code==='INVALID_INPUT');
+    await assert.rejects(svc.post(p,m.id,{...key(),kind:'checklist',period:'2027-02',itemKey:'invented',checked:true}),e=>e.code==='INVALID_INPUT');
+    const observed={...key(),kind:'observacao',location:'Corredor ficticio',message:'Obstrucao sintetica'};
+    await svc.post(p,m.id,observed);await svc.post(p,m.id,observed);
+    await assert.rejects(svc.post(p,m.id,{...key(),kind:'observacao',location:' ',message:'x'}),e=>e.code==='INVALID_INPUT');
     const mine=await svc.get(p,m.id),theirs=await svc.get(p2,m.id);
     assert.equal(mine.entries.filter(x=>x.kind==='sugestao').length,1);assert.ok(mine.entries.some(x=>x.kind==='orientacao'));assert.deepEqual(theirs.entries.map(x=>x.kind),['aviso']);
     assert.throws(()=>svc.post(p,m.id,{...key(),kind:'aviso',message:'Member cannot broadcast'}),e=>e.status===400);
