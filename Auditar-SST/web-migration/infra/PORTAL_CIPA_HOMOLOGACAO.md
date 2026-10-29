@@ -30,9 +30,9 @@ Não habilitar no domínio final nem afirmar paridade com o app atual.
 1. Usar ambiente e hostname HTTPS exclusivos de homologação. Seguir
    `GUIA_PRIVADO_JULIO.md` e os guias existentes, sem reutilizar banco/volume de outros sistemas.
 2. Fazer backup e ensaiar restauração do banco de homologação antes da nova migration.
-3. Com a API parada apenas nesse projeto, aplicar `db/migrations/014_cipa_member_portal.sql`
-   depois de 001–013, com o administrador do banco dedicado. A migration é transacional
-   e rejeita reaplicação. Nunca usar seeds `db/tests/*` em uma VPS com dados de pessoas.
+3. Com a API parada apenas nesse projeto, aplicar em ordem `db/migrations/014_cipa_member_portal.sql`, `015_cipa_guided_participation.sql` e `016_cipa_private_observation_photos.sql`
+   depois de 001–013, com o administrador do banco dedicado. As migrations são transacionais
+   e rejeitam reaplicação. Nunca usar seeds `db/tests/*` em uma VPS com dados de pessoas.
 4. Reconstruir API e web com os novos fontes. O Dockerfile inclui os novos módulos.
 5. Somente para o teste privado, definir `AUDITAR_ENABLE_CIPA_PORTAL=PRIVATE_STAGING_CIPA_ONLY`
    junto do opt-in privado já existente. O padrão é `disabled`.
@@ -72,3 +72,15 @@ Listas são limitadas explicitamente (200 ações, 100 reuniões, 300 entradas r
 os dados mais antigos permanecem no banco. Expandir com paginação antes de escalar o uso.
 Sugestões gerais ainda não possuem uma resposta privada independente; a equipe pode
 atribuir uma ação para encaminhamento ou publicar aviso sem expor a sugestão.
+
+## Funcionalidades adicionadas após a primeira entrega
+
+- Roteiro mensal da CIPA com progresso gravado por conta, mandato e competência. Cada marcação é um evento imutável; nenhuma presença é presumida.
+- Registro identificado de observação com local e descrição; foto opcional de até 2 MB (JPEG, PNG, WebP) no volume **privado de homologação**. A gestão visualiza a evidência autorizada; não se cria NC automaticamente.
+- Próxima reunião e arquivo `.ics` opcional com lembrete de véspera, importado voluntariamente no calendário do usuário. **Não há envio automático** de e-mails/push.
+- Pauta sugerida e minuta guiada de reunião, sempre revisável. Minuta e confirmação de leitura **não** são ata assinada nem registro de presença.
+- Relatório mensal de gestão apurado no banco (ações = situação atual; reuniões/eventos = competência) e opção imprimir/salvar PDF pelo navegador.
+- Antes de testar fotos, confirme o volume privado `/var/lib/auditar-staging/evidence`, permissões de diretório e restauração do backup. Fotos são proibidas no Drive da produção durante o piloto.
+- O portal **continua sem importação ou sincronização com o aplicativo legado**. Todos os registros no piloto são novos e isolados.
+- No aceite, incluir foto >2MB, arquivo com assinatura inválida, acesso do membro B à foto do membro A, acesso de outra empresa, perda de resposta e reenvio, mandato encerrado, revogação e fechamento do navegador.
+- A migração 016 acrescenta a tabela `sst.cipa_portal_photo` e não altera a tabela de evidências do sistema atual.
