@@ -507,6 +507,120 @@ extension _CipaParticipation on _CipaManagementScreenState {
     ));
   }
 
+  // Guided scheduling reuses the current CIPA service; attendance is never inferred.
+  Future<void> _cipaGuidedMeeting() async {
+    final mandate = activeMandate;
+    if (mandate == null || mandate.status == 'Encerrado' || busy) return;
+    final title = TextEditingController(text: 'Reunião ordinária da CIPA');
+    final location = TextEditingController();
+    final agenda = TextEditingController(text:
+      '1. Acompanhar as ações pendentes.\n'
+      '2. Conversar sobre situações observadas e sugestões.\n'
+      '3. Definir responsáveis e prazos.\n'
+      '4. Confirmar os próximos encaminhamentos.');
+    var dateTime = DateTime.now().add(const Duration(days: 7));
+    var kind = 'Ordinária';
+    final choices = _cipaSortedActions(
+      mandateActions.where((a) => a.status != 'Resolvida'),
+    ).take(8).toList();
+    final chosen = <String>{};
+    final confirmation = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => StatefulBuilder(
+        builder: (context, update) => AlertDialog(
+          title: const Text('Preparar reunião passo a passo'),
+          content: SizedBox(width: 540, child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Text('Preencha os dados básicos. A reunião será agendada, '
+                'sem confirmar presença nem gerar ata automaticamente.'),
+              const SizedBox(height: 12),
+              TextField(controller: title, maxLength: 180,
+                onChanged: (_) => update(() {}),
+                decoration: const InputDecoration(labelText: 'Nome da reunião')),
+              DropdownButtonFormField<String>(
+                value: kind, isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Tipo de reunião'),
+                items: const [
+                  DropdownMenuItem(value: 'Ordinária', child: Text('Ordinária')),
+                  DropdownMenuItem(value: 'Extraordinária', child: Text('Extraordinária')),
+                ],
+                onChanged: (v) { if (v != null) update(() => kind = v); },
+              ),
+              ListTile(contentPadding: EdgeInsets.zero,
+                title: const Text('Data e horário'),
+                subtitle: Text(_dateTime.format(dateTime)),
+                trailing: const Icon(Icons.calendar_month_outlined),
+                onTap: () async {
+                  final selected = await _pickDateTime(dateTime);
+                  if (selected != null) update(() => dateTime = selected);
+                }),
+              TextField(controller: location, maxLength: 180,
+                decoration: const InputDecoration(labelText: 'Local (opcional)',
+                  hintText: 'Ex.: sala de reuniões')),
+              TextField(controller: agenda, minLines: 4, maxLines: 7,
+                maxLength: 1800, decoration: const InputDecoration(
+                  labelText: 'Pauta sugerida (você pode editar)')),
+              if (choices.isNotEmpty) ...[
+                const Align(alignment: Alignment.centerLeft, child: Text(
+                  'Adicionar pendências à pauta (opcional)',
+                  style: TextStyle(fontWeight: FontWeight.bold))),
+                ...choices.map((action) => CheckboxListTile(
+                  contentPadding: EdgeInsets.zero, dense: true,
+                  value: chosen.contains(action.id),
+                  title: Text(action.title, maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
+                  onChanged: (v) => update(() {
+                    v == true ? chosen.add(action.id) : chosen.remove(action.id);
+                  }),
+                )),
+              ],
+              const Text('Depois da reunião, a equipe precisa registrar '
+                'os assuntos, conferir os presentes e revisar a ata.'),
+            ]),
+          )),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialog, false),
+              child: const Text('Cancelar')),
+            FilledButton(
+              onPressed: title.text.trim().isEmpty ? null :
+                () => Navigator.pop(dialog, true),
+              child: const Text('Agendar reunião')),
+          ],
+        ),
+      ),
+    );
+    final meetingTitle = title.text.trim();
+    final meetingPlace = location.text.trim();
+    final meetingAgenda = CipaParticipationRules.appendAgenda(
+      agenda.text.trim(),
+      choices.where((a) => chosen.contains(a.id)).map((a) =>
+        '• Acompanhar: ${a.title} — ${a.payload['responsible'] ?? 'a definir'}'),
+    );
+    title.dispose();
+    location.dispose();
+    agenda.dispose();
+    if (confirmation != true || !mounted || mandate.id != activeMandate?.id ||
+        mandate.status == 'Encerrado') return;
+    final meetingId = const Uuid().v4();
+    await _cipaRun(() async {
+      await CipaManagementService.saveMeeting(
+        id: meetingId,
+        companyId: widget.companyId,
+        mandateId: mandate.id,
+        title: meetingTitle,
+        dateTime: dateTime,
+        meetingKind: kind,
+        place: meetingPlace,
+        agenda: meetingAgenda,
+        subjects: '',
+        decisions: '',
+        memberIds: activeMembers.map((m) => m.id).toList(),
+        presentIds: const [],
+        status: 'Agendada',
+      );
+    });
+  }
+
   Widget _cipaMeetingGuide() => Card(child: ExpansionTile(
     leading: const Icon(Icons.menu_book_outlined),
     title: const Text('Guia rápido para reunião'),
@@ -521,8 +635,14 @@ extension _CipaParticipation on _CipaManagementScreenState {
       const ListTile(title: Text('4. Acompanhe'),
         subtitle: Text('Verifique as ações na reunião seguinte. A minuta não substitui ata assinada.')),
       OutlinedButton.icon(
+        onPressed: busy || activeMandate == null ||
+            activeMandate?.status == 'Encerrado' ? null : _cipaGuidedMeeting,
+        icon: const Icon(Icons.auto_stories_outlined),
+        label: const Text('Preparar reunião guiada')),
+      TextButton.icon(
         onPressed: busy || activeMandate == null ? null : () => _editMeeting(),
-        icon: const Icon(Icons.event_note_outlined), label: const Text('Abrir reunião e pauta')),
+        icon: const Icon(Icons.edit_note_outlined),
+        label: const Text('Abrir editor completo de reuniões')),
     ],
   ));
 
@@ -544,8 +664,10 @@ extension _CipaParticipation on _CipaManagementScreenState {
       Wrap(spacing: 8, runSpacing: 8, children: [
         FilledButton.icon(onPressed: busy || activeMandate == null ? null : () => _editAction(),
           icon: const Icon(Icons.add_task), label: const Text('Nova ação')),
-        OutlinedButton.icon(onPressed: busy || activeMandate == null ? null : () => _editMeeting(),
-          icon: const Icon(Icons.event_outlined), label: const Text('Reunião e pauta')),
+        OutlinedButton.icon(onPressed: busy || activeMandate == null ||
+             activeMandate?.status == 'Encerrado' ? null : _cipaGuidedMeeting,
+           icon: const Icon(Icons.event_outlined),
+           label: const Text('Preparar reunião guiada')),
         if (!_cipaSimpleMode)
           OutlinedButton.icon(onPressed: busy || activeMandate == null ? null : _cipaHandover,
             icon: const Icon(Icons.swap_horiz), label: const Text('Passagem de mandato')),
