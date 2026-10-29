@@ -646,6 +646,84 @@ extension _CipaParticipation on _CipaManagementScreenState {
     ],
   ));
 
+  Future<void> _cipaBeginnerHelp() => showDialog<void>(
+    context: context,
+    builder: (dialog) => AlertDialog(
+      title: const Text('CIPA: como participar no dia a dia'),
+      content: SizedBox(width: 540, child: SingleChildScrollView(
+        child: Column(mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start, children: const [
+          ListTile(leading: Icon(Icons.visibility_outlined),
+            title: Text('1. Observe com segurança'),
+            subtitle: Text('Observe o ambiente sem tocar em máquinas ou '
+              'instalações e sem se aproximar de locais perigosos.')),
+          ListTile(leading: Icon(Icons.photo_camera_outlined),
+            title: Text('2. Registre o que observou'),
+            subtitle: Text('Informe local e descrição com suas palavras. '
+              'A foto é opcional; não precisa conhecer a NR.')),
+          ListTile(leading: Icon(Icons.handshake_outlined),
+            title: Text('3. Peça ajuda quando precisar'),
+            subtitle: Text('O técnico de segurança orienta sobre os riscos '
+              'e as medidas necessárias.')),
+          ListTile(leading: Icon(Icons.event_note_outlined),
+            title: Text('4. Participe das reuniões'),
+            subtitle: Text('Leve sugestões, acompanhe decisões, responsáveis '
+              'e prazos.')),
+          ListTile(leading: Icon(Icons.verified_outlined),
+            title: Text('5. Acompanhe as correções'),
+            subtitle: Text('Informe mudanças observadas; a equipe técnica '
+              'confere e valida a solução.')),
+          SizedBox(height: 8),
+          Text('Esta tela utiliza a conta já conectada. Não cria acesso '
+            'individual nem comprova presença, assinatura ou cumprimento da NR-05.'),
+        ]),
+      )),
+      actions: [TextButton(onPressed: () => Navigator.pop(dialog),
+        child: const Text('Entendi'))],
+    ),
+  );
+
+  Widget _cipaQuickStart() {
+    final mandate = activeMandate;
+    final current = DateTime.now();
+    final rules = _cipaRules;
+    final count = mandate == null ? 0 :
+      CipaParticipationRules.monthlyTasks.where((task) =>
+        rules.monthlyDone(mandate.id, current, task)).length;
+    return Card(child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('Por onde começar?', style: TextStyle(
+          fontSize: 19, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 6),
+        const Text('Não precisa conhecer as NRs para relatar uma situação. '
+          'O técnico avalia e orienta.'),
+        const SizedBox(height: 8),
+        Text('Roteiro do mês: $count de 4 atividades acompanhadas'),
+        const SizedBox(height: 10),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          FilledButton.icon(
+            onPressed: busy || mandate == null ||
+                mandate.status == 'Encerrado' ? null : _cipaNewObservation,
+            icon: const Icon(Icons.add_a_photo_outlined),
+            label: const Text('Registrar situação')),
+          OutlinedButton.icon(
+            onPressed: busy || mandate == null ||
+                mandate.status == 'Encerrado' ? null : _cipaGuidedMeeting,
+            icon: const Icon(Icons.calendar_month_outlined),
+            label: const Text('Preparar reunião')),
+          TextButton.icon(
+            onPressed: _cipaBeginnerHelp,
+            icon: const Icon(Icons.help_outline),
+            label: const Text('Como funciona?')),
+        ]),
+        const SizedBox(height: 8),
+        const Text('A CIPA registra e acompanha. A equipe técnica orienta '
+          'e valida as medidas de segurança.'),
+      ]),
+    ));
+  }
+
   Widget _cipaWorkspaceTab() {
     final rules = _cipaRules;
     final pending = _cipaSortedActions(mandateActions.where((a) => a.status != 'Resolvida'));
@@ -661,6 +739,7 @@ extension _CipaParticipation on _CipaManagementScreenState {
       const Text('Visão de trabalho da conta já conectada. O filtro por responsável não altera '
         'permissões nem cria acesso individual de membro. Canal de denúncias fora deste módulo.'),
       const SizedBox(height: 12),
+      if (_cipaSimpleMode) _cipaQuickStart(),
       Wrap(spacing: 8, runSpacing: 8, children: [
         FilledButton.icon(onPressed: busy || activeMandate == null ? null : () => _editAction(),
           icon: const Icon(Icons.add_task), label: const Text('Nova ação')),
