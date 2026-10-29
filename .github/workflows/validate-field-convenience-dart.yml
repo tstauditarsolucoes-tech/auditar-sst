@@ -1,0 +1,43 @@
+name: Auditar field convenience - pure Dart validation
+
+on:
+  push:
+    branches:
+      - feature/client-panel-permissions-v329106
+    paths:
+      - 'feature_sources/offline_reasoning_v329175.dart'
+      - 'feature_sources/offline_reasoning_expiry_test.dart'
+      - 'feature_sources/field_recurrence_preview_v1.dart'
+      - 'feature_sources/field_recurrence_preview_v1_test.dart'
+      - '.github/workflows/validate-field-convenience-dart.yml'
+  pull_request:
+    paths:
+      - 'feature_sources/offline_reasoning_v329175.dart'
+      - 'feature_sources/offline_reasoning_expiry_test.dart'
+      - 'feature_sources/field_recurrence_preview_v1.dart'
+      - 'feature_sources/field_recurrence_preview_v1_test.dart'
+      - '.github/workflows/validate-field-convenience-dart.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-recurrence:
+    name: Pure Dart - recurrence isolation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - name: Analyze field recurrence without Flutter
+        run: |
+          dart analyze feature_sources/field_recurrence_preview_v1.dart
+          dart analyze feature_sources/field_recurrence_preview_v1_test.dart
+      - name: Test technical and company/worksite isolation
+        run: dart feature_sources/field_recurrence_preview_v1_test.dart
+
+      - name: Analyze and test reported expiry and negation
+        run: |
+          dart analyze feature_sources/offline_reasoning_v329175.dart feature_sources/offline_reasoning_expiry_test.dart
+          dart feature_sources/offline_reasoning_expiry_test.dart

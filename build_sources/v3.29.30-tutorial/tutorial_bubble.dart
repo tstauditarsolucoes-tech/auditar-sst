@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import '../brand.dart';
 import '../services/tutorial_service.dart';
 
+// Mini tutorial original: opcional por conta, com dicas curtas e reativação em Configurações.
+
 class TutorialContent {
   final String title;
   final String description;
@@ -29,188 +31,188 @@ class TutorialCatalog {
     'home': TutorialContent(
       title: 'Bem-vindo ao Auditar SST',
       description:
-          'Este mini tutorial aparece somente na primeira vez que cada área for aberta. As dicas são curtas e você pode pular quando quiser.',
+          'O mini tutorial é opcional: aparece quando você abre uma área pela primeira vez. Você pode pular, parar as dicas ou reiniciá-las nas Configurações.',
       tips: [
-        'Use “Nova vistoria” para iniciar uma inspeção completa.',
-        'Use “Vistoria rápida” quando precisar registrar achados rapidamente em campo.',
-        'Os demais recursos ficam organizados nos módulos da tela inicial.',
+        'Iniciar visita: escolha a empresa/obra antes de registrar Ronda, Vistoria ou NC.',
+        'Continuar rascunho: retome o que faltou. Pendências: veja primeiro os riscos críticos e os prazos vencidos.',
+        'Relatórios: confira as fotos e o PDF antes de compartilhar com a empresa.',
       ],
       icon: Icons.waving_hand_rounded,
       welcome: true,
     ),
     'companies': TutorialContent(
-      title: 'Empresas',
+      title: 'Empresas e obras',
       description:
-          'Aqui ficam as empresas atendidas e os dados usados nas vistorias, relatórios e controles.',
+          'Escolha a empresa certa para manter os registros organizados e separados.',
       tips: [
-        'Cadastre ou pesquise uma empresa pelo nome, CNPJ ou cidade.',
-        'Toque na empresa para abrir setores, vistorias, pendências e recursos próprios dela.',
-        'Mantenha os setores atualizados para facilitar o preenchimento em campo.',
+        'Pesquise a empresa e confirme seu nome ou obra antes de abrir uma visita.',
+        'Use setores, empresas recentes e favoritos quando disponíveis na sua versão.',
+        'Revise o contexto antes de registrar NC, foto ou relatório para evitar misturar empresas.',
       ],
       icon: Icons.business_outlined,
     ),
     'company_detail': TutorialContent(
       title: 'Área da empresa',
       description:
-          'Esta tela reúne tudo o que está acontecendo nesta empresa em um só lugar.',
+          'Veja os registros, atividades e pendências vinculados à empresa escolhida.',
       tips: [
-        'Visão geral: resumo e atalhos principais.',
-        'Vistorias, NCs e Ações: acompanhe problemas e correções.',
-        'PGR + IA: consulte e trabalhe os riscos do PGR com apoio da IA.',
+        'Consulte vistorias, não conformidades, ações, treinamentos e documentos.',
+        'Na Visita Rápida, o atalho Linha do tempo da empresa pode mostrar o histórico de atividades.',
+        'Mensagens e confirmação de correções pelo cliente dependem do Painel do Cliente e das permissões.',
       ],
       icon: Icons.domain_outlined,
     ),
     'field_quick': TutorialContent(
-      title: 'Vistoria rápida',
+      title: 'Visita rápida',
       description:
-          'Use para registrar vários problemas durante uma ronda sem precisar montar uma vistoria completa antes.',
+          'Registre os achados em campo sem perder a empresa/obra selecionada.',
       tips: [
-        'Escolha empresa e setor.',
-        'Registre o problema, foto, prioridade e recomendação.',
-        'Continue adicionando achados conforme anda pela empresa.',
+        'Selecione empresa e, quando necessário, obra e setor antes de começar.',
+        'Escolha Ronda, Vistoria ou NC, descreva o que observou e acrescente foto e prioridade.',
+        'Salve o registro e confira no histórico; continue a visita na mesma empresa.',
       ],
       icon: Icons.flash_on_rounded,
     ),
     'history': TutorialContent(
-      title: 'Vistorias',
+      title: 'Vistorias e rascunhos',
       description:
-          'Aqui você encontra vistorias em andamento e já finalizadas.',
+          'Retome inspeções, confira os resultados e prepare a entrega.',
       tips: [
-        'Retome uma vistoria que ainda não terminou.',
-        'Abra uma vistoria finalizada para consultar os registros.',
-        'Use os relatórios para entregar o resultado à empresa.',
+        'Abra Continuar rascunho quando precisar terminar uma vistoria iniciada.',
+        'Em uma vistoria concluída, confira fotos, descrição do risco, recomendação e histórico.',
+        'Gere o PDF, abra a prévia e verifique o documento antes de compartilhar.',
       ],
       icon: Icons.fact_check_outlined,
     ),
     'non_conformities': TutorialContent(
-      title: 'Problemas encontrados',
+      title: 'Não conformidades (NCs)',
       description:
-          'Esta área concentra as não conformidades registradas nas inspeções.',
+          'Esta área reúne os problemas encontrados e o acompanhamento das correções.',
       tips: [
-        'Veja o que ainda está em aberto e o que já foi resolvido.',
-        'Abra o registro para consultar fotos, risco, recomendação e histórico.',
-        'Atualize o status quando a empresa corrigir o problema.',
+        'Priorize as NCs críticas, pendentes ou vencidas da empresa selecionada.',
+        'Abra cada NC para conferir descrição, fotos, prazo, status e código oficial.',
+        'Descreva claramente o problema, como Proteção removida ou Extintor vencido; nome editável depende da versão homologada.',
       ],
       icon: Icons.warning_amber_rounded,
     ),
     'action_plan': TutorialContent(
-      title: 'Planos de ação',
+      title: 'Plano de ação e correções',
       description:
-          'Aqui você acompanha quem ficou responsável por cada correção e qual é o prazo.',
+          'Acompanhe a responsabilidade, o prazo e a validação técnica das correções.',
       tips: [
-        'Defina responsável e data para conclusão.',
-        'Acompanhe ações abertas, atrasadas e concluídas.',
-        'Use esta tela para cobrar e registrar o andamento das correções.',
+        'Defina e acompanhe o responsável e o prazo para tratar cada problema.',
+        'Quando o Painel do Cliente estiver habilitado, o cliente poderá informar uma correção e anexar evidências.',
+        'O técnico deve confirmar ou rejeitar a correção, justificando quando a evidência for insuficiente.',
       ],
       icon: Icons.assignment_turned_in_outlined,
     ),
     'workers': TutorialContent(
       title: 'Trabalhadores',
       description:
-          'Cadastre ou importe os trabalhadores para usar nos controles de SST.',
+          'Organize os dados dos trabalhadores para os controles de SST.',
       tips: [
-        'Informe nome, função e setor.',
-        'Use a importação para cadastrar listas maiores com mais rapidez.',
-        'Os dados ajudam nos treinamentos e demais controles por função.',
+        'Confira nome, função, setor e vínculo com a empresa correta.',
+        'Use a importação quando tiver uma lista maior e a função estiver disponível.',
+        'Revise os dados antes de utilizar em treinamentos e demais controles.',
       ],
       icon: Icons.groups_rounded,
     ),
     'trainings': TutorialContent(
-      title: 'Treinamentos',
+      title: 'Treinamentos e DDS',
       description:
-          'Veja quais treinamentos estão em dia e quais precisam de atenção.',
+          'Acompanhe capacitações e registros de participação.',
       tips: [
-        'Consulte pendências por trabalhador, função ou NR.',
-        'Registre treinamentos realizados e suas datas.',
-        'Use os alertas para não deixar vencimentos passarem.',
+        'Verifique quais treinamentos estão realizados, pendentes ou próximos do vencimento.',
+        'Registre data, participantes e evidências conforme o tipo de treinamento.',
+        'Consulte o histórico antes de emitir ou compartilhar comprovantes.',
       ],
       icon: Icons.school_outlined,
     ),
     'compliance_alerts': TutorialContent(
       title: 'Alertas e obrigações',
       description:
-          'Esta tela reúne prazos e obrigações que precisam ser acompanhados.',
+          'Identifique prazos e obrigações que exigem atenção.',
       tips: [
-        'Comece pelos itens vencidos ou próximos do vencimento.',
-        'Abra o item para identificar a empresa e o que precisa ser feito.',
-        'Use a tela como uma lista diária de acompanhamento.',
+        'Comece pelos itens vencidos e pelos que estão próximos do prazo.',
+        'Abra cada alerta e confira empresa, obrigação e responsável.',
+        'Após o atendimento, revise o status para manter o acompanhamento confiável.',
       ],
       icon: Icons.notification_important_outlined,
     ),
     'cipa': TutorialContent(
       title: 'CIPA',
       description:
-          'Use esta área para organizar eleições, candidatos e votação da CIPA.',
+          'Acompanhe as atividades e etapas de gestão da CIPA.',
       tips: [
-        'Crie a eleição e cadastre os candidatos.',
-        'Gere o QR Code quando for usar votação digital.',
-        'Acompanhe os votos e o resultado dentro do processo.',
+        'Consulte a eleição, os candidatos e as etapas disponíveis.',
+        'Quando aplicável, use o QR Code da votação conforme o procedimento adotado.',
+        'Confira o resultado, os registros e o histórico antes de finalizar.',
       ],
       icon: Icons.how_to_vote_outlined,
     ),
     'checklists': TutorialContent(
-      title: 'Biblioteca de checklists',
+      title: 'Checklists e apoio técnico',
       description:
-          'Aqui ficam os modelos prontos para acelerar suas vistorias.',
+          'Encontre modelos para inspecionar as situações de SST.',
       tips: [
-        'Pesquise por equipamento, atividade, setor ou NR.',
-        'Ative os modelos que mais usa e personalize quando necessário.',
-        'Na Nova vistoria, você pode procurar e adicionar os checklists diretamente.',
+        'Pesquise por NR, setor, equipamento ou atividade e escolha somente os itens aplicáveis.',
+        'Durante a vistoria, responda os quesitos e registre evidências dos achados.',
+        'Biblioteca e sugestões offline são apoio: o julgamento técnico continua com o profissional.',
       ],
       icon: Icons.library_add_check_outlined,
     ),
     'routine': TutorialContent(
-      title: 'Rotina SST',
+      title: 'Rotina SST e agenda',
       description:
-          'Reúne registros do dia a dia que não precisam virar uma vistoria completa.',
+          'Registre atividades do dia a dia e acompanhe compromissos.',
       tips: [
-        'Registre DDS, APR/PT, incidentes e controles de equipamentos.',
-        'Use a agenda para lembrar atividades e compromissos.',
-        'Mantenha a rotina registrada para facilitar o acompanhamento da empresa.',
+        'Use a rotina para DDS, APR/PT, incidentes e demais registros disponíveis.',
+        'Confira a agenda e os responsáveis antes de marcar uma atividade como realizada.',
+        'Em obras, acompanhe etapas e verificações NR-18 conforme os módulos disponíveis.',
       ],
       icon: Icons.dashboard_customize_outlined,
     ),
     'improvements': TutorialContent(
-      title: 'Melhorias',
+      title: 'Melhorias e Antes × Depois',
       description:
-          'Registre mudanças positivas feitas pela empresa e demonstre a evolução do trabalho.',
+          'Demonstre as correções e avanços observados na empresa.',
       tips: [
-        'Registre a situação anterior e a melhoria realizada.',
-        'Adicione fotos para comprovar o resultado.',
-        'Use os registros em acompanhamentos e apresentações gerenciais.',
+        'Registre a situação inicial e a melhoria implantada.',
+        'Inclua fotos Antes e Depois quando houver evidência verificável.',
+        'Consulte o histórico e use a comparação para acompanhar a evolução.',
       ],
       icon: Icons.auto_awesome_outlined,
     ),
     'dashboard': TutorialContent(
-      title: 'Indicadores',
+      title: 'Indicadores e visão gerencial',
       description:
-          'Mostra um resumo do desempenho e ajuda a identificar onde concentrar atenção.',
+          'Use os indicadores para identificar prioridades de atuação.',
       tips: [
-        'Use filtros para analisar uma empresa ou período específico.',
-        'Observe pendências, evolução e setores que mais precisam de atenção.',
-        'Os indicadores ajudam a definir prioridades de trabalho.',
+        'Filtre empresa e período e veja pendências, riscos e prazos vencidos.',
+        'No Windows, a gestão/ADM pode acompanhar atividades dos técnicos conforme permissões.',
+        'Último contato mostra um registro de atividade, não presença online em tempo real.',
       ],
       icon: Icons.bar_chart_rounded,
     ),
     'new_inspection': TutorialContent(
       title: 'Nova vistoria',
       description:
-          'Aqui você monta e executa uma inspeção completa passo a passo.',
+          'Faça uma inspeção completa, com checklist e evidências.',
       tips: [
-        'Escolha empresa, setor e os checklists que serão usados.',
-        'Durante a inspeção, marque a situação de cada item e registre fotos quando necessário.',
-        'Você pode salvar e continuar depois antes de finalizar o relatório.',
+        'Escolha empresa, setor e checklist adequado ao serviço.',
+        'Marque cada item, descreva o achado e confira as fotos antes de salvar.',
+        'Se interromper a visita, salve um rascunho. Depois revise o relatório e gere o PDF.',
       ],
       icon: Icons.add_a_photo_outlined,
     ),
     'settings': TutorialContent(
-      title: 'Configurações',
+      title: 'Configurações e mini tutorial',
       description:
-          'Aqui ficam sua conta, sincronização, backup, Google Drive e preferências do aplicativo.',
+          'Aqui ficam as preferências e os controles de ajuda e sincronização.',
       tips: [
-        'No Windows, confira a sincronização com o celular.',
-        'Use backup e Drive para aumentar a segurança dos dados.',
-        'Nesta tela você também pode reiniciar este mini tutorial.',
+        'Para rever dicas, use Ajuda e mini tutorial > Reiniciar mini tutorial.',
+        'Confira a fila de sincronização sem apagar registros locais ou pendências de envio.',
+        'Antes de atualizar o app, preserve seus registros e fotos; não desinstale sem backup.',
       ],
       icon: Icons.settings_outlined,
     ),

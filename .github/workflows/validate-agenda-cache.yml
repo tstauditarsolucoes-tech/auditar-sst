@@ -1,0 +1,28 @@
+name: Auditar SST - cache seguro da agenda
+
+on:
+  push:
+    branches:
+      - feature/client-panel-permissions-v329106
+    paths:
+      - 'feature_sources/technician_agenda_screen_v330123.dart'
+      - 'tools/patch_windows_recent_loading_v1.py'
+      - 'tools/test_agenda_session_cache_v1.py'
+      - '.github/workflows/validate-agenda-cache.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-regression:
+    name: Cache por sessao e autoatualizacao
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar scripts Python
+        run: |
+          python3 -m py_compile tools/test_agenda_session_cache_v1.py tools/patch_windows_recent_loading_v1.py
+      - name: Garantir agenda sem piscar e sem dados de outra conta
+        run: python3 tools/test_agenda_session_cache_v1.py .

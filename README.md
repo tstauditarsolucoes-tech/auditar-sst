@@ -1,5 +1,18 @@
 # Auditar — Sistemas SST e EPI
 
+> ## Versões, CI e regras de segurança
+> A fonte de verdade para as versões **Android e Windows**, commits e estado de validação é [CURRENT_VERSION.md](CURRENT_VERSION.md). Não use versões antigas copiadas deste README.
+>
+> **Auditar SST:** Flutter Android e Windows. Código final montado por workflows a partir da base e dos patches incrementais; consultar o CI da branch antes de instalar.
+>
+> **PR #15:** permanece em **Draft**, sem merge; não fazer deploy/publicação da Central, GS ou Painel do Cliente sem autorização expressa.
+>
+> **Regra de segurança:** preservar login, banco, sincronização, mídia/fotos, Drive, IA, históricos, acesso multiempresa e recursos já existentes. Corrigir de modo aditivo, testado e isolado. Compilação aprovada não substitui homologação em aparelhos reais.
+>
+> **CI da branch:** [Android](https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/workflows/build-v329106-client-portal.yml) • [Windows](https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/workflows/build-v33030-client-portal.yml).
+>
+> **Auditoria de navegação e duplicidades:** [critérios e pendências](docs/AUDITORIA_SST_SEGURANCA_E_NAVEGACAO_20261013.md).
+
 Repositório de desenvolvimento dos sistemas da Auditar Soluções.
 
 ## Produtos
@@ -9,7 +22,7 @@ Aplicativo Flutter para Android e Windows, com operação offline-first e sincro
 
 Principais módulos: empresas, vistorias, não conformidades, planos de ação, trabalhadores, treinamentos, alertas, CIPA, checklists, Rotina SST, Agenda SST, melhorias e indicadores.
 
-**Versão em estabilização:** `3.22.0+80`
+**Linha histórica de estabilização:** `3.22.0+80` (não representa a versão atual)
 
 ### Gestão EPI
 Os módulos EPI permanecem isolados nas pastas `auditar-epi*` e `gestao-epi-master*`. Alterações nesses módulos não devem modificar o build do Auditar SST.
@@ -26,8 +39,9 @@ Não criar novos arquivos `completo (1).zip`, `completo (2).zip`, `CORRIGIDO_FIN
 
 ## Builds oficiais
 
-- Android: `.github/workflows/build-apk.yml`
-- Windows: `.github/workflows/build-windows.yml`
+- Android SST da branch: `.github/workflows/build-v329106-client-portal.yml`
+- Windows SST da branch: `.github/workflows/build-v33030-client-portal.yml`
+- Os workflows legados continuam no histórico e não representam necessariamente os últimos builds do Auditar SST.
 
 Os dois pipelines executam análise estática antes de compilar.
 

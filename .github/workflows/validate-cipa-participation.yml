@@ -1,0 +1,30 @@
+name: CIPA participation - rules and protected patch validation
+on:
+  push:
+    branches: [feature/client-panel-permissions-v329106]
+    paths:
+      - 'feature_sources/cipa_participation*'
+      - 'tools/patch_cipa_participation_v1.py'
+      - 'tools/test_cipa_participation_v1.py'
+      - '.github/workflows/validate-cipa-participation.yml'
+  pull_request:
+    paths:
+      - 'feature_sources/cipa_participation*'
+      - 'tools/*cipa_participation*'
+      - '.github/workflows/validate-cipa-participation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cipa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - name: Analyze and test CIPA rules
+        run: |
+          dart analyze feature_sources/cipa_participation_rules_v1.dart feature_sources/cipa_participation_rules_test_v1.dart
+          dart feature_sources/cipa_participation_rules_test_v1.dart
+      - name: Test Android and Windows patches after Dart formatting
+        run: python3 tools/test_cipa_participation_v1.py
