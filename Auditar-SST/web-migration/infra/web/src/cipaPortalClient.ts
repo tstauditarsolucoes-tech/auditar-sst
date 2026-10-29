@@ -6,7 +6,7 @@ export type PortalEntry={id:string;kind:string;message:string;action_id:string|n
 export type PortalMeeting={id:string;title:string;scheduled_at:string;summary:string;status:string};
 export type CipaMonthlySummary={mandate:{id:string;name:string;status:string};period:string;actions:{total:number;pending:number;reviewing:number;done:number;overdue:number};meetings:{status:string;total:number}[];participation:{kind:string;total:number}[];activeMembers:number;note:string};
 export type PortalAccount={id:string;display_name:string;email:string;active:boolean;grant_active?:boolean;member_id?:string;must_change_password?:boolean};
-export type PortalWorkspace={mandate:Mandate;actions:PortalAction[];meetings:PortalMeeting[];entries:PortalEntry[];checklist?:{message:string;created_at:string}[];accounts?:PortalAccount[];members?:{id:string;display_name:string}[];counts:{pending:number;reviewing:number;scheduled:number};limits:{actions:number;meetings:number;entries:number}};
+export type PortalWorkspace={mandate:Mandate;actions:PortalAction[];meetings:PortalMeeting[];entries:PortalEntry[];photos?:{id:string;entry_id:string;author_account_id:string;mime_type:string;created_at:string}[];checklist?:{message:string;created_at:string}[];accounts?:PortalAccount[];members?:{id:string;display_name:string}[];counts:{pending:number;reviewing:number;scheduled:number};limits:{actions:number;meetings:number;entries:number}};
 const messages:Record<string,string>={
   CIPA_PORTAL_DISABLED:'O portal ainda não foi habilitado neste ambiente. Solicite a ativação da homologação à equipe.',
   UNAUTHENTICATED:'A sessão expirou. Entre novamente.',LOGIN_FAILED:'Empresa, e-mail ou senha não conferem.',
