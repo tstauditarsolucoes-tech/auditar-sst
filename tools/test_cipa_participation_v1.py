@@ -55,6 +55,16 @@ class CipaPatchTest(unittest.TestCase):
                 self.assertEqual(output.count('_cipaWorkspaceTab(),'), 2)
                 self.assertIn("'Participação'", output)
                 self.assertIn("current.payload['mandateId']", output)
+                guide = (app / 'lib/screens/cipa_participation_screen.dart').read_text(encoding='utf-8')
+                for expected in ['_cipaMonthlyGuide(rules)', '_cipaObservationList(rules)',
+                                 '_cipaMeetingGuide()', "'monthly_check'", "'observation'",
+                                 "entityType: 'cipa_document'", 'Roteiro compartilhado']:
+                    self.assertIn(expected, guide)
+                rules_source = (app / 'lib/services/cipa_participation_rules.dart').read_text(encoding='utf-8')
+                self.assertIn('monthlyDone(', rules_source)
+                self.assertIn('observations(', rules_source)
+                self.assertNotIn('deleteRecord(', guide)
+
                 self.assertNotIn('deleteSstRecord', output)
                 self.assertNotIn('deleteRecord(', output)
                 self.assertIn('const Uuid().v4()', output)
