@@ -112,6 +112,8 @@ jobs:
           docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
             psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/014_cipa_member_portal.sql
           docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
+            psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/migrations/015_cipa_guided_participation.sql
+          docker compose -p auditar-sst-web-ci -f compose.staging.yml exec -T db \
             psql -U auditar_web_hml -d auditar_web_hml -v ON_ERROR_STOP=1 -f /db-init/tests/tenant_isolation.sql
           echo 'POSTGRES_MULTIEMPRESA_STAGING_OK'
       - name: Testar API NC com PostgreSQL real multiempresa e usuario restrito (CI efemera)
