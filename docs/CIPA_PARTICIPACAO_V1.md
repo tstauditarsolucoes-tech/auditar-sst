@@ -15,6 +15,17 @@ Escopo: aplicativo Flutter atual. Não faz parte da migração web. Não contém
 
 O calendário diferencia reunião agendada, realizada, cancelada e necessidade de conferência. Ele não certifica conformidade legal.
 
+## Extensão prática para uso na versão ATUAL Android e Windows — 29/10/2026
+
+- O módulo **Participação** inclui roteiro mensal com quatro itens marcáveis: observação segura do ambiente, acompanhamento de pendências, conferência de reunião e registro de melhoria.
+- Cada marcação ou desmarcação registra novo evento `monthly_check` no envelope de `CIPA_DOCUMENTO` já existente, associado à empresa, mandato, competência `YYYY-MM` e identificador conhecido da atividade. Não há alteração em tabela, sincronização ou Apps Script.
+- A lista de **situações observadas** permite informar local e descrição simples; o registro é `observation`, sem classificação automática como NC e sem canal de denúncias. Fotos podem ser adicionadas depois com a função **Anexar foto**, reaproveitando o registro e o fluxo de mídia `cipa_document` já usados pelo app.
+- **Guia de reuniões** com orientações antes, durante e depois e atalho ao cadastro existente de reunião/pauta. Não cria assinatura, presença nem ata automática.
+- Estes recursos são visíveis na conta já autenticada e os marcadores mensais representam acompanhamento **compartilhado da equipe**, não prova de atividade individual, autoria do membro ou cumprimento legal da NR-05.
+- **Web e VPS do Júlio permanecem fora do escopo e parados.** Esta entrega é somente do aplicativo atual.
+- Antes da liberação, homologar em Android e Windows com empresa e mandatos de teste: itens de meses diferentes, marcar/desmarcar, observação com foto e recuperação da foto em outro aparelho com o fluxo existente, offline, sincronização e encerramento de mandato.
+- Até essa homologação, o resultado é **candidato de desenvolvimento**; não substituir a versão instalada em produção.
+
 ## Persistência e proteção
 
 - A implementação utiliza `CipaManagementService.saveRecord` e o envelope existente `CIPA_DOCUMENTO`, com marcador `auditar.cipa.participation.v1` para eventos administrativos. Não cria tabela nem tipo novo de transporte.
