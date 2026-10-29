@@ -62,6 +62,28 @@ async function workspace(db,p,id,isStaff){
   return result;
 }
 export function createCipaPortalService(pool){return {
+  monthlySummary(p,id,period){
+    staff(p);portalId(id);
+    if(typeof period!=='string'||!/^\\d{4}-(0[1-9]|1[0-2])$/.test(period))throw new ApiError(400,'INVALID_INPUT','Competencia mensal invalida');
+    return withTenant(pool,p,async db=>{
+      const m=await mandate(db,p,id);
+      const actions=(await db.query("SELECT count(*)::integer AS total, " +
+        "count(*) FILTER (WHERE status<>'concluida')::integer AS pending, " +
+        "count(*) FILTER (WHERE status='aguardando_validacao')::integer AS reviewing, " +
+        "count(*) FILTER (WHERE status='concluida')::integer AS done, " +
+        "count(*) FILTER (WHERE status<>'concluida' AND due_on<(now() AT TIME ZONE 'America/Fortaleza')::date)::integer AS overdue " +
+        "FROM sst.cipa_portal_action WHERE company_id=$1 AND mandate_id=$2",[p.companyId,m.id])).rows[0];
+      const meetings=(await db.query("SELECT status,count(*)::integer AS total FROM sst.cipa_meeting " +
+        "WHERE company_id=$1 AND mandate_id=$2 AND to_char(scheduled_at AT TIME ZONE 'America/Fortaleza','YYYY-MM')=$3 " +
+        "GROUP BY status",[p.companyId,m.id,period])).rows;
+      const participation=(await db.query("SELECT kind,count(*)::integer AS total FROM sst.cipa_portal_entry " +
+        "WHERE company_id=$1 AND mandate_id=$2 AND to_char(created_at AT TIME ZONE 'America/Fortaleza','YYYY-MM')=$3 " +
+        "GROUP BY kind",[p.companyId,m.id,period])).rows;
+      const members=(await db.query('SELECT count(*)::integer AS total FROM sst.cipa_portal_grant WHERE company_id=$1 AND mandate_id=$2 AND active',[p.companyId,m.id])).rows[0].total;
+      return {mandate:{id:m.id,name:m.name,status:m.status},period,actions,meetings,participation,activeMembers:members,
+        note:'Acoes refletem situacao atual do mandato; reunioes e eventos referem-se a competencia informada. Ciencia de convocacao nao comprova presenca nem assinatura.'};
+    });
+  },
   mandates(p){return withCipaMember(pool,p,async db=>(await db.query('SELECT id,name,status,starts_on,ends_on FROM sst.cipa_mandate WHERE company_id=$1 ORDER BY starts_on DESC,id LIMIT 100',[p.companyId])).rows);},
   get(p,id){return withCipaMember(pool,p,db=>workspace(db,p,id,false));},
   adminGet(p,id){staff(p);return withTenant(pool,p,db=>workspace(db,p,id,true));},
