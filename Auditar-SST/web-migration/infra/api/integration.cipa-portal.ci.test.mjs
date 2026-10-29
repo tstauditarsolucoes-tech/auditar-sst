@@ -71,6 +71,15 @@ test('individual portal: real DB auth, RLS, workflow, reset/revoke and HTTP cook
     const meeting=await c.addMeeting(manager,m.id,{...key(),title:'Synthetic meeting',scheduledAt:'2027-02-01T12:00:00Z'});
     await svc.post(p,m.id,{...key(),kind:'ciencia_reuniao',meetingId:meeting.id,message:'Read'});
     assert.match((await svc.get(p,m.id)).entries.find(x=>x.kind==='ciencia_reuniao').message,/Nao comprova presenca/);
+    // Accurate monthly management summary comes from full scoped DB, not clipped UI lists.
+    const monthly=await svc.monthlySummary(manager,m.id,'2027-02');
+    assert.equal(monthly.actions.total,2);
+    assert.equal(monthly.actions.done,1);
+    assert.ok(monthly.meetings.some(x=>x.status==='planejada'&&x.total===1));
+    assert.equal(monthly.activeMembers,2);
+    await assert.rejects(svc.monthlySummary(techB,m.id,'2027-02'),e=>e.status===404);
+    await assert.rejects(svc.monthlySummary(p,m.id,'2027-02'),e=>e.status===403);
+    await assert.rejects(svc.monthlySummary(manager,m.id,'2027-00'),e=>e.code==='INVALID_INPUT');
     // Direct role checks: no access to generic company NCs, auth secrets or another member's tasks.
     await assert.rejects(withCipaMember(pool,p,db=>db.query('SELECT * FROM sst.non_conformity')),e=>e.code==='42501');
     await assert.rejects(withCipaMember(pool,p,db=>db.query('SELECT password_verifier FROM sst.cipa_portal_account')),e=>e.code==='42501');
@@ -80,6 +89,7 @@ test('individual portal: real DB auth, RLS, workflow, reset/revoke and HTTP cook
     const url=`http://127.0.0.1:${server.address().port}/api/v1/`;
     const staffLogin=await staffAuth.login(req(),{email:'tecnico-ci-a@example.invalid',password:'SenhaFicticiaCI-2026!'});
     const staffRead=await fetch(url+'cipa-portal-admin/mandates/'+m.id,{headers:{cookie:cookieOf(staffLogin)}});assert.equal(staffRead.status,200);
+    const reportHTTP=await fetch(url+'cipa-portal-admin/mandates/'+m.id+'/summary?month=2027-02',{headers:{cookie:cookieOf(staffLogin)}});assert.equal(reportHTTP.status,200);assert.equal((await reportHTTP.json()).actions.total,2);
     for(const path of ['cipa-portal-admin/accounts','nonconformities']){const r=await fetch(url+path,{headers:{cookie,'x-role':'adm','x-company-id':B}});assert.equal(r.status,401);}
     const csrfDenied=await fetch(url+'cipa-portal/mandates/'+m.id+'/entries',{method:'POST',headers:{cookie,origin,'Content-Type':'application/json'},body:JSON.stringify({...key(),kind:'sugestao',message:'Missing CSRF'})});assert.equal(csrfDenied.status,403);
     const ok=await fetch(url+'cipa-portal/mandates/'+m.id,{headers:{cookie}});assert.equal(ok.status,200);
