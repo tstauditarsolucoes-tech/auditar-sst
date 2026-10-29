@@ -58,12 +58,21 @@ class CipaPatchTest(unittest.TestCase):
                 guide = (app / 'lib/screens/cipa_participation_screen.dart').read_text(encoding='utf-8')
                 for expected in ['_cipaMonthlyGuide(rules)', '_cipaObservationList(rules)',
                                  '_cipaMeetingGuide()', "'monthly_check'", "'observation'",
-                                 "entityType: 'cipa_document'", 'Roteiro compartilhado']:
+                                 "entityType: 'cipa_document'", 'Roteiro compartilhado',
+                                 '_cipaGuidedMeeting()', 'presentIds: const []',
+                                 'attachPhotoNow', 'eventId: eventId',
+                                 '_cipaQuickStart()', '_cipaBeginnerHelp()',
+                                 'Preparar reunião guiada']:
                     self.assertIn(expected, guide)
                 rules_source = (app / 'lib/services/cipa_participation_rules.dart').read_text(encoding='utf-8')
                 self.assertIn('monthlyDone(', rules_source)
                 self.assertIn('observations(', rules_source)
                 self.assertNotIn('deleteRecord(', guide)
+                self.assertIn('mandate.status == \'Encerrado\'', guide)
+                self.assertIn('CipaManagementService.saveMeeting(', guide)
+                self.assertIn("'Agendada'", guide)
+                self.assertIn("status: 'Agendada'", guide)
+                self.assertIn("mandateId: mandate.id, eventId: eventId", guide)
 
                 self.assertNotIn('deleteSstRecord', output)
                 self.assertNotIn('deleteRecord(', output)
