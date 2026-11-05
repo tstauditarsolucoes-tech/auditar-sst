@@ -23,6 +23,7 @@ void main(){
  check(CipaGuideRules.recommended(sample(mandate:true,members:2,observations:2)).id=='participation','Relatos a revisar.');
  check(CipaGuideRules.recommended(sample(mandate:true,members:2,noTraining:2)).id=='training','Conferir treinamentos.');
  check(CipaGuideRules.recommended(sample(mandate:true,members:2)).id=='meeting','Sem reunião próxima, orientar agenda.');
+ check(CipaGuideRules.recommended(CipaGuideSnapshot(hasActiveMandate:true,activeMemberCount:2,registeredElectionCount:0,hasUpcomingMeeting:true,pastScheduledMeetingCount:1,performedMeetingCount:1,minutesWithoutMeetingCount:0,trainingNotFoundCount:0,openActionCount:0,overdueActionCount:0,requiredDocumentPendingCount:0,observationsAwaitingReviewCount:0)).id=='meeting','Reunião antiga ainda agendada deve ser conferida.');
  check(CipaGuideRules.recommended(sample(mandate:true,members:2,meeting:true,docs:1)).id=='documents','Conferir documentos.');
  check(CipaGuideRules.recommended(sample(mandate:true,members:2,meeting:true)).id=='routine','Acompanhamento, não conformidade final.');
  check(!CipaGuideRules.steps(sample(mandate:true,members:2))[1].attention,'Ausência de eleição não comprova descumprimento.');
