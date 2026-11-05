@@ -393,7 +393,12 @@ function cipaMemV1Dashboard_(request) {
       return r.id===a.memberId;}).payload.representation||''),
     jobTitle:''},
     ...data,observations:cipaMemV1Events_(a)
-      .filter(function(e){return e.kind==='observation';})};
+      .filter(function(e){return e.kind==='observation';})
+      .map(function(e){return {
+        id:e.id,type:'observation',
+        title:'Situação observada • '+e.location,
+        description:e.detail,status:'Registrada',date:e.date,
+      };})};
 }
 function cipaMemV1Event_(request) {
   var session=cipaMemV1Authorize_(request.sessionToken);
