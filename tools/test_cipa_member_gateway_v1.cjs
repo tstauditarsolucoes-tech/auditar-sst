@@ -14,6 +14,9 @@ class FakeSheet {
       getValues:()=>Array.from({length:n},(_,i)=>
         this.rows[r-1+i].slice(c-1,c-1+w)),
       setValue:(v)=>{this.rows[r-1][c-1]=v;},
+      setValues:(values)=>{for(let i=0;i<values.length;i++)
+        for(let j=0;j<values[i].length;j++)
+          this.rows[r-1+i][c-1+j]=values[i][j];},
     };
   }
 }
@@ -221,4 +224,15 @@ assert(revoke.ok);
 assert.strictEqual(invoke('cipa_member_dashboard',{
  sessionToken:login.sessionToken,
 }).code,'SESSION_INVALID','Revogação deve bloquear acesso já conectado');
+const reactivate=invoke('cipa_member_admin_grant',{
+  authToken:'valid-admin',companyId:'company-A',
+  mandateId:'mandate-A',memberId:'member-A',
+  workerId:'worker-A',email:'maria@example.test',
+});
+assert(reactivate.ok&&reactivate.reused===true);
+assert.strictEqual(reactivate.id,grant.id,'Reativação não deve criar outro usuário');
+assert.strictEqual(invoke('cipa_member_dashboard',{
+  sessionToken:login.sessionToken,
+}).code,'SESSION_INVALID',
+  'A reativação nunca pode reviver sessão revogada');
 console.log('CIPA_MEMBER_GATEWAY_ISOLATED_OTP_REVOKE_CROSS_COMPANY_OK');
