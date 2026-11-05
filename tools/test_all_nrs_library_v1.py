@@ -64,6 +64,60 @@ class _Fixture {
     assert (services/"offline_sst_all_nrs_v1.dart").is_file()
     assert (tests/"offline_sst_all_nrs_test.dart").is_file()
     assert len(original)>50000
+    # Dart compila os três catálogos unidos e executa a busca real, não
+    # apenas verifica substrings do patch ou JSON dos modelos.
+    runtime=root/"test/offline_all_nrs_runtime.dart"
+    runtime.write_text(r"""import '../lib/services/offline_sst_deep_catalog_v2.dart';
+import '../lib/services/offline_sst_all_nrs_v1.dart';
+void main() {
+  final all=OfflineSstDeepCatalog.entries;
+  assert(all.length==345, '145+49+151');
+  assert(all.map((e)=>e['id']).toSet().length==345);
+  assert(OfflineSstAllNrsCatalog.activeStandards.length==36);
+  assert(OfflineSstDeepCatalog.browse(limit:500).length==345);
+  assert(OfflineSstDeepCatalog.browse(standard:'Panificação').length==49);
+  assert(OfflineSstDeepCatalog.browse(standard:'NR-02').isEmpty);
+  assert(OfflineSstDeepCatalog.browse(standard:'NR-27').isEmpty);
+  for(final nr in OfflineSstAllNrsCatalog.activeStandards) {
+    final items=OfflineSstDeepCatalog.browse(standard:nr);
+    assert(items.isNotEmpty, nr);
+    assert(items.every((e)=>e['nr']==nr), nr);
+  }
+  final cases=<String,String>{
+    'Amassadeira sem grade':'bakery-nr12-ama-grade-ausente',
+    'PGR risco ausente':'all-nrs-01-01',
+    'CIPA sem ata':'all-nrs-05-01',
+    'Quadro elétrico sem tampa':'all-nrs-10-01',
+    'Espaço confinado sem PET':'all-nrs-33-01',
+    'Trabalho em altura sem AR':'all-nrs-35-01',
+    'Coleta urbana sem sinalização':'all-nrs-38-01',
+  };
+  for(final e in cases.entries) {
+    assert(OfflineSstDeepCatalog.matches(e.key)
+        .any((v)=>v['id']==e.value),e.key);
+  }
+  assert(OfflineSstDeepCatalog.matches(
+    'CIPA sem ata, já corrigida').isEmpty);
+  assert(OfflineSstDeepCatalog.matches(
+    'Máquina funcionando normalmente').isEmpty);
+  for(final nr in const {'NR-03','NR-15','NR-16','NR-28'}) {
+    final entries=OfflineSstDeepCatalog.browse(standard:nr);
+    assert(entries.where((e)=>e['id']!.startsWith('all-nrs-'))
+        .every((e)=>e['browseOnly']=='true'),nr);
+  }
+  assert(OfflineSstDeepCatalog.matches('NR-15 ruído acima do limite sem laudo')
+      .where((e)=>e['id']!.startsWith('all-nrs-15-')).isEmpty);
+  print('ALL_NRS_INTEGRATED_DART_RUNTIME_OK');
+}
+""",encoding="utf-8")
+    runtime_result=subprocess.run(
+        ["dart","--enable-asserts",str(runtime)],
+        capture_output=True,text=True)
+    if runtime_result.returncode:
+        raise AssertionError(
+            "Dart runtime falhou: "+runtime_result.stdout+
+            "\\n"+runtime_result.stderr)
+    print(runtime_result.stdout.strip())
     # Fail closed on a duplicate install and keep bytes exactly unchanged.
     snapshot={p:p.read_bytes() for p in [*services.glob("*"),*widgets.glob("*"),*tests.glob("*")]}
     repeat=subprocess.run([sys.executable,str(repo/"tools/patch_all_nrs_library_v1.py"),str(root)],
