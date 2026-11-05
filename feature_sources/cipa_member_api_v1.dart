@@ -128,7 +128,11 @@ class CipaMemberApi {
       ..._items(response,'reminders',CipaMemberItemType.reminder,profile),
     ];
     return CipaMemberPortalRules.build(
-      verifiedProfile:profile,records:rows);
+      verifiedProfile:profile,records:rows,
+      companyLabel:_str(response['companyName']).isNotEmpty
+        ?_str(response['companyName']):'Empresa vinculada à CIPA',
+      mandateLabel:_str(response['mandateTitle']).isNotEmpty
+        ?_str(response['mandateTitle']):'Mandato atual');
   }
 
   String _id(String key) => _pendingIds.putIfAbsent(key,(){
