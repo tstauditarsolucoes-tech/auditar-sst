@@ -12,6 +12,11 @@ on:
       - 'tools/bump_cipa_release_v1.py'
       - 'tools/patch_cipa_triage_v1.py'
       - 'tools/patch_cipa_guided_home_v1.py'
+      - 'tools/patch_cipa_member_label_v1.py'
+      - 'feature_sources/cipa_member_identity_v1.dart'
+      - 'feature_sources/cipa_member_identity_test_v1.dart'
+      - 'feature_sources/cipa_member_access_header_v1.dart'
+      - 'feature_sources/cipa_member_access_header_test_v1.dart'
       - 'feature_sources/cipa_guided_home_v1.dart'
       - 'feature_sources/cipa_guide_rules_v1.dart'
       - 'feature_sources/cipa_guide_rules_test_v1.dart'
@@ -1653,6 +1658,17 @@ jobs:
           flutter analyze --no-fatal-infos --no-fatal-warnings
           dart test/cipa_guide_rules_test.dart
           flutter test test/cipa_participation_rules_test.dart
+          cd "$GITHUB_WORKSPACE"
+
+      - name: Exibir função do integrante junto ao nome na CIPA Android (homologação)
+        run: |
+          set -euo pipefail
+          python3 tools/patch_cipa_member_label_v1.py "$APP_DIR"
+          cd "$APP_DIR"
+          dart format lib/services/cipa_member_identity.dart lib/widgets/cipa_member_access_header.dart lib/screens/cipa_management_screen.dart test/cipa_member_identity_test.dart test/cipa_member_access_header_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          dart test/cipa_member_identity_test.dart
+          flutter test test/cipa_member_access_header_test.dart
           cd "$GITHUB_WORKSPACE"
 
       - name: Corrigir timeout do criador de checklist com IA Android
