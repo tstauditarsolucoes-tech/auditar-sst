@@ -209,6 +209,11 @@ const observed=invoke('cipa_member_event',{
  requestId:'test-request-id-12345678902',
 });
 assert(observed.ok);
+const updated=invoke('cipa_member_dashboard',{sessionToken:login.sessionToken});
+assert(updated.ok);
+assert(updated.observations.some(x=>
+  x.title.includes('Produção')&&x.description.includes('corredor')),
+  'A pessoa deve consultar a própria observação em Minha CIPA.');
 const inbox=invoke('cipa_member_admin_inbox',{
  authToken:'valid-admin',companyId:'company-A',
 });
