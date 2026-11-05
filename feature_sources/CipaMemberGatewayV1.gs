@@ -16,7 +16,7 @@ function cipaMemV1Route_(request) {
   var action=String((request||{}).action||'');
   var known=['cipa_member_begin','cipa_member_verify','cipa_member_dashboard',
     'cipa_member_event','cipa_member_logout','cipa_member_admin_grant',
-    'cipa_member_admin_revoke','cipa_member_admin_assign',
+    'cipa_member_admin_revoke','cipa_member_admin_list','cipa_member_admin_assign',
     'cipa_member_admin_inbox'];
   if(known.indexOf(action)<0)return null;
   if(PropertiesService.getScriptProperties().getProperty('CIPA_MEMBER_V1_ENABLED')!=='true')
@@ -29,6 +29,7 @@ function cipaMemV1Route_(request) {
     if(action==='cipa_member_logout')return cipaMemV1Logout_(request);
     if(action==='cipa_member_admin_grant')return cipaMemV1AdminGrant_(request);
     if(action==='cipa_member_admin_revoke')return cipaMemV1AdminRevoke_(request);
+    if(action==='cipa_member_admin_list')return cipaMemV1AdminList_(request);
     if(action==='cipa_member_admin_assign')return cipaMemV1AdminAssign_(request);
     if(action==='cipa_member_admin_inbox')return cipaMemV1AdminInbox_(request);
   } catch(error) {
@@ -158,6 +159,19 @@ function cipaMemV1AdminGrant_(request) {
   auditAuthEvent_(admin,'cipa_member_grant','CIPA_MEMBRO',account.memberId,
     account.companyId,'','cipa_member',{accountId:id,mandateId:account.mandateId});
   return {ok:true,id:id};
+}
+function cipaMemV1AdminList_(request) {
+  var admin=cipaMemV1Admin_(request.authToken);
+  if(!admin)return {ok:false,code:'ACCESS_DENIED'};
+  var cid=String(request.companyId||'').trim();
+  if(!cid)return {ok:false,code:'INVALID_INPUT'};
+  return {ok:true,accounts:cipaMemV1Accounts_()
+    .filter(function(a){return a.companyId===cid;})
+    .map(function(a){return {
+      id:a.id,email:a.email,active:a.active,
+      companyId:a.companyId,mandateId:a.mandateId,
+      memberId:a.memberId,workerId:a.workerId,
+    };})};
 }
 function cipaMemV1AdminRevoke_(request) {
   var admin=cipaMemV1Admin_(request.authToken);
