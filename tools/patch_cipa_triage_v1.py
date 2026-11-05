@@ -55,8 +55,8 @@ base.write_text(b,encoding="utf-8",newline="\n")
 
 p=participation.read_text(encoding="utf-8")
 p=once(p,
-    "       if (_cipaSimpleMode) _cipaQuickStart(),",
-    "       if (_cipaSimpleMode) _cipaQuickStart(),\n"
+    "      if (_cipaSimpleMode) _cipaQuickStart(),",
+    "      if (_cipaSimpleMode) _cipaQuickStart(),\n"
     "       _cipaTriageCard(),",
     "painel antes dos botões do módulo")
 p=once(p,
