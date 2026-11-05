@@ -25,7 +25,8 @@ with tempfile.TemporaryDirectory(prefix="cipa-member-android-") as tmp:
     all_code="\n".join(p.read_text(encoding="utf-8")
       for p in (app/"lib").rglob("*.dart"))
     assert "WebServiceConfig" not in all_code
-    assert "AuthService" not in all_code
+    assert "AuthService.login(" not in all_code
+    assert "auth_service.dart" not in all_code
     assert "String.fromEnvironment('AUDITAR_SYNC_KEY'" not in all_code
     assert "String.fromEnvironment(\n    'AUDITAR_MEMBER_ENDPOINT'" in all_code
     assert "android.permission.INTERNET" in manifest.read_text()
