@@ -8,12 +8,14 @@ import 'cipa_member_portal_policy.dart';
 /// Cliente pessoal separado: SEM AuthService, SQLite, syncKey, Drive ou
 /// sincronização geral do aplicativo técnico.
 class CipaMemberApi {
-  CipaMemberApi({required String endpoint,http.Client? client})
+  CipaMemberApi({required String endpoint,http.Client? client,
+    this.onSessionRevoked})
     : _endpoint=Uri.tryParse(endpoint.trim()),
       _client=client??http.Client();
 
   final Uri? _endpoint;
   final http.Client _client;
+  final void Function()? onSessionRevoked;
   final Map<String,String> _pendingIds={};
   String? _token;
 
@@ -38,7 +40,10 @@ class CipaMemberApi {
     final result=Map<String,dynamic>.from(decoded);
     if(result['ok']!=true) {
       final code=(result['code']??'').toString();
-      if(code=='SESSION_INVALID')_token=null;
+      if(code=='SESSION_INVALID') {
+        _token=null;
+        onSessionRevoked?.call();
+      }
       throw StateError(code=='FEATURE_DISABLED'?
         'O portal individual ainda não foi habilitado pela Auditar.':
         code=='SESSION_INVALID'?
