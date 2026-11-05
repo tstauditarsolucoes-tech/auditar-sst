@@ -35,6 +35,8 @@ class CipaMemberItem {
 class CipaMemberView {
   const CipaMemberView({
     required this.profile,
+    this.companyLabel='Empresa vinculada à CIPA',
+    this.mandateLabel='Mandato atual',
     required this.meetings,
     required this.myActions,
     required this.notices,
@@ -44,6 +46,7 @@ class CipaMemberView {
     required this.reminders,
   });
   final CipaMemberAccessProfile profile;
+  final String companyLabel,mandateLabel;
   final List<CipaMemberItem> meetings,myActions,notices,trainings,documents,
       observations,reminders;
   int get pendingActions => myActions.where(
@@ -95,6 +98,8 @@ class CipaMemberPortalRules {
   static CipaMemberView build({
     required CipaMemberAccessProfile verifiedProfile,
     required Iterable<CipaMemberItem> records,
+    String companyLabel='Empresa vinculada à CIPA',
+    String mandateLabel='Mandato atual',
   }) {
     final memberId=verifiedProfile.memberId;
     final visible=records.where((r)=>
@@ -112,6 +117,8 @@ class CipaMemberPortalRules {
     }
     return CipaMemberView(
       profile:verifiedProfile,
+      companyLabel:companyLabel,
+      mandateLabel:mandateLabel,
       meetings:select(CipaMemberItemType.meeting),
       myActions:select(CipaMemberItemType.action,onlyMine:true),
       notices:select(CipaMemberItemType.notice),
