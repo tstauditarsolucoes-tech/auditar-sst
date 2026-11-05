@@ -16,16 +16,16 @@ extension _CipaGuidedHome on _CipaManagementScreenState {
       : 0;
     return CipaGuideSnapshot(
       hasActiveMandate:has,
-      activeMemberCount:activeMembers.length,
-      registeredElectionCount:elections.length,
-      hasUpcomingMeeting:nextScheduled,
-      performedMeetingCount:mandateMeetings.where((m)=>
-        m.status=='Realizada').length,
-      minutesWithoutMeetingCount:pendingMinutesCount,
-      trainingNotFoundCount:pendingTrainingCount,
-      openActionCount:mandateActions.where((a)=>a.status!='Resolvida').length,
-      overdueActionCount:overdueActionsCount,
-      requiredDocumentPendingCount:pendingDocuments,
+      activeMemberCount:has?activeMembers.length:0,
+      registeredElectionCount:elections.length, // conferir vínculo ao mandato
+      hasUpcomingMeeting:has && nextScheduled,
+      performedMeetingCount:has?mandateMeetings.where((m)=>
+        m.status=='Realizada').length:0,
+      minutesWithoutMeetingCount:has?pendingMinutesCount:0,
+      trainingNotFoundCount:has?pendingTrainingCount:0,
+      openActionCount:has?mandateActions.where((a)=>a.status!='Resolvida').length:0,
+      overdueActionCount:has?overdueActionsCount:0,
+      requiredDocumentPendingCount:has?pendingDocuments:0,
       observationsAwaitingReviewCount:pendingObs,
     );
   }
