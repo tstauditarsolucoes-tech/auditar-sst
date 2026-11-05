@@ -1,0 +1,34 @@
+name: Validar CIPA Guia Simples Android (sem publicar)
+on:
+  push:
+    branches:
+      - feature/android-cipa-guia-simples-20261105
+    paths:
+      - 'feature_sources/cipa_guide_rules_v1.dart'
+      - 'feature_sources/cipa_guide_rules_test_v1.dart'
+      - 'feature_sources/cipa_guided_home_v1.dart'
+      - 'tools/patch_cipa_guided_home_v1.py'
+      - 'tools/test_cipa_guided_home_v1.py'
+      - '.github/workflows/validate-cipa-guided-home.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - name: Proteger arquivos atuais e testar patch em fixture
+        run: |
+          python3 -m py_compile tools/patch_cipa_guided_home_v1.py tools/test_cipa_guided_home_v1.py
+          python3 tools/test_cipa_guided_home_v1.py
+      - name: Validar prioridade e etapas com Dart real
+        run: |
+          mkdir -p /tmp/auditar-cipa-guide
+          cp feature_sources/cipa_guide_rules_v1.dart /tmp/auditar-cipa-guide/cipa_guide_rules_v1.dart
+          cp feature_sources/cipa_guide_rules_test_v1.dart /tmp/auditar-cipa-guide/cipa_guide_rules_test_v1.dart
+          dart format /tmp/auditar-cipa-guide
+          dart format feature_sources/cipa_guided_home_v1.dart
+          dart analyze /tmp/auditar-cipa-guide
+          dart /tmp/auditar-cipa-guide/cipa_guide_rules_test_v1.dart
