@@ -111,7 +111,11 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
         'Acesso cadastrado para '+m.label+'. '
         'O integrante receberá um código somente ao solicitar o login.');
     });
-    if(mounted)await _reload();
+    if(mounted&&error.isEmpty) {
+      await _reload();
+      if(mounted&&error.isEmpty)setState(()=>notice=
+        'Acesso cadastrado e vinculado ao integrante da CIPA.');
+    }
   }
   Future<void> _assign() async {
     if(selectedAction==null||selectedMember==null)return;
@@ -175,6 +179,7 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
                   onChanged:busy?null:(v)=>setState(()=>selectedMember=v)),
                 const SizedBox(height:10),
                 TextField(controller:email,enabled:!busy,
+                  onChanged:(_)=>setState((){}),
                   keyboardType:TextInputType.emailAddress,
                   decoration:const InputDecoration(
                     labelText:'E-mail individual do integrante')),
