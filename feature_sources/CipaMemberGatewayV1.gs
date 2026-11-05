@@ -380,12 +380,31 @@ function cipaMemV1Events_(account) {
       location:String(r[8]).slice(0,120),
       detail:String(r[9]).slice(0,700)};}).slice(-100);
 }
+function cipaMemV1CompanyName_(companyId) {
+  var companyName='Empresa vinculada à CIPA';
+  var id=String(companyId||'');
+  if(!id)return companyName;
+  var sheet=getSheet_('PainelDados');
+  if(!sheet||sheet.getLastRow()<2)return companyName;
+  var rows=sheet.getRange(2,1,sheet.getLastRow()-1,5).getValues();
+  var candidates=rows.filter(function(r){
+    return String(r[1]||'')===id &&
+      (r[3]===true||String(r[3]).toLowerCase()==='true');
+  });
+  if(!candidates.length)return companyName;
+  candidates.sort(function(a,b){return String(b[4]).localeCompare(String(a[4]));});
+  var value=String(candidates[0][2]||'').trim();
+  return value?value.slice(0,140):companyName;
+}
 function cipaMemV1Dashboard_(request) {
   var session=cipaMemV1Authorize_(request.sessionToken);
   if(!session)return {ok:false,code:'SESSION_INVALID'};
   var v=session.verified,a=v.account;
   var data=cipaMemV1RecordsAllowed_(session);
-  return {ok:true,profile:{
+  var mandateRecord=v.rows.find(function(r){return r.id===a.mandateId;});
+  return {ok:true,companyName:cipaMemV1CompanyName_(a.companyId),
+    mandateTitle:mandateRecord?mandateRecord.title:'Mandato atual',
+    profile:{
     userId:a.id,companyId:a.companyId,mandateId:a.mandateId,
     memberId:a.memberId,workerId:a.workerId,
     fullName:v.member.name,cipaRole:v.member.cipaRole,
