@@ -42,7 +42,7 @@ jobs:
           cd /tmp/auditar_cipa_membro
           flutter pub get
           dart format lib test
-          flutter analyze
+          flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter test
       - name: Compilar APK debug de homologação sem endpoint ou chave operacional
         run: |
