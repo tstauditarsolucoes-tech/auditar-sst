@@ -90,6 +90,10 @@ vm.runInContext(fs.readFileSync(path.join(
 const invoke=(action,fields={})=>JSON.parse(JSON.stringify(
   scope.cipaMemV1Route_({action,...fields})));
 
+const panel=sheet('PainelDados',[
+  'token','company_id','company_name','active','updated_at'
+]);
+panel.appendRow(['fake-panel','company-A','Cerâmica de Exemplo',true,'2026-11-05']);
 const sync=sheet('SincronizacaoDispositivos',[
   'table_name','record_id','deleted','server_version',
   'source_device','source_platform','updated_at','payload_json',
@@ -178,6 +182,8 @@ assert(login.sessionToken&&login.sessionToken.length>=64);
 const snapshot=invoke('cipa_member_dashboard',{sessionToken:login.sessionToken});
 assert(snapshot.ok);
 assert.strictEqual(snapshot.profile.fullName,'Maria Silva');
+assert.strictEqual(snapshot.companyName,'Cerâmica de Exemplo');
+assert.strictEqual(snapshot.mandateTitle,'CIPA 2026');
 assert.strictEqual(snapshot.profile.cipaRole,'Vice-presidente');
 assert(snapshot.meetings.some(x=>x.id==='meeting-A'));
 assert(snapshot.actions.some(x=>x.id==='action-A'));
