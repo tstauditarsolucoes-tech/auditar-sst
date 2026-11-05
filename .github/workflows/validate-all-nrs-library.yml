@@ -1,0 +1,32 @@
+name: Validar Biblioteca Técnica NR-01 a NR-38 (sem publicar)
+on:
+  push:
+    branches:
+      - feature/android-biblioteca-todas-nrs-20261105
+    paths:
+      - 'feature_sources/offline_sst_all_nrs_v1.dart'
+      - 'feature_sources/offline_sst_all_nrs_test_v1.dart'
+      - 'feature_sources/offline_sst_all_nrs_pure_test_v1.dart'
+      - 'feature_sources/offline_sst_bakery_nr12_v1.dart'
+      - 'tools/patch_all_nrs_library_v1.py'
+      - 'tools/patch_nr12_bakery_library_v1.py'
+      - 'tools/test_all_nrs_library_v1.py'
+      - '.github/workflows/validate-all-nrs-library.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  safe-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - name: Validar sintaxe e montagem cumulativa NR-12 + demais NRs
+        run: |
+          python3 -m py_compile tools/patch_nr12_bakery_library_v1.py tools/patch_all_nrs_library_v1.py tools/test_all_nrs_library_v1.py
+          python3 tools/test_all_nrs_library_v1.py
+      - name: Compilar e validar acervo offline puro
+        run: |
+          dart format feature_sources/offline_sst_all_nrs_v1.dart feature_sources/offline_sst_all_nrs_pure_test_v1.dart
+          dart analyze feature_sources/offline_sst_all_nrs_v1.dart feature_sources/offline_sst_all_nrs_pure_test_v1.dart
+          dart --enable-asserts feature_sources/offline_sst_all_nrs_pure_test_v1.dart
