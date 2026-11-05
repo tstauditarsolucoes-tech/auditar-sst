@@ -26,6 +26,16 @@ class _Fixture {
                       child:ChoiceChip(label:Text(area),selected:selected==area,
                         onSelected:(v) {if(v) refresh(()=>selected=area);}),
                     ),
+                    ListTile(
+                      subtitle:Text((item['nr'] ?? '')+' • '+(item['risk'] ?? '')),
+                        onTap:(){
+                          final id=item['id'] ?? '';
+                        },
+                    ),
+  }
+  static double _score(OfflineInlineSuggestion item, String query, String context) {
+    final title = _normalize(item.title);
+    return 0;
   }
 }
 """
@@ -45,6 +55,11 @@ class _Fixture {
     assert final.count("...OfflineSstAllNrsCatalog.entries,")==1
     assert "PopupMenuButton<String>" in (widgets/"offline_report_inline_suggestions.dart").read_text()
     assert "expect(all.length,345)" in (tests/"offline_sst_deep_catalog_test.dart").read_text()
+    assert "expect(entries.length, 345)" in (tests/"offline_sst_bakery_nr12_test.dart").read_text()
+    widget_final=(widgets/"offline_report_inline_suggestions.dart").read_text()
+    assert "Apenas consulta" in widget_final
+    assert "item.id.startsWith('all-nrs-15-')" in widget_final
+    assert "if (item['browseOnly'] == 'true')" in widget_final
     assert (services/"offline_sst_bakery_nr12_v1.dart").is_file()
     assert (services/"offline_sst_all_nrs_v1.dart").is_file()
     assert (tests/"offline_sst_all_nrs_test.dart").is_file()
