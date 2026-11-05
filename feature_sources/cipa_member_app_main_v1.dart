@@ -29,17 +29,37 @@ class CipaMemberEntryScreen extends StatefulWidget {
   @override
   State<CipaMemberEntryScreen> createState()=>_CipaMemberEntryScreenState();
 }
-class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen> {
+class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
+    with WidgetsBindingObserver {
   static const endpoint=String.fromEnvironment(
     'AUDITAR_MEMBER_ENDPOINT',defaultValue:'');
-  late final CipaMemberApi api=CipaMemberApi(endpoint:endpoint);
+  late final CipaMemberApi api=CipaMemberApi(
+    endpoint:endpoint,onSessionRevoked:(){
+      if(mounted)setState(()=>view=null);
+    });
   final email=TextEditingController(),code=TextEditingController();
   bool busy=false,requested=false;
   String message='',error='';
   CipaMemberView? view;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if(state==AppLifecycleState.inactive||
+       state==AppLifecycleState.hidden||
+       state==AppLifecycleState.paused) {
+      if(mounted)setState(()=>view=null); // Dados não ficam visíveis em segundo plano.
+    } else if(state==AppLifecycleState.resumed&&api.hasSession) {
+      _refresh();
+    }
+  }
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     email.dispose();code.dispose();api.dispose();super.dispose();
   }
   Future<void> _run(Future<void> Function() work) async {
@@ -80,9 +100,17 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen> {
     });
   }
   Future<void> _refresh() async {
-    if(!api.hasSession)return;
-    final current=await api.dashboard();
-    if(mounted)setState(()=>view=current);
+    if(!api.hasSession) {
+      if(mounted)setState(()=>view=null);
+      return;
+    }
+    try {
+      final current=await api.dashboard();
+      if(mounted)setState(()=>view=current);
+    } catch (_) {
+      if(mounted)setState(()=>view=null);
+      rethrow;
+    }
   }
   Future<void> _logout() async {
     await api.logout();
