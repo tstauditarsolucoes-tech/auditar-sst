@@ -29,5 +29,6 @@ jobs:
           cp feature_sources/cipa_guide_rules_v1.dart /tmp/auditar-cipa-guide/cipa_guide_rules_v1.dart
           cp feature_sources/cipa_guide_rules_test_v1.dart /tmp/auditar-cipa-guide/cipa_guide_rules_test_v1.dart
           dart format /tmp/auditar-cipa-guide
+          dart format feature_sources/cipa_guided_home_v1.dart
           dart analyze /tmp/auditar-cipa-guide
           dart /tmp/auditar-cipa-guide/cipa_guide_rules_test_v1.dart
