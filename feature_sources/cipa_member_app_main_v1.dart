@@ -98,7 +98,7 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen> {
       return CipaMemberPortalScreen(
         companyName:'Empresa autorizada',mandateLabel:person.profile.mandateId,
         view:person,sessionVerified:api.hasSession,
-        onReload:_refresh,onLogout:_logout,
+        onRefresh:_refresh,onLogout:_logout,
         onAcknowledgeMeeting:api.acknowledge,
         onReportProgress:api.progress,
         onRequestSupport:api.support,
