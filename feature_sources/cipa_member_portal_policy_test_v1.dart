@@ -64,6 +64,12 @@ void main() {
   check(view.notices.length==1 && view.reminders.length==1,
       'Avisos e lembretes autorizados.');
   check(view.pendingActions==1,'Ação pendente não concluída.');
+  final labelled=CipaMemberPortalRules.build(
+    verifiedProfile:profile,records:data,
+    companyLabel:'Cerâmica de Exemplo',mandateLabel:'CIPA 2026');
+  check(labelled.companyLabel=='Cerâmica de Exemplo' &&
+    labelled.mandateLabel=='CIPA 2026',
+    'Exibir nomes legíveis em lugar de IDs de banco.');
   check(CipaMemberPortalRules.canReportAction(profile,data[0]),
       'Informar andamento da sua ação.');
   for(final record in data.skip(1).take(4)){
