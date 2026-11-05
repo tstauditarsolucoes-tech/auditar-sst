@@ -1,0 +1,32 @@
+name: Validar unificação de vistorias Android (sem publicar)
+on:
+  push:
+    branches:
+      - feature/android-unified-visits-dashboard-20261105
+    paths:
+      - 'feature_sources/android_unified_visit_metrics_v1.dart'
+      - 'feature_sources/android_unified_visit_metrics_test_v1.dart'
+      - 'feature_sources/auditar_unified_conclusion_v1.dart'
+      - 'feature_sources/auditar_unified_conclusion_test_v1.dart'
+      - 'feature_sources/android_visit_type_chooser_v1.dart'
+      - 'tools/patch_android_unified_visits_v1.py'
+      - 'tools/patch_android_standard_conclusion_v1.py'
+      - '.github/workflows/validate-android-unified-visits.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  safe-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - name: Validar sintaxe dos instaladores isolados
+        run: |
+          python3 -m py_compile tools/patch_android_unified_visits_v1.py tools/patch_android_standard_conclusion_v1.py
+      - name: Validar métricas e conclusão de forma independente
+        run: |
+          dart format --output=none --set-exit-if-changed feature_sources/android_unified_visit_metrics_v1.dart feature_sources/android_unified_visit_metrics_test_v1.dart feature_sources/auditar_unified_conclusion_v1.dart feature_sources/auditar_unified_conclusion_test_v1.dart
+          dart analyze feature_sources/android_unified_visit_metrics_v1.dart feature_sources/android_unified_visit_metrics_test_v1.dart feature_sources/auditar_unified_conclusion_v1.dart feature_sources/auditar_unified_conclusion_test_v1.dart
+          dart feature_sources/android_unified_visit_metrics_test_v1.dart
+          dart feature_sources/auditar_unified_conclusion_test_v1.dart
