@@ -1,0 +1,34 @@
+name: Validar CIPA Triagem Android (sem publicar)
+on:
+  push:
+    branches:
+      - feature/android-cipa-triagem-20261105
+    paths:
+      - 'feature_sources/cipa_triage_extension_v1.dart'
+      - 'feature_sources/cipa_followup_queue_v1.dart'
+      - 'feature_sources/cipa_followup_queue_test_v1.dart'
+      - 'tools/patch_cipa_triage_v1.py'
+      - 'tools/test_cipa_triage_v1.py'
+      - '.github/workflows/validate-cipa-triage-android.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - name: Validar Python e aplicar patch em fixture
+        run: |
+          python3 -m py_compile tools/patch_cipa_triage_v1.py tools/test_cipa_triage_v1.py
+          python3 tools/test_cipa_triage_v1.py
+      - name: Verificar cenários de CIPA em Dart real
+        run: |
+          mkdir -p /tmp/auditar-cipa-triage
+          cp feature_sources/cipa_participation_rules_v1.dart /tmp/auditar-cipa-triage/cipa_participation_rules.dart
+          cp feature_sources/cipa_followup_queue_v1.dart /tmp/auditar-cipa-triage/cipa_followup_queue.dart
+          sed -e "s/cipa_participation_rules_v1.dart/cipa_participation_rules.dart/" -e "s/cipa_followup_queue_v1.dart/cipa_followup_queue.dart/" feature_sources/cipa_followup_queue_test_v1.dart > /tmp/auditar-cipa-triage/test.dart
+          dart format /tmp/auditar-cipa-triage
+          dart analyze /tmp/auditar-cipa-triage
+          dart /tmp/auditar-cipa-triage/test.dart
