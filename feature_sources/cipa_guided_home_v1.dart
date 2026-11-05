@@ -11,6 +11,8 @@ extension _CipaGuidedHome on _CipaManagementScreenState {
       r.status!='Arquivado' && r.status!='Concluído').length;
     final nextScheduled=mandateMeetings.any((m)=>
       m.status=='Agendada' && m.date.isAfter(DateTime.now()));
+    final pastScheduled=mandateMeetings.where((m)=>
+      m.status=='Agendada' && m.date.isBefore(DateTime.now())).length;
     final pendingObs=has
       ? CipaFollowupQueue(_cipaRules).pendingObservations(mandate.id).length
       : 0;
@@ -19,6 +21,7 @@ extension _CipaGuidedHome on _CipaManagementScreenState {
       activeMemberCount:has?activeMembers.length:0,
       registeredElectionCount:elections.length, // conferir vínculo ao mandato
       hasUpcomingMeeting:has && nextScheduled,
+      pastScheduledMeetingCount:has?pastScheduled:0,
       performedMeetingCount:has?mandateMeetings.where((m)=>
         m.status=='Realizada').length:0,
       minutesWithoutMeetingCount:has?pendingMinutesCount:0,
@@ -45,7 +48,9 @@ extension _CipaGuidedHome on _CipaManagementScreenState {
       return;
     }
     if(step.id=='meeting' && !mandateMeetings.any((m)=>
-        m.status=='Agendada' && m.date.isAfter(DateTime.now()))) {
+        m.status=='Agendada' && m.date.isAfter(DateTime.now())) &&
+        !mandateMeetings.any((m)=>
+          m.status=='Agendada' && m.date.isBefore(DateTime.now()))) {
       if(activeMandate==null) {
         _message('Cadastre ou ative um mandato antes de criar reuniões.');
         return;
