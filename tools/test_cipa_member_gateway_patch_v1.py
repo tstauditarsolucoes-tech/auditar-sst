@@ -38,8 +38,8 @@ with tempfile.TemporaryDirectory(prefix="cipa-member-gs-") as temp:
     assert "DEFAULT_OFF" in result.stdout
     content=code.read_text()
     assert content.count("cipaMemV1Route_(request)")==1
-    assert content.index("cipaMemV1Route_(request)")<
-      content.index("const expectedKey")
+    assert (content.index("cipaMemV1Route_(request)") <
+      content.index("const expectedKey"))
     assert "device_sync_pull" in content
     assert "CIPA_MEMBER_V1_ENABLED" in (
       backend/"CipaMemberGatewayV1.gs").read_text()
