@@ -10,6 +10,10 @@ on:
       - 'feature_sources/cipa_participation*'
       - 'tools/patch_cipa_participation_v1.py'
       - 'tools/bump_cipa_release_v1.py'
+      - 'tools/patch_cipa_triage_v1.py'
+      - 'feature_sources/cipa_followup_queue_v1.dart'
+      - 'feature_sources/cipa_triage_extension_v1.dart'
+      - 'feature_sources/cipa_followup_queue_test_v1.dart'
       - 'tools/patch_client_treatment_inbox_v329182_v330105.py'
       - 'tools/patch_treatment_outbox_v329185_v330108.py'
       - 'tools/patch_treatment_conversation_v329186_v330109.py'
@@ -1624,6 +1628,17 @@ jobs:
         run: |
           set -euo pipefail
           python3 tools/run_cipa_validation_v1.py "$APP_DIR" android
+
+      - name: Triagem orientada CIPA Android (homologacao)
+        run: |
+          set -euo pipefail
+          python3 tools/patch_cipa_triage_v1.py "$APP_DIR"
+          cd "$APP_DIR"
+          dart format lib/screens/cipa_triage_extension.dart lib/screens/cipa_participation_screen.dart lib/screens/cipa_management_screen.dart lib/services/cipa_followup_queue.dart test/cipa_followup_queue_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          dart test/cipa_followup_queue_test.dart
+          flutter test test/cipa_participation_rules_test.dart
+
 
       - name: Corrigir timeout do criador de checklist com IA Android
         run: |
