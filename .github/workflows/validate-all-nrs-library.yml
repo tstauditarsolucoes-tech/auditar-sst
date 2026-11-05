@@ -11,6 +11,10 @@ on:
       - 'tools/patch_all_nrs_library_v1.py'
       - 'tools/patch_nr12_bakery_library_v1.py'
       - 'tools/test_all_nrs_library_v1.py'
+      - 'tools/patch_nrs_browser_entry_v1.py'
+      - 'tools/test_nrs_browser_entry_v1.py'
+      - 'feature_sources/offline_sst_nrs_browser_screen_v1.dart'
+      - 'feature_sources/offline_sst_nrs_browser_test_v1.dart'
       - '.github/workflows/validate-all-nrs-library.yml'
   workflow_dispatch:
 permissions:
@@ -23,10 +27,11 @@ jobs:
       - uses: dart-lang/setup-dart@v1
       - name: Validar sintaxe e montagem cumulativa NR-12 + demais NRs
         run: |
-          python3 -m py_compile tools/patch_nr12_bakery_library_v1.py tools/patch_all_nrs_library_v1.py tools/test_all_nrs_library_v1.py
+          python3 -m py_compile tools/patch_nr12_bakery_library_v1.py tools/patch_all_nrs_library_v1.py tools/test_all_nrs_library_v1.py tools/patch_nrs_browser_entry_v1.py tools/test_nrs_browser_entry_v1.py
           python3 tools/test_all_nrs_library_v1.py
+          python3 tools/test_nrs_browser_entry_v1.py
       - name: Compilar e validar acervo offline puro
         run: |
-          dart format feature_sources/offline_sst_all_nrs_v1.dart feature_sources/offline_sst_all_nrs_pure_test_v1.dart
+          dart format feature_sources/offline_sst_all_nrs_v1.dart feature_sources/offline_sst_all_nrs_pure_test_v1.dart feature_sources/offline_sst_nrs_browser_screen_v1.dart feature_sources/offline_sst_nrs_browser_test_v1.dart
           dart analyze feature_sources/offline_sst_all_nrs_v1.dart feature_sources/offline_sst_all_nrs_pure_test_v1.dart
           dart --enable-asserts feature_sources/offline_sst_all_nrs_pure_test_v1.dart
