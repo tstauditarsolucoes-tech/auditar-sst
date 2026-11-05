@@ -12,6 +12,7 @@ on:
       - 'tools/test_cipa_member_server_policy_v1.cjs'
       - 'tools/test_cipa_member_gateway_v1.cjs'
       - 'tools/patch_cipa_member_gateway_experimental_v1.py'
+      - 'tools/test_cipa_member_gateway_patch_v1.py'
       - 'tools/patch_cipa_member_admin_ui_v1.py'
       - 'tools/test_cipa_member_admin_ui_v1.py'
       - 'feature_sources/cipa_member_admin_screen_v1.dart'
@@ -27,8 +28,9 @@ jobs:
       - uses: dart-lang/setup-dart@v1
       - name: Instalação isolada sem alterar auth/sync/Apps Script
         run: |
-          python3 -m py_compile tools/patch_cipa_member_portal_v1.py tools/test_cipa_member_portal_v1.py tools/patch_cipa_member_gateway_experimental_v1.py tools/patch_cipa_member_admin_ui_v1.py tools/test_cipa_member_admin_ui_v1.py
+          python3 -m py_compile tools/patch_cipa_member_portal_v1.py tools/test_cipa_member_portal_v1.py tools/patch_cipa_member_gateway_experimental_v1.py tools/patch_cipa_member_admin_ui_v1.py tools/test_cipa_member_gateway_patch_v1.py tools/test_cipa_member_admin_ui_v1.py
           python3 tools/test_cipa_member_admin_ui_v1.py
+          python3 tools/test_cipa_member_gateway_patch_v1.py
           python3 tools/test_cipa_member_portal_v1.py
       - name: Permissões do membro no servidor
         run: |
