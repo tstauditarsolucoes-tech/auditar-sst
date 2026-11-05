@@ -23,7 +23,8 @@
   function authorized(account,session,mandate,membership) {
     if(!account||!session||!mandate||!membership)return false;
     if(account.status!=='Ativo'||account.role!=='membro_cipa'||
-       session.revoked===true||session.expiresAt<=Date.now()||
+       session.revoked!==false ||
+       !Number.isFinite(session.expiresAt) || session.expiresAt<=Date.now()||
        mandate.status!=='Ativo'||membership.status!=='Ativo')return false;
     if(!isNonEmpty(session.accountId)||session.accountId!==account.id||
        !isNonEmpty(account.id)||!isNonEmpty(account.companyId)||
