@@ -1,0 +1,58 @@
+name: Montar Minha CIPA Android sem chave da Central (homologação)
+on:
+  push:
+    branches:
+      - feature/android-cipa-member-portal-v1-20261105
+    paths:
+      - 'feature_sources/cipa_member_app_main_v1.dart'
+      - 'feature_sources/cipa_member_api_v1.dart'
+      - 'feature_sources/cipa_member_portal_*'
+      - 'feature_sources/cipa_member_identity_v1.dart'
+      - 'feature_sources/cipa_member_access_header_v1.dart'
+      - 'tools/stage_cipa_member_android_v1.py'
+      - 'tools/test_stage_cipa_member_android_v1.py'
+      - '.github/workflows/build-cipa-member-android-homologation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android-member:
+    name: APK de homologação (sem conta técnica e sem syncKey)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Criar projeto Android separado e validar isolamento
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/stage_cipa_member_android_v1.py tools/test_stage_cipa_member_android_v1.py
+          python3 tools/test_stage_cipa_member_android_v1.py
+          flutter create --platforms=android --project-name auditar_cipa_membro --org br.com.auditar /tmp/auditar_cipa_membro
+          python3 tools/stage_cipa_member_android_v1.py /tmp/auditar_cipa_membro
+      - name: Formatar, analisar e executar testes Flutter sem tocar no app de técnicos
+        run: |
+          set -euo pipefail
+          cd /tmp/auditar_cipa_membro
+          flutter pub get
+          dart format lib test
+          flutter analyze
+          flutter test
+      - name: Compilar APK debug de homologação sem endpoint ou chave operacional
+        run: |
+          set -euo pipefail
+          cd /tmp/auditar_cipa_membro
+          flutter build apk --debug --dart-define=AUDITAR_MEMBER_ENDPOINT=
+          test -f build/app/outputs/flutter-apk/app-debug.apk
+      - name: Publicar somente o APK de teste sem Central habilitada
+        uses: actions/upload-artifact@v4
+        with:
+          name: Minha-CIPA-Android-Homologacao-Sem-Login
+          path: /tmp/auditar_cipa_membro/build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 7
