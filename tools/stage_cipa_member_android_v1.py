@@ -20,7 +20,7 @@ yaml=pubspec.read_text(encoding="utf-8")
 assert "name: auditar_cipa_membro" in yaml, (
     "Projeto de membros não pode substituir o app técnico.")
 assert "  http:" not in yaml
-anchor="dependencies:\n"
+anchor="\ndependencies:\n"
 assert yaml.count(anchor)==1
 yaml=yaml.replace(anchor,anchor+"  http: ^1.3.0\n",1)
 pubspec.write_text(yaml,encoding="utf-8")
