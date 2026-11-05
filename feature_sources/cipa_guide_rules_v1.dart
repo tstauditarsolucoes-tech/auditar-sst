@@ -8,11 +8,13 @@ class CipaGuideSnapshot {
     required this.trainingNotFoundCount,required this.openActionCount,
     required this.overdueActionCount,required this.requiredDocumentPendingCount,
     required this.observationsAwaitingReviewCount,
+    this.pastScheduledMeetingCount=0,
   });
   final bool hasActiveMandate;
   final int activeMemberCount;
   final int registeredElectionCount;
   final bool hasUpcomingMeeting;
+  final int pastScheduledMeetingCount;
   final int performedMeetingCount;
   final int minutesWithoutMeetingCount;
   final int trainingNotFoundCount;
@@ -38,7 +40,7 @@ class CipaGuideRules {
       attention:!s.hasActiveMandate,registered:s.hasActiveMandate),
     CipaGuideStep('election','2. Eleição e representação (se aplicável)',
       'Conferir dimensionamento, comissão eleitoral e documentos aplicáveis. Nem todo estabelecimento precisa realizar eleição.',
-      s.registeredElectionCount>0?'Eleição registrada':'Conferir se há eleição aplicável',
+      s.registeredElectionCount>0?'Registro eleitoral localizado; conferir vínculo ao mandato':'Conferir se há eleição aplicável',
       'Abrir eleições',6,registered:s.registeredElectionCount>0),
     CipaGuideStep('members','3. Integrantes e funções',
       'Cadastre titulares, suplentes e representantes aplicáveis. A quantidade no app não comprova dimensionamento correto.',
@@ -49,15 +51,16 @@ class CipaGuideRules {
     CipaGuideStep('training','4. Treinamento dos integrantes',
       'Confira registros, conteúdos e carga horária aplicáveis. Ausência no aplicativo não prova falta de treinamento.',
       s.activeMemberCount==0?'Primeiro cadastre os integrantes':
-        s.trainingNotFoundCount>0?'${s.trainingNotFoundCount} treinamento(s) não localizado(s)':'Registros localizados; conferir exigências',
+        s.trainingNotFoundCount>0?'${s.trainingNotFoundCount} treinamento(s) não localizado(s)':'Sem ausência identificada no app; conferir vínculos',
       'Abrir treinamentos',7,
       attention:s.hasActiveMandate&&s.activeMemberCount>0&&s.trainingNotFoundCount>0,
       registered:s.activeMemberCount>0&&s.trainingNotFoundCount==0),
     CipaGuideStep('meeting','5. Reuniões e calendário',
       'Prepare a pauta, agende e acompanhe as reuniões. Agendada não significa realizada.',
+      s.pastScheduledMeetingCount>0?'${s.pastScheduledMeetingCount} reunião(ões) antigas ainda agendadas; conferir realização':
       s.hasUpcomingMeeting?'Próxima reunião agendada':'Próxima reunião não localizada',
       s.hasUpcomingMeeting?'Conferir reuniões':'Preparar reunião',3,
-      attention:s.hasActiveMandate&&!s.hasUpcomingMeeting,
+      attention:s.hasActiveMandate&&(!s.hasUpcomingMeeting||s.pastScheduledMeetingCount>0),
       registered:s.hasUpcomingMeeting||s.performedMeetingCount>0),
     CipaGuideStep('minutes','6. Atas e decisões',
       'Registre participantes presentes, decisões e encaminhamentos no editor original. Assinatura não é presumida.',
@@ -89,6 +92,7 @@ class CipaGuideRules {
         '${s.observationsAwaitingReviewCount} situação(ões) aguardando avaliação',
         'Abrir participação',10,attention:true);
     }
+    if(s.pastScheduledMeetingCount>0)return items[4];
     if(s.trainingNotFoundCount>0)return items[3];
     if(!s.hasUpcomingMeeting)return items[4];
     if(s.requiredDocumentPendingCount>0)return items[7];
