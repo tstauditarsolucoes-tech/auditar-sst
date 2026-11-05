@@ -147,18 +147,37 @@ function cipaMemV1AdminGrant_(request) {
     workerId:String(request.workerId||'').trim(),active:true};
   if(!email||!cipaMemV1VerifyMember_(account))
     return {ok:false,code:'MEMBER_NOT_VERIFIED'};
-  var current=cipaMemV1Accounts_().find(function(a){return a.email===email;});
-  if(current)return {ok:false,code:'EMAIL_ALREADY_REGISTERED',
-    message:'Edite ou revogue a conta anterior antes de criar novo vínculo.'};
-  var id=Utilities.getUuid(),now=new Date().toISOString();
-  cipaMemV1Sheet_(CIPA_MEM_V1_ACCOUNTS,
-    ['id','email','company_id','mandate_id','member_id','worker_id',
-     'active','version','created_at','updated_at'])
-    .appendRow([id,email,account.companyId,account.mandateId,
-      account.memberId,account.workerId,true,1,now,now]);
-  auditAuthEvent_(admin,'cipa_member_grant','CIPA_MEMBRO',account.memberId,
-    account.companyId,'','cipa_member',{accountId:id,mandateId:account.mandateId});
-  return {ok:true,id:id};
+  var lock=LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var current=cipaMemV1Accounts_().find(function(a){return a.email===email;});
+    if(current&&current.active&&
+       (current.companyId!==account.companyId||
+        current.memberId!==account.memberId||
+        current.mandateId!==account.mandateId)){
+      return {ok:false,code:'EMAIL_ALREADY_ACTIVE',
+        message:'Revogue primeiro o acesso anterior antes de mudar o vínculo.'};
+    }
+    var sheet=cipaMemV1Sheet_(CIPA_MEM_V1_ACCOUNTS,
+      ['id','email','company_id','mandate_id','member_id','worker_id',
+       'active','version','created_at','updated_at']);
+    var id=current?current.id:Utilities.getUuid();
+    var now=new Date().toISOString();
+    if(current) {
+      sheet.getRange(current.row,3,1,5).setValues([[
+        account.companyId,account.mandateId,account.memberId,
+        account.workerId,true]]);
+      sheet.getRange(current.row,8).setValue(current.version+1);
+      sheet.getRange(current.row,10).setValue(now);
+    } else {
+      sheet.appendRow([id,email,account.companyId,account.mandateId,
+        account.memberId,account.workerId,true,1,now,now]);
+    }
+    auditAuthEvent_(admin,'cipa_member_grant','CIPA_MEMBRO',account.memberId,
+      account.companyId,'','cipa_member',
+      {accountId:id,mandateId:account.mandateId});
+    return {ok:true,id:id,reused:!!current};
+  } finally {lock.releaseLock();}
 }
 function cipaMemV1AdminList_(request) {
   var admin=cipaMemV1Admin_(request.authToken);
@@ -215,6 +234,9 @@ function cipaMemV1Verify_(request) {
   var email=cipaMemV1Email_(request.email),pin=String(request.code||'').trim();
   var denied={ok:false,code:'INVALID_CODE',message:'Código inválido ou expirado.'};
   if(!email||!/^\d{8}$/.test(pin))return denied;
+  var lock=LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
   var cache=CacheService.getScriptCache();
   var hash=cipaMemV1Hash_(email+'|'+cipaMemV1Pepper_());
   var key='cipa_challenge_'+hash;
@@ -241,6 +263,7 @@ function cipaMemV1Verify_(request) {
   return {ok:true,sessionToken:token,expiresAt:expiry,
     person:cipaMemV1Name_(verified.member),companyId:account.companyId,
     mandateId:account.mandateId};
+  } finally {lock.releaseLock();}
 }
 function cipaMemV1Name_(member) {
   return CipaMemberServerPolicy.memberName(member);
