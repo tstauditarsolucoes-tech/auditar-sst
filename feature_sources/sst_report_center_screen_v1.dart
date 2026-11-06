@@ -147,7 +147,7 @@ class SstFieldReportScreen extends StatefulWidget {
 class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
   late SstFieldDraft draft=SstFieldDraft(
     kind:widget.model.kind,companyId:widget.company.id);
-  bool loading=true,exporting=false;
+  bool loading=true,exporting=false,saveFailed=false;
   int outstanding=0;
   String? error,ownerUser;
   Future<void> pending=Future<void>.value();
@@ -184,7 +184,7 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
     if(!authorized)return;
     final uid=ownerUser!;
     setState((){
-      draft=next;outstanding++;error=null;
+      draft=next;outstanding++;error=null;saveFailed=false;
     });
     pending=pending.then((_)async {
       if(uid!=AppDatabase.activeUserId.toString()||
@@ -193,8 +193,11 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
       }
       await SstFieldDraftStore.save(next,uid);
     }).catchError((_){
-      if(mounted)setState(()=>error='Erro ao salvar rascunho local. '
-        'Não feche sem conferir o salvamento.');
+      if(mounted)setState((){
+        saveFailed=true;
+        error='Erro ao salvar rascunho local. '
+          'Não feche sem conferir o salvamento.';
+      });
     }).whenComplete((){
       if(mounted)setState(()=>outstanding--);
     });
@@ -408,7 +411,7 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
     setState(()=>exporting=true);
     try {
       await pending;
-      if(!authorized||!draft.hasEnoughForPdf)throw StateError(
+      if(!authorized||saveFailed||!draft.hasEnoughForPdf)throw StateError(
         'Preencha técnico, data e ao menos um item; descreva '
         'situações não conformes ou informações de ocorrência antes do PDF.');
       final bytes=await SstFieldReportPdfService.generate(
@@ -521,7 +524,7 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
       body:Center(child:Padding(padding:const EdgeInsets.all(20),
         child:Text(error??'Não foi possível abrir o relatório.'))));
     return PopScope(
-      canPop:outstanding==0&&!exporting,
+      canPop:outstanding==0&&!exporting&&!saveFailed,
       onPopInvokedWithResult:(didPop,result){
         if(!didPop)ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content:Text('Salvando o rascunho local; confira '
@@ -615,7 +618,7 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
                 const SizedBox(height:8),
                 FilledButton.icon(
                   onPressed:authorized&&outstanding==0&&!exporting&&
-                    draft.hasEnoughForPdf?_export:null,
+                    !saveFailed&&draft.hasEnoughForPdf?_export:null,
                   icon:const Icon(Icons.picture_as_pdf_outlined),
                   label:Text(exporting?'Gerando PDF...':
                     'Revisar e gerar PDF offline')),
