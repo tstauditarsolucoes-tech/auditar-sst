@@ -15,6 +15,8 @@ import '../services/offline_sst_deep_catalog_v2.dart';
 import '../services/sst_report_center_models.dart';
 import '../services/sst_report_center_pdf.dart';
 import 'manager_reports_screen.dart';
+import 'express_round_screen.dart';
+import 'new_inspection_screen.dart';
 
 /// Entrada única, vinculada à empresa atual, sem criar base de dados paralela.
 class SstReportCenterScreen extends StatelessWidget {
@@ -46,6 +48,29 @@ class SstReportCenterScreen extends StatelessWidget {
             'offline, com rascunho por empresa e usuário. Os PDFs usam somente '
             'dados revisados. Os registros de vistoria existentes não são alterados.'),
           const SizedBox(height:12),
+          Card(child:Padding(padding:const EdgeInsets.all(12),
+            child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+              Text('Registros que já existem no Auditar SST',
+                style:Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height:8),
+              Wrap(spacing:8,runSpacing:8,children:[
+                OutlinedButton.icon(
+                  onPressed:allowed?()=>Navigator.of(context).push(
+                    MaterialPageRoute<void>(builder:(_)=>
+                      ExpressRoundScreen(company:company))):null,
+                  icon:const Icon(Icons.add_a_photo_outlined),
+                  label:const Text('Ronda Expressa')),
+                OutlinedButton.icon(
+                  onPressed:allowed?()=>Navigator.of(context).push(
+                    MaterialPageRoute<void>(builder:(_)=>
+                      NewInspectionScreen(initialCompany:company,
+                        fieldMode:true))):null,
+                  icon:const Icon(Icons.fact_check_outlined),
+                  label:const Text('Vistoria')),
+              ]),
+            ]),
+          )),
+          const SizedBox(height:10),
           if(!allowed)const Card(child:ListTile(
             leading:Icon(Icons.lock_outlined),
             title:Text('Sem permissão para esta empresa'),
