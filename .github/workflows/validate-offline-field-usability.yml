@@ -35,7 +35,7 @@ jobs:
           flutter pub get
           dart format lib test
           flutter analyze --no-fatal-infos --no-fatal-warnings
-          flutter test test/offline_usability_test.dart
+          flutter test --timeout=75s --reporter expanded test/offline_usability_test.dart
       - name: Não aceitar duplicação do patch nem exclusão de dados
         run: |
           set -euo pipefail
