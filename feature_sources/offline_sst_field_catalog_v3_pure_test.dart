@@ -3,11 +3,11 @@ import 'package:auditar_sst/services/offline_sst_deep_catalog_v2.dart';
 import 'package:auditar_sst/services/offline_sst_field_catalog_v3.dart';
 
 void main() {
-  test('145 modelos anteriores mais 59 setoriais, sem duplicação', () {
+  test('145 modelos anteriores mais 83 setoriais, sem duplicação', () {
     final all=OfflineSstDeepCatalog.entries;
-    expect(OfflineSstFieldCatalogV3.entries.length,59);
-    expect(all.length,204);
-    expect(all.map((e)=>e['id']).toSet().length,204);
+    expect(OfflineSstFieldCatalogV3.entries.length,83);
+    expect(all.length,228);
+    expect(all.map((e)=>e['id']).toSet().length,228);
     expect(all.any((e)=>e['id']=='deep-nr23-ensaio-venc'),isTrue);
     expect(all.any((e)=>e['id']=='campo-v3-cer03'),isTrue);
   });
@@ -19,11 +19,11 @@ void main() {
     }
   });
   test('busca por setor, por NR e catálogo inteiro offline', () {
-    expect(OfflineSstDeepCatalog.browse().length,204);
+    expect(OfflineSstDeepCatalog.browse().length,228);
     expect(OfflineSstDeepCatalog.browse(search:'Cerâmica')
-      .where((e)=>e['segment']=='Cerâmica').length,12);
+      .where((e)=>e['segment']=='Cerâmica').length,19);
     expect(OfflineSstDeepCatalog.browse(search:'Limpeza urbana')
-      .where((e)=>e['segment']=='Limpeza urbana').length,7);
+      .where((e)=>e['segment']=='Limpeza urbana').length,10);
     expect(OfflineSstDeepCatalog.browse(standard:'NR-12',search:'masseira')
       .any((e)=>e['id']=='campo-v3-pad01'),isTrue);
     expect(OfflineSstDeepCatalog.browse(standard:'NR-10',search:'quadro')
