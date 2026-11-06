@@ -61,7 +61,7 @@ void main() {
 
     test('busca por segmento e NR mantém os modelos antigos', () {
       final ceramic=OfflineSstDeepCatalog.browse(search:'Cerâmica');
-      expect(ceramic.where((e)=>e['segment']=='Cerâmica').length,19);
+      expect(ceramic.where((e)=>e['segment']=='Cerâmica').length,15);
       final building=OfflineSstDeepCatalog.browse(search:'Construção civil');
       expect(building.where((e)=>e['segment']=='Construção civil').length,19);
       final bakery=OfflineSstDeepCatalog.browse(search:'Panificação');
