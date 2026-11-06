@@ -29,7 +29,7 @@ void main(){
       if(input['action']=='cipa_member_verify') {
         return http.Response(jsonEncode({
           'ok':true,'sessionToken':'x'*90,
-        }),200);
+        }),200,headers:const {'content-type':'application/json; charset=utf-8'});
       }
       if(input['action']=='cipa_member_dashboard') {
         return http.Response(jsonEncode({
@@ -52,7 +52,7 @@ void main(){
           'trainings':[row('t1','Treinamento próprio')],
           'observations':[row('o1','Observação própria')],
           'reminders':[row('r1','Lembrete pessoal')],
-        }),200);
+        }),200,headers:const {'content-type':'application/json; charset=utf-8'});
       }
       return http.Response('{"ok":false,"code":"ACCESS_DENIED"}',200);
     });
@@ -78,9 +78,9 @@ void main(){
     final client=MockClient((http.Request req) async {
       final request=jsonDecode(req.body) as Map<String,dynamic>;
       if(request['action']=='cipa_member_verify')return http.Response(
-        jsonEncode({'ok':true,'sessionToken':'y'*90}),200);
+        jsonEncode({'ok':true,'sessionToken':'y'*90}),200,headers:const {'content-type':'application/json; charset=utf-8'});
       return http.Response(jsonEncode({
-        'ok':false,'code':'SESSION_INVALID'}),200);
+        'ok':false,'code':'SESSION_INVALID'}),200,headers:const {'content-type':'application/json; charset=utf-8'});
     });
     final api=CipaMemberApi(endpoint:server,client:client,
       onSessionRevoked:()=>revoked++);
