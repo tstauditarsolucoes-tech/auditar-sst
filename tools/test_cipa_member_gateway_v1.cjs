@@ -105,7 +105,8 @@ const sync=sheet('SincronizacaoDispositivos',[
 function record(id,company,type,title,status,fields={}){
  const payload={
    id,company_id:company,type,title,status,
-   date:'2026-11-05',payload_json:JSON.stringify(fields),
+   date:'2026-11-05',due_date:String(fields.dueDate||''),
+   payload_json:JSON.stringify(fields),
  };
  sync.appendRow(['sst_records',id,false,sync.getLastRow()+1,
    'synthetic','android','2026-11-05',JSON.stringify(payload),
@@ -123,6 +124,7 @@ record('meeting-A','company-A','CIPA_REUNIAO',
 record('action-A','company-A','CIPA_ACAO',
  'Verificar extintor','Pendente',{
  mandateId:'mandate-A',description:'Extintor obstruído',
+ dueDate:new Date(Date.now()+2*86400000).toISOString(),
 });
 record('document-private','company-A','CIPA_DOCUMENTO',
  'Documento restrito','Concluído',{
@@ -194,6 +196,9 @@ assert(snapshot.meetings.every(x=>x.companyId==='company-A'&&
 assert(snapshot.actions.every(x=>x.companyId==='company-A'&&
  x.mandateId==='mandate-A'&&x.assignedMemberId==='member-A'));
 assert(snapshot.actions.some(x=>x.id==='action-A'));
+assert(snapshot.reminders.some(x=>
+  x.title.startsWith('Prazo próximo da ação: Verificar extintor')),
+  'Lembrete de ação próxima somente do membro autorizado.');
 assert(!JSON.stringify(snapshot).includes('Outra empresa'));
 assert(!JSON.stringify(snapshot).includes('Documento restrito'));
 assert(!snapshot.documents.some(x=>x.id==='document-published'),
