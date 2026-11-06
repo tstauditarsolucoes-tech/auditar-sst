@@ -30,6 +30,12 @@ copies={
        "lib/services/sst_report_center_models.dart",
     "feature_sources/sst_report_center_pdf_v1.dart":
        "lib/services/sst_report_center_pdf.dart",
+    "feature_sources/sst_report_center_history_v1.dart":
+       "lib/services/sst_report_center_history.dart",
+    "feature_sources/sst_report_center_history_screen_v1.dart":
+       "lib/screens/sst_report_center_history_screen.dart",
+    "feature_sources/sst_report_center_history_test_v1.dart":
+       "test/sst_report_center_history_test.dart",
     "feature_sources/sst_report_center_screen_v1.dart":
        "lib/screens/sst_report_center_screen.dart",
     "feature_sources/sst_report_center_models_test_v1.dart":
