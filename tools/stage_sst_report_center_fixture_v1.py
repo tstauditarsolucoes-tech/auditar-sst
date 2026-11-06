@@ -107,10 +107,13 @@ class ManagerReportsScreen extends StatelessWidget{
   );
 }
 """,
-"test/sst_report_center_widget_test.dart":r"""import 'dart:typed_data';
+"test/sst_report_center_widget_test.dart":r"""import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:auditar_sst/models.dart';
+import 'package:auditar_sst/database.dart';
+import 'package:auditar_sst/services/sst_report_center_history.dart';
 import 'package:auditar_sst/screens/sst_report_center_screen.dart';
 import 'package:auditar_sst/services/sst_report_center_models.dart';
 import 'package:auditar_sst/services/sst_report_center_pdf.dart';
@@ -145,6 +148,58 @@ void main(){
     final button=find.widgetWithText(FilledButton,'Revisar e gerar PDF offline');
     await tester.scrollUntilVisible(button,200);
     expect(tester.widget<FilledButton>(button).onPressed,isNull);
+  });
+
+  testWidgets('Arquivar visita preserva histórico e permite abrir em leitura',
+      (tester) async {
+    final saved=SstFieldDraft(
+      kind:SstFieldReportKind.nr12,
+      companyId:'company-A',
+      technician:'Técnico de Campo',
+      date:'2026-11-06',
+      location:'Moinho de cavaco',
+      answers:{
+        'nr12-02':const SstFieldAnswer(
+          status:SstFieldStatus.nonConforming,
+          observation:'Correia com proteção removida na transmissão.',
+          recommendation:'Recompor proteção antes do uso seguro.'),
+      },
+    );
+    await tester.runAsync(()async{
+      await AppDatabase.instance.setSetting(
+        SstFieldDraftStore.key('company-A','test-user',SstFieldReportKind.nr12),
+        jsonEncode(saved.toJson()));
+    });
+    await tester.pumpWidget(MaterialApp(home:SstFieldReportScreen(
+      company:company,model:SstFieldTemplates.of(SstFieldReportKind.nr12))));
+    await tester.pumpAndSettle();
+    final archive=find.text('Arquivar e iniciar nova visita');
+    await tester.ensureVisible(archive);
+    await tester.tap(archive);
+    await tester.pumpAndSettle();
+    final confirm=find.widgetWithText(FilledButton,'Arquivar e iniciar nova visita');
+    expect(confirm,findsOneWidget);
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+    expect(find.text('Moinho de cavaco'),findsOneWidget);
+    await tester.tap(find.text('Moinho de cavaco'));
+    await tester.pumpAndSettle();
+    expect(find.text('Visita arquivada • somente leitura'),findsOneWidget);
+    expect(find.textContaining('Correia com proteção removida'),findsWidgets);
+    await tester.runAsync(()async{
+      final history=SstFieldReportHistory(
+        read:AppDatabase.instance.getSetting,
+        write:AppDatabase.instance.setSetting);
+      final all=await history.list(companyId:'company-A',userId:'test-user',
+        kind:SstFieldReportKind.nr12);
+      expect(all.length,1);
+      final item=await history.open(companyId:'company-A',
+        userId:'test-user',kind:SstFieldReportKind.nr12,id:all.first.id);
+      expect(item.draft.location,'Moinho de cavaco');
+      final fresh=await SstFieldDraftStore.load(
+        'company-A','test-user',SstFieldReportKind.nr12);
+      expect(fresh.reviewed,0);
+    });
   });
   test('PDF local só usa itens realmente revisados e informa parcial',()async{
     final draft=SstFieldDraft(
