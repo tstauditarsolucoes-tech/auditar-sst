@@ -19,29 +19,45 @@ class CipaAdminActionOption {
   final String id,title;
 }
 
+class CipaAdminDocumentOption {
+  const CipaAdminDocumentOption({
+    required this.id,required this.title,required this.category,
+  });
+  final String id,title,category;
+  String get label=>title+(category.isEmpty?'':' • '+category);
+}
+
 /// Gerenciamento disponível SOMENTE ao administrador. Cada operação é
 /// revalidada no Apps Script: não confiar nas seleções desta interface.
 class CipaMemberAdminScreen extends StatefulWidget {
   const CipaMemberAdminScreen({super.key,required this.companyId,
-    required this.mandateId,required this.members,required this.actions});
+    required this.mandateId,required this.members,required this.actions,
+    required this.documents});
   final String companyId,mandateId;
   final List<CipaAdminMemberOption> members;
   final List<CipaAdminActionOption> actions;
+  final List<CipaAdminDocumentOption> documents;
 
   @override
   State<CipaMemberAdminScreen> createState()=>_CipaMemberAdminScreenState();
 }
 class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
   final email=TextEditingController();
-  String? selectedMember,selectedAction;
+  final noticeTitle=TextEditingController();
+  final noticeBody=TextEditingController();
+  String? selectedMember,selectedAction,selectedDocument;
+  bool confirmNoticeSafe=false,confirmDocumentSafe=false;
   bool busy=false;
   String error='',notice='';
-  List<Map<String,dynamic>> accounts=[],inbox=[];
+  List<Map<String,dynamic>> accounts=[],inbox=[],notices=[];
+  final Set<String> publishedDocumentIds={};
 
   @override
   void initState(){super.initState();_reload();}
   @override
-  void dispose(){email.dispose();super.dispose();}
+  void dispose(){
+    email.dispose();noticeTitle.dispose();noticeBody.dispose();super.dispose();
+  }
 
   Future<Map<String,dynamic>> _call(String action,
       [Map<String,dynamic> args=const {}]) async {
@@ -83,6 +99,7 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
     await _perform(() async {
       final saved=await _call('cipa_member_admin_list');
       final pending=await _call('cipa_member_admin_inbox');
+      final publication=await _call('cipa_member_admin_publications');
       if(!mounted)return;
       setState((){
         accounts=(saved['accounts'] is List?
@@ -93,6 +110,16 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
           (pending['events'] as List).whereType<Map>()
             .map((m)=>Map<String,dynamic>.from(m)).toList():
           <Map<String,dynamic>>[]);
+        notices=(publication['notices'] is List?
+          (publication['notices'] as List).whereType<Map>()
+            .map((m)=>Map<String,dynamic>.from(m)).toList():
+          <Map<String,dynamic>>[]);
+        publishedDocumentIds
+          ..clear()
+          ..addAll((publication['documents'] is List?
+            publication['documents'] as List:const [])
+            .whereType<Map>().map((d)=>(d['id']??'').toString())
+            .where((id)=>id.isNotEmpty));
       });
     });
   }
@@ -126,6 +153,50 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
       if(mounted)setState(()=>notice='Ação vinculada ao integrante.');
     });
   }
+
+  Future<void> _publishNotice() async {
+    if(!confirmNoticeSafe||noticeTitle.text.trim().length<4||
+       noticeBody.text.trim().length<8)return;
+    await _perform(()async {
+      await _call('cipa_member_admin_publish_notice',{
+        'title':noticeTitle.text.trim(),
+        'detail':noticeBody.text.trim(),
+        'confirmedPublic':true,
+      });
+      noticeTitle.clear();noticeBody.clear();
+      if(mounted)setState(()=>confirmNoticeSafe=false);
+    });
+    if(mounted&&error.isEmpty)await _reload();
+  }
+
+  Future<void> _withdrawNotice(String id) async {
+    await _perform(()async {
+      await _call('cipa_member_admin_withdraw_notice',{'noticeId':id});
+    });
+    if(mounted&&error.isEmpty)await _reload();
+  }
+
+  Future<void> _publishDocument() async {
+    if(!confirmDocumentSafe||selectedDocument==null)return;
+    await _perform(()async {
+      await _call('cipa_member_admin_publish_document',{
+        'documentId':selectedDocument,
+        'confirmedSafeMetadata':true,
+      });
+      if(mounted)setState(()=>confirmDocumentSafe=false);
+    });
+    if(mounted&&error.isEmpty)await _reload();
+  }
+
+  Future<void> _unpublishDocument(String id) async {
+    await _perform(()async {
+      await _call('cipa_member_admin_unpublish_document',{
+        'documentId':id,
+      });
+    });
+    if(mounted&&error.isEmpty)await _reload();
+  }
+
   Future<void> _revoke(String accountId) async {
     await _perform(() async {
       await _call('cipa_member_admin_revoke',{
@@ -214,6 +285,103 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
                   icon:const Icon(Icons.assignment_ind_outlined),
                   label:const Text('Vincular tarefa')),
               ]))),
+
+          Card(child:Padding(padding:const EdgeInsets.all(14),
+            child:Column(
+              crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+                Text('Publicar comunicado da CIPA',
+                  style:Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height:8),
+                const Text('Compartilhe somente informações gerais, '
+                  'sem dados pessoais, de saúde ou de acidentes identificáveis.'),
+                const SizedBox(height:12),
+                TextField(controller:noticeTitle,maxLength:160,enabled:!busy,
+                  onChanged:(_)=>setState((){}),
+                  decoration:const InputDecoration(
+                    labelText:'Título do comunicado')),
+                const SizedBox(height:8),
+                TextField(controller:noticeBody,maxLength:900,maxLines:4,
+                  enabled:!busy,onChanged:(_)=>setState((){}),
+                  decoration:const InputDecoration(
+                    labelText:'Mensagem para os integrantes')),
+                CheckboxListTile(
+                  contentPadding:EdgeInsets.zero,
+                  title:const Text('Revisei e confirmei que este aviso '
+                    'pode ser visto pelos integrantes deste mandato.'),
+                  value:confirmNoticeSafe,
+                  onChanged:busy?null:(v)=>setState(
+                    ()=>confirmNoticeSafe=v==true)),
+                FilledButton.icon(
+                  icon:const Icon(Icons.campaign_outlined),
+                  onPressed:busy||!confirmNoticeSafe||
+                      noticeTitle.text.trim().length<4||
+                      noticeBody.text.trim().length<8
+                    ?null:_publishNotice,
+                  label:const Text('Publicar comunicado')),
+                const SizedBox(height:12),
+                Text('Avisos do mandato',
+                  style:Theme.of(context).textTheme.titleSmall),
+                for(final n in notices.reversed.take(40))
+                  ListTile(
+                    contentPadding:EdgeInsets.zero,
+                    title:Text((n['title']??'').toString()),
+                    subtitle:Text((n['active']==true?
+                      'Publicado: ':'Retirado: ')+
+                      (n['description']??'').toString(),
+                      maxLines:3,overflow:TextOverflow.ellipsis),
+                    trailing:n['active']==true?
+                      TextButton(onPressed:busy?null:()=>
+                          _withdrawNotice((n['id']??'').toString()),
+                        child:const Text('Retirar')):null,
+                  ),
+              ],
+            ))),
+          Card(child:Padding(padding:const EdgeInsets.all(14),
+            child:Column(
+              crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+                Text('Liberar documento para consulta',
+                  style:Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height:8),
+                const Text('Libere apenas o título e a situação de '
+                  'documentos de uso geral. PDFs, anexos e conteúdo '
+                  'confidencial não são enviados ao membro.'),
+                const SizedBox(height:12),
+                DropdownButtonFormField<String>(
+                  isExpanded:true,value:selectedDocument,
+                  decoration:const InputDecoration(
+                    labelText:'Documento do mandato'),
+                  items:widget.documents.map((d)=>DropdownMenuItem(
+                    value:d.id,
+                    child:Text(d.label,overflow:TextOverflow.ellipsis)))
+                    .toList(),
+                  onChanged:busy?null:(v)=>setState(()=>selectedDocument=v)),
+                CheckboxListTile(
+                  contentPadding:EdgeInsets.zero,
+                  value:confirmDocumentSafe,
+                  title:const Text('Confirmei que apenas as informações '
+                    'deste documento podem ser compartilhadas.'),
+                  onChanged:busy?null:(v)=>setState(
+                    ()=>confirmDocumentSafe=v==true)),
+                OutlinedButton.icon(
+                  icon:const Icon(Icons.visibility_outlined),
+                  onPressed:busy||!confirmDocumentSafe||
+                    selectedDocument==null?null:_publishDocument,
+                  label:const Text('Liberar consulta')),
+                const SizedBox(height:12),
+                Text('Documentos liberados',
+                  style:Theme.of(context).textTheme.titleSmall),
+                for(final d in widget.documents.where(
+                  (d)=>publishedDocumentIds.contains(d.id)))
+                  ListTile(
+                    contentPadding:EdgeInsets.zero,
+                    title:Text(d.title),
+                    subtitle:const Text('Metadados publicados, sem anexo'),
+                    trailing:TextButton(
+                      onPressed:busy?null:()=>_unpublishDocument(d.id),
+                      child:const Text('Retirar')),
+                  ),
+              ],
+            ))),
           Card(child:ExpansionTile(
             initiallyExpanded:true,
             title:Text('Contas individuais (${accounts.length})'),
