@@ -1,6 +1,6 @@
 # Auditar SST — CIPA: Reunião assistida | Homologação
 
-Data: 06/11/2026. **Esta etapa é no app operacional Android; não é o projeto Web do Júlio.**
+Data: 06/11/2026. **Esta etapa é no app operacional Android/Windows; não é o projeto Web do Júlio.**
 
 ## Melhoria para integrantes e gestores iniciantes
 
@@ -62,8 +62,16 @@ O portal individual dos membros ainda está em homologação e **não pode
 usar a chave operacional nem o login dos técnicos**. O novo cartão de
 reuniões não ativa o portal nem publica dados.
 
+As montagens **Android** e **Windows** contêm as etapas de instalação do
+roteiro em código, mas a compilação completa e a utilização nos aparelhos
+reais ainda não foram verificadas. A versão Windows instala também a camada
+de guia existente; a montagem falhará com segurança se alguma etapa não
+corresponder ao código atual.
+
 Para liberar no app instalado: compilar a versão operacional e realizar
 testes de interface, dados de mandato, histórico e permissões em
 dispositivos reais. **Nenhuma versão instalada foi substituída** nesta etapa.
 
 Referência técnica para conferência: [NR-05 vigente — MTE](https://www.gov.br/trabalho-e-emprego/pt-br/acesso-a-informacao/participacao-social/conselhos-e-orgaos-colegiados/comissao-tripartite-partitaria-permanente/normas-regulamentadora/normas-regulamentadoras-vigentes/norma-regulamentadora-no-5-nr-5).
+
+Validação isolada aprovada: [regras Dart](https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/runs/42219983700) e [tela Flutter](https://github.com/tstauditarsolucoes-tech/auditar-sst/actions/runs/42220147732).
