@@ -105,7 +105,9 @@ void main() {
   testWidgets('Ignorar sugestão com um toque não apaga texto nem aplica',
       (tester) async {
     const query='Botoeira de emergência não funcionou';
-    final results=await OfflineReportInlineSuggestionService.search(query:query);
+    final results=(await tester.runAsync(() =>
+      OfflineReportInlineSuggestionService.search(query:query)))
+      ?? const <OfflineInlineSuggestion>[];
     expect(results,isNotEmpty);
     var selected=0;
     Widget screen(String text)=>MaterialApp(home:Scaffold(body:
@@ -133,7 +135,9 @@ void main() {
   testWidgets('Ignorar no diálogo não altera o relatório',
       (tester) async {
     const query='Botoeira de emergência não funcionou';
-    final results=await OfflineReportInlineSuggestionService.search(query:query);
+    final results=(await tester.runAsync(() =>
+      OfflineReportInlineSuggestionService.search(query:query)))
+      ?? const <OfflineInlineSuggestion>[];
     expect(results,isNotEmpty);
     var selected=0;
     await tester.pumpWidget(MaterialApp(home:Scaffold(body:
