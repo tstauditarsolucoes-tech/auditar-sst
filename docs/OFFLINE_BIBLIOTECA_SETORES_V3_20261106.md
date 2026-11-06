@@ -78,3 +78,13 @@ os 204 modelos mesmo sem termo de busca.
 
 **Situação:** somente código em branch de homologação, sem APK novo instalado
 e sem atualização da Central de produção.
+
+## Ampliação complementar em 06/11/2026 — +24 casos
+
+Foram adicionadas 24 situações com descrição, risco, consequência possível, recomendação, prioridade inicial, referência temática de NR e regras de correspondência tema + falha. **O total desta linha de catálogo detalhado é agora 228 (145 + 59 + 24)**. Não somar esse número com o catálogo de 345 modelos da PR #28: são branches independentes e exigem integração/deduplicação antes de divulgar total consolidado.
+
+Distribuição dos novos casos: panificação 6, construção civil 4, cerâmica 3, laticínios 3, limpeza urbana 3, logística 2 e gerais 3.
+
+Casos exemplares: cilindro com emergência inacessível, masseira com grade removida, fatiadora com lâmina exposta, andaime com piso incompleto, painel com inflamável próximo, empacotadora com emergência inoperante, frente de varrição sem sinalização e extintor com lacre rompido.
+
+Foram atualizados os dois conjuntos de testes do catálogo para 228 entradas e suas contagens setoriais. **Não foi executada compilação completa Android/Windows ou homologação em dispositivo real neste passo.** A regra de correspondência não dispensa revisão do TST, não mede exposição e não cria NC automaticamente.
