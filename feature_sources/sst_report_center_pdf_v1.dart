@@ -38,6 +38,10 @@ class SstFieldReportPdfService {
     } catch (_) {return null;}
   }
 
+  static String _pdfText(String input) =>
+      input.replaceAll('•','-').replaceAll('—','-')
+          .replaceAll('–','-');
+
   static String _date(String raw) {
     final date=DateTime.tryParse(raw);
     return date==null?raw:DateFormat('dd/MM/yyyy').format(date);
@@ -49,7 +53,7 @@ class SstFieldReportPdfService {
       pw.TextSpan(text:'$label  ',
         style:pw.TextStyle(fontSize:9,color:ink,
           fontWeight:pw.FontWeight.bold)),
-      pw.TextSpan(text:value.isEmpty?'Não informado':value,
+      pw.TextSpan(text:_pdfText(value.isEmpty?'Não informado':value),
         style:const pw.TextStyle(fontSize:9,color:muted)),
     ])),
   );
@@ -58,7 +62,7 @@ class SstFieldReportPdfService {
     padding:const pw.EdgeInsets.symmetric(horizontal:9,vertical:7),
     margin:const pw.EdgeInsets.only(top:10,bottom:7),
     decoration:const pw.BoxDecoration(color:paper),
-    child:pw.Text(title,style:pw.TextStyle(color:ink,fontSize:11,
+    child:pw.Text(_pdfText(title),style:pw.TextStyle(color:ink,fontSize:11,
       fontWeight:pw.FontWeight.bold)),
   );
 
@@ -101,7 +105,7 @@ class SstFieldReportPdfService {
               style:pw.TextStyle(color:green,fontSize:8,
                 fontWeight:pw.FontWeight.bold)),
             pw.SizedBox(height:4),
-            pw.Text(question.title,style:pw.TextStyle(
+            pw.Text(_pdfText(question.title),style:pw.TextStyle(
               fontSize:10.5,color:ink,fontWeight:pw.FontWeight.bold)),
             pw.SizedBox(height:4),
             pw.Text('Verificação: '+answer.status.label(
@@ -141,7 +145,7 @@ class SstFieldReportPdfService {
       footer:(context)=>pw.Row(
         mainAxisAlignment:pw.MainAxisAlignment.spaceBetween,
         children:[
-          pw.Text('Auditar SST • Registro técnico de campo',
+          pw.Text('Auditar SST - Registro técnico de campo',
             style:const pw.TextStyle(color:muted,fontSize:8)),
           pw.Text('Página ${context.pageNumber}/${context.pagesCount}',
             style:const pw.TextStyle(color:muted,fontSize:8)),
@@ -156,11 +160,11 @@ class SstFieldReportPdfService {
               fontWeight:pw.FontWeight.bold)),
         ]),
         pw.SizedBox(height:12),
-        pw.Text(model.title,style:pw.TextStyle(
+        pw.Text(_pdfText(model.title),style:pw.TextStyle(
           fontSize:15,color:green,fontWeight:pw.FontWeight.bold)),
         pw.SizedBox(height:6),
         pw.Text(
-          draft.isPartial?'RASCUNHO PARCIAL — ITENS PENDENTES DE VERIFICAÇÃO':
+          draft.isPartial?'RASCUNHO PARCIAL - ITENS PENDENTES DE VERIFICAÇÃO':
           'REGISTRO PARA REVISÃO TÉCNICA',
           style:pw.TextStyle(
             color:draft.isPartial?const PdfColor(0.66,0.34,0.08):muted,
@@ -204,7 +208,7 @@ class SstFieldReportPdfService {
           pw.Container(height:26),
         pw.SizedBox(height:5),
         pw.Container(width:220,child:pw.Divider(color:ink,thickness:0.6)),
-        pw.Text(draft.technician,
+        pw.Text(_pdfText(draft.technician),
           style:const pw.TextStyle(fontSize:9,color:ink)),
         pw.Text('Assinatura do técnico responsável',
           style:const pw.TextStyle(fontSize:8,color:muted)),
