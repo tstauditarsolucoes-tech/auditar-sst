@@ -43,11 +43,14 @@ with tempfile.TemporaryDirectory(prefix="cipa-member-gs-") as temp:
     assert "device_sync_pull" in content
     assert "CIPA_MEMBER_V1_ENABLED" in (
       backend/"CipaMemberGatewayV1.gs").read_text()
+    assert "cipaMemV1PublishDocument_" in (
+      backend/"CipaMemberPublicationsV1.gs").read_text()
     assert all(p.read_bytes()==b for p,b in before.items())
     tracked={
       p:hashlib.sha256(p.read_bytes()).hexdigest()
       for p in [code,backend/"CipaMemberGatewayV1.gs",
-        backend/"CipaMemberServerPolicy.gs"]
+        backend/"CipaMemberServerPolicy.gs",
+        backend/"CipaMemberPublicationsV1.gs"]
     }
     repeated=subprocess.run([sys.executable,str(patch),str(root),
        "--homologacao"],capture_output=True,text=True)
