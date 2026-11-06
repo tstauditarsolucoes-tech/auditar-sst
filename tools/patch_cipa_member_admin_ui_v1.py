@@ -60,6 +60,12 @@ s=once(s,"          title: const Text('CIPA'),\n          actions: [",
                         a.status != 'Resolvida').map((a) =>
                         CipaAdminActionOption(id: a.id, title: a.title))
                         .toList(),
+                      documents: mandateDocuments.map((d) =>
+                        CipaAdminDocumentOption(
+                          id: d.id,
+                          title: d.title,
+                          category: (d.payload['category'] ?? '').toString(),
+                        )).toList(),
                     ))),
               ),""",
     "botão admin no app da CIPA")
