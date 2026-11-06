@@ -5,9 +5,9 @@ import 'package:auditar_sst/widgets/offline_report_inline_suggestions.dart';
 
 void main() {
   group('Biblioteca offline setorial v3, preservando a anterior', () {
-    test('mantém 145 anteriores e adiciona 83 sem duplicar ID', () {
-      expect(OfflineSstFieldCatalogV3.entries.length, 83);
-      expect(OfflineSstDeepCatalog.entries.length, 228);
+    test('mantém 145 anteriores e adiciona 95 sem duplicar ID', () {
+      expect(OfflineSstFieldCatalogV3.entries.length, 95);
+      expect(OfflineSstDeepCatalog.entries.length, 240);
       final ids=OfflineSstDeepCatalog.entries
           .map((item)=>item['id']).toList();
       expect(ids.toSet().length, ids.length);
@@ -61,17 +61,17 @@ void main() {
 
     test('busca por segmento e NR mantém os modelos antigos', () {
       final ceramic=OfflineSstDeepCatalog.browse(search:'Cerâmica');
-      expect(ceramic.where((e)=>e['segment']=='Cerâmica').length,15);
+      expect(ceramic.where((e)=>e['segment']=='Cerâmica').length,17);
       final building=OfflineSstDeepCatalog.browse(search:'Construção civil');
-      expect(building.where((e)=>e['segment']=='Construção civil').length,19);
+      expect(building.where((e)=>e['segment']=='Construção civil').length,21);
       final bakery=OfflineSstDeepCatalog.browse(search:'Panificação');
-      expect(bakery.where((e)=>e['segment']=='Panificação').length,14);
+      expect(bakery.where((e)=>e['segment']=='Panificação').length,17);
       final urban=OfflineSstDeepCatalog.browse(search:'Limpeza urbana');
-      expect(urban.where((e)=>e['segment']=='Limpeza urbana').length,10);
+      expect(urban.where((e)=>e['segment']=='Limpeza urbana').length,11);
       final nr=OfflineSstDeepCatalog.browse(standard:'NR-12',search:'masseira');
       expect(nr.any((e)=>e['id']=='campo-v3-pad01'),isTrue);
       expect(nr.every((e)=>e['nr']=='NR-12'),isTrue);
-      expect(OfflineSstDeepCatalog.browse().length,228);
+      expect(OfflineSstDeepCatalog.browse().length, 240);
     });
 
     test('novos modelos integrados ao serviço original de sugestões', () {
