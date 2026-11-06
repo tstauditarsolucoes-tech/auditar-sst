@@ -177,8 +177,10 @@ start = source.index("class _OfflineReportInlineSuggestionsState")
 build = source.index("  @override\n  Widget build(BuildContext context) {", start)
 end = source.index("class _OfflineReviewDialog extends StatefulWidget", build)
 body = source[build:end]
-body = re.sub(r"(?<![\w.])\bquery\b", "widget.query", body)
-body = re.sub(r"(?<![\w.])\bcontextTerms\b", "widget.contextTerms", body)
+# Expressões são qualificadas, mas nomes de parâmetros `query:` e
+# `contextTerms:` permanecem intactos no método search().
+body = re.sub(r"(?<![\w.])\bquery\b(?!\s*:)", "widget.query", body)
+body = re.sub(r"(?<![\w.])\bcontextTerms\b(?!\s*:)", "widget.contextTerms", body)
 raw_line = "        final items = snapshot.data ?? const <OfflineInlineSuggestion>[];"
 if body.count(raw_line) != 1:
     raise RuntimeError("Lista original de resultados diferente do esperado")
