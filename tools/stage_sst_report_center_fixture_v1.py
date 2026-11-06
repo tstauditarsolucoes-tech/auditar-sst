@@ -177,12 +177,17 @@ void main(){
     await tester.ensureVisible(archive);
     await tester.tap(archive);
     await tester.pumpAndSettle();
-    final confirm=find.widgetWithText(FilledButton,'Arquivar e iniciar nova visita');
+    final confirm=find.descendant(
+      of:find.byType(AlertDialog),
+      matching:find.widgetWithText(
+        FilledButton,'Arquivar e iniciar nova visita'));
     expect(confirm,findsOneWidget);
     await tester.tap(confirm);
     await tester.pumpAndSettle();
-    expect(find.text('Moinho de cavaco'),findsOneWidget);
-    await tester.tap(find.text('Moinho de cavaco'));
+    final archived=find.text('Moinho de cavaco');
+    await tester.scrollUntilVisible(archived,180);
+    expect(archived,findsOneWidget);
+    await tester.tap(archived);
     await tester.pumpAndSettle();
     expect(find.text('Visita arquivada • somente leitura'),findsOneWidget);
     expect(find.textContaining('Correia com proteção removida'),findsWidgets);
