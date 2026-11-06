@@ -45,7 +45,9 @@ class Demo {
     assert "ManagerReportKind.monthly" in (
       screens/"sst_report_center_screen.dart").read_text()
     assert manager.read_text().count("kind=widget.initialKind;")==1
-    assert len(list(services.glob("sst_report_center_*")))==2
+    assert len(list(services.glob("sst_report_center_*")))==3
+    assert (screens/"sst_report_center_history_screen.dart").is_file()
+    assert (root/"test/sst_report_center_history_test.dart").is_file()
     assert all(hashlib.sha256(p.read_bytes()).hexdigest()==d
         for p,d in snapshots.items())
     unchanged={
