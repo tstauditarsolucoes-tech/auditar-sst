@@ -78,13 +78,23 @@ class CipaMemberApi {
       final r=Map<String,dynamic>.from(raw);
       final id=_str(r['id']),title=_str(r['title']);
       if(id.isEmpty||title.isEmpty)continue;
+      final companyId=_str(r['companyId']);
+      final mandateId=_str(r['mandateId']);
+      final memberId=_str(r['assignedMemberId']);
+      final shared=r['visibleToAllMembers']==true;
+      if(companyId!=p.companyId||mandateId!=p.mandateId)continue;
+      final privateType=type==CipaMemberItemType.action ||
+        type==CipaMemberItemType.meeting ||
+        type==CipaMemberItemType.training ||
+        type==CipaMemberItemType.observation ||
+        type==CipaMemberItemType.reminder;
+      if(privateType&&memberId!=p.memberId)continue;
+      if(!privateType&&!shared)continue;
       result.add(CipaMemberItem(
         id:id,title:title,
-        companyId:p.companyId,mandateId:p.mandateId,
-        assignedMemberId:p.memberId,
-        visibleToAllMembers:type!=CipaMemberItemType.action &&
-          type!=CipaMemberItemType.training &&
-          type!=CipaMemberItemType.observation,
+        companyId:companyId,mandateId:mandateId,
+        assignedMemberId:memberId,
+        visibleToAllMembers:shared,
         type:type,description:_str(r['description']),
         status:_str(r['status']),
         date:_date(r['date']),dueDate:_date(r['dueDate']),
