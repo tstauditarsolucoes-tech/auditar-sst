@@ -55,3 +55,9 @@ Para liberação: validar fluxo de login individual e controles no servidor;
 testar em Android/Windows e com membros pouco experientes; verificar
 acessibilidade com leitor de tela e uso de fontes ampliadas; homologar
 backup de evidências e política de privacidade.
+
+## Refinamento adicional — guia explicativo ao membro (06/11/2026)
+
+A tela individual, ainda bloqueada sem sessão autorizada, ganhou uma seção expansível **Como funciona a minha participação**, dividida em três instruções: reunião/ciência, andamento ou ajuda em tarefa e observação de uma situação. Os textos explicam que ciência não é presença, andamento depende de conferência e observação não abre ou encerra NC. Também foi corrigido o ícone de **Avisar uma situação** para representar registro textual (o formulário não oferece anexar foto).
+
+Adicionado teste de widget para conferir a visibilidade das instruções e a diferença entre ciência e presença. **Teste ainda não reexecutado nesta alteração; instalação, compilação final e acesso individual em produção continuam bloqueados.** Não foram alterados autenticação, compartilhamento, servidor nem o projeto Web.
