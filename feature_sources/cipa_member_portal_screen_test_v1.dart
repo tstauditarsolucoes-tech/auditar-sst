@@ -57,7 +57,10 @@ void main() {
     )));
     expect(find.text('Maria Silva — Presidente da CIPA'),findsOneWidget);
     expect(find.text('Minha CIPA'),findsOneWidget);
+    // As seções ficam abaixo de três botões grandes; rolar como no celular.
+    await tester.scrollUntilVisible(find.text('Reunião de Teste'),140);
     expect(find.text('Reunião de Teste'),findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Proteção da esteira'),140);
     expect(find.text('Proteção da esteira'),findsOneWidget);
     expect(find.text('Ação secreta de outra empresa'),findsNothing);
     expect(find.text('Ação de outro membro'),findsNothing);

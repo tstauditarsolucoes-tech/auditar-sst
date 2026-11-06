@@ -26,6 +26,37 @@ class CipaMemberPortalScreen extends StatefulWidget {
 class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
   bool busy=false;
   String error='';
+  final GlobalKey _meetingsSection=GlobalKey();
+  final GlobalKey _tasksSection=GlobalKey();
+
+  void _goTo(GlobalKey section) {
+    final target=section.currentContext;
+    if(target==null)return;
+    Scrollable.ensureVisible(target,
+      duration:const Duration(milliseconds:300),
+      curve:Curves.easeInOut,
+      alignment:0.08,
+    );
+  }
+
+  Widget _largeAction({
+    required String title,required IconData icon,
+    required VoidCallback? onPressed,bool primary=false,
+  })=>SizedBox(
+    width:double.infinity,
+    height:58,
+    child:primary
+      ?FilledButton.icon(
+        onPressed:onPressed,icon:Icon(icon,size:25),
+        label:Text(title,style:const TextStyle(fontSize:17,
+          fontWeight:FontWeight.w700)),
+      )
+      :OutlinedButton.icon(
+        onPressed:onPressed,icon:Icon(icon,size:25),
+        label:Text(title,style:const TextStyle(fontSize:17,
+          fontWeight:FontWeight.w700)),
+      ),
+  );
 
   Future<void> _submit(Future<void> Function() call) async {
     if(busy||!widget.sessionVerified) return;
@@ -156,28 +187,48 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
         CipaMemberAccessHeader(profile:profile,
           companyName:widget.companyName,mandateLabel:widget.mandateLabel),
         Card(child:Padding(padding:const EdgeInsets.all(16),
-          child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-            Text('Meu dia na CIPA',
-              style:Theme.of(context).textTheme.titleMedium
-                ?.copyWith(fontWeight:FontWeight.w900)),
-            const SizedBox(height:8),
-            Text('${view.pendingActions} tarefa(s) em acompanhamento • '
-              '${view.pendingReminders} lembrete(s)'),
+          child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+            Text('O que você quer fazer hoje?',
+              style:Theme.of(context).textTheme.titleLarge
+                ?.copyWith(fontWeight:FontWeight.w800)),
+            const SizedBox(height:5),
+            const Text('Toque em uma opção. Não precisa conhecer a NR.',
+              style:TextStyle(fontSize:16)),
+            const SizedBox(height:14),
+            _largeAction(
+              title:'Ver reuniões',icon:Icons.event_outlined,
+              onPressed:busy?null:()=>_goTo(_meetingsSection),
+              primary:true,
+            ),
             const SizedBox(height:10),
-            const Text('Veja convocações e ações atribuídas. Relatos '
-              'são encaminhados para a gestão e não validam correções.'),
-            if(widget.onObserve!=null)Padding(
-              padding:const EdgeInsets.only(top:12),
-              child:FilledButton.icon(onPressed:busy?null:_newObservation,
-                icon:const Icon(Icons.add),
-                label:const Text('Registrar situação'))),
+            _largeAction(
+              title:'Minhas tarefas',icon:Icons.fact_check_outlined,
+              onPressed:busy?null:()=>_goTo(_tasksSection),
+              primary:true,
+            ),
+            if(widget.onObserve!=null)...[
+              const SizedBox(height:10),
+              _largeAction(
+                title:'Avisar uma situação',icon:Icons.edit_note_outlined,
+                onPressed:busy?null:_newObservation,
+              ),
+            ],
+            const SizedBox(height:10),
+            Text('Você tem '+
+              view.pendingActions.toString()+' tarefa(s) em acompanhamento.',
+              style:const TextStyle(fontSize:15)),
+            const SizedBox(height:4),
+            const Text('O técnico ou responsável confere os relatos '
+              'e valida as ações. Você pode pedir ajuda a qualquer momento.',
+              style:TextStyle(fontSize:14)),
           ]))),
         if(busy)const LinearProgressIndicator(),
         if(error.isNotEmpty)Padding(
           padding:const EdgeInsets.all(12),
           child:Text(error,style:TextStyle(color:
             Theme.of(context).colorScheme.error))),
-        _section('Convocações e reuniões',Icons.event_outlined,view.meetings,
+        KeyedSubtree(key:_meetingsSection,
+          child:_section('Convocações e reuniões',Icons.event_outlined,view.meetings,
           empty:'Nenhuma convocação liberada para você.',
           actions:(item)=>Align(alignment:Alignment.centerRight,
             child:widget.onAcknowledgeMeeting!=null &&
@@ -187,11 +238,12 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
                   ()=>widget.onAcknowledgeMeeting!(item.id)),
                 icon:const Icon(Icons.mark_email_read_outlined),
                 label:const Text('Confirmar ciência do aviso'))
-              :const SizedBox.shrink())),
+              :const SizedBox.shrink()))),
         const Padding(padding:EdgeInsets.fromLTRB(16,0,16,10),
           child:Text('Ciência não é presença na reunião nem assinatura da ata.',
             style:TextStyle(fontSize:12))),
-        _section('Minhas tarefas',Icons.task_alt_outlined,view.myActions,
+        KeyedSubtree(key:_tasksSection,
+          child:_section('Minhas tarefas',Icons.task_alt_outlined,view.myActions,
           empty:'Não há ação atribuída ao seu cadastro individual.',
           actions:(item)=>Wrap(spacing:8,runSpacing:8,children:[
             if(widget.onReportProgress!=null &&
@@ -214,12 +266,46 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
                     ()=>widget.onRequestSupport!(item.id,note));
                 },icon:const Icon(Icons.help_outline),
                 label:const Text('Preciso de apoio')),
-          ])),
+          ]))),
+        Card(child:ExpansionTile(
+          initiallyExpanded:false,
+          leading:const Icon(Icons.more_horiz,size:28),
+          title:const Text('Mais informações',
+            style:TextStyle(fontSize:17,fontWeight:FontWeight.w700)),
+          subtitle:const Text('Avisos, treinamentos, documentos e lembretes'),
+          children:[
         _section('Avisos',Icons.notifications_none_outlined,view.notices),
         _section('Meu treinamento',Icons.school_outlined,view.trainings),
         _section('Documentos liberados',Icons.folder_open_outlined,view.documents),
         _section('Minhas observações',Icons.visibility_outlined,view.observations),
         _section('Lembretes',Icons.alarm_outlined,view.reminders),
+          ],
+        )),
+        const Card(child:ExpansionTile(
+          initiallyExpanded:false,
+          leading:Icon(Icons.help_outline),
+          title:Text('Como funciona a minha participação',
+            style:TextStyle(fontSize:17,fontWeight:FontWeight.w700)),
+          subtitle:Text('Guia rápido em três passos'),
+          children:[
+            ListTile(
+              leading:CircleAvatar(child:Text('1')),
+              title:Text('Recebi um aviso de reunião'),
+              subtitle:Text('Leia data, local e pauta. Confirmar ciência '
+                'significa que você viu o aviso, não que esteve presente.')),
+            ListTile(
+              leading:CircleAvatar(child:Text('2')),
+              title:Text('Tenho uma tarefa'),
+              subtitle:Text('Leia o que foi combinado. Use Informar andamento '
+                'ou Preciso de apoio. O responsável precisa conferir a execução.')),
+            ListTile(
+              leading:CircleAvatar(child:Text('3')),
+              title:Text('Observei uma situação'),
+              subtitle:Text('Informe local e descrição com suas palavras, '
+                'sem se expor a riscos. O envio não abre nem encerra '
+                'automaticamente uma não conformidade.')),
+          ],
+        )),
         const Card(child:Padding(padding:EdgeInsets.all(14),
           child:Text('Como participar: observe sem se aproximar de perigos, '
             'registre local e situação, acompanhe sua tarefa e peça apoio. '
