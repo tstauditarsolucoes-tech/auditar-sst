@@ -39,6 +39,7 @@ class FakeCipaRecord {
 
 class CipaManagementScreen extends StatefulWidget {
   const CipaManagementScreen({super.key,this.hasMandate=false});
+  String get companyId=>'company-A';
   final bool hasMandate;
   @override
   State<CipaManagementScreen> createState()=>_CipaManagementScreenState();
