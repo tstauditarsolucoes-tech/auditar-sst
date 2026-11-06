@@ -102,5 +102,19 @@ void main() {
   ]);
   check(two.selectedMeetingId=='realizada',
     'priorizar reunião realizada sem ata sobre agenda nova');
-  print('CIPA_MEETING_COACH_RULES_11_SCENARIOS_OK');
+  final several=evaluate(meetings:[
+    meet(id:'realizada1',status:'Realizada',date:DateTime(2026,11,2)),
+    meet(id:'realizada2',status:'Realizada',date:DateTime(2026,11,3)),
+    meet(id:'atrasada',date:DateTime(2026,11,1)),
+  ]);
+  check(several.steps.any((s)=>
+    s.target=='meetings' && s.attention &&
+    s.title.contains('3 reuniões pendentes')),
+    'todas as reuniões pendentes devem ficar visíveis no resumo');
+  final single=evaluate(meetings:[
+    meet(status:'Realizada',date:DateTime(2026,11,2)),
+  ]);
+  check(!single.steps.any((s)=>s.target=='meetings'),
+    'não duplicar alerta se há apenas uma reunião pendente');
+  print('CIPA_MEETING_COACH_RULES_13_SCENARIOS_OK');
 }
