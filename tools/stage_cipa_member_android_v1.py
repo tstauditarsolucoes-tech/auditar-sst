@@ -40,6 +40,8 @@ pairs={
       "lib/screens/cipa_member_portal_screen.dart",
     "feature_sources/cipa_member_portal_screen_test_v1.dart":
       "test/cipa_member_portal_screen_test.dart",
+    "feature_sources/cipa_member_api_test_v1.dart":
+      "test/cipa_member_api_test.dart",
 }
 for source,target in pairs.items():
     path=app/target
