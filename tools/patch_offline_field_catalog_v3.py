@@ -50,6 +50,10 @@ s=exactly(s,"  ];\n  static const focusAreas=",
   ]);
   static const focusAreas=""",
     "composição dos acervos")
+s=exactly(s,
+    "nao verificado|nao confirmado|talvez|suspeita|ja corrigido|regularizado|funcionando normalmente|sem irregularidade",
+    "nao verificad[oa]s?|nao confirmad[oa]s?|talvez|suspeita|ja corrigid[oa]s?|regularizad[oa]s?|funcionando normalmente|sem irregularidade",
+    "descrições de situação não confirmada (feminino e plural)")
 s=exactly(s,"    int limit=150,","    int limit=250,",
     "limite de consulta para todos os modelos")
 s=exactly(s,"(item['risk'] ?? '')+' '+(item['recommendation'] ?? '')+' '+nr);",
