@@ -33,6 +33,8 @@ with tempfile.TemporaryDirectory(prefix="cipa-member-android-") as tmp:
     assert "Minha CIPA - Auditar" in manifest.read_text()
     assert "package:auditar_cipa_membro" in (
       app/"test/cipa_member_portal_screen_test.dart").read_text()
+    assert "Recusa itens de empresa" in (
+      app/"test/cipa_member_api_test.dart").read_text()
     assert "http: ^1.3.0" in (app/"pubspec.yaml").read_text()
     again=subprocess.run([sys.executable,str(script),str(app)],
       capture_output=True,text=True)
