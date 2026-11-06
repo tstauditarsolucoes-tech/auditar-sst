@@ -124,6 +124,7 @@ function cipaMemV1Records_(companyId) {
       title:String(raw.title||'').slice(0,240),
       status:String(raw.status||'').slice(0,50),
       companyId:companyId,date:String(raw.date||''),
+      dueDate:String(raw.due_date||''),
       workerId:String(raw.worker_id||''),
       payload:payload};
   });
@@ -366,7 +367,23 @@ function cipaMemV1RecordsAllowed_(context) {
     if(r.type==='CIPA_ACAO'&&assignment[r.id]===a.memberId){
       actions.push({id:r.id,type:'action',title:r.title,
         description:String(r.payload.description||'').slice(0,600),
-        status:r.status,date:r.date});
+        status:r.status,date:r.date,dueDate:r.dueDate});
+      // Alertas no painel, não notificações push ou garantia legal de prazo.
+      if(r.status!=='Resolvida'&&r.status!=='Concluída'&&r.dueDate){
+        var deadline=Date.parse(r.dueDate);
+        if(Number.isFinite(deadline)){
+          var days=Math.ceil((deadline-Date.now())/86400000);
+          if(days<=7){
+            reminders.push({
+              id:'deadline-'+r.id,type:'reminder',
+              title:days<0?'Ação com prazo vencido: '+r.title:
+                'Prazo próximo da ação: '+r.title,
+              date:r.dueDate,
+              status:days<0?'Prazo para conferir':'Prazo próximo',
+            });
+          }
+        }
+      }
     }
     if(r.type==='CIPA_DOCUMENTO' && publishedIds.indexOf(r.id)>=0 &&
        r.payload.containsPersonalData!==true &&
