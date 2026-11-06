@@ -107,3 +107,42 @@ de IA, exportação total ou `AuthService` entra no código do cliente.
 
 **Estado: desenvolvimento isolado no GitHub, sem mudança no aplicativo
 instalado e sem alteração implantada no Apps Script de produção.**
+
+## Atualização incremental — 06/11/2026
+
+### Liberação explícita de avisos e documentos
+- Novo módulo experimental `CipaMemberPublicationsV1.gs`: criação e retirada
+  de comunicados gerais, registro da decisão administrativa de publicar ou
+  retirar **metadados** de documentos do mandato.
+- A tela `Acessos da CIPA` contém título, mensagem, seleção de documento,
+  caixas de confirmação obrigatória e botões de retirada.
+- Não se envia arquivo, PDF, fotografia, documento pessoal ou conteúdo de
+  saúde para o cliente individual. O texto de aviso deve ser previamente
+  revisado pelo administrador.
+- Ao alterar a publicação, a próxima consulta do membro reflete a retirada.
+  Testes simulados demonstraram que não basta preencher campo antigo
+  `memberPublished` para aparecer na lista.
+- O novo módulo foi incluído exclusivamente no **instalador de homologação**,
+  não no Apps Script real de produção.
+
+### Defesa adicional no Android
+- Cada item retornado pelo gateway contém `companyId`, `mandateId`,
+  `assignedMemberId` e `visibleToAllMembers`.
+- O cliente individual rejeita valores sem esses campos ou de empresa,
+  mandato ou membro diferentes do perfil validado no servidor.
+- O teste de API usa respostas HTTP fictícias e cobre inclusive contas de
+  outra empresa, mandato, membro, registros sem vínculo e revogação.
+- A UI de administração foi testada com Flutter em projeto isolado e o patch
+  foi aplicado sobre a fonte de gestão CIPA preservada no repositório.
+
+### Lembretes simples
+- Reuniões agendadas e prazos próximos ou vencidos de ações individuais
+  geram avisos no próprio painel.
+- Não há push, SMS, envio de notificações por WhatsApp nem interpretação
+  automática do prazo como infração legal.
+
+### Condição de liberação
+Os testes unitários, de widgets e de fixtures não substituem a instalação
+em uma Central de **homologação** com os mesmos módulos e esquemas de dados
+efetivamente publicados. Ativar contas reais ou distribuir o APK para uso
+operacional continua **bloqueado**. Nenhum merge foi realizado.
