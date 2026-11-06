@@ -6,6 +6,7 @@ on:
     paths:
       - 'feature_sources/cipa_member_app_main_v1.dart'
       - 'feature_sources/cipa_member_api_v1.dart'
+      - 'feature_sources/cipa_member_api_test_v1.dart'
       - 'feature_sources/cipa_member_portal_*'
       - 'feature_sources/cipa_member_identity_v1.dart'
       - 'feature_sources/cipa_member_access_header_v1.dart'
