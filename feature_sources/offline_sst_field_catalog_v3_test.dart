@@ -5,9 +5,9 @@ import 'package:auditar_sst/widgets/offline_report_inline_suggestions.dart';
 
 void main() {
   group('Biblioteca offline setorial v3, preservando a anterior', () {
-    test('mantém 145 anteriores e adiciona 59 sem duplicar ID', () {
-      expect(OfflineSstFieldCatalogV3.entries.length, 59);
-      expect(OfflineSstDeepCatalog.entries.length, 204);
+    test('mantém 145 anteriores e adiciona 83 sem duplicar ID', () {
+      expect(OfflineSstFieldCatalogV3.entries.length, 83);
+      expect(OfflineSstDeepCatalog.entries.length, 228);
       final ids=OfflineSstDeepCatalog.entries
           .map((item)=>item['id']).toList();
       expect(ids.toSet().length, ids.length);
@@ -61,17 +61,17 @@ void main() {
 
     test('busca por segmento e NR mantém os modelos antigos', () {
       final ceramic=OfflineSstDeepCatalog.browse(search:'Cerâmica');
-      expect(ceramic.where((e)=>e['segment']=='Cerâmica').length,12);
+      expect(ceramic.where((e)=>e['segment']=='Cerâmica').length,19);
       final building=OfflineSstDeepCatalog.browse(search:'Construção civil');
-      expect(building.where((e)=>e['segment']=='Construção civil').length,15);
+      expect(building.where((e)=>e['segment']=='Construção civil').length,19);
       final bakery=OfflineSstDeepCatalog.browse(search:'Panificação');
-      expect(bakery.where((e)=>e['segment']=='Panificação').length,8);
+      expect(bakery.where((e)=>e['segment']=='Panificação').length,14);
       final urban=OfflineSstDeepCatalog.browse(search:'Limpeza urbana');
-      expect(urban.where((e)=>e['segment']=='Limpeza urbana').length,7);
+      expect(urban.where((e)=>e['segment']=='Limpeza urbana').length,10);
       final nr=OfflineSstDeepCatalog.browse(standard:'NR-12',search:'masseira');
       expect(nr.any((e)=>e['id']=='campo-v3-pad01'),isTrue);
       expect(nr.every((e)=>e['nr']=='NR-12'),isTrue);
-      expect(OfflineSstDeepCatalog.browse().length,204);
+      expect(OfflineSstDeepCatalog.browse().length,228);
     });
 
     test('novos modelos integrados ao serviço original de sugestões', () {
