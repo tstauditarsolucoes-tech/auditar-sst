@@ -7,6 +7,7 @@ on:
       - 'feature_sources/cipa_meeting_coach_*'
       - 'tools/patch_cipa_meeting_coach_v1.py'
       - 'tools/test_cipa_meeting_coach_patch_v1.py'
+      - 'tools/stage_cipa_meeting_coach_flutter_v1.py'
       - '.github/workflows/validate-cipa-meeting-coach.yml'
   workflow_dispatch:
 permissions:
@@ -32,3 +33,15 @@ jobs:
           dart format /tmp/cipa-meeting-coach
           dart analyze /tmp/cipa-meeting-coach
           dart /tmp/cipa-meeting-coach/cipa_meeting_coach_rules_test_v1.dart
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Testar tela real com e sem mandato no Flutter
+        run: |
+          set -euo pipefail
+          flutter create --platforms=android --project-name cipa_meeting_coach_fixture /tmp/cipa-coach-flutter
+          python3 tools/stage_cipa_meeting_coach_flutter_v1.py /tmp/cipa-coach-flutter
+          cd /tmp/cipa-coach-flutter
+          dart format lib test
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/cipa_meeting_coach_widget_test.dart
