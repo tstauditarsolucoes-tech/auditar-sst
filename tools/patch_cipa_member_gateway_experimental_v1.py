@@ -20,11 +20,12 @@ backend=root/"painel_web_google_apps_script"
 code=backend/"Code.gs"
 policy=backend/"CipaMemberServerPolicy.gs"
 gateway=backend/"CipaMemberGatewayV1.gs"
+publications=backend/"CipaMemberPublicationsV1.gs"
 assert code.is_file() and (backend/"MultiUser.gs").is_file(), (
     "Fonte da Central com autenticação não encontrada")
-assert not policy.exists() and not gateway.exists(), (
+assert not policy.exists() and not gateway.exists() and not publications.exists(), (
     "Não sobrescrever módulos do portal individual já existentes")
-allowed={code,policy,gateway}
+allowed={code,policy,gateway,publications}
 protected={
     p:hashlib.sha256(p.read_bytes()).hexdigest()
     for folder in [root/"lib",backend]
@@ -47,6 +48,7 @@ if s.count(old)!=1 or "cipaMemV1Route_(request)" in s:
 code.write_text(s.replace(old,new,1),encoding="utf-8",newline="\n")
 shutil.copyfile(repo/"feature_sources/cipa_member_server_policy_v1.js",policy)
 shutil.copyfile(repo/"feature_sources/CipaMemberGatewayV1.gs",gateway)
+shutil.copyfile(repo/"feature_sources/CipaMemberPublicationsV1.gs",publications)
 assert all(hashlib.sha256(p.read_bytes()).hexdigest()==digest
     for p,digest in protected.items()),"Arquivo existente protegido mudou"
 assert code.read_text().count("cipaMemV1Route_(request)")==1
