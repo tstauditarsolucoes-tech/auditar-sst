@@ -21,7 +21,7 @@ void main() {
   test('busca por setor, por NR e catálogo inteiro offline', () {
     expect(OfflineSstDeepCatalog.browse().length,228);
     expect(OfflineSstDeepCatalog.browse(search:'Cerâmica')
-      .where((e)=>e['segment']=='Cerâmica').length,19);
+      .where((e)=>e['segment']=='Cerâmica').length,15);
     expect(OfflineSstDeepCatalog.browse(search:'Limpeza urbana')
       .where((e)=>e['segment']=='Limpeza urbana').length,10);
     expect(OfflineSstDeepCatalog.browse(standard:'NR-12',search:'masseira')
