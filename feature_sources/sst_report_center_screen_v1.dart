@@ -13,10 +13,12 @@ import '../models.dart';
 import '../services/auth_service.dart';
 import '../services/offline_sst_deep_catalog_v2.dart';
 import '../services/sst_report_center_models.dart';
+import '../services/sst_report_center_history.dart';
 import '../services/sst_report_center_pdf.dart';
 import 'manager_reports_screen.dart';
 import 'express_round_screen.dart';
 import 'new_inspection_screen.dart';
+import 'sst_report_center_history_screen.dart';
 
 /// Entrada única, vinculada à empresa atual, sem criar base de dados paralela.
 class SstReportCenterScreen extends StatelessWidget {
@@ -147,7 +149,14 @@ class SstFieldReportScreen extends StatefulWidget {
 class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
   late SstFieldDraft draft=SstFieldDraft(
     kind:widget.model.kind,companyId:widget.company.id);
-  bool loading=true,exporting=false,saveFailed=false;
+  bool loading=true,exporting=false,saveFailed=false,archiving=false;
+  bool historyReady=true;
+  String? archiveRequestId;
+  List<SstFieldVisitSummary> archivedVisits=const [];
+  late final SstFieldReportHistory history=SstFieldReportHistory(
+    read:AppDatabase.instance.getSetting,
+    write:AppDatabase.instance.setSetting,
+  );
   int outstanding=0;
   String? error,ownerUser;
   Future<void> pending=Future<void>.value();
@@ -169,8 +178,19 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
     try {
       final current=await SstFieldDraftStore.load(
         widget.company.id,uid,widget.model.kind);
-      if(mounted)setState((){
-        ownerUser=uid;draft=current;loading=false;error=null;
+      List<SstFieldVisitSummary> visits=const [];
+      var canArchive=true;
+      try {
+        visits=await history.list(
+          companyId:widget.company.id,userId:uid,kind:widget.model.kind);
+      } catch (_) {
+        canArchive=false; // Nunca sobrescrever um índice com problema.
+      }
+      if(mounted&&uid==AppDatabase.activeUserId.toString())setState((){
+        ownerUser=uid;draft=current;loading=false;
+        archivedVisits=visits;historyReady=canArchive;
+        error=canArchive?null:'Histórico não pôde ser carregado. '
+          'O rascunho permanece disponível; nenhum arquivo foi modificado.';
       });
     } catch (_) {
       if(mounted)setState((){
@@ -185,6 +205,7 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
     final uid=ownerUser!;
     setState((){
       draft=next;outstanding++;error=null;saveFailed=false;
+      archiveRequestId=null;
     });
     pending=pending.then((_)async {
       if(uid!=AppDatabase.activeUserId.toString()||
@@ -201,6 +222,67 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
     }).whenComplete((){
       if(mounted)setState(()=>outstanding--);
     });
+  }
+
+
+  Future<void> _archiveAndStartNew() async {
+    if(archiving||outstanding>0||saveFailed||!historyReady||
+       !authorized||!draft.hasEnoughForPdf)return;
+    final confirmed=await showDialog<bool>(
+      context:context,builder:(dialog)=>AlertDialog(
+        title:const Text('Arquivar visita e iniciar outra?'),
+        content:const Text('A visita atual será preservada no histórico local '
+          'deste usuário e desta empresa, com observações, caminhos das '
+          'fotografias e assinatura existente.\n\n'
+          'Uma nova visita começará em branco. '
+          'Fotos arquivadas permanecem neste dispositivo. '
+          'Nenhuma informação será enviada à Central Online.'),
+        actions:[
+          TextButton(onPressed:()=>Navigator.pop(dialog,false),
+            child:const Text('Cancelar')),
+          FilledButton(onPressed:()=>Navigator.pop(dialog,true),
+            child:const Text('Arquivar e iniciar nova visita')),
+        ],
+      ));
+    if(confirmed!=true||!mounted||!authorized)return;
+    setState(()=>archiving=true);
+    try {
+      await pending;
+      if(!authorized||saveFailed)throw StateError(
+        'Não foi possível confirmar o salvamento da visita atual.');
+      final snapshot=draft;
+      final uid=ownerUser!;
+      final id=archiveRequestId??SstFieldReportHistory.newId();
+      archiveRequestId=id;
+      await history.archive(draft:snapshot,userId:uid,id:id);
+      if(!authorized)throw StateError('A conta ativa foi alterada.');
+      final fresh=SstFieldDraft(
+        kind:widget.model.kind,companyId:widget.company.id,
+        technician:snapshot.technician,
+        date:DateTime.now().toIso8601String());
+      // Só substitui o rascunho ativo depois do arquivamento confirmado.
+      await SstFieldDraftStore.save(fresh,uid);
+      final list=await history.list(
+        companyId:widget.company.id,userId:uid,kind:widget.model.kind);
+      if(mounted&&authorized)setState((){
+        draft=fresh;archivedVisits=list;archiveRequestId=null;error=null;
+      });
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content:Text(
+          'Visita arquivada. Novo rascunho iniciado sem perder os anteriores.')));
+    }catch(_){
+      if(mounted)setState(()=>error='Não foi possível finalizar o '
+        'arquivamento. A visita ativa foi preservada. '
+        'Confira o espaço de armazenamento antes de tentar novamente.');
+    }finally{if(mounted)setState(()=>archiving=false);}
+  }
+
+  void _openArchived(SstFieldVisitSummary visit) {
+    if(!authorized||!historyReady)return;
+    Navigator.of(context).push(MaterialPageRoute<void>(builder:(_)=>
+      SstFieldArchivedReportScreen(
+        company:widget.company,userId:ownerUser!,kind:widget.model.kind,
+        visitId:visit.id,history:history)));
   }
 
   Future<String?> _textDialog(String title,String label,
@@ -394,7 +476,8 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
         final bytes=await controller.toPngBytes();
         if(bytes==null||bytes.isEmpty)throw StateError('Assinatura vazia.');
         final folder=await _mediaFolder();
-        final path=folder.path+'/assinatura_tecnico.png';
+        final path=folder.path+'/assinatura_'+
+          DateTime.now().microsecondsSinceEpoch.toString()+'.png';
         await File(path).writeAsBytes(bytes,flush:true);
         if(mounted&&authorized)_update(draft.copyWith(signaturePath:path));
       }
@@ -524,7 +607,7 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
       body:Center(child:Padding(padding:const EdgeInsets.all(20),
         child:Text(error??'Não foi possível abrir o relatório.'))));
     return PopScope(
-      canPop:outstanding==0&&!exporting&&!saveFailed,
+      canPop:outstanding==0&&!exporting&&!archiving&&!saveFailed,
       onPopInvokedWithResult:(didPop,result){
         if(!didPop)ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content:Text('Salvando o rascunho local; confira '
@@ -557,6 +640,47 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
             if(outstanding>0)const LinearProgressIndicator(),
             if(error!=null)Text(error!,style:TextStyle(
               color:Theme.of(context).colorScheme.error)),
+
+            Card(child:Padding(padding:const EdgeInsets.all(12),
+              child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+                Text('Histórico de visitas • offline',
+                  style:Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height:5),
+                const Text('Cada visita arquivada fica separada por '
+                  'empresa, técnico e modelo. Nenhuma será substituída '
+                  'ao iniciar uma nova inspeção.'),
+                const SizedBox(height:8),
+                FilledButton.tonalIcon(
+                  onPressed:authorized&&historyReady&&!archiving&&
+                    outstanding==0&&!saveFailed&&draft.hasEnoughForPdf?
+                    _archiveAndStartNew:null,
+                  icon:const Icon(Icons.archive_outlined),
+                  label:Text(archiving?'Arquivando...':
+                    'Arquivar e iniciar nova visita')),
+                if(!historyReady)const Padding(
+                  padding:EdgeInsets.only(top:8),
+                  child:Text('Histórico indisponível para escrita. '
+                    'Verifique os dados locais antes de continuar.')),
+                if(archivedVisits.isEmpty)
+                  const Padding(
+                    padding:EdgeInsets.only(top:8),
+                    child:Text('Nenhuma visita arquivada neste modelo.')),
+                for(final visit in archivedVisits)
+                  ListTile(
+                    contentPadding:EdgeInsets.zero,
+                    leading:const Icon(Icons.folder_outlined),
+                    title:Text(visit.location.trim().isEmpty?
+                      'Visita de ${visit.visitDate}':
+                      visit.location),
+                    subtitle:Text(visit.visitDate+' • '+
+                      visit.reviewed.toString()+' de '+
+                      visit.total.toString()+' itens'+
+                      (visit.partial?' • parcial':'')),
+                    trailing:const Icon(Icons.chevron_right_outlined),
+                    enabled:authorized&&!archiving,
+                    onTap:()=>_openArchived(visit),
+                  ),
+              ]))),
             Card(child:Padding(padding:const EdgeInsets.all(12),
               child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
                 Text('Dados do relatório',
