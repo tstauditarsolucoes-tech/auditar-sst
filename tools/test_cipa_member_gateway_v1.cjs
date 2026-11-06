@@ -87,6 +87,9 @@ vm.runInContext(fs.readFileSync(path.join(
 vm.runInContext(fs.readFileSync(path.join(
   root,'feature_sources/CipaMemberGatewayV1.gs'),'utf8'),
   scope,{filename:'CipaMemberGatewayV1.gs'});
+vm.runInContext(fs.readFileSync(path.join(
+  root,'feature_sources/CipaMemberPublicationsV1.gs'),'utf8'),
+  scope,{filename:'CipaMemberPublicationsV1.gs'});
 const invoke=(action,fields={})=>JSON.parse(JSON.stringify(
   scope.cipaMemV1Route_({action,...fields})));
 
