@@ -66,6 +66,26 @@ stubs={
   static List<Map<String,String>> matches(String text)=>const [];
 }
 """,
+"lib/screens/express_round_screen.dart":"""import 'package:flutter/material.dart';
+import '../models.dart';
+class ExpressRoundScreen extends StatelessWidget {
+  const ExpressRoundScreen({super.key,required this.company});
+  final Company company;
+  @override
+  Widget build(BuildContext context)=>const Scaffold(body:Text('Ronda Expressa'));
+}
+""",
+"lib/screens/new_inspection_screen.dart":"""import 'package:flutter/material.dart';
+import '../models.dart';
+class NewInspectionScreen extends StatelessWidget {
+  const NewInspectionScreen({super.key,this.initialCompany,
+    this.fieldMode=false});
+  final Company? initialCompany;
+  final bool fieldMode;
+  @override
+  Widget build(BuildContext context)=>const Scaffold(body:Text('Vistoria'));
+}
+""",
 "lib/screens/manager_reports_screen.dart":"""import 'package:flutter/material.dart';
 import '../models.dart';
 enum ManagerReportKind {pending,activities,resolved,monthly}
