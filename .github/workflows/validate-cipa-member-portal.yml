@@ -7,6 +7,7 @@ on:
       - 'feature_sources/cipa_member_portal_*'
       - 'feature_sources/cipa_member_server_policy_v1.js'
       - 'feature_sources/CipaMemberGatewayV1.gs'
+      - 'feature_sources/CipaMemberPublicationsV1.gs'
       - 'tools/patch_cipa_member_portal_v1.py'
       - 'tools/test_cipa_member_portal_v1.py'
       - 'tools/test_cipa_member_server_policy_v1.cjs'
@@ -37,6 +38,8 @@ jobs:
           node tools/test_cipa_member_server_policy_v1.cjs
           cp feature_sources/CipaMemberGatewayV1.gs /tmp/CipaMemberGatewayV1.js
           node --check /tmp/CipaMemberGatewayV1.js
+          cp feature_sources/CipaMemberPublicationsV1.gs /tmp/CipaMemberPublicationsV1.js
+          node --check /tmp/CipaMemberPublicationsV1.js
           node tools/test_cipa_member_gateway_v1.cjs
       - name: Verificar a sintaxe das interfaces
         run: |
