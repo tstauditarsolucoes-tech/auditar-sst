@@ -17,7 +17,10 @@ function cipaMemV1Route_(request) {
   var known=['cipa_member_begin','cipa_member_verify','cipa_member_dashboard',
     'cipa_member_event','cipa_member_logout','cipa_member_admin_grant',
     'cipa_member_admin_revoke','cipa_member_admin_list','cipa_member_admin_assign',
-    'cipa_member_admin_inbox'];
+    'cipa_member_admin_inbox',
+    'cipa_member_admin_publish_notice','cipa_member_admin_withdraw_notice',
+    'cipa_member_admin_publish_document','cipa_member_admin_unpublish_document',
+    'cipa_member_admin_publications'];
   if(known.indexOf(action)<0)return null;
   if(PropertiesService.getScriptProperties().getProperty('CIPA_MEMBER_V1_ENABLED')!=='true')
     return {ok:false,code:'FEATURE_DISABLED',message:'Acesso de membros ainda não habilitado.'};
@@ -32,6 +35,16 @@ function cipaMemV1Route_(request) {
     if(action==='cipa_member_admin_list')return cipaMemV1AdminList_(request);
     if(action==='cipa_member_admin_assign')return cipaMemV1AdminAssign_(request);
     if(action==='cipa_member_admin_inbox')return cipaMemV1AdminInbox_(request);
+    if(action==='cipa_member_admin_publish_notice')
+      return cipaMemV1PublishNotice_(request);
+    if(action==='cipa_member_admin_withdraw_notice')
+      return cipaMemV1WithdrawNotice_(request);
+    if(action==='cipa_member_admin_publish_document')
+      return cipaMemV1PublishDocument_(request);
+    if(action==='cipa_member_admin_unpublish_document')
+      return cipaMemV1UnpublishDocument_(request);
+    if(action==='cipa_member_admin_publications')
+      return cipaMemV1AdminPublicationList_(request);
   } catch(error) {
     console.error('Portal CIPA: '+String(error));
     return {ok:false,code:'CIPA_MEMBER_ERROR',
@@ -331,6 +344,9 @@ function cipaMemV1RecordsAllowed_(context) {
   var v=context.verified,a=v.account,assignment=cipaMemV1Assignments_(
     a.companyId,a.mandateId);
   var meetings=[],actions=[],notices=[],documents=[],trainings=[],reminders=[];
+  var publishedIds=cipaMemV1PublishedDocumentIds_(a.companyId,a.mandateId)
+    .filter(function(d){return d.published;})
+    .map(function(d){return d.id;});
   v.rows.forEach(function(r){
     if(r.table==='training_controls'&&r.workerId===a.workerId){
       trainings.push({id:r.id,type:'training',title:r.title||'Treinamento',
@@ -352,16 +368,20 @@ function cipaMemV1RecordsAllowed_(context) {
         description:String(r.payload.description||'').slice(0,600),
         status:r.status,date:r.date});
     }
-    if(r.type==='CIPA_DOCUMENTO'&&r.payload.memberPublished===true &&
+    if(r.type==='CIPA_DOCUMENTO' && publishedIds.indexOf(r.id)>=0 &&
        r.payload.containsPersonalData!==true &&
-       r.payload.signedRestricted!==true){
-      if(r.payload.category==='CIPA_AVISO')notices.push({
-        id:r.id,type:'notice',title:r.title,
-        description:String(r.payload.description||'').slice(0,450)});
-      else documents.push({id:r.id,type:'document',title:r.title,
-        description:'Documento disponibilizado à CIPA'});
+       r.payload.signedRestricted!==true) {
+      documents.push({id:r.id,type:'document',title:r.title,
+        description:'Documento da CIPA disponibilizado para consulta',
+        status:r.status,date:r.date});
     }
   });
+  notices=cipaMemV1Notices_(a.companyId,a.mandateId)
+    .filter(function(n){return n.active;})
+    .map(function(n){return {
+      id:n.id,type:'notice',title:n.title,
+      description:n.description,status:'Publicado',date:n.date,
+    };});
   return {meetings:meetings.slice(0,100),
     actions:actions.slice(0,100),notices:notices.slice(0,60),
     trainings:trainings.slice(0,50),
