@@ -31,6 +31,8 @@ on:
       - 'tools/test_agenda_session_cache_v1.py'
       - 'tools/patch_sst_library_v1.py'
       - 'tools/patch_sst_deep_catalog_v2.py'
+      - 'tools/patch_offline_field_usability_v1.py'
+      - 'tools/stage_offline_field_usability_fixture_v1.py'
       - 'tools/bump_polish_release_version_v1.py'
       - 'tools/patch_nc_friendly_titles_v1.py'
       - 'tools/patch_tutorial_v32930.py'
@@ -2026,6 +2028,20 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha analyze biblioteca' }
           flutter test test/offline_sst_deep_catalog_test.dart test/offline_sst_expanded_catalog_test.dart test/offline_sst_deep_catalog_test.dart test/report_pdf_emphasis_scope_test.dart test/offline_report_inline_suggestions_field_test.dart
           if ($LASTEXITCODE -ne 0) { throw 'Falha testes biblioteca' }
+          Pop-Location
+
+      - name: Sugestões offline mais práticas em campo Windows
+        shell: pwsh
+        run: |
+          python tools/patch_offline_field_usability_v1.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Erro ao instalar atalhos de campo offline' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/widgets/offline_report_inline_suggestions.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Erro de sintaxe nas sugestões offline' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Erro análise sugestões offline' }
+          flutter test test/offline_report_inline_suggestions_test.dart test/offline_report_inline_suggestions_field_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha nos testes de sugestões offline' }
           Pop-Location
 
       - name: NCs com nome curto editável Windows (local, sem migrar banco)

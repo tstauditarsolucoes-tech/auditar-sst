@@ -1,0 +1,49 @@
+name: Validar sugestões offline mais práticas no campo
+on:
+  push:
+    branches:
+      - feature/android-sugestao-offline-campo-20261106
+    paths:
+      - 'tools/patch_offline_field_usability_v1.py'
+      - 'tools/stage_offline_field_usability_fixture_v1.py'
+      - 'feature_sources/offline_field_usability_notes_v1.md'
+      - '.github/workflows/validate-offline-field-usability.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  usability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Criar uma cópia só para testes de campo, sem tocar no app operacional
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/patch_offline_field_usability_v1.py tools/stage_offline_field_usability_fixture_v1.py
+          flutter create --platforms=android --project-name offline_campo_fixture /tmp/offline_campo_fixture
+          python3 tools/stage_offline_field_usability_fixture_v1.py /tmp/offline_campo_fixture
+          dart format /tmp/offline_campo_fixture/lib/widgets/offline_report_inline_suggestions.dart
+          python3 tools/patch_offline_field_usability_v1.py /tmp/offline_campo_fixture
+      - name: Testar Flutter, responsividade dos botões e feedback local
+        run: |
+          set -euo pipefail
+          cd /tmp/offline_campo_fixture
+          flutter pub get
+          dart format lib test
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test --timeout=75s --reporter expanded test/offline_usability_test.dart
+      - name: Não aceitar duplicação do patch nem exclusão de dados
+        run: |
+          set -euo pipefail
+          if python3 tools/patch_offline_field_usability_v1.py /tmp/offline_campo_fixture; then
+            echo "ERRO: o patch duplicado foi aceito"
+            exit 1
+          fi
+          grep -Fq 'OfflineReportInlineSuggestionService.learnApplied' /tmp/offline_campo_fixture/lib/widgets/offline_report_inline_suggestions.dart
+          grep -Fq 'Consultar biblioteca por NR' /tmp/offline_campo_fixture/lib/widgets/offline_report_inline_suggestions.dart
+          grep -Fq 'Não corresponde' /tmp/offline_campo_fixture/lib/widgets/offline_report_inline_suggestions.dart
+          echo 'OFFLINE_FIELD_REGRESSION_OK'
