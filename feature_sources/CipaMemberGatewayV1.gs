@@ -382,10 +382,26 @@ function cipaMemV1RecordsAllowed_(context) {
       id:n.id,type:'notice',title:n.title,
       description:n.description,status:'Publicado',date:n.date,
     };});
-  return {meetings:meetings.slice(0,100),
-    actions:actions.slice(0,100),notices:notices.slice(0,60),
-    trainings:trainings.slice(0,50),
-    documents:documents.slice(0,60),reminders:reminders.slice(0,100)};
+  // Etiquetar cada item na Central: o Android também rejeita divergências
+  // de empresa, mandato ou proprietário em vez de confiar no grupo da lista.
+  function scoped(rows,privateToMember,limit) {
+    return rows.slice(0,limit).map(function(item){
+      var obj=Object.assign({},item);
+      obj.companyId=a.companyId;
+      obj.mandateId=a.mandateId;
+      obj.assignedMemberId=privateToMember?a.memberId:'';
+      obj.visibleToAllMembers=!privateToMember;
+      return obj;
+    });
+  }
+  return {
+    meetings:scoped(meetings,true,100),
+    actions:scoped(actions,true,100),
+    notices:scoped(notices,false,60),
+    trainings:scoped(trainings,true,50),
+    documents:scoped(documents,false,60),
+    reminders:scoped(reminders,true,100)
+  };
 }
 function cipaMemV1Events_(account) {
   var sheet=cipaMemV1Sheet_(CIPA_MEM_V1_EVENTS,
@@ -437,6 +453,8 @@ function cipaMemV1Dashboard_(request) {
         id:e.id,type:'observation',
         title:'Situação observada • '+e.location,
         description:e.detail,status:'Registrada',date:e.date,
+        companyId:a.companyId,mandateId:a.mandateId,
+        assignedMemberId:a.memberId,visibleToAllMembers:false,
       };})};
 }
 function cipaMemV1Event_(request) {
