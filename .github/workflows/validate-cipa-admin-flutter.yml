@@ -1,0 +1,37 @@
+name: Validar painel ADM da CIPA com Flutter (sem publicar)
+on:
+  push:
+    branches:
+      - feature/android-cipa-member-portal-v1-20261105
+    paths:
+      - 'feature_sources/cipa_member_admin_screen_v1.dart'
+      - 'tools/patch_cipa_member_admin_ui_v1.py'
+      - 'tools/test_cipa_member_admin_patch_real_source_v1.py'
+      - 'tools/stage_cipa_admin_ui_flutter_v1.py'
+      - '.github/workflows/validate-cipa-admin-flutter.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  admin-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Verificar integração com fonte original preservada
+        run: |
+          python3 -m py_compile tools/test_cipa_member_admin_patch_real_source_v1.py tools/stage_cipa_admin_ui_flutter_v1.py
+          python3 tools/test_cipa_member_admin_patch_real_source_v1.py
+      - name: Montar UI CIPA e testar formulário real Flutter
+        run: |
+          set -euo pipefail
+          flutter create --project-name cipa_admin_fixture /tmp/cipa_admin_fixture
+          python3 tools/stage_cipa_admin_ui_flutter_v1.py /tmp/cipa_admin_fixture
+          cd /tmp/cipa_admin_fixture
+          flutter pub get
+          dart format lib test
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/cipa_admin_screen_smoke_test.dart
