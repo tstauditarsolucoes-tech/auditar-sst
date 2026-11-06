@@ -35,4 +35,4 @@ jobs:
           flutter pub get
           dart format lib test
           flutter analyze --no-fatal-infos --no-fatal-warnings
-          flutter test --reporter expanded test/sst_report_center_models_test.dart test/sst_report_center_widget_test.dart
+          flutter test --reporter expanded test/sst_report_center_models_test.dart test/sst_report_center_history_test.dart test/sst_report_center_widget_test.dart
