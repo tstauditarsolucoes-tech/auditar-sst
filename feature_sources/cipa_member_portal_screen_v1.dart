@@ -209,7 +209,7 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
             if(widget.onObserve!=null)...[
               const SizedBox(height:10),
               _largeAction(
-                title:'Avisar uma situação',icon:Icons.add_a_photo_outlined,
+                title:'Avisar uma situação',icon:Icons.edit_note_outlined,
                 onPressed:busy?null:_newObservation,
               ),
             ],
@@ -279,6 +279,31 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
         _section('Documentos liberados',Icons.folder_open_outlined,view.documents),
         _section('Minhas observações',Icons.visibility_outlined,view.observations),
         _section('Lembretes',Icons.alarm_outlined,view.reminders),
+          ],
+        )),
+        const Card(child:ExpansionTile(
+          initiallyExpanded:false,
+          leading:Icon(Icons.help_outline),
+          title:Text('Como funciona a minha participação',
+            style:TextStyle(fontSize:17,fontWeight:FontWeight.w700)),
+          subtitle:Text('Guia rápido em três passos'),
+          children:[
+            ListTile(
+              leading:CircleAvatar(child:Text('1')),
+              title:Text('Recebi um aviso de reunião'),
+              subtitle:Text('Leia data, local e pauta. Confirmar ciência '
+                'significa que você viu o aviso, não que esteve presente.')),
+            ListTile(
+              leading:CircleAvatar(child:Text('2')),
+              title:Text('Tenho uma tarefa'),
+              subtitle:Text('Leia o que foi combinado. Use Informar andamento '
+                'ou Preciso de apoio. O responsável precisa conferir a execução.')),
+            ListTile(
+              leading:CircleAvatar(child:Text('3')),
+              title:Text('Observei uma situação'),
+              subtitle:Text('Informe local e descrição com suas palavras, '
+                'sem se expor a riscos. O envio não abre nem encerra '
+                'automaticamente uma não conformidade.')),
           ],
         )),
         const Card(child:Padding(padding:EdgeInsets.all(14),
