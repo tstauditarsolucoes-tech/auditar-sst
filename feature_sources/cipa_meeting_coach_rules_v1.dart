@@ -81,6 +81,18 @@ class CipaMeetingCoachRules {
       future.isNotEmpty?future.first:
       recent.isNotEmpty?recent.first:null;
     final steps=<CipaMeetingCoachStep>[];
+    // A tela focaliza uma reunião, mas não deve ocultar outras pendências.
+    // Exibir contagens, sem inventar realização ou assinatura.
+    final unreviewedMeetingCount=missingMinutes.length+
+      overdueSchedule.length;
+    if(unreviewedMeetingCount>1) {
+      steps.add(CipaMeetingCoachStep(
+        'Conferir $unreviewedMeetingCount reuniões pendentes',
+        '${missingMinutes.length} reunião(ões) realizada(s) sem ata '
+        'vinculada e ${overdueSchedule.length} agendamento(s) com data '
+        'passada. Abra a lista completa para conferir cada registro.',
+        'meetings',attention:true));
+    }
     if(activeMemberCount==0){
       steps.add(const CipaMeetingCoachStep('Conferir integrantes',
         'Nenhum integrante ativo foi localizado. Verifique o cadastro e '
