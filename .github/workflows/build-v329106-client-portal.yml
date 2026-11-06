@@ -1633,7 +1633,7 @@ jobs:
           cd "$APP_DIR"
           dart format lib/services/sst_report_center_models.dart lib/services/sst_report_center_pdf.dart lib/screens/sst_report_center_screen.dart lib/screens/company_detail_screen.dart lib/screens/manager_reports_screen.dart test/sst_report_center_models_test.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
-          flutter test test/sst_report_center_models_test.dart
+          flutter test test/sst_report_center_models_test.dart test/sst_report_center_history_test.dart
           cd "$GITHUB_WORKSPACE"
 
       - name: NCs com nome curto editável (local, sem alterar ID ou sincronização)
