@@ -62,8 +62,6 @@ void main() {
     await tester.tap(find.text('Mais informações'));
     await tester.pumpAndSettle();
     expect(find.text('Avisos (1)'),findsOneWidget);
-    await tester.tap(find.text('Avisos (1)'));
-    await tester.pumpAndSettle();
     expect(find.text('Comunicado interno'),findsOneWidget);
     expect(find.text('Ação de outra empresa'),findsNothing);
     await tester.binding.setSurfaceSize(null);
