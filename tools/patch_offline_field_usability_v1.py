@@ -86,24 +86,25 @@ replace_one(
               const Icon(Icons.chevron_right_rounded, size: 18),""",
     "Ignorar com um toque",
 )
-replace_one(
-    "builder: (_) => _OfflineReviewDialog(item: item));",
-    """builder: (_) => _OfflineReviewDialog(
-          item: item,
-          onDismiss: () => _ignore(item),
-        ));""",
-    "Feedback na revisão",
+source, n = re.subn(
+    r"_OfflineReviewDialog\(\s*item:\s*item\s*\)",
+    "_OfflineReviewDialog(item: item, onDismiss: () => _ignore(item))",
+    source,
 )
+if n != 1:
+    raise RuntimeError(f"Feedback na revisão: {n} chamadas")
 replace_one(
     "if (selected != null && context.mounted) onSelected(selected);",
     "if (selected != null && context.mounted) widget.onSelected(selected);",
     "Seleção revisada",
 )
-replace_one(
-    "    onSelected(OfflineInlineSuggestion(",
-    "    widget.onSelected(OfflineInlineSuggestion(",
-    "Aplicação original",
+source, n = re.subn(
+    r"(?<![\w.])onSelected\s*\(\s*OfflineInlineSuggestion\(",
+    "widget.onSelected(OfflineInlineSuggestion(",
+    source,
 )
+if n != 1:
+    raise RuntimeError(f"Aplicação original: {n} chamadas")
 replace_one(
     "  Future<void> _browseCatalog(BuildContext context) async {\n"
     "    final search = TextEditingController();\n"
@@ -189,13 +190,13 @@ body = body.replace(
             .toList(growable: false);""",
     1,
 )
-message = "                       OfflineReasoning.explicitSafeOrUncertain(widget.query)"
+message = "OfflineReasoning.explicitSafeOrUncertain(widget.query)"
 # O aviso ao ignorar tudo é mais fiel que a mensagem padrão de "nenhum modelo".
 if message not in body:
     raise RuntimeError("Mensagem de resultados ausentes modificada")
 body = body.replace(
     message,
-    """                       rawItems.isNotEmpty
+    """rawItems.isNotEmpty
                            ? 'Sugestões ignoradas para esta descrição. '
                              'Ajuste o texto para buscar novamente.'
                            : OfflineReasoning.explicitSafeOrUncertain(widget.query)""",
@@ -213,8 +214,12 @@ replace_one(
   final VoidCallback? onDismiss;""",
     "Feedback opcional na revisão",
 )
-replace_one(
-    "actions: [TextButton(onPressed: busy ? null : ()=>Navigator.pop(context), child: const Text('Cancelar')),",
+dialog_at = source.index("class _OfflineReviewDialogState")
+action_at = source.index("actions: [", dialog_at)
+if source.find("actions: [", action_at + 1) != -1:
+    raise RuntimeError("Múltiplos blocos de ações no diálogo")
+source = source[:action_at] + source[action_at:].replace(
+    "actions: [",
     """actions: [
         TextButton(
           onPressed: busy ? null : () {
@@ -222,9 +227,8 @@ replace_one(
             Navigator.pop(context);
           },
           child: const Text('Não corresponde'),
-        ),
-        TextButton(onPressed: busy ? null : ()=>Navigator.pop(context), child: const Text('Cancelar')),""",
-    "Botão do diálogo",
+        ),""",
+    1,
 )
 # Não altera arquivos fora do widget, não aprende o feedback como erro global.
 widget.write_text(source, encoding="utf-8", newline="\n")
