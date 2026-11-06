@@ -1,0 +1,50 @@
+name: Validar biblioteca offline setorial v3 (204 modelos)
+on:
+  push:
+    branches:
+      - feature/offline-biblioteca-setores-v3-20261106
+    paths:
+      - 'feature_sources/offline_sst_field_catalog_v3.dart'
+      - 'feature_sources/offline_sst_field_catalog_v3_test.dart'
+      - 'feature_sources/offline_sst_field_catalog_v3_pure_test.dart'
+      - 'tools/patch_offline_field_catalog_v3.py'
+      - '.github/workflows/validate-offline-field-catalog-v3.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  catalog-v3:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Preparar biblioteca em projeto isolado
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/patch_offline_field_catalog_v3.py
+          flutter create --platforms=android --project-name auditar_sst /tmp/offline_catalog_v3_fixture
+          mkdir -p /tmp/offline_catalog_v3_fixture/lib/services
+          cp feature_sources/offline_sst_deep_catalog_v2.dart /tmp/offline_catalog_v3_fixture/lib/services/offline_sst_deep_catalog_v2.dart
+          cp feature_sources/offline_sst_deep_catalog_test_v2.dart /tmp/offline_catalog_v3_fixture/test/offline_sst_deep_catalog_test.dart
+          python3 tools/patch_offline_field_catalog_v3.py /tmp/offline_catalog_v3_fixture
+          cp feature_sources/offline_sst_field_catalog_v3_pure_test.dart /tmp/offline_catalog_v3_fixture/test/offline_sst_field_catalog_v3_pure_test.dart
+      - name: Analisar Dart e executar testes de 204 modelos
+        run: |
+          set -euo pipefail
+          cd /tmp/offline_catalog_v3_fixture
+          dart format lib/services/offline_sst_deep_catalog_v2.dart lib/services/offline_sst_field_catalog_v3.dart test/offline_sst_field_catalog_v3_pure_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings lib/services
+          flutter test test/offline_sst_field_catalog_v3_pure_test.dart
+      - name: Impedir duplicação e preservar regras antigas
+        run: |
+          set -euo pipefail
+          if python3 tools/patch_offline_field_catalog_v3.py /tmp/offline_catalog_v3_fixture; then
+            echo "O patch não bloqueou a duplicação"
+            exit 1
+          fi
+          grep -Fq '..._baseEntries' /tmp/offline_catalog_v3_fixture/lib/services/offline_sst_deep_catalog_v2.dart
+          grep -Fq '...OfflineSstFieldCatalogV3.entries' /tmp/offline_catalog_v3_fixture/lib/services/offline_sst_deep_catalog_v2.dart
+          echo 'OFFLINE_FIELD_CATALOG_V3_REGRESSION_OK'

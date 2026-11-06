@@ -31,6 +31,9 @@ on:
       - 'tools/test_agenda_session_cache_v1.py'
       - 'tools/patch_sst_library_v1.py'
       - 'tools/patch_sst_deep_catalog_v2.py'
+      - 'tools/patch_offline_field_catalog_v3.py'
+      - 'feature_sources/offline_sst_field_catalog_v3.dart'
+      - 'feature_sources/offline_sst_field_catalog_v3_test.dart'
       - 'tools/patch_offline_field_usability_v1.py'
       - 'tools/stage_offline_field_usability_fixture_v1.py'
       - 'tools/bump_polish_release_version_v1.py'
@@ -2016,17 +2019,19 @@ jobs:
           python tools/patch_sst_deep_catalog_v2.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Erro no acervo de NRs' }
           Copy-Item feature_sources/offline_sst_deep_catalog_test_v2.dart "$env:APP_DIR/test/offline_sst_deep_catalog_test.dart" -Force
+          python tools/patch_offline_field_catalog_v3.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Erro ao ampliar biblioteca por setor' }
           python tools/patch_report_pdf_emphasis_v1.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Falha destaque PDF técnico' }
           Copy-Item feature_sources/report_pdf_emphasis_scope_test_v1.dart "$env:APP_DIR/test/report_pdf_emphasis_scope_test.dart" -Force
           if ($LASTEXITCODE -ne 0) { throw 'Falha instalar biblioteca expandida' }
           Copy-Item feature_sources/offline_sst_expanded_catalog_test_v1.dart "$env:APP_DIR/test/offline_sst_expanded_catalog_test.dart" -Force
           Push-Location "$env:APP_DIR"
-          dart format lib/services/offline_sst_deep_catalog_v2.dart lib/services/offline_sst_expanded_catalog_v1.dart lib/services/report_pdf_emphasis_scope.dart lib/services/auditar_standard3_pdf_service.dart lib/widgets/offline_report_inline_suggestions.dart lib/screens/manager_reports_screen.dart lib/screens/report_screen.dart test/offline_sst_expanded_catalog_test.dart test/offline_sst_deep_catalog_test.dart test/report_pdf_emphasis_scope_test.dart
+          dart format lib/services/offline_sst_deep_catalog_v2.dart lib/services/offline_sst_field_catalog_v3.dart test/offline_sst_field_catalog_v3_test.dart lib/services/offline_sst_expanded_catalog_v1.dart lib/services/report_pdf_emphasis_scope.dart lib/services/auditar_standard3_pdf_service.dart lib/widgets/offline_report_inline_suggestions.dart lib/screens/manager_reports_screen.dart lib/screens/report_screen.dart test/offline_sst_expanded_catalog_test.dart test/offline_sst_deep_catalog_test.dart test/report_pdf_emphasis_scope_test.dart
           if ($LASTEXITCODE -ne 0) { throw 'Falha no format da biblioteca' }
           flutter analyze --no-fatal-infos --no-fatal-warnings
           if ($LASTEXITCODE -ne 0) { throw 'Falha analyze biblioteca' }
-          flutter test test/offline_sst_deep_catalog_test.dart test/offline_sst_expanded_catalog_test.dart test/offline_sst_deep_catalog_test.dart test/report_pdf_emphasis_scope_test.dart test/offline_report_inline_suggestions_field_test.dart
+          flutter test test/offline_sst_deep_catalog_test.dart test/offline_sst_field_catalog_v3_test.dart test/offline_sst_expanded_catalog_test.dart test/offline_sst_deep_catalog_test.dart test/report_pdf_emphasis_scope_test.dart test/offline_report_inline_suggestions_field_test.dart
           if ($LASTEXITCODE -ne 0) { throw 'Falha testes biblioteca' }
           Pop-Location
 
