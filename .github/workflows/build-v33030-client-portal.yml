@@ -2065,7 +2065,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Erro de sintaxe da central de relatórios' }
           flutter analyze --no-fatal-infos --no-fatal-warnings
           if ($LASTEXITCODE -ne 0) { throw 'Erro de análise da central de relatórios' }
-          flutter test test/sst_report_center_models_test.dart
+          flutter test test/sst_report_center_models_test.dart test/sst_report_center_history_test.dart
           if ($LASTEXITCODE -ne 0) { throw 'Falha nos testes de modelos SST' }
           Pop-Location
 
