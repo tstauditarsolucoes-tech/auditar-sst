@@ -189,6 +189,10 @@ assert.strictEqual(snapshot.companyName,'Cerâmica de Exemplo');
 assert.strictEqual(snapshot.mandateTitle,'CIPA 2026');
 assert.strictEqual(snapshot.profile.cipaRole,'Vice-presidente');
 assert(snapshot.meetings.some(x=>x.id==='meeting-A'));
+assert(snapshot.meetings.every(x=>x.companyId==='company-A'&&
+ x.mandateId==='mandate-A'&&x.assignedMemberId==='member-A'));
+assert(snapshot.actions.every(x=>x.companyId==='company-A'&&
+ x.mandateId==='mandate-A'&&x.assignedMemberId==='member-A'));
 assert(snapshot.actions.some(x=>x.id==='action-A'));
 assert(!JSON.stringify(snapshot).includes('Outra empresa'));
 assert(!JSON.stringify(snapshot).includes('Documento restrito'));
