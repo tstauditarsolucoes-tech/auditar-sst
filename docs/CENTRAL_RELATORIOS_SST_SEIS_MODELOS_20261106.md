@@ -105,3 +105,60 @@ instalação foi realizada na versão em produção.
 
 Fontes oficiais para conferência normativa:
 [Normas Regulamentadoras vigentes — MTE](https://www.gov.br/trabalho-e-emprego/pt-br/acesso-a-informacao/participacao-social/conselhos-e-orgaos-colegiados/comissao-tripartite-partitaria-permanente/normas-regulamentadora/normas-regulamentadoras-vigentes).
+
+## Ampliação — histórico de várias visitas (06/11/2026)
+
+Implementação adicionada no próprio sistema **offline**, sem migrar ou
+apagar os rascunhos atuais:
+
+- Cada modelo apresenta **Histórico de visitas • offline** e
+  **Arquivar e iniciar nova visita**.
+- A visita atual só pode ser arquivada depois de passar pela conferência
+  mínima exigida para PDF. Um modal explica a operação antes da confirmação.
+- O histórico mantém **até 500 visitas locais por empresa, usuário e modelo**,
+  indexadas por identificador único; uma visita arquivada pode ser aberta em
+  **somente leitura** e ter seu PDF gerado novamente.
+- O rascunho ativo anterior somente é substituído por um novo rascunho
+  depois que o snapshot e o índice forem gravados com sucesso. Em falha
+  de armazenamento, preserva o rascunho ativo e não conclui a troca.
+- A operação tem proteção contra duplicação ao repetir um mesmo ID de visita.
+- Cada assinatura recebe nome único, sem reutilizar ou sobrescrever a imagem
+  de outra visita. Fotos permanecem ligadas aos caminhos locais registrados.
+- Índice e snapshot são verificados quanto à empresa, usuário, tipo e ID antes
+  da leitura; dados de outra empresa ou outro técnico não são exibidos.
+- O novo recurso não toca no histórico de **Vistoria**, **Ronda Expressa**,
+  NCs, sincronização e anexos já existentes.
+
+### Limitações importantes
+
+- **Histórico local não é backup em nuvem.** Se o app for desinstalado,
+  o aparelho perdido, o armazenamento apagado ou as fotos movidas, os
+  arquivos podem ficar indisponíveis. Não prometer recuperação automática.
+- Os PDFs são gerados ao consultar a visita e não são arquivados
+  automaticamente como documentos compartilhados.
+- A visita arquivada é **somente leitura**. A edição após arquivamento
+  requer um futuro mecanismo explícito de cópia/versionamento, não alterar
+  a visita histórica.
+- Como a Central de homologação ainda não foi implantada nem validada com
+  dados reais, **não há envio, backup, sincronização nem publicação** desses
+  registros.
+- Validação dos cenários de fotos/assinatura, impressão, persistência
+  após reiniciar e restrição por usuário **em aparelhos reais** continua
+  necessária antes de distribuição.
+
+### Montagens completas de CI, sem credenciais reais
+
+As duas montagens operacionais atuais do repositório ganharam modo
+**homologação isolada** nesta branch:
+
+- Android: testes do app montado e `flutter build apk --debug` com chave
+  fictícia de sincronização, sem assinatura permanente nem publicar APK.
+- Windows: pula o teste de rede que exige chave real, executa
+  `flutter build windows --release` com chave fictícia, sem pacote/instalador
+  para distribuição.
+- As etapas originais de assinatura, código de produção e entrega
+  permanecem habilitadas **somente na branch operacional** e inalteradas
+  para ela. Nenhuma chave real é fornecida à homologação.
+- Resultados de execução dependem de GitHub Actions e devem ser inspecionados
+  após conclusão dos jobs. Não tratar um build inicializado como aprovado.
+
