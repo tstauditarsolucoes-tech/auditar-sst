@@ -55,7 +55,7 @@ void main() {
     expect(find.text('Ver reuniões'),findsOneWidget);
     expect(find.text('Minhas tarefas'),findsWidgets);
     expect(find.text('Avisar uma situação'),findsOneWidget);
-    expect(find.text('Mais informações'),findsOneWidget);
+    // O botão adicional fica abaixo do conteúdo principal em telas pequenas.
     // Detalhes secundários só aparecem quando a pessoa pede.
     expect(find.text('Comunicado interno'),findsNothing);
     await tester.scrollUntilVisible(find.text('Mais informações'),120);
