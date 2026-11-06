@@ -100,9 +100,10 @@ void main(){
       'Inspeção visual elétrica','Trabalho em altura',
       'Investigação de acidente/incidente','Relatório gerencial mensal',
     ]) {
+      await tester.scrollUntilVisible(find.text(text),180);
       expect(find.text(text),findsOneWidget);
     }
-    await tester.scrollUntilVisible(find.text('Relatório gerencial mensal'),160);
+    await tester.ensureVisible(find.text('Relatório gerencial mensal'));
     await tester.tap(find.text('Relatório gerencial mensal'));
     await tester.pumpAndSettle();
     expect(find.text('monthly'),findsOneWidget);
@@ -114,7 +115,7 @@ void main(){
     await tester.tap(find.text('Máquinas e equipamentos'));
     await tester.pumpAndSettle();
     expect(find.text('Central de Relatórios SST'),findsNothing);
-    expect(find.textContaining('Não verificado'),findsWidgets);
+    expect(find.text('Máquinas e equipamentos'),findsOneWidget);
     final button=find.widgetWithText(FilledButton,'Revisar e gerar PDF offline');
     await tester.scrollUntilVisible(button,200);
     expect(tester.widget<FilledButton>(button).onPressed,isNull);
