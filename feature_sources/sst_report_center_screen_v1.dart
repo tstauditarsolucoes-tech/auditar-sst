@@ -164,6 +164,7 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
   bool get authorized=>ownerUser!=null&&
     ownerUser==AppDatabase.activeUserId.toString()&&
     AuthService.canAccessCompany(widget.company.id);
+  bool get canEdit=>authorized&&!archiving;
   @override
   void initState(){super.initState();_load();}
 
@@ -201,11 +202,12 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
   }
 
   void _update(SstFieldDraft next){
-    if(!authorized)return;
+    if(!canEdit)return;
+    final wasModified=!identical(next,draft);
     final uid=ownerUser!;
     setState((){
       draft=next;outstanding++;error=null;saveFailed=false;
-      archiveRequestId=null;
+      if(wasModified)archiveRequestId=null;
     });
     pending=pending.then((_)async {
       if(uid!=AppDatabase.activeUserId.toString()||
@@ -226,7 +228,7 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
 
 
   Future<void> _archiveAndStartNew() async {
-    if(archiving||outstanding>0||saveFailed||!historyReady||
+    if(archiving||exporting||outstanding>0||saveFailed||!historyReady||
        !authorized||!draft.hasEnoughForPdf)return;
     final confirmed=await showDialog<bool>(
       context:context,builder:(dialog)=>AlertDialog(
@@ -278,7 +280,7 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
   }
 
   void _openArchived(SstFieldVisitSummary visit) {
-    if(!authorized||!historyReady)return;
+    if(!canEdit||!historyReady)return;
     Navigator.of(context).push(MaterialPageRoute<void>(builder:(_)=>
       SstFieldArchivedReportScreen(
         company:widget.company,userId:ownerUser!,kind:widget.model.kind,
@@ -316,7 +318,7 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
   }
 
   Future<void> _editQuestion(SstFieldQuestion q) async {
-    if(!authorized)return;
+    if(!canEdit)return;
     final before=draft.answer(q.id);
     final note=TextEditingController(text:before.observation);
     final recommendation=TextEditingController(text:before.recommendation);
@@ -387,7 +389,7 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_){
       note.dispose();recommendation.dispose();
     });
-    if(changed==true&&mounted&&authorized) {
+    if(changed==true&&mounted&&canEdit) {
       _update(draft.update(q.id,before.copyWith(
         observation:revisedNote,recommendation:revisedRecommendation)));
     }
@@ -404,7 +406,7 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
   }
 
   Future<void> _addPhoto(SstFieldQuestion question,ImageSource source)async {
-    if(!authorized)return;
+    if(!canEdit)return;
     final before=draft.answer(question.id);
     if(before.photoPaths.length>=2){
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -414,7 +416,7 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
     try {
       final file=await ImagePicker().pickImage(
         source:source,maxWidth:1600,imageQuality:75);
-      if(file==null||!mounted||!authorized)return;
+      if(file==null||!mounted||!canEdit)return;
       final folder=await _mediaFolder();
       final timestamp=DateTime.now().microsecondsSinceEpoch;
       final target=File(folder.path+'/'+question.id+'_'+
@@ -424,7 +426,7 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
         await target.delete();
         throw StateError('A fotografia excedeu 7 MB.');
       }
-      if(!mounted||!authorized){
+      if(!mounted||!canEdit){
         await target.delete();
         return;
       }
@@ -439,7 +441,7 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
   }
 
   void _removePhoto(SstFieldQuestion question,String path){
-    if(!authorized)return;
+    if(!canEdit)return;
     final before=draft.answer(question.id);
     _update(draft.update(question.id,before.copyWith(
       photoPaths:before.photoPaths.where((p)=>p!=path).toList())));
@@ -447,7 +449,7 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
   }
 
   Future<void> _sign()async {
-    if(!authorized)return;
+    if(!canEdit)return;
     final controller=SignatureController(
       penStrokeWidth:3,penColor:Colors.black,
       exportBackgroundColor:Colors.white,
@@ -472,14 +474,14 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
         ],
       ));
     try {
-      if(accepted==true&&mounted&&authorized&&controller.isNotEmpty) {
+      if(accepted==true&&mounted&&canEdit&&controller.isNotEmpty) {
         final bytes=await controller.toPngBytes();
         if(bytes==null||bytes.isEmpty)throw StateError('Assinatura vazia.');
         final folder=await _mediaFolder();
         final path=folder.path+'/assinatura_'+
           DateTime.now().microsecondsSinceEpoch.toString()+'.png';
         await File(path).writeAsBytes(bytes,flush:true);
-        if(mounted&&authorized)_update(draft.copyWith(signaturePath:path));
+        if(mounted&&canEdit)_update(draft.copyWith(signaturePath:path));
       }
     } catch (_) {
       if(mounted)ScaffoldMessenger.of(context).showSnackBar(
@@ -490,11 +492,11 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
   }
 
   Future<void> _export()async{
-    if(exporting||!authorized)return;
+    if(exporting||archiving||!authorized)return;
     setState(()=>exporting=true);
     try {
       await pending;
-      if(!authorized||saveFailed||!draft.hasEnoughForPdf)throw StateError(
+      if(!authorized||archiving||saveFailed||!draft.hasEnoughForPdf)throw StateError(
         'Preencha técnico, data e ao menos um item; descreva '
         'situações não conformes ou informações de ocorrência antes do PDF.');
       final bytes=await SstFieldReportPdfService.generate(
@@ -538,7 +540,7 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
             labelText:'Resultado da verificação',border:OutlineInputBorder()),
           items:values.map((v)=>DropdownMenuItem(
             value:v,child:Text(v.label(investigation:isIncident)))).toList(),
-          onChanged:authorized?(v){
+          onChanged:canEdit?(v){
             if(v!=null)_update(draft.update(
               question.id,answer.copyWith(status:v)));
           }:null,
@@ -558,20 +560,20 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
         const SizedBox(height:6),
         Wrap(spacing:6,runSpacing:6,children:[
           OutlinedButton.icon(
-            onPressed:authorized?()=>_editQuestion(question):null,
+            onPressed:canEdit?()=>_editQuestion(question):null,
             icon:const Icon(Icons.edit_note_outlined),
             label:Text(answer.observation.isEmpty?
               'Registrar observação':'Editar texto'),
           ),
           if(answer.photoPaths.length<2)...[
             OutlinedButton.icon(
-              onPressed:authorized?()=>_addPhoto(
+              onPressed:canEdit?()=>_addPhoto(
                 question,ImageSource.gallery):null,
               icon:const Icon(Icons.photo_library_outlined),
               label:const Text('Anexar foto'),
             ),
             if(!Platform.isWindows)OutlinedButton.icon(
-              onPressed:authorized?()=>_addPhoto(
+              onPressed:canEdit?()=>_addPhoto(
                 question,ImageSource.camera):null,
               icon:const Icon(Icons.camera_alt_outlined),
               label:const Text('Câmera'),
@@ -588,7 +590,7 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
                       errorBuilder:(_,__,___)=>const Center(
                         child:Text('Foto não localizada')))),
                   TextButton(
-                    onPressed:authorized?()=>_removePhoto(question,path):null,
+                    onPressed:canEdit?()=>_removePhoto(question,path):null,
                     child:const Text('Remover vínculo')),
                 ]),
             ]),
@@ -616,7 +618,7 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
       child:Scaffold(
         appBar:AppBar(title:Text(widget.model.title),
           actions:[IconButton(
-            onPressed:authorized?()async{
+            onPressed:canEdit?()async{
               await Clipboard.setData(ClipboardData(text:
                 'Roteiro: '+widget.model.title+'\nEmpresa: '+
                 widget.company.name+'\nVerificados: '+
@@ -640,6 +642,10 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
             if(outstanding>0)const LinearProgressIndicator(),
             if(error!=null)Text(error!,style:TextStyle(
               color:Theme.of(context).colorScheme.error)),
+            if(saveFailed)OutlinedButton.icon(
+              onPressed:canEdit&&outstanding==0?()=>_update(draft):null,
+              icon:const Icon(Icons.save_outlined),
+              label:const Text('Tentar salvar rascunho novamente')),
 
             Card(child:Padding(padding:const EdgeInsets.all(12),
               child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
@@ -651,7 +657,7 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
                   'ao iniciar uma nova inspeção.'),
                 const SizedBox(height:8),
                 FilledButton.tonalIcon(
-                  onPressed:authorized&&historyReady&&!archiving&&
+                  onPressed:canEdit&&historyReady&&!archiving&&
                     outstanding==0&&!saveFailed&&draft.hasEnoughForPdf?
                     _archiveAndStartNew:null,
                   icon:const Icon(Icons.archive_outlined),
@@ -677,7 +683,7 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
                       visit.total.toString()+' itens'+
                       (visit.partial?' • parcial':'')),
                     trailing:const Icon(Icons.chevron_right_outlined),
-                    enabled:authorized&&!archiving,
+                    enabled:canEdit&&!archiving,
                     onTap:()=>_openArchived(visit),
                   ),
               ]))),
@@ -700,13 +706,13 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
                     title:Text(field.$1),
                     subtitle:Text(field.$2.isEmpty?'Não informado':field.$2),
                     trailing:const Icon(Icons.edit_outlined),
-                    enabled:authorized,
+                    enabled:canEdit,
                     onTap:()async {
                       final value=await _textDialog(field.$1,
                         'Informe apenas o que foi conferido',field.$2,
                         max:field.$3=='eventNarrative'?2400:200,
                         min:field.$3=='eventNarrative'?20:0);
-                      if(value==null||!mounted||!authorized)return;
+                      if(value==null||!mounted||!canEdit)return;
                       switch(field.$3){
                         case 'location':_update(draft.copyWith(location:value));break;
                         case 'asset':_update(draft.copyWith(asset:value));break;
@@ -735,13 +741,13 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
                 const Text('Revise fatos, fotografias e recomendações. '
                   'A assinatura só é inserida se você assinar nesta tela.'),
                 OutlinedButton.icon(
-                  onPressed:authorized?_sign:null,
+                  onPressed:canEdit?_sign:null,
                   icon:const Icon(Icons.draw_outlined),
                   label:Text(draft.signaturePath.isEmpty?
                     'Assinar relatório':'Atualizar assinatura')),
                 const SizedBox(height:8),
                 FilledButton.icon(
-                  onPressed:authorized&&outstanding==0&&!exporting&&
+                  onPressed:canEdit&&outstanding==0&&!exporting&&
                     !saveFailed&&draft.hasEnoughForPdf?_export:null,
                   icon:const Icon(Icons.picture_as_pdf_outlined),
                   label:Text(exporting?'Gerando PDF...':
