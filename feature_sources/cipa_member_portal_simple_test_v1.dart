@@ -87,6 +87,24 @@ void main() {
     expect(observations,0);
   });
 
+  testWidgets('Guia da CIPA explica participação sem declarar conformidade',
+    (tester) async {
+    await tester.binding.setSurfaceSize(const Size(400,820));
+    await tester.pumpWidget(MaterialApp(home:CipaMemberPortalScreen(
+      companyName:'Empresa A',mandateLabel:'2026',
+      sessionVerified:true,view:view(),
+    )));
+    await tester.scrollUntilVisible(
+      find.text('Como funciona a minha participação'),130);
+    await tester.tap(find.text('Como funciona a minha participação'));
+    await tester.pumpAndSettle();
+    expect(find.text('Recebi um aviso de reunião'),findsOneWidget);
+    expect(find.text('Tenho uma tarefa'),findsOneWidget);
+    expect(find.text('Observei uma situação'),findsOneWidget);
+    expect(find.textContaining('não que esteve presente'),findsOneWidget);
+    await tester.binding.setSurfaceSize(null);
+  });
+
   testWidgets('Sem login autorizado, nenhum atalho libera dados',
     (tester) async {
     await tester.pumpWidget(MaterialApp(home:CipaMemberPortalScreen(
