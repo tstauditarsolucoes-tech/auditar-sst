@@ -192,6 +192,61 @@ assert(snapshot.meetings.some(x=>x.id==='meeting-A'));
 assert(snapshot.actions.some(x=>x.id==='action-A'));
 assert(!JSON.stringify(snapshot).includes('Outra empresa'));
 assert(!JSON.stringify(snapshot).includes('Documento restrito'));
+assert(!snapshot.documents.some(x=>x.id==='document-published'),
+  'Documento não é publicado só por um campo legado.');
+assert(snapshot.notices.length===0,'Sem aviso criado, nenhuma publicação.');
+assert.strictEqual(invoke('cipa_member_admin_publish_notice',{
+  authToken:login.sessionToken,companyId:'company-A',
+  mandateId:'mandate-A',title:'Reunião de Segurança',
+  detail:'Teremos discussão sobre organização da fábrica.',
+  confirmedPublic:true,
+}).code,'ACCESS_DENIED','Membro não pode publicar avisos.');
+assert.strictEqual(invoke('cipa_member_admin_publish_notice',{
+  authToken:'valid-admin',companyId:'company-A',
+  mandateId:'mandate-A',title:'Aviso de Exemplo',
+  detail:'Esta mensagem precisa de confirmação explícita.'
+}).code,'CONFIRM_PUBLICATION_REQUIRED');
+const notice=invoke('cipa_member_admin_publish_notice',{
+  authToken:'valid-admin',companyId:'company-A',
+  mandateId:'mandate-A',title:'Reunião de Segurança',
+  detail:'Teremos discussão sobre organização da fábrica.',
+  confirmedPublic:true,
+});
+assert(notice.ok,'Aviso publicado pelo administrador.');
+assert.strictEqual(invoke('cipa_member_admin_publish_document',{
+  authToken:'valid-admin',companyId:'company-A',
+  mandateId:'mandate-A',documentId:'document-published'
+}).code,'CONFIRM_SAFE_METADATA_REQUIRED');
+const document=invoke('cipa_member_admin_publish_document',{
+  authToken:'valid-admin',companyId:'company-A',
+  mandateId:'mandate-A',documentId:'document-published',
+  confirmedSafeMetadata:true,
+});
+assert(document.ok,'Publicação de metadado com confirmação.');
+const changed=invoke('cipa_member_dashboard',{sessionToken:login.sessionToken});
+assert(changed.notices.some(x=>x.title==='Reunião de Segurança'));
+assert(changed.documents.some(x=>x.id==='document-published'));
+assert(!changed.documents.some(x=>x.id==='document-private'));
+assert.strictEqual(invoke('cipa_member_admin_publish_document',{
+  authToken:'valid-admin',companyId:'company-B',
+  mandateId:'mandate-B',documentId:'document-published',
+  confirmedSafeMetadata:true,
+}).code,'DOCUMENT_NOT_ELIGIBLE','Não publicar documento de outra empresa.');
+const listing=invoke('cipa_member_admin_publications',{
+  authToken:'valid-admin',companyId:'company-A',mandateId:'mandate-A'
+});
+assert(listing.ok&&listing.documents.length===1&&listing.notices.length===1);
+assert(invoke('cipa_member_admin_withdraw_notice',{
+  authToken:'valid-admin',companyId:'company-A',mandateId:'mandate-A',
+  noticeId:notice.id
+}).ok);
+assert(invoke('cipa_member_admin_unpublish_document',{
+  authToken:'valid-admin',companyId:'company-A',mandateId:'mandate-A',
+  documentId:'document-published'
+}).ok);
+const withdrawn=invoke('cipa_member_dashboard',{sessionToken:login.sessionToken});
+assert(withdrawn.notices.length===0&&withdrawn.documents.length===0,
+  'Retirada de publicação vale imediatamente.');
 assert(!JSON.stringify(snapshot).includes('password_hash'));
 assert(!JSON.stringify(snapshot).includes('syncKey'));
 const forbidden=invoke('cipa_member_event',{
