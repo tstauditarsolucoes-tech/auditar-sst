@@ -1,0 +1,34 @@
+name: Validar roteiro de reunião assistida CIPA
+on:
+  push:
+    branches:
+      - feature/cipa-meeting-coach-20261106
+    paths:
+      - 'feature_sources/cipa_meeting_coach_*'
+      - 'tools/patch_cipa_meeting_coach_v1.py'
+      - 'tools/test_cipa_meeting_coach_patch_v1.py'
+      - '.github/workflows/validate-cipa-meeting-coach.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  meeting-coach:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - name: Instalar em cópia isolada, sem tocar no servidor nem login
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/patch_cipa_meeting_coach_v1.py tools/test_cipa_meeting_coach_patch_v1.py
+          python3 tools/test_cipa_meeting_coach_patch_v1.py
+      - name: Analisar as regras e cenários da NR-05
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/cipa-meeting-coach
+          cp feature_sources/cipa_meeting_coach_rules_v1.dart /tmp/cipa-meeting-coach/cipa_meeting_coach_rules_v1.dart
+          cp feature_sources/cipa_meeting_coach_rules_test_v1.dart /tmp/cipa-meeting-coach/cipa_meeting_coach_rules_test_v1.dart
+          dart format /tmp/cipa-meeting-coach
+          dart analyze /tmp/cipa-meeting-coach
+          dart /tmp/cipa-meeting-coach/cipa_meeting_coach_rules_test_v1.dart
