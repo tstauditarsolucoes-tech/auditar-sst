@@ -3,7 +3,7 @@ name: Auditar SST Windows v3.30.128 CIPA Participacao
 
 on:
   push:
-    branches: [feature/client-panel-permissions-v329106]
+    branches: [feature/client-panel-permissions-v329106, feature/android-report-center-six-models-20261106]
     paths:
       - 'feature_sources/cipa_participation*'
       - 'tools/patch_cipa_participation_v1.py'
@@ -32,6 +32,10 @@ on:
       - 'tools/patch_sst_library_v1.py'
       - 'tools/patch_sst_deep_catalog_v2.py'
       - 'tools/patch_offline_field_catalog_v3.py'
+      - 'tools/patch_sst_report_center_v1.py'
+      - 'feature_sources/sst_report_center_screen_v1.dart'
+      - 'feature_sources/sst_report_center_models_v1.dart'
+      - 'feature_sources/sst_report_center_pdf_v1.dart'
       - 'feature_sources/offline_sst_field_catalog_v3.dart'
       - 'feature_sources/offline_sst_field_catalog_v3_test.dart'
       - 'tools/patch_offline_field_usability_v1.py'
@@ -687,6 +691,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha na inspeção Windows PDF' }
 
       - name: Teste real da rota robusta de foto
+        if: github.ref_name == 'feature/client-panel-permissions-v329106'
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
         env:
@@ -2049,6 +2054,22 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Falha nos testes de sugestões offline' }
           Pop-Location
 
+      - name: Central de seis modelos de relatório SST offline Windows
+        shell: pwsh
+        run: |
+          python tools/test_sst_report_center_patch_v1.py
+          if ($LASTEXITCODE -ne 0) { throw 'Falha no isolamento da central de relatórios' }
+          python tools/patch_sst_report_center_v1.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Falha ao instalar central de relatórios SST' }
+          Push-Location "$env:APP_DIR"
+          dart format lib/services/sst_report_center_models.dart lib/services/sst_report_center_pdf.dart lib/screens/sst_report_center_screen.dart lib/screens/company_detail_screen.dart lib/screens/manager_reports_screen.dart test/sst_report_center_models_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Erro de sintaxe da central de relatórios' }
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          if ($LASTEXITCODE -ne 0) { throw 'Erro de análise da central de relatórios' }
+          flutter test test/sst_report_center_models_test.dart test/sst_report_center_history_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Falha nos testes de modelos SST' }
+          Pop-Location
+
       - name: NCs com nome curto editável Windows (local, sem migrar banco)
         shell: pwsh
         run: |
@@ -2164,7 +2185,21 @@ jobs:
           if-no-files-found: ignore
           retention-days: 30
 
+      - name: Validar compilação Windows completa com credencial fictícia (sem distribuir EXE)
+        if: github.ref_name == 'feature/android-report-center-six-models-20261106'
+        working-directory: ${{ env.APP_DIR }}
+        shell: pwsh
+        run: |
+          Write-Host 'Homologação local, sem chave de sincronização real.'
+          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY=INATIVA_TESTES_OFFLINE
+          if ($LASTEXITCODE -ne 0) { throw 'Falha ao compilar Windows isolado' }
+          if (-not (Test-Path 'build/windows/x64/runner/Release/auditar_sst.exe')) {
+            throw 'Executável de homologação não gerado'
+          }
+          Write-Host 'WINDOWS_FULL_ASSEMBLY_HOMOLOGATION_BUILT_NO_PRODUCTION_KEY'
+
       - name: Compilar Windows release
+        if: github.ref_name == 'feature/client-panel-permissions-v329106'
         working-directory: ${{ env.APP_DIR }}
         shell: pwsh
         env:
@@ -2174,6 +2209,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Build Windows falhou' }
 
       - name: Empacotar portatil
+        if: github.ref_name == 'feature/client-panel-permissions-v329106'
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist/windows | Out-Null
@@ -2194,6 +2230,7 @@ jobs:
           Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.128-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.128-PORTATIL.sha256.txt'
 
       - name: Gerar instalador
+        if: github.ref_name == 'feature/client-panel-permissions-v329106'
         shell: pwsh
         run: |
           $iscc='C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
@@ -2231,6 +2268,7 @@ jobs:
           Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.128.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.128.sha256.txt'
 
       - uses: actions/upload-artifact@v4
+        if: github.ref_name == 'feature/client-panel-permissions-v329106'
         with:
           name: Auditar-SST-v3.30.128-Windows-Biblioteca-NRs
           path: dist/windows/*
