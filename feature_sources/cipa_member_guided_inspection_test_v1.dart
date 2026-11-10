@@ -80,4 +80,23 @@ void main() {
     expect(receivedPlace,'Produção');
     expect(receivedNote,contains('OBSERVAÇÃO VISUAL'));
   });
+  testWidgets('Falha de rede não fecha diálogo nem confirma o envio',
+    (tester) async {
+    await tester.pumpWidget(MaterialApp(home:Scaffold(
+      body:CipaGuidedInspectionDialog(onSend:(_,__) async {
+        throw StateError('Conexão indisponível');
+      }))));
+    await tester.enterText(find.byType(TextField).first,'Moinho');
+    for(var i=0;i<3;i++) {
+      final answer=find.byKey(ValueKey('answer-$i-Não sei/não verifiquei'));
+      await tester.ensureVisible(answer);
+      await tester.tap(answer);
+      await tester.pump();
+    }
+    await tester.tap(find.text('Enviar para análise'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Envio não confirmado'),findsOneWidget);
+    expect(find.text('Minha Vistoria CIPA'),findsOneWidget);
+  });
+
 }
