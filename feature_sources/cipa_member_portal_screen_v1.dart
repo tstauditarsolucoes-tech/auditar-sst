@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/cipa_member_portal_policy.dart';
 import '../widgets/cipa_member_access_header.dart';
+import '../widgets/cipa_member_guided_inspection.dart';
 
 /// UI do membro, independente da gestão interna. Este widget recebe somente
 /// dados previamente filtrados no servidor; não consulta o banco de técnicos.
@@ -128,6 +129,22 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
     if(save==true&&mounted)await _submit(()=>widget.onObserve!(p,v));
   }
 
+  Future<void> _guidedInspection() async {
+    if(!widget.sessionVerified || busy || widget.onObserve==null)return;
+    await showDialog<bool>(
+      context:context,
+      barrierDismissible:false,
+      builder:(_)=>CipaGuidedInspectionDialog(
+        onSend:(place,note) async {
+          // Mantém o mesmo fluxo autorizado de observação já existente.
+          // Sem confirmação de servidor, o diálogo permanece aberto.
+          await widget.onObserve!(place,note);
+          if(widget.onRefresh!=null)await widget.onRefresh!();
+        },
+      ),
+    );
+  }
+
   Widget _section(String title,IconData icon,List<CipaMemberItem> items,{
     Widget Function(CipaMemberItem)? actions,String empty='Nenhum registro disponível.',
   })=>Card(child:ExpansionTile(
@@ -207,6 +224,12 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
               primary:true,
             ),
             if(widget.onObserve!=null)...[
+              const SizedBox(height:10),
+              _largeAction(
+                title:'Fazer vistoria orientada',
+                icon:Icons.fact_check_outlined,
+                onPressed:busy?null:_guidedInspection,
+              ),
               const SizedBox(height:10),
               _largeAction(
                 title:'Avisar uma situação',icon:Icons.edit_note_outlined,
