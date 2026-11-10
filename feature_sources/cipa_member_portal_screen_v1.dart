@@ -340,7 +340,7 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
           leading:Icon(Icons.help_outline),
           title:Text('Como funciona a minha participação',
             style:TextStyle(fontSize:17,fontWeight:FontWeight.w700)),
-          subtitle:Text('Guia rápido em três passos'),
+          subtitle:Text('Guia rápido em quatro passos'),
           children:[
             ListTile(
               leading:CircleAvatar(child:Text('1')),
@@ -354,6 +354,12 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
                 'ou Preciso de apoio. O responsável precisa conferir a execução.')),
             ListTile(
               leading:CircleAvatar(child:Text('3')),
+              title:Text('Quero fazer uma vistoria'),
+              subtitle:Text('Escolha o setor e responda às perguntas '
+                'apenas sobre o que pode observar com segurança. '
+                'Se não souber, marque Não sei/não verifiquei.')),
+            ListTile(
+              leading:CircleAvatar(child:Text('4')),
               title:Text('Observei uma situação'),
               subtitle:Text('Informe local e descrição com suas palavras, '
                 'sem se expor a riscos. O envio não abre nem encerra '
