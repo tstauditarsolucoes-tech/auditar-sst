@@ -45,6 +45,10 @@ void main() {
       answers:['Sim','Sim','Sim'],observation:''),
       throwsArgumentError);
     expect(()=>CipaGuidedInspection.summary(
+      place:'A',category:'Organização e circulação',
+      answers:['Sim','Sim','Sim'],observation:''),
+      throwsArgumentError);
+    expect(()=>CipaGuidedInspection.summary(
       place:'Produção',category:'Organização e circulação',
       answers:['Aprovado','Sim','Sim'],observation:''),
       throwsArgumentError);
