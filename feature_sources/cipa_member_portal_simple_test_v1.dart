@@ -79,6 +79,10 @@ void main() {
       sessionVerified:true,
       onObserve:(place,desc)async {observations++;},
     )));
+    await tester.scrollUntilVisible(
+      find.text('Avisar uma situação'),160);
+    await tester.drag(find.byType(ListView),const Offset(0,-120));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Avisar uma situação'));
     await tester.pumpAndSettle();
     expect(find.text('O que você observou?'),findsOneWidget);
