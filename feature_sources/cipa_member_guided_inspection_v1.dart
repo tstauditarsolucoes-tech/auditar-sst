@@ -38,7 +38,7 @@ class CipaGuidedInspection {
       throw ArgumentError('Roteiro incompleto');
     }
     final safePlace=place.trim();
-    if(safePlace.isEmpty || safePlace.length>120) {
+    if(safePlace.length<2 || safePlace.length>120) {
       throw ArgumentError('Local inválido');
     }
     const allowed=<String>['Sim','Não','Não sei/não verifiquei'];
@@ -111,7 +111,7 @@ class _CipaGuidedInspectionDialogState
   }
 
   Future<void> _send() async {
-    if(sending || place.text.trim().isEmpty ||
+    if(sending || place.text.trim().length<2 ||
         answers.any((answer)=>answer==null))return;
     setState(() {sending=true;error='';});
     try {
@@ -213,7 +213,7 @@ class _CipaGuidedInspectionDialogState
         TextButton(onPressed:sending?null:()=>Navigator.pop(context,false),
           child:const Text('Cancelar')),
         FilledButton.icon(
-          onPressed:sending||place.text.trim().isEmpty||
+          onPressed:sending||place.text.trim().length<2||
             answers.any((answer)=>answer==null)?null:_send,
           icon:const Icon(Icons.send_outlined),
           label:Text(sending?'Enviando...':'Enviar para análise')),
