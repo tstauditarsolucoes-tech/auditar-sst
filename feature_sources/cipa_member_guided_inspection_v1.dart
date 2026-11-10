@@ -26,15 +26,83 @@ class CipaGuidedInspection {
     ],
   };
 
+  // Cada roteiro contém apenas três perguntas visuais e nenhuma medição.
+  // Os textos descrevem situações possíveis, não irregularidades confirmadas.
+  static const sectorQuestions = <String,List<String>>{
+    'Panificação': <String>[
+      'Há máquina com proteção aparentemente ausente?',
+      'Há piso escorregadio ou passagem obstruída?',
+      'Há extintor com acesso bloqueado?',
+    ],
+    'Cerâmica': <String>[
+      'Há correia ou parte móvel acessível sem proteção visível?',
+      'Há passagem perto do forno sem barreira ou aviso visível?',
+      'Há canaleta ou abertura sem proteção aparente?',
+    ],
+    'Construção civil': <String>[
+      'Há abertura ou borda elevada sem proteção visível?',
+      'Há andaime com peça solta ou base aparentemente instável?',
+      'Há circulação com materiais ou entulho obstruindo o caminho?',
+    ],
+    'Laticínios': <String>[
+      'Há máquina com proteção visivelmente ausente?',
+      'Há piso molhado na passagem?',
+      'Há painel ou cabo elétrico com dano visível?',
+    ],
+    'Logística e depósitos': <String>[
+      'Há materiais empilhados com risco aparente de queda?',
+      'Há pedestres circulando perto de veículos sem separação?',
+      'Há paletes danificados ou passagens obstruídas?',
+    ],
+    'Limpeza urbana': <String>[
+      'Há operação de veículo sem sinalização aparente?',
+      'Há área de trabalho sem isolamento visível de pedestres?',
+      'Há ferramentas com proteção aparentemente ausente?',
+    ],
+    'Comércio e escritórios': <String>[
+      'Há saída de emergência bloqueada?',
+      'Há cabo elétrico danificado ou tomada com dano visível?',
+      'Há piso ou escada com risco aparente de escorregão?',
+    ],
+  };
+
+  static List<String> questionsFor(String category) =>
+    questions[category] ?? sectorQuestions[category] ??
+      (throw ArgumentError('Roteiro desconhecido'));
+
+  static const help = <String,String>{
+    'Organização e circulação':
+      'Observe corredores, pisos e saídas sem entrar em áreas restritas.',
+    'Máquinas e equipamentos':
+      'Olhe de longe: nunca toque na máquina nem remova proteção.',
+    'Incêndio e emergência':
+      'Observe o acesso e a identificação, sem manusear equipamentos.',
+    'Ambiente e proteção':
+      'Não se exponha a poeira, calor, ruído ou áreas de movimentação.',
+    'Panificação':
+      'Veja máquinas e piso apenas de onde já é permitido circular.',
+    'Cerâmica':
+      'Não se aproxime de partes móveis nem entre sob ou dentro do forno.',
+    'Construção civil':
+      'Não suba em andaimes ou escadas para conferir uma situação.',
+    'Laticínios':
+      'Não abra painéis nem teste sensores ou proteções de máquinas.',
+    'Logística e depósitos':
+      'Mantenha distância de empilhadeiras e cargas elevadas.',
+    'Limpeza urbana':
+      'Não se aproxime de veículos em manobra ou áreas isoladas.',
+    'Comércio e escritórios':
+      'Não toque em instalações elétricas e mantenha rotas livres.',
+  };
+
   static String summary({
     required String place,
     required String category,
     required List<String> answers,
     required String observation,
   }) {
-    final questionsForCategory=questions[category];
-    if(questionsForCategory==null ||
-        answers.length!=questionsForCategory.length) {
+    final questionsForCategory=questionsFor(category);
+    if(answers.length!=questionsForCategory.length) {
       throw ArgumentError('Roteiro incompleto');
     }
     final safePlace=place.trim();
@@ -100,7 +168,7 @@ class _CipaGuidedInspectionDialogState
 
   void _resetAnswers() {
     answers=List<String?>.filled(
-      CipaGuidedInspection.questions[category]!.length,null);
+      CipaGuidedInspection.questionsFor(category).length,null);
   }
 
   @override
@@ -130,7 +198,7 @@ class _CipaGuidedInspectionDialogState
 
   @override
   Widget build(BuildContext context) {
-    final questions=CipaGuidedInspection.questions[category]!;
+    final questions=CipaGuidedInspection.questionsFor(category);
     return AlertDialog(
       title:const Text('Minha Vistoria CIPA'),
       content:SizedBox(width:460,child:SingleChildScrollView(
@@ -149,10 +217,13 @@ class _CipaGuidedInspectionDialogState
           DropdownButtonFormField<String>(
             value:category,
             decoration:const InputDecoration(
-              labelText:'O que você vai observar?',
+              labelText:'Escolha o setor ou tema',
               border:OutlineInputBorder()),
             items:[
-              for(final name in CipaGuidedInspection.questions.keys)
+              for(final name in <String>[
+                ...CipaGuidedInspection.questions.keys,
+                ...CipaGuidedInspection.sectorQuestions.keys,
+              ])
                 DropdownMenuItem(value:name,child:Text(name)),
             ],
             onChanged:sending?null:(next) {
@@ -160,9 +231,15 @@ class _CipaGuidedInspectionDialogState
               setState(() {category=next;_resetAnswers();});
             }),
           const SizedBox(height:14),
-          const Text('Todas as perguntas mostram uma possível situação de '
-            'atenção. Marque Sim apenas se a percebeu de um lugar seguro. '
-            'Use "Não sei/não verifiquei" quando necessário.'),
+          const Text('São só 3 perguntas. Marque Sim se observou '
+            'a situação de longe, Não se não observou e Não sei quando '
+            'não conseguiu verificar.'),
+          Card(child:ExpansionTile(
+            title:const Text('Como observar com segurança?'),
+            children:[Padding(padding:const EdgeInsets.all(12),
+              child:Text(CipaGuidedInspection.help[category] ??
+                'Observe apenas de um local seguro.'))],
+          )),
           const SizedBox(height:8),
           Text('Respondidas: ${answers.where((a)=>a!=null).length} '
             'de ${questions.length}',
