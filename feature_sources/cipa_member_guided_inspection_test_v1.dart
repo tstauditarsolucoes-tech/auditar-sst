@@ -21,6 +21,24 @@ void main() {
     expect(note,contains('Há materiais no corredor'));
   });
 
+  test('Sim indica relato para conferência e Não sei não inventa falha', () {
+    final note=CipaGuidedInspection.summary(
+      place:'Oficina',category:'Máquinas e equipamentos',
+      answers:['Sim','Não','Não sei/não verifiquei'],
+      observation:'Observei de distância segura');
+    expect(note,contains('Situações informadas para conferência: 1.'));
+    expect(note,contains('Respostas não verificadas: 1.'));
+    expect(note,contains('OBSERVAÇÃO VISUAL'));
+    expect(note,contains('não encerram ações'));
+  });
+
+  test('Não aceita observação que excede limite do campo', () {
+    expect(()=>CipaGuidedInspection.summary(
+      place:'Setor A',category:'Incêndio e emergência',
+      answers:['Sim','Não','Não sei/não verifiquei'],
+      observation:'a'*251),throwsArgumentError);
+  });
+
   test('Roteiro recusa respostas e local inválidos', () {
     expect(()=>CipaGuidedInspection.summary(
       place:'',category:'Organização e circulação',
@@ -45,6 +63,17 @@ void main() {
       .onPressed,isNull);
     await tester.enterText(find.byType(TextField).first,'Produção');
     await tester.pump();
+    expect(tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton,'Enviar para análise'))
+      .onPressed,isNull);
+    // Nenhuma resposta é preenchida em nome do integrante.
+    for(var i=0;i<3;i++) {
+      final answer=find.byKey(ValueKey('answer-$i-Não sei/não verifiquei'));
+      await tester.ensureVisible(answer);
+      await tester.tap(answer);
+      await tester.pump();
+    }
+    expect(find.text('Respondidas: 3 de 3'),findsOneWidget);
     await tester.ensureVisible(find.text('Enviar para análise'));
     await tester.tap(find.text('Enviar para análise'));
     await tester.pumpAndSettle();
