@@ -5,24 +5,24 @@ import 'package:flutter/material.dart';
 class CipaGuidedInspection {
   static const questions = <String, List<String>>{
     'Organização e circulação': <String>[
-      'As passagens estão livres de obstáculos?',
-      'O piso aparenta estar limpo, seco e sem aberturas desprotegidas?',
-      'As saídas e rotas de emergência estão desobstruídas?',
+      'Existem obstáculos nas passagens de circulação?',
+      'Há piso escorregadio ou abertura sem proteção visível?',
+      'Há saída ou rota de emergência obstruída?',
     ],
     'Máquinas e equipamentos': <String>[
-      'As proteções visíveis das máquinas parecem estar no lugar?',
-      'Há fios, tomadas ou painéis aparentemente danificados ou expostos?',
-      'Há pessoas transitando muito perto de partes móveis sem barreiras?',
+      'Há parte móvel de máquina acessível sem proteção aparente?',
+      'Há cabos, tomadas ou painéis com dano visível?',
+      'Há pessoas perto de máquinas sem separação aparente?',
     ],
     'Incêndio e emergência': <String>[
-      'Os extintores visíveis estão com acesso livre?',
-      'As placas de emergência visíveis estão legíveis?',
-      'É possível identificar uma saída segura do setor?',
+      'Há extintor com acesso obstruído?',
+      'Há placa de emergência ilegível ou danificada?',
+      'Há saída de emergência sem acesso livre?',
     ],
     'Ambiente e proteção': <String>[
-      'As pessoas parecem estar usando a proteção indicada para a atividade?',
-      'Há poeira, fumaça ou calor incomum perceptível de local seguro?',
-      'Há materiais armazenados que possam cair ou obstruir passagens?',
+      'Há atividade observada com proteção pessoal aparentemente ausente?',
+      'Há poeira, fumaça ou calor incomum percebido de local seguro?',
+      'Há materiais empilhados com risco aparente de queda?',
     ],
   };
 
@@ -45,10 +45,18 @@ class CipaGuidedInspection {
     if(answers.any((a)=>!allowed.contains(a))) {
       throw ArgumentError('Resposta inválida');
     }
+    if(observation.trim().length>250) {
+      throw ArgumentError('Observação muito longa');
+    }
+    final reported=answers.where((answer)=>answer=='Sim').length;
+    final unknown=answers.where((answer)=>
+      answer=='Não sei/não verifiquei').length;
     final lines=<String>[
       'VISTORIA ORIENTADA DA CIPA — OBSERVAÇÃO VISUAL',
       'Setor/local: $safePlace',
       'Tema: $category',
+      'Situações informadas para conferência: $reported. '
+        'Respostas não verificadas: $unknown.',
       for(var i=0;i<answers.length;i++)
         '${questionsForCategory[i]} Resposta: ${answers[i]}.',
       if(observation.trim().isNotEmpty)
@@ -76,7 +84,7 @@ class _CipaGuidedInspectionDialogState
   final place=TextEditingController();
   final observation=TextEditingController();
   String category=CipaGuidedInspection.questions.keys.first;
-  List<String> answers=<String>[];
+  List<String?> answers=<String?>[];
   bool sending=false;
   String error='';
 
@@ -87,9 +95,8 @@ class _CipaGuidedInspectionDialogState
   }
 
   void _resetAnswers() {
-    answers=List<String>.filled(
-      CipaGuidedInspection.questions[category]!.length,
-      'Não sei/não verifiquei');
+    answers=List<String?>.filled(
+      CipaGuidedInspection.questions[category]!.length,null);
   }
 
   @override
@@ -100,12 +107,13 @@ class _CipaGuidedInspectionDialogState
   }
 
   Future<void> _send() async {
-    if(sending || place.text.trim().isEmpty)return;
+    if(sending || place.text.trim().isEmpty ||
+        answers.any((answer)=>answer==null))return;
     setState(() {sending=true;error='';});
     try {
       final note=CipaGuidedInspection.summary(
         place:place.text,category:category,
-        answers:answers,observation:observation.text);
+        answers:answers.cast<String>(),observation:observation.text);
       await widget.onSend(place.text.trim(),note);
       if(mounted)Navigator.of(context).pop(true);
     } catch (_) {
@@ -148,9 +156,17 @@ class _CipaGuidedInspectionDialogState
               setState(() {category=next;_resetAnswers();});
             }),
           const SizedBox(height:14),
-          const Text('Marque o que conseguiu observar. '
-            'Se não souber, escolha "Não sei/não verifiquei".'),
+          const Text('Todas as perguntas mostram uma possível situação de '
+            'atenção. Marque Sim apenas se a percebeu de um lugar seguro. '
+            'Use "Não sei/não verifiquei" quando necessário.'),
           const SizedBox(height:8),
+          Text('Respondidas: ${answers.where((a)=>a!=null).length} '
+            'de ${questions.length}',
+            style:const TextStyle(fontWeight:FontWeight.w600)),
+          const SizedBox(height:6),
+          LinearProgressIndicator(
+            value:answers.where((a)=>a!=null).length/questions.length),
+          const SizedBox(height:12),
           for(var i=0;i<questions.length;i++)...[
             Text(questions[i],style:const TextStyle(
               fontWeight:FontWeight.w600,fontSize:16)),
@@ -158,6 +174,7 @@ class _CipaGuidedInspectionDialogState
               'Sim','Não','Não sei/não verifiquei',
             ])
               RadioListTile<String>(
+                key:ValueKey('answer-$i-$answer'),
                 dense:true,contentPadding:EdgeInsets.zero,
                 title:Text(answer),
                 value:answer,groupValue:answers[i],
@@ -180,7 +197,8 @@ class _CipaGuidedInspectionDialogState
         TextButton(onPressed:sending?null:()=>Navigator.pop(context,false),
           child:const Text('Cancelar')),
         FilledButton.icon(
-          onPressed:sending||place.text.trim().isEmpty?null:_send,
+          onPressed:sending||place.text.trim().isEmpty||
+            answers.any((answer)=>answer==null)?null:_send,
           icon:const Icon(Icons.send_outlined),
           label:Text(sending?'Enviando...':'Enviar para análise')),
       ],
