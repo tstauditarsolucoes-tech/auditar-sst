@@ -240,7 +240,7 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
             if(widget.onObserve!=null)...[
               _largeAction(
                 title:'Fazer vistoria',
-                icon:Icons.clipboard_outlined,
+                icon:Icons.assignment_outlined,
                 onPressed:busy?null:_guidedInspection,
                 primary:true,
               ),
