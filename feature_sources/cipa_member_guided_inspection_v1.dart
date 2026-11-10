@@ -64,7 +64,11 @@ class CipaGuidedInspection {
       'Registro encaminhado para conferência técnica; respostas não '
         'comprovam conformidade, não constituem laudo e não encerram ações.',
     ];
-    return lines.join('\n');
+    final result=lines.join('\n');
+    if(result.length>1200) {
+      throw ArgumentError('Registro ultrapassa limite do servidor');
+    }
+    return result;
   }
 }
 
