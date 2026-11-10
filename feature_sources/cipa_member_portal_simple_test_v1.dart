@@ -79,11 +79,13 @@ void main() {
       sessionVerified:true,
       onObserve:(place,desc)async {observations++;},
     )));
-    await tester.scrollUntilVisible(
-      find.text('Avisar uma situação'),160);
-    await tester.drag(find.byType(ListView),const Offset(0,-120));
+    final observeButton=find.ancestor(
+      of:find.text('Avisar uma situação'),
+      matching:find.byType(OutlinedButton));
+    // Rolar até a área inteira do botão, não apenas ao texto.
+    await tester.ensureVisible(observeButton);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Avisar uma situação'));
+    await tester.tap(observeButton);
     await tester.pumpAndSettle();
     expect(find.text('O que você observou?'),findsOneWidget);
     expect(find.textContaining('Não se aproxime de um perigo'),findsOneWidget);
