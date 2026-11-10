@@ -58,7 +58,11 @@ void main() {
     // O botão adicional fica abaixo do conteúdo principal em telas pequenas.
     // Detalhes secundários só aparecem quando a pessoa pede.
     expect(find.text('Comunicado interno'),findsNothing);
-    await tester.scrollUntilVisible(find.text('Mais informações'),120);
+    await tester.scrollUntilVisible(find.text('Mais informações'),180);
+    // O histórico da vistoria acrescentou conteúdo acima da seção secundária.
+    // Deixar o título inteiro na área clicável do celular pequeno.
+    await tester.drag(find.byType(ListView),const Offset(0,-160));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Mais informações'));
     await tester.pumpAndSettle();
     expect(find.text('Avisos (1)'),findsOneWidget);
