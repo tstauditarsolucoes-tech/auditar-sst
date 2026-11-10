@@ -58,8 +58,8 @@ void main() {
     // Relato avulso só fica visível após abrir Mais informações.
     expect(find.text('Avisar uma situação'),findsNothing);
     expect(find.text('Comunicado interno'),findsNothing);
-    final more=find.widgetWithText(ExpansionTile,'Mais informações');
-    await tester.ensureVisible(more);
+    await tester.scrollUntilVisible(find.text('Mais informações'),150);
+    await tester.ensureVisible(find.text('Mais informações'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Mais informações'));
     await tester.pumpAndSettle();
@@ -77,8 +77,8 @@ void main() {
       sessionVerified:true,
       onObserve:(place,desc)async {observations++;},
     )));
-    final more=find.widgetWithText(ExpansionTile,'Mais informações');
-    await tester.ensureVisible(more);
+    await tester.scrollUntilVisible(find.text('Mais informações'),150);
+    await tester.ensureVisible(find.text('Mais informações'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Mais informações'));
     await tester.pumpAndSettle();
