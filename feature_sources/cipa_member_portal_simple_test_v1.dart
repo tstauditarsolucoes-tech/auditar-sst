@@ -105,6 +105,43 @@ void main() {
     await tester.binding.setSurfaceSize(null);
   });
 
+  testWidgets('Histórico mostra só vistorias próprias autorizadas',
+    (tester) async {
+    final current=view().profile;
+    final allowed=CipaMemberPortalRules.build(
+      verifiedProfile:current,records:[
+      const CipaMemberItem(
+        id:'vistoria-A',companyId:'company-A',mandateId:'mandate-A',
+        type:CipaMemberItemType.observation,
+        title:'Situação observada • Produção',
+        description:'VISTORIA ORIENTADA DA CIPA — OBSERVAÇÃO VISUAL',
+        status:'Registrada',assignedMemberId:'member-A'),
+      const CipaMemberItem(
+        id:'vistoria-B',companyId:'company-B',mandateId:'mandate-A',
+        type:CipaMemberItemType.observation,
+        title:'Vistoria secreta de outra empresa',
+        description:'VISTORIA ORIENTADA DA CIPA — OBSERVAÇÃO VISUAL',
+        assignedMemberId:'member-A'),
+      const CipaMemberItem(
+        id:'observacao-A',companyId:'company-A',mandateId:'mandate-A',
+        type:CipaMemberItemType.observation,
+        title:'Relato informal',
+        description:'Piso molhado na passagem',
+        assignedMemberId:'member-A'),
+    ]);
+    await tester.pumpWidget(MaterialApp(home:CipaMemberPortalScreen(
+      companyName:'Empresa A',mandateLabel:'2026',
+      view:allowed,sessionVerified:true)));
+    await tester.scrollUntilVisible(
+      find.text('Minhas vistorias orientadas (1)'),140);
+    expect(find.text('Minhas vistorias orientadas (1)'),findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Situação observada • Produção'),140);
+    expect(find.text('Situação observada • Produção'),findsOneWidget);
+    expect(find.text('Vistoria secreta de outra empresa'),findsNothing);
+    expect(find.text('Relato informal'),findsNothing);
+  });
+
   testWidgets('Sem login autorizado, nenhum atalho libera dados',
     (tester) async {
     await tester.pumpWidget(MaterialApp(home:CipaMemberPortalScreen(
