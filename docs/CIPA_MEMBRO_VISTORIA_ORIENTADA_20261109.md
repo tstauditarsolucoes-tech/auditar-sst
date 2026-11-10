@@ -36,3 +36,23 @@ Não exige conhecimento de NRs e não instrui o membro a operar máquinas, medir
 - [ ] Testar recebimento pelo TST e histórico para o membro.
 - [ ] Fazer builds e testes reais de Android; aprovação para publicação separada.
 - [ ] Manter o APK do técnico/ADM separado do cliente dos membros.
+
+## Refinamento de usabilidade e segurança — 09/11/2026
+
+- Perguntas de todos os temas usam a mesma orientação: **Sim = situação que merece conferência**, sem representar irregularidade ou gravidade confirmada.
+- Nenhuma resposta vem pré-selecionada. Para enviar, o integrante deve responder às três perguntas; **Não sei/não verifiquei** continua uma resposta válida.
+- Contador e barra de progresso informam quantas perguntas faltam.
+- O resumo marca quantas situações foram assinaladas e quantos itens não foram verificados, sem classificar risco ou decidir conformidade.
+- Aviso preventivo aparece se uma pergunta receber **Sim**; não exige aproximação, inspeção perigosa ou correção pelo membro.
+- O resumo é limitado a **1.200 caracteres** para respeitar o limite atualmente previsto pelo backend de homologação.
+- O membro passa a ver **Minhas vistorias orientadas** separadas de **Outras observações**. Somente itens já autorizados da própria lista de observações entram nessas seções. O servidor atual marca o relato como **Registrada**; revisão técnica e mudança de situação **não foram implementadas nesta etapa**.
+- Ao concluir o envio, uma falha posterior de atualização do painel não gera mensagem errada de falha de envio nem incentiva duplicação. Falha no envio em si mantém o formulário aberto e não anuncia sucesso.
+- O guia rápido de participação passou a explicar a vistoria segura.
+- Novos testes de respostas explícitas, progressão, limites, separação por membro/empresa/mandato e falha de rede foram adicionados ao workflow de Flutter.
+- **Não afirmar CI aprovado ainda:** as verificações de CI, a integração real com a Central, o login e os testes em aparelho físico seguem pendentes.
+
+## Critérios para a próxima fase
+
+Para mostrar os estados **Recebido → Em análise → Orientação enviada → Concluído**, será preciso criar e homologar uma transição de estado com autoria, data e permissões do técnico no backend. O membro deverá consultar o estado sem poder mudá-lo. Até lá, o portal apresenta somente o status já fornecido pelo servidor, sem inventar tramitação.
+
+Fotos deverão passar por upload autenticado, autorização de leitura, política de retenção e testes contra vazamento entre empresas; **não ativar anexos antes disso**. O módulo não salva dados offline e não pode prometer rascunho persistente em aparelho de membro.
