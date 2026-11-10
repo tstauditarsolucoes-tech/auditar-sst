@@ -204,7 +204,9 @@ class _CipaGuidedInspectionDialogState
             style:TextStyle(color:Theme.of(context).colorScheme.error)),
           const Text('Este é um registro de participação na CIPA. '
             'O técnico fará a conferência. Nenhuma não conformidade '
-            'é aberta ou encerrada automaticamente.',
+            'é aberta ou encerrada automaticamente. Não inclua nomes '
+            'de pessoas nem dados de saúde. É necessária conexão para '
+            'enviar: este formulário não salva rascunhos offline.',
             style:TextStyle(fontSize:12)),
         ]))),
       actions:[
