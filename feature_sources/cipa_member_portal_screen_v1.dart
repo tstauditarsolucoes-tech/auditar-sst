@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/cipa_member_portal_policy.dart';
 import '../widgets/cipa_member_access_header.dart';
+import '../widgets/cipa_member_guided_inspection.dart';
 
 /// UI do membro, independente da gestão interna. Este widget recebe somente
 /// dados previamente filtrados no servidor; não consulta o banco de técnicos.
@@ -128,6 +129,42 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
     if(save==true&&mounted)await _submit(()=>widget.onObserve!(p,v));
   }
 
+  static bool _isGuidedInspection(CipaMemberItem item) =>
+    item.title.toLowerCase().contains('vistoria orientada') ||
+    item.description.contains('VISTORIA ORIENTADA DA CIPA');
+
+  Future<void> _guidedInspection() async {
+    if(!widget.sessionVerified || busy || widget.onObserve==null)return;
+    final submitted=await showDialog<bool>(
+      context:context,
+      barrierDismissible:false,
+      builder:(_)=>CipaGuidedInspectionDialog(
+        onSend:(place,note) async {
+          if(!widget.sessionVerified || widget.onObserve==null) {
+            throw StateError('Sessão não autorizada');
+          }
+          // O callback já autorizado decide se o servidor aceitou o relato.
+          await widget.onObserve!(place,note);
+        },
+      ),
+    );
+    if(submitted!=true || !mounted)return;
+    if(widget.onRefresh!=null) {
+      try {
+        await widget.onRefresh!();
+      } catch (_) {
+        if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content:Text('Relato enviado pelo canal '
+            'autorizado, mas não foi possível atualizar a lista. '
+            'Atualize mais tarde; não reenvie sem conferir.')));
+        return;
+      }
+    }
+    if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content:Text('Registro enviado para análise. '
+        'Acompanhe em Minhas vistorias.')));
+  }
+
   Widget _section(String title,IconData icon,List<CipaMemberItem> items,{
     Widget Function(CipaMemberItem)? actions,String empty='Nenhum registro disponível.',
   })=>Card(child:ExpansionTile(
@@ -173,6 +210,10 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
         ))));
     }
     final profile=view.profile;
+    final inspections=view.observations.where(_isGuidedInspection)
+      .toList(growable:false);
+    final otherObservations=view.observations.where(
+      (item)=>!_isGuidedInspection(item)).toList(growable:false);
     return Scaffold(
       appBar:AppBar(title:const Text('Minha CIPA'),actions:[
         if(widget.onRefresh!=null)IconButton(
@@ -207,6 +248,12 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
               primary:true,
             ),
             if(widget.onObserve!=null)...[
+              const SizedBox(height:10),
+              _largeAction(
+                title:'Fazer vistoria orientada',
+                icon:Icons.fact_check_outlined,
+                onPressed:busy?null:_guidedInspection,
+              ),
               const SizedBox(height:10),
               _largeAction(
                 title:'Avisar uma situação',icon:Icons.edit_note_outlined,
@@ -267,6 +314,13 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
                 },icon:const Icon(Icons.help_outline),
                 label:const Text('Preciso de apoio')),
           ]))),
+        _section('Minhas vistorias orientadas',
+          Icons.fact_check_outlined,inspections,
+          empty:'Nenhuma vistoria orientada disponível nesta consulta.'),
+        const Padding(padding:EdgeInsets.fromLTRB(16,0,16,10),
+          child:Text('A situação mostrada é a que a equipe registrou. '
+            'O envio não confirma correção nem encerra ação.',
+            style:TextStyle(fontSize:12))),
         Card(child:ExpansionTile(
           initiallyExpanded:false,
           leading:const Icon(Icons.more_horiz,size:28),
@@ -277,7 +331,7 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
         _section('Avisos',Icons.notifications_none_outlined,view.notices),
         _section('Meu treinamento',Icons.school_outlined,view.trainings),
         _section('Documentos liberados',Icons.folder_open_outlined,view.documents),
-        _section('Minhas observações',Icons.visibility_outlined,view.observations),
+        _section('Outras observações',Icons.visibility_outlined,otherObservations),
         _section('Lembretes',Icons.alarm_outlined,view.reminders),
           ],
         )),
@@ -286,7 +340,7 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
           leading:Icon(Icons.help_outline),
           title:Text('Como funciona a minha participação',
             style:TextStyle(fontSize:17,fontWeight:FontWeight.w700)),
-          subtitle:Text('Guia rápido em três passos'),
+          subtitle:Text('Guia rápido em quatro passos'),
           children:[
             ListTile(
               leading:CircleAvatar(child:Text('1')),
@@ -300,6 +354,12 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
                 'ou Preciso de apoio. O responsável precisa conferir a execução.')),
             ListTile(
               leading:CircleAvatar(child:Text('3')),
+              title:Text('Quero fazer uma vistoria'),
+              subtitle:Text('Escolha o setor e responda às perguntas '
+                'apenas sobre o que pode observar com segurança. '
+                'Se não souber, marque Não sei/não verifiquei.')),
+            ListTile(
+              leading:CircleAvatar(child:Text('4')),
               title:Text('Observei uma situação'),
               subtitle:Text('Informe local e descrição com suas palavras, '
                 'sem se expor a riscos. O envio não abre nem encerra '

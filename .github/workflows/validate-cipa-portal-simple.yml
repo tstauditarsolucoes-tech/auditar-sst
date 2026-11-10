@@ -3,7 +3,19 @@ on:
   push:
     branches:
       - feature/cipa-portal-simples-acessivel-20261106
+      - feature/cipa-membro-vistoria-assistida-20261109
     paths:
+      - 'feature_sources/cipa_member_portal_screen_v1.dart'
+      - 'feature_sources/cipa_member_portal_simple_test_v1.dart'
+      - 'feature_sources/cipa_member_guided_inspection_v1.dart'
+      - 'feature_sources/cipa_member_guided_inspection_test_v1.dart'
+      - '.github/workflows/validate-cipa-portal-simple.yml'
+  pull_request:
+    branches:
+      - feature/cipa-portal-simples-acessivel-20261106
+    paths:
+      - 'feature_sources/cipa_member_guided_inspection_v1.dart'
+      - 'feature_sources/cipa_member_guided_inspection_test_v1.dart'
       - 'feature_sources/cipa_member_portal_screen_v1.dart'
       - 'feature_sources/cipa_member_portal_simple_test_v1.dart'
       - '.github/workflows/validate-cipa-portal-simple.yml'
@@ -30,8 +42,10 @@ jobs:
           cp feature_sources/cipa_member_portal_policy_v1.dart /tmp/auditar_cipa_simple/lib/services/cipa_member_portal_policy.dart
           cp feature_sources/cipa_member_access_header_v1.dart /tmp/auditar_cipa_simple/lib/widgets/cipa_member_access_header.dart
           cp feature_sources/cipa_member_portal_screen_v1.dart /tmp/auditar_cipa_simple/lib/screens/cipa_member_portal_screen.dart
+          cp feature_sources/cipa_member_guided_inspection_v1.dart /tmp/auditar_cipa_simple/lib/widgets/cipa_member_guided_inspection.dart
           cp feature_sources/cipa_member_portal_screen_test_v1.dart /tmp/auditar_cipa_simple/test/cipa_member_portal_screen_test.dart
           cp feature_sources/cipa_member_portal_simple_test_v1.dart /tmp/auditar_cipa_simple/test/cipa_member_portal_simple_test.dart
+          cp feature_sources/cipa_member_guided_inspection_test_v1.dart /tmp/auditar_cipa_simple/test/cipa_member_guided_inspection_test.dart
           rm /tmp/auditar_cipa_simple/test/widget_test.dart
       - name: Testar telas e autorização por empresa e membro
         run: |
@@ -39,4 +53,4 @@ jobs:
           cd /tmp/auditar_cipa_simple
           dart format lib test
           flutter analyze --no-fatal-infos --no-fatal-warnings lib test
-          flutter test --reporter expanded test/cipa_member_portal_screen_test.dart test/cipa_member_portal_simple_test.dart
+          flutter test --reporter expanded test/cipa_member_portal_screen_test.dart test/cipa_member_portal_simple_test.dart test/cipa_member_guided_inspection_test.dart

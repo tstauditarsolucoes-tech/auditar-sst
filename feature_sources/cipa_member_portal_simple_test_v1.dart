@@ -58,7 +58,11 @@ void main() {
     // O botão adicional fica abaixo do conteúdo principal em telas pequenas.
     // Detalhes secundários só aparecem quando a pessoa pede.
     expect(find.text('Comunicado interno'),findsNothing);
-    await tester.scrollUntilVisible(find.text('Mais informações'),120);
+    await tester.scrollUntilVisible(find.text('Mais informações'),180);
+    // O histórico da vistoria acrescentou conteúdo acima da seção secundária.
+    // Deixar o título inteiro na área clicável do celular pequeno.
+    await tester.drag(find.byType(ListView),const Offset(0,-160));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Mais informações'));
     await tester.pumpAndSettle();
     expect(find.text('Avisos (1)'),findsOneWidget);
@@ -75,7 +79,13 @@ void main() {
       sessionVerified:true,
       onObserve:(place,desc)async {observations++;},
     )));
-    await tester.tap(find.text('Avisar uma situação'));
+    final observeButton=find.ancestor(
+      of:find.text('Avisar uma situação'),
+      matching:find.byType(OutlinedButton));
+    // Rolar até a área inteira do botão, não apenas ao texto.
+    await tester.ensureVisible(observeButton);
+    await tester.pumpAndSettle();
+    await tester.tap(observeButton);
     await tester.pumpAndSettle();
     expect(find.text('O que você observou?'),findsOneWidget);
     expect(find.textContaining('Não se aproxime de um perigo'),findsOneWidget);
@@ -103,6 +113,43 @@ void main() {
     expect(find.text('Observei uma situação'),findsOneWidget);
     expect(find.textContaining('não que esteve presente'),findsOneWidget);
     await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('Histórico mostra só vistorias próprias autorizadas',
+    (tester) async {
+    final current=view().profile;
+    final allowed=CipaMemberPortalRules.build(
+      verifiedProfile:current,records:[
+      const CipaMemberItem(
+        id:'vistoria-A',companyId:'company-A',mandateId:'mandate-A',
+        type:CipaMemberItemType.observation,
+        title:'Situação observada • Produção',
+        description:'VISTORIA ORIENTADA DA CIPA — OBSERVAÇÃO VISUAL',
+        status:'Registrada',assignedMemberId:'member-A'),
+      const CipaMemberItem(
+        id:'vistoria-B',companyId:'company-B',mandateId:'mandate-A',
+        type:CipaMemberItemType.observation,
+        title:'Vistoria secreta de outra empresa',
+        description:'VISTORIA ORIENTADA DA CIPA — OBSERVAÇÃO VISUAL',
+        assignedMemberId:'member-A'),
+      const CipaMemberItem(
+        id:'observacao-A',companyId:'company-A',mandateId:'mandate-A',
+        type:CipaMemberItemType.observation,
+        title:'Relato informal',
+        description:'Piso molhado na passagem',
+        assignedMemberId:'member-A'),
+    ]);
+    await tester.pumpWidget(MaterialApp(home:CipaMemberPortalScreen(
+      companyName:'Empresa A',mandateLabel:'2026',
+      view:allowed,sessionVerified:true)));
+    await tester.scrollUntilVisible(
+      find.text('Minhas vistorias orientadas (1)'),140);
+    expect(find.text('Minhas vistorias orientadas (1)'),findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Situação observada • Produção'),140);
+    expect(find.text('Situação observada • Produção'),findsOneWidget);
+    expect(find.text('Vistoria secreta de outra empresa'),findsNothing);
+    expect(find.text('Relato informal'),findsNothing);
   });
 
   testWidgets('Sem login autorizado, nenhum atalho libera dados',
