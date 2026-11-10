@@ -233,40 +233,35 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
               style:Theme.of(context).textTheme.titleLarge
                 ?.copyWith(fontWeight:FontWeight.w800)),
             const SizedBox(height:5),
-            const Text('Toque em uma opção. Não precisa conhecer a NR.',
+            const Text('Para fazer uma vistoria, toque no primeiro botão. '
+              'São somente 3 perguntas por setor.',
               style:TextStyle(fontSize:16)),
             const SizedBox(height:14),
-            _largeAction(
-              title:'Ver reuniões',icon:Icons.event_outlined,
-              onPressed:busy?null:()=>_goTo(_meetingsSection),
-              primary:true,
-            ),
-            const SizedBox(height:10),
+            if(widget.onObserve!=null)...[
+              _largeAction(
+                title:'Fazer vistoria',
+                icon:Icons.assignment_outlined,
+                onPressed:busy?null:_guidedInspection,
+                primary:true,
+              ),
+              const SizedBox(height:10),
+            ],
             _largeAction(
               title:'Minhas tarefas',icon:Icons.fact_check_outlined,
               onPressed:busy?null:()=>_goTo(_tasksSection),
-              primary:true,
             ),
-            if(widget.onObserve!=null)...[
-              const SizedBox(height:10),
-              _largeAction(
-                title:'Fazer vistoria orientada',
-                icon:Icons.fact_check_outlined,
-                onPressed:busy?null:_guidedInspection,
-              ),
-              const SizedBox(height:10),
-              _largeAction(
-                title:'Avisar uma situação',icon:Icons.edit_note_outlined,
-                onPressed:busy?null:_newObservation,
-              ),
-            ],
+            const SizedBox(height:10),
+            _largeAction(
+              title:'Ver reuniões',icon:Icons.event_outlined,
+              onPressed:busy?null:()=>_goTo(_meetingsSection),
+            ),
             const SizedBox(height:10),
             Text('Você tem '+
               view.pendingActions.toString()+' tarefa(s) em acompanhamento.',
               style:const TextStyle(fontSize:15)),
             const SizedBox(height:4),
-            const Text('O técnico ou responsável confere os relatos '
-              'e valida as ações. Você pode pedir ajuda a qualquer momento.',
+            const Text('Você só registra o que viu de um local seguro. '
+              'A equipe de SST confere os relatos e as ações.',
               style:TextStyle(fontSize:14)),
           ]))),
         if(busy)const LinearProgressIndicator(),
@@ -326,8 +321,15 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
           leading:const Icon(Icons.more_horiz,size:28),
           title:const Text('Mais informações',
             style:TextStyle(fontSize:17,fontWeight:FontWeight.w700)),
-          subtitle:const Text('Avisos, treinamentos, documentos e lembretes'),
+          subtitle:const Text('Relatos, avisos, treinamentos e documentos'),
           children:[
+        if(widget.onObserve!=null)
+          Padding(padding:const EdgeInsets.fromLTRB(12,4,12,12),
+            child:SizedBox(width:double.infinity,height:52,
+              child:OutlinedButton.icon(
+                onPressed:busy?null:_newObservation,
+                icon:const Icon(Icons.edit_note),
+                label:const Text('Avisar uma situação')))),
         _section('Avisos',Icons.notifications_none_outlined,view.notices),
         _section('Meu treinamento',Icons.school_outlined,view.trainings),
         _section('Documentos liberados',Icons.folder_open_outlined,view.documents),

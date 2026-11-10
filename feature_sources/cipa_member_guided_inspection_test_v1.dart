@@ -10,6 +10,29 @@ void main() {
     }
   });
 
+  test('Setores específicos usam só três perguntas', () {
+    expect(CipaGuidedInspection.sectorQuestions.length,7);
+    for(final entry in CipaGuidedInspection.sectorQuestions.entries) {
+      expect(CipaGuidedInspection.questionsFor(entry.key).length,3,
+        reason:entry.key);
+      expect(CipaGuidedInspection.help[entry.key],isNotEmpty);
+    }
+    expect(()=>CipaGuidedInspection.questionsFor('Inexistente'),
+      throwsArgumentError);
+  });
+
+  test('Registro setorial mantém revisão técnica e limite de 1200', () {
+    for(final sector in CipaGuidedInspection.sectorQuestions.keys) {
+      final note=CipaGuidedInspection.summary(
+        place:'Produção',category:sector,
+        answers:['Sim','Não','Não sei/não verifiquei'],
+        observation:'Registro visual');
+      expect(note,contains('Tema: $sector'));
+      expect(note,contains('conferência técnica'));
+      expect(note.length,lessThanOrEqualTo(1200));
+    }
+  });
+
   test('Resumo mantém respostas incertas e não declara conformidade', () {
     final note=CipaGuidedInspection.summary(
       place:'Produção',category:'Organização e circulação',

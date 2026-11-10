@@ -4,6 +4,7 @@ on:
     branches:
       - feature/cipa-portal-simples-acessivel-20261106
       - feature/cipa-membro-vistoria-assistida-20261109
+      - feature/cipa-portal-membro-uso-facil-20261109
     paths:
       - 'feature_sources/cipa_member_portal_screen_v1.dart'
       - 'feature_sources/cipa_member_portal_simple_test_v1.dart'
@@ -13,6 +14,7 @@ on:
   pull_request:
     branches:
       - feature/cipa-portal-simples-acessivel-20261106
+      - feature/cipa-membro-vistoria-assistida-20261109
     paths:
       - 'feature_sources/cipa_member_guided_inspection_v1.dart'
       - 'feature_sources/cipa_member_guided_inspection_test_v1.dart'
