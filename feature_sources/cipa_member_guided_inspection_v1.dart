@@ -186,6 +186,16 @@ class _CipaGuidedInspectionDialogState
                   setState(()=>answers[i]=next!)),
             const Divider(),
           ],
+          if(answers.contains('Sim'))...[
+            const Padding(
+              padding:EdgeInsets.symmetric(vertical:8),
+              child:Text('Você assinalou pelo menos uma situação para '
+                'avaliação. Não tente corrigir ou verificar de perto. '
+                'Se perceber perigo imediato, afaste-se e comunique '
+                'o responsável conforme o procedimento da empresa.',
+                style:TextStyle(fontWeight:FontWeight.w600)),
+            ),
+          ],
           TextField(controller:observation,maxLength:250,maxLines:3,
             decoration:const InputDecoration(
               labelText:'Algo mais que deseja contar? (opcional)',
