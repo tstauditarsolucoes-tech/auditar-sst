@@ -36,7 +36,7 @@ void main() {
     expect(()=>CipaGuidedInspection.summary(
       place:'Setor A',category:'Incêndio e emergência',
       answers:['Sim','Não','Não sei/não verifiquei'],
-      observation:'a'*251),throwsArgumentError);
+      observation:List<String>.filled(251,'a').join()),throwsArgumentError);
   });
 
   test('Roteiro recusa respostas e local inválidos', () {
