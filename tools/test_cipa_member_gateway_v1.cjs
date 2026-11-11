@@ -97,6 +97,9 @@ vm.runInContext(fs.readFileSync(path.join(
   root,'feature_sources/CipaMemberReviewsV1.gs'),'utf8'),
   scope,{filename:'CipaMemberReviewsV1.gs'});
 vm.runInContext(fs.readFileSync(path.join(
+  root,'feature_sources/CipaMemberFeedbackReadV1.gs'),'utf8'),
+  scope,{filename:'CipaMemberFeedbackReadV1.gs'});
+vm.runInContext(fs.readFileSync(path.join(
   root,'feature_sources/CipaTstReviewAccessV1.gs'),'utf8'),
   scope,{filename:'CipaTstReviewAccessV1.gs'});
 vm.runInContext(fs.readFileSync(path.join(
@@ -381,6 +384,38 @@ assert(reviewedInbox&&reviewedInbox.status==='Orientação enviada');
 assert.strictEqual(reviewedInbox.feedback,lastReview.feedback);
 assert(!JSON.stringify(lastReview).includes('admin@example.test'));
 
+assert.strictEqual(lastReview.feedbackRead,false,
+  'Orientação ainda não foi confirmada.');
+assert.strictEqual(lastReview.reviewId,reply.reviewId,
+  'Somente a revisão atual pode ser confirmada.');
+const acknowledgement={
+  sessionToken:login.sessionToken,
+  observationId:'test-request-id-12345678902',
+  reviewId:reply.reviewId,
+  requestId:'feedback-read-request-12345678901',
+};
+assert.strictEqual(invoke('cipa_member_ack_feedback',{
+  ...acknowledgement,sessionToken:'invalid',
+}).code,'SESSION_INVALID','Sem sessão de membro não há ciência.');
+assert.strictEqual(invoke('cipa_member_ack_feedback',{
+  ...acknowledgement,observationId:'other-company-observation-888',
+}).code,'ACCESS_DENIED','Não confirmar relato de outra empresa.');
+assert.strictEqual(invoke('cipa_member_ack_feedback',{
+  ...acknowledgement,reviewId:'review-stale-123456789012',
+}).code,'REVIEW_NOT_CURRENT','Revisões antigas não recebem ciência.');
+const reading=invoke('cipa_member_ack_feedback',acknowledgement);
+assert(reading.ok&&reading.read===true,'Confirmação de leitura registrada.');
+assert.strictEqual(invoke('cipa_member_ack_feedback',
+  acknowledgement).duplicate,true,'Toques repetidos não duplicam a leitura.');
+const afterRead=invoke('cipa_member_dashboard',{
+  sessionToken:login.sessionToken,
+}).observations.find(x=>x.id==='test-request-id-12345678902');
+assert.strictEqual(afterRead.feedbackRead,true,
+  'Membro vê que leu a resposta atual.');
+assert.strictEqual(afterRead.status,'Orientação enviada',
+  'Ciência não altera a avaliação do TST.');
+
+
 
 // Um TST exige delegação explícita, mandato ativo e token com role próprio.
 const reviewTstFields={
@@ -418,6 +453,18 @@ assert.strictEqual(invoke('cipa_member_admin_review_observation',{
 }).code,'ACCESS_DENIED','TST não utiliza endpoint de administrador');
 const tstReviewed=invoke('cipa_tst_review_observation',reviewTstFields);
 assert(tstReviewed.ok,'TST delegado pode responder relato autorizado');
+const newer=invoke('cipa_member_dashboard',{
+  sessionToken:login.sessionToken,
+}).observations.find(x=>x.id==='test-request-id-12345678902');
+assert.strictEqual(newer.feedbackRead,false,
+  'Uma orientação posterior precisa de nova leitura.');
+assert.notStrictEqual(newer.reviewId,reply.reviewId);
+assert.strictEqual(invoke('cipa_member_ack_feedback',{
+  ...acknowledgement,
+  requestId:'feedback-read-request-12345678902',
+}).code,'REVIEW_NOT_CURRENT',
+  'Não é possível confirmar orientação substituída.');
+
 const tstRepeat=invoke('cipa_tst_review_observation',reviewTstFields);
 assert(tstRepeat.duplicate===true,'Reenvio seguro sem duplicação');
 assert(invoke('cipa_tst_review_grant',{
