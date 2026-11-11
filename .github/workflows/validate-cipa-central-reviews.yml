@@ -5,9 +5,15 @@ on:
       - feature/cipa-central-vistorias-devolutivas-20261111
       - feature/cipa-tst-permissoes-vistorias-20261111
       - feature/cipa-vistorias-programadas-20261111
+      - feature/cipa-ux-guiada-ciencia-orientacao-20261111
     paths:
       - 'feature_sources/CipaMemberGatewayV1.gs'
       - 'feature_sources/CipaMemberReviewsV1.gs'
+      - 'feature_sources/CipaMemberFeedbackReadV1.gs'
+      - 'feature_sources/cipa_member_guided_inspection_v1.dart'
+      - 'feature_sources/cipa_member_guided_inspection_test_v1.dart'
+      - 'feature_sources/cipa_member_portal_screen_v1.dart'
+      - 'feature_sources/cipa_member_portal_simple_test_v1.dart'
       - 'feature_sources/CipaTstReviewAccessV1.gs'
       - 'feature_sources/CipaMemberInspectionSchedulesV1.gs'
       - 'feature_sources/cipa_tst_review_screen_v1.dart'
@@ -25,6 +31,7 @@ on:
       - feature/cipa-portal-membro-uso-facil-20261109
       - feature/cipa-central-vistorias-devolutivas-20261111
       - feature/cipa-tst-permissoes-vistorias-20261111
+      - feature/cipa-vistorias-programadas-20261111
   workflow_dispatch:
 permissions:
   contents: read
@@ -39,10 +46,12 @@ jobs:
           set -euo pipefail
           cp feature_sources/CipaMemberGatewayV1.gs /tmp/CipaMemberGatewayV1.js
           cp feature_sources/CipaMemberReviewsV1.gs /tmp/CipaMemberReviewsV1.js
+          cp feature_sources/CipaMemberFeedbackReadV1.gs /tmp/CipaMemberFeedbackReadV1.js
           cp feature_sources/CipaTstReviewAccessV1.gs /tmp/CipaTstReviewAccessV1.js
           cp feature_sources/CipaMemberInspectionSchedulesV1.gs /tmp/CipaMemberInspectionSchedulesV1.js
           node --check /tmp/CipaMemberGatewayV1.js
           node --check /tmp/CipaMemberReviewsV1.js
+          node --check /tmp/CipaMemberFeedbackReadV1.js
           node --check /tmp/CipaTstReviewAccessV1.js
           node --check /tmp/CipaMemberInspectionSchedulesV1.js
           node tools/test_cipa_member_gateway_v1.cjs
@@ -110,8 +119,9 @@ jobs:
           cp feature_sources/cipa_member_portal_screen_v1.dart /tmp/cipa_member_ui_fixture/lib/screens/cipa_member_portal_screen.dart
           cp feature_sources/cipa_member_portal_screen_test_v1.dart /tmp/cipa_member_ui_fixture/test/cipa_member_portal_screen_test.dart
           cp feature_sources/cipa_member_portal_simple_test_v1.dart /tmp/cipa_member_ui_fixture/test/cipa_member_portal_simple_test.dart
+          cp feature_sources/cipa_member_guided_inspection_test_v1.dart /tmp/cipa_member_ui_fixture/test/cipa_member_guided_inspection_test.dart
           rm /tmp/cipa_member_ui_fixture/test/widget_test.dart
           cd /tmp/cipa_member_ui_fixture
           dart format lib test
           flutter analyze --no-fatal-infos --no-fatal-warnings lib test
-          flutter test --reporter expanded test/cipa_member_portal_screen_test.dart test/cipa_member_portal_simple_test.dart
+          flutter test --reporter expanded test/cipa_member_portal_screen_test.dart test/cipa_member_portal_simple_test.dart test/cipa_member_guided_inspection_test.dart
