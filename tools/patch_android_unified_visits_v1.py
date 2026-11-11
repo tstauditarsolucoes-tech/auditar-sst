@@ -18,6 +18,8 @@ home = app / "lib/screens/home_screen.dart"
 quick = app / "lib/screens/quick_visit_screen.dart"
 chooser = app / "lib/screens/visit_type_chooser_screen.dart"
 metrics = app / "lib/services/unified_visit_metrics.dart"
+briefing = app / "lib/screens/smart_visit_briefing_screen.dart"
+intelligence = app / "lib/services/visit_intelligence.dart"
 pub = app / "pubspec.yaml"
 
 protected_names = (
@@ -40,6 +42,8 @@ protected = {
 }
 assert home.exists() and quick.exists() and not chooser.exists()
 assert not metrics.exists(), "Métrica unificada já instalada; inspecione a versão"
+assert not briefing.exists() and not intelligence.exists(), (
+    "Visita inteligente já existe; inspecione a versão")
 
 def one(src, old, new, why):
     count = src.count(old)
@@ -50,6 +54,8 @@ def one(src, old, new, why):
 # Keep all existing screens/forms; this is a new selector only.
 shutil.copyfile(repo/"feature_sources/android_visit_type_chooser_v1.dart", chooser)
 shutil.copyfile(repo/"feature_sources/android_unified_visit_metrics_v1.dart", metrics)
+shutil.copyfile(repo/"feature_sources/smart_visit_briefing_screen_v1.dart", briefing)
+shutil.copyfile(repo/"feature_sources/visit_intelligence_v1.dart", intelligence)
 
 # Quick Visit already performs safe company filtering. Reuse it for Ronda,
 # keeping one entry point after company selection and all existing controls.
@@ -196,5 +202,7 @@ for name,digest in protected.items():
     assert hashlib.sha256((app/name).read_bytes()).hexdigest()==digest, name
 
 assert "UnifiedVisitMetrics.calculate" in home.read_text()
+assert "SmartVisitBriefingScreen" in chooser.read_text()
+assert "Visita Inteligente" in briefing.read_text()
 assert "AuditarVisitTypeChooserScreen" in quick.read_text()
 print("ANDROID_UNIFIED_VISITS_READY: UI+read-only metrics; core unchanged")
