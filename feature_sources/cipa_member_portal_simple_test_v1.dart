@@ -159,9 +159,13 @@ void main() {
     expect(find.text('Situação observada • Produção'),findsOneWidget);
     expect(find.textContaining('Resposta do técnico: Conferir'),
       findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Li a orientação'),140);
-    await tester.ensureVisible(find.text('Li a orientação'));
-    await tester.tap(find.text('Li a orientação'));
+    final readButton=find.widgetWithText(OutlinedButton,'Li a orientação');
+    await tester.scrollUntilVisible(readButton,180);
+    await tester.drag(find.byType(ListView).first,const Offset(0,-170));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(readButton);
+    await tester.pumpAndSettle();
+    await tester.tap(readButton);
     await tester.pumpAndSettle();
     expect(acknowledged,1);
     expect(find.text('Leitura confirmada pelo integrante'),findsOneWidget);
@@ -185,9 +189,13 @@ void main() {
     await tester.pumpWidget(MaterialApp(home:CipaMemberPortalScreen(
       companyName:'Empresa A',mandateLabel:'2026',
       view:permitted,sessionVerified:true,onObserve:(_,__)async{})));
-    await tester.scrollUntilVisible(find.text('Iniciar esta vistoria'),140);
-    await tester.ensureVisible(find.text('Iniciar esta vistoria'));
-    await tester.tap(find.text('Iniciar esta vistoria'));
+    final startButton=find.widgetWithText(OutlinedButton,'Iniciar esta vistoria');
+    await tester.scrollUntilVisible(startButton,180);
+    await tester.drag(find.byType(ListView).first,const Offset(0,-170));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(startButton);
+    await tester.pumpAndSettle();
+    await tester.tap(startButton);
     await tester.pumpAndSettle();
     expect(find.text('Integrante: Joana Souza'),findsOneWidget);
     expect(find.text('Empresa: Empresa A'),findsOneWidget);
