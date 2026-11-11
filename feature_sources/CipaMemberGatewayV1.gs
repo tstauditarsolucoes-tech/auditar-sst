@@ -22,7 +22,8 @@ function cipaMemV1Route_(request) {
     'cipa_member_admin_publish_document','cipa_member_admin_unpublish_document',
     'cipa_member_admin_publications',
     'cipa_member_admin_review_observation',
-    'cipa_tst_review_inbox','cipa_tst_review_observation','cipa_tst_review_grant'];
+    'cipa_tst_review_inbox','cipa_tst_review_observation','cipa_tst_review_grant',
+    'cipa_schedule_create','cipa_schedule_cancel','cipa_schedule_list'];
   if(known.indexOf(action)<0)return null;
   if(PropertiesService.getScriptProperties().getProperty('CIPA_MEMBER_V1_ENABLED')!=='true')
     return {ok:false,code:'FEATURE_DISABLED',message:'Acesso de membros ainda não habilitado.'};
@@ -40,6 +41,9 @@ function cipaMemV1Route_(request) {
     if(action==='cipa_member_admin_review_observation')
       return cipaMemV1AdminReviewObservation_(request);
     if(action==='cipa_tst_review_inbox')return cipaTstReviewInbox_(request);
+    if(action==='cipa_schedule_create')return cipaMemV1ScheduleCreate_(request);
+    if(action==='cipa_schedule_cancel')return cipaMemV1ScheduleCancel_(request);
+    if(action==='cipa_schedule_list')return cipaMemV1ScheduleAdminList_(request);
     if(action==='cipa_tst_review_grant')return cipaTstReviewGrant_(request);
     if(action==='cipa_tst_review_observation')
       return cipaMemV1AdminReviewObservation_(request,true);
@@ -476,7 +480,8 @@ function cipaMemV1Dashboard_(request) {
     representation:String(v.rows.find(function(r){
       return r.id===a.memberId;}).payload.representation||''),
     jobTitle:''},
-    ...data,observations:observations.map(function(e){
+    ...data,scheduledInspections:cipaMemV1ScheduleMember_(a),
+    observations:observations.map(function(e){
       var review=reviews[e.id];
       return {
         id:e.id,type:'observation',
