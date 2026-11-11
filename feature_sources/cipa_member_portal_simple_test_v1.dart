@@ -125,7 +125,9 @@ void main() {
         type:CipaMemberItemType.observation,
         title:'Situação observada • Produção',
         description:'VISTORIA ORIENTADA DA CIPA — OBSERVAÇÃO VISUAL',
-        status:'Registrada',assignedMemberId:'member-A'),
+        status:'Orientação enviada',
+        feedback:'Conferir a passagem com equipe técnica.',
+        assignedMemberId:'member-A'),
       const CipaMemberItem(
         id:'vistoria-B',companyId:'company-B',mandateId:'mandate-A',
         type:CipaMemberItemType.observation,
@@ -148,6 +150,8 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('Situação observada • Produção'),140);
     expect(find.text('Situação observada • Produção'),findsOneWidget);
+    expect(find.textContaining('Resposta do técnico: Conferir'),
+      findsOneWidget);
     expect(find.text('Vistoria secreta de outra empresa'),findsNothing);
     expect(find.text('Relato informal'),findsNothing);
   });
