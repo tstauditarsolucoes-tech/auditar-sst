@@ -17,9 +17,12 @@ void main() {
       scrollable:find.byType(Scrollable).first);
     await tester.tap(find.text('Central de Vistorias e Relatos (1)'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Orientar'),150,
+    final replyButton=find.widgetWithText(TextButton,'Orientar');
+    await tester.scrollUntilVisible(replyButton,180,
       scrollable:find.byType(Scrollable).first);
-    await tester.tap(find.text('Orientar'));
+    await tester.ensureVisible(replyButton);
+    await tester.pumpAndSettle();
+    await tester.tap(replyButton);
     await tester.pumpAndSettle();
     expect(find.text('Orientar integrante da CIPA'),findsOneWidget);
     await tester.tap(find.text('Situação'));
