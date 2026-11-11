@@ -367,6 +367,79 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
           if(notice.isNotEmpty)Card(child:Padding(
             padding:const EdgeInsets.all(10),child:Text(notice))),
           Card(child:ExpansionTile(
+            title:const Text('Programar vistoria para o membro'),
+            subtitle:const Text('Escolha integrante, setor e horário'),
+            children:[Padding(padding:const EdgeInsets.all(14),
+              child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,
+                children:[
+                DropdownButtonFormField<String>(
+                  isExpanded:true,value:selectedInspectionMember,
+                  decoration:const InputDecoration(
+                    labelText:'Integrante da vistoria'),
+                  items:widget.members.map((m)=>DropdownMenuItem(
+                    value:m.memberId,
+                    child:Text(m.label,overflow:TextOverflow.ellipsis)))
+                    .toList(),
+                  onChanged:busy?null:(v)=>
+                    setState(()=>selectedInspectionMember=v)),
+                const SizedBox(height:10),
+                TextField(controller:inspectionLocation,maxLength:120,
+                  enabled:!busy,onChanged:(_)=>setState((){}),
+                  decoration:const InputDecoration(labelText:'Local')),
+                DropdownButtonFormField<String>(
+                  value:inspectionTheme,
+                  decoration:const InputDecoration(
+                    labelText:'Tema para observar'),
+                  items:const [
+                    DropdownMenuItem(value:'Organização e circulação',
+                      child:Text('Organização e circulação')),
+                    DropdownMenuItem(value:'Máquinas e equipamentos',
+                      child:Text('Máquinas e equipamentos')),
+                    DropdownMenuItem(value:'Incêndio e emergência',
+                      child:Text('Incêndio e emergência')),
+                    DropdownMenuItem(value:'Ambiente e proteção',
+                      child:Text('Ambiente e proteção')),
+                  ],
+                  onChanged:busy?null:(v)=>setState(
+                    ()=>inspectionTheme=v??inspectionTheme)),
+                const SizedBox(height:10),
+                OutlinedButton.icon(
+                  onPressed:busy?null:_selectInspectionDate,
+                  icon:const Icon(Icons.calendar_month_outlined),
+                  label:Text(inspectionDate==null?'Escolher dia e horário':
+                    '${inspectionDate!.day}/${inspectionDate!.month}/'
+                    '${inspectionDate!.year} às '
+                    '${inspectionDate!.hour.toString().padLeft(2,'0')}:'
+                    '${inspectionDate!.minute.toString().padLeft(2,'0')}')),
+                const SizedBox(height:8),
+                FilledButton.icon(
+                  onPressed:busy||selectedInspectionMember==null||
+                    inspectionLocation.text.trim().length<2||
+                    inspectionDate==null||inspectionDate!.isBefore(
+                      DateTime.now().add(const Duration(hours:1)))
+                      ?null:_scheduleInspection,
+                  icon:const Icon(Icons.event_available_outlined),
+                  label:const Text('Programar vistoria')),
+                const SizedBox(height:12),
+                Text('Vistorias programadas',
+                  style:Theme.of(context).textTheme.titleSmall),
+                for(final s in schedules.where(
+                  (s)=>s['status']=='Agendada').take(50))
+                  ListTile(
+                    title:Text((s['location']??'').toString()),
+                    subtitle:Text('Membro: ${s['memberId']}'
+                      '\n${s['plannedAt']}'),
+                    trailing:TextButton(
+                      onPressed:busy?null:()=>_cancelInspection(
+                        (s['id']??'').toString()),
+                      child:const Text('Cancelar')),
+                  ),
+                const Text('Esta programação é apenas um lembrete. '
+                  'O membro ainda precisa realizar e enviar a vistoria.',
+                  style:TextStyle(fontSize:12)),
+              ]))],
+          )),
+          Card(child:ExpansionTile(
             title:Text('Central de Vistorias e Relatos (${inbox.length})'),
             subtitle:const Text('Receber, conferir e orientar o membro'),
             children:inbox.reversed.take(80).map((event){
