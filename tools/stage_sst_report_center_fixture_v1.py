@@ -40,6 +40,8 @@ copies={
        "lib/screens/sst_report_center_screen.dart",
     "feature_sources/sst_report_center_models_test_v1.dart":
        "test/sst_report_center_models_test.dart",
+    "feature_sources/sst_report_center_pdf_evidence_test_v1.dart":
+       "test/sst_report_center_pdf_evidence_test.dart",
 }
 for from_,to in copies.items():
     path=app/to
