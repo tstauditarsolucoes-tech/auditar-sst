@@ -67,6 +67,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Acessos da CIPA'),findsOneWidget);
     expect(find.text('Cadastrar acesso individual'),findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Vincular tarefa a integrante'),180,
+      scrollable:find.byType(Scrollable).first);
     expect(find.text('Vincular tarefa a integrante'),findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('Publicar comunicado da CIPA'),180,

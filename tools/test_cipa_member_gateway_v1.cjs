@@ -35,6 +35,8 @@ const props={
 const fakeAdmin={
   id:'admin-A',active:true,role:'admin',email:'admin@example.test',
 };
+const fakeTst={id:'tst-A',active:true,role:'tst',email:'tst@example.test'};
+
 const scope={
   console,
   Date,
@@ -72,7 +74,8 @@ const scope={
   DEVICE_SYNC_SHEET:'SincronizacaoDispositivos',
   authHex_:(arr)=>arr.map(x=>(Number(x)+256)%256)
     .map(x=>x.toString(16).padStart(2,'0')).join(''),
-  authUserFromToken_:(token)=>token==='valid-admin'?fakeAdmin:null,
+  authUserFromToken_:(token)=>token==='valid-admin'?fakeAdmin:
+    token==='valid-tst'?fakeTst:null,
   auditAuthEvent_:()=>{},
   LockService:{getScriptLock(){return {
     waitLock:()=>{},releaseLock:()=>{},
@@ -93,6 +96,9 @@ vm.runInContext(fs.readFileSync(path.join(
 vm.runInContext(fs.readFileSync(path.join(
   root,'feature_sources/CipaMemberReviewsV1.gs'),'utf8'),
   scope,{filename:'CipaMemberReviewsV1.gs'});
+vm.runInContext(fs.readFileSync(path.join(
+  root,'feature_sources/CipaTstReviewAccessV1.gs'),'utf8'),
+  scope,{filename:'CipaTstReviewAccessV1.gs'});
 const invoke=(action,fields={})=>JSON.parse(JSON.stringify(
   scope.cipaMemV1Route_({action,...fields})));
 
@@ -371,6 +377,56 @@ const reviewedInbox=invoke('cipa_member_admin_inbox',{
 assert(reviewedInbox&&reviewedInbox.status==='Orientação enviada');
 assert.strictEqual(reviewedInbox.feedback,lastReview.feedback);
 assert(!JSON.stringify(lastReview).includes('admin@example.test'));
+
+
+// Um TST exige delegação explícita, mandato ativo e token com role próprio.
+const reviewTstFields={
+  authToken:'valid-tst',companyId:'company-A',mandateId:'mandate-A',
+  observationId:'test-request-id-12345678902',
+  status:'Orientação enviada',
+  message:'Observe apenas de um local seguro; encaminhe ao responsável.',
+  requestId:'tst-review-request-12345678901',
+};
+assert.strictEqual(invoke('cipa_tst_review_inbox',{
+  authToken:'valid-tst',companyId:'company-A',mandateId:'mandate-A',
+}).code,'ACCESS_DENIED','TST sem delegação não acessa relatos');
+assert.strictEqual(invoke('cipa_tst_review_grant',{
+  authToken:'valid-tst',userId:'tst-A',companyId:'company-A',
+  mandateId:'mandate-A',operation:'grant',
+}).code,'ACCESS_DENIED','TST não concede a si próprio');
+assert(invoke('cipa_tst_review_grant',{
+  authToken:'valid-admin',userId:'tst-A',companyId:'company-A',
+  mandateId:'mandate-A',operation:'grant',
+}).ok,'Administrador concede somente o escopo escolhido');
+const tstInbox=invoke('cipa_tst_review_inbox',{
+  authToken:'valid-tst',companyId:'company-A',mandateId:'mandate-A',
+});
+assert(tstInbox.ok&&tstInbox.events.length===1);
+assert(tstInbox.events.every(e=>e.kind===undefined &&
+  e.companyId==='company-A'&&e.mandateId==='mandate-A'));
+assert.strictEqual(invoke('cipa_tst_review_inbox',{
+  authToken:'valid-tst',companyId:'company-B',mandateId:'mandate-B',
+}).code,'ACCESS_DENIED','TST não lê outra empresa');
+assert.strictEqual(invoke('cipa_tst_review_observation',{
+  ...reviewTstFields,companyId:'company-B',mandateId:'mandate-B',
+}).code,'ACCESS_DENIED','TST não responde outra empresa');
+assert.strictEqual(invoke('cipa_member_admin_review_observation',{
+  ...reviewTstFields,
+}).code,'ACCESS_DENIED','TST não utiliza endpoint de administrador');
+const tstReviewed=invoke('cipa_tst_review_observation',reviewTstFields);
+assert(tstReviewed.ok,'TST delegado pode responder relato autorizado');
+const tstRepeat=invoke('cipa_tst_review_observation',reviewTstFields);
+assert(tstRepeat.duplicate===true,'Reenvio seguro sem duplicação');
+assert(invoke('cipa_tst_review_grant',{
+  authToken:'valid-admin',userId:'tst-A',companyId:'company-A',
+  mandateId:'mandate-A',operation:'revoke',
+}).ok,'Administrador revoga a autorização');
+assert.strictEqual(invoke('cipa_tst_review_observation',{
+  ...reviewTstFields,requestId:'tst-review-request-12345678902',
+}).code,'ACCESS_DENIED','Revogação vale para o próximo pedido');
+assert.strictEqual(invoke('cipa_tst_review_inbox',{
+  authToken:'valid-tst',companyId:'company-A',mandateId:'mandate-A',
+}).code,'ACCESS_DENIED','Revogação bloqueia leitura também');
 
 const revoke=invoke('cipa_member_admin_revoke',{
  authToken:'valid-admin',accountId:grant.id,

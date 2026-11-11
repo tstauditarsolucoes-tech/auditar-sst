@@ -21,7 +21,8 @@ function cipaMemV1Route_(request) {
     'cipa_member_admin_publish_notice','cipa_member_admin_withdraw_notice',
     'cipa_member_admin_publish_document','cipa_member_admin_unpublish_document',
     'cipa_member_admin_publications',
-    'cipa_member_admin_review_observation'];
+    'cipa_member_admin_review_observation',
+    'cipa_tst_review_inbox','cipa_tst_review_observation','cipa_tst_review_grant'];
   if(known.indexOf(action)<0)return null;
   if(PropertiesService.getScriptProperties().getProperty('CIPA_MEMBER_V1_ENABLED')!=='true')
     return {ok:false,code:'FEATURE_DISABLED',message:'Acesso de membros ainda não habilitado.'};
@@ -38,6 +39,10 @@ function cipaMemV1Route_(request) {
     if(action==='cipa_member_admin_inbox')return cipaMemV1AdminInbox_(request);
     if(action==='cipa_member_admin_review_observation')
       return cipaMemV1AdminReviewObservation_(request);
+    if(action==='cipa_tst_review_inbox')return cipaTstReviewInbox_(request);
+    if(action==='cipa_tst_review_grant')return cipaTstReviewGrant_(request);
+    if(action==='cipa_tst_review_observation')
+      return cipaMemV1AdminReviewObservation_(request,true);
     if(action==='cipa_member_admin_publish_notice')
       return cipaMemV1PublishNotice_(request);
     if(action==='cipa_member_admin_withdraw_notice')
