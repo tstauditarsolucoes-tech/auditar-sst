@@ -43,10 +43,12 @@ function cipaMemV1ScheduleCreate_(request) {
   var memberId=String(request.memberId||'').trim();
   var location=String(request.location||'').trim();
   var theme=String(request.theme||'').trim();
+  var themes=['Organização e circulação','Máquinas e equipamentos',
+    'Incêndio e emergência','Ambiente e proteção'];
   var requestId=String(request.requestId||'').trim();
   var planned=Date.parse(String(request.plannedAt||''));
   if(!memberId||location.length<2||location.length>120||
-     theme.length<3||theme.length>80||
+     /^[=+@-]/.test(location)||themes.indexOf(theme)<0||
      !/^[A-Za-z0-9_-]{16,120}$/.test(requestId)||
      !Number.isFinite(planned)||planned<Date.now()+3600000 ||
      planned>Date.now()+366*86400000)
