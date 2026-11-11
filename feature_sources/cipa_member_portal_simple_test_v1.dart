@@ -127,6 +127,7 @@ void main() {
         description:'VISTORIA ORIENTADA DA CIPA — OBSERVAÇÃO VISUAL',
         status:'Orientação enviada',
         feedback:'Conferir a passagem com equipe técnica.',
+        reviewId:'review-test-123456789012345',feedbackRead:false,
         assignedMemberId:'member-A'),
       const CipaMemberItem(
         id:'vistoria-B',companyId:'company-B',mandateId:'mandate-A',
@@ -141,9 +142,15 @@ void main() {
         description:'Piso molhado na passagem',
         assignedMemberId:'member-A'),
     ]);
+    var acknowledged=0;
     await tester.pumpWidget(MaterialApp(home:CipaMemberPortalScreen(
       companyName:'Empresa A',mandateLabel:'2026',
-      view:allowed,sessionVerified:true)));
+      view:allowed,sessionVerified:true,
+      onAcknowledgeFeedback:(observationId,reviewId) async {
+        expect(observationId,'vistoria-A');
+        expect(reviewId,'review-test-123456789012345');
+        acknowledged++;
+      })));
     await tester.scrollUntilVisible(
       find.text('Minhas vistorias orientadas (1)'),140);
     expect(find.text('Minhas vistorias orientadas (1)'),findsOneWidget);
@@ -152,8 +159,44 @@ void main() {
     expect(find.text('Situação observada • Produção'),findsOneWidget);
     expect(find.textContaining('Resposta do técnico: Conferir'),
       findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Li a orientação'),140);
+    await tester.ensureVisible(find.text('Li a orientação'));
+    await tester.tap(find.text('Li a orientação'));
+    await tester.pumpAndSettle();
+    expect(acknowledged,1);
+    expect(find.text('Leitura confirmada pelo integrante'),findsOneWidget);
+    expect(find.text('Li a orientação'),findsNothing);
     expect(find.text('Vistoria secreta de outra empresa'),findsNothing);
     expect(find.text('Relato informal'),findsNothing);
+  });
+
+
+  testWidgets('Vistoria programada abre identificada e com setor preenchido',
+    (tester) async {
+    final profile=view().profile;
+    final permitted=CipaMemberPortalRules.build(
+      verifiedProfile:profile,records:[
+        const CipaMemberItem(id:'scheduled-1',
+          companyId:'company-A',mandateId:'mandate-A',
+          assignedMemberId:'member-A',
+          type:CipaMemberItemType.scheduledInspection,
+          title:'Vistoria: Cerâmica',status:'Programada'),
+      ]);
+    await tester.pumpWidget(MaterialApp(home:CipaMemberPortalScreen(
+      companyName:'Empresa A',mandateLabel:'2026',
+      view:permitted,sessionVerified:true,onObserve:(_,__)async{})));
+    await tester.scrollUntilVisible(find.text('Iniciar esta vistoria'),140);
+    await tester.ensureVisible(find.text('Iniciar esta vistoria'));
+    await tester.tap(find.text('Iniciar esta vistoria'));
+    await tester.pumpAndSettle();
+    expect(find.text('Integrante: Joana Souza'),findsOneWidget);
+    expect(find.text('Empresa: Empresa A'),findsOneWidget);
+    final place=tester.widget<TextField>(find.byType(TextField).first);
+    expect(place.controller?.text,'Cerâmica');
+    await tester.tap(find.text('Começar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Há correia ou parte móvel acessível sem proteção visível?'),
+      findsOneWidget);
   });
 
   testWidgets('Agendamentos são exibidos só para integrante autorizado',
