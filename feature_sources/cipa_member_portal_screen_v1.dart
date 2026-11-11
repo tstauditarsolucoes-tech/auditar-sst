@@ -31,6 +31,7 @@ class CipaMemberPortalScreen extends StatefulWidget {
 }
 class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
   bool busy=false;
+  bool largerLetters=false;
   String error='';
   final Set<String> _confirmedReads={};
   final GlobalKey _meetingsSection=GlobalKey();
@@ -282,6 +283,14 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
     final profile=view.profile;
     final inspections=view.observations.where(_isGuidedInspection)
       .toList(growable:false);
+    final soon=DateUtils.dateOnly(DateTime.now().add(const Duration(days:1)));
+    final upcoming=view.scheduledInspections.where((item)=>
+      item.status=='Programada'&&item.dueDate!=null&&
+      !DateUtils.dateOnly(item.dueDate!).isAfter(soon)).length;
+    final unread=view.observations.where((item)=>
+      item.status=='Orientação enviada'&&item.feedback.isNotEmpty&&
+      !item.feedbackRead&&item.reviewId.isNotEmpty&&
+      !_confirmedReads.contains('${item.id}|${item.reviewId}')).length;
     final otherObservations=view.observations.where(
       (item)=>!_isGuidedInspection(item)).toList(growable:false);
     return Scaffold(
@@ -293,8 +302,19 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
           onPressed:busy?null:()=>_submit(widget.onLogout!),
           tooltip:'Sair da conta',icon:const Icon(Icons.logout)),
       ]),
-      body:SafeArea(child:ListView(
+      body:MediaQuery(
+        data:MediaQuery.of(context).copyWith(
+          textScaler:TextScaler.linear(
+            MediaQuery.textScalerOf(context).scale(1.0)*
+              (largerLetters?1.25:1.0))),
+        child:SafeArea(child:ListView(
         padding:const EdgeInsets.fromLTRB(12,12,12,64),children:[
+        Row(mainAxisAlignment:MainAxisAlignment.end,children:[
+          TextButton.icon(
+            onPressed:()=>setState(()=>largerLetters=!largerLetters),
+            icon:const Icon(Icons.text_increase),
+            label:Text(largerLetters?'Letras normais':'Letras maiores')),
+        ]),
         CipaMemberAccessHeader(profile:profile,
           companyName:widget.companyName,mandateLabel:widget.mandateLabel),
         Card(child:Padding(padding:const EdgeInsets.all(16),
@@ -333,6 +353,18 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
             const Text('Você só registra o que viu de um local seguro. '
               'A equipe de SST confere os relatos e as ações.',
               style:TextStyle(fontSize:14)),
+          ]))),
+        if(upcoming>0||unread>0)Card(child:Padding(
+          padding:const EdgeInsets.all(14),
+          child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            const Text('Atenção às suas atividades',
+              style:TextStyle(fontSize:17,fontWeight:FontWeight.w700)),
+            if(upcoming>0)Text('$upcoming vistoria(s) até amanhã. '
+              'Consulte Vistorias programadas.'),
+            if(unread>0)Text('$unread orientação(ões) do TST '
+              'ainda sem confirmação de leitura.'),
+            const Text('Avisos dentro do portal; não são notificações '
+              'do celular.',style:TextStyle(fontSize:12)),
           ]))),
         if(busy)const LinearProgressIndicator(),
         if(error.isNotEmpty)Padding(
@@ -462,7 +494,7 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
             'registre local e situação, acompanhe sua tarefa e peça apoio. '
             'Não precisa indicar qual NR se aplica. A gestão é responsável '
             'pela avaliação técnica e conclusão de ações.'))),
-      ])),
+      ]))),
     );
   }
 }
