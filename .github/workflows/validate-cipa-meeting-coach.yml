@@ -3,12 +3,16 @@ on:
   push:
     branches:
       - feature/cipa-meeting-coach-20261106
+      - feature/cipa-sugestor-temas-ata-20261111
     paths:
       - 'feature_sources/cipa_meeting_coach_*'
       - 'tools/patch_cipa_meeting_coach_v1.py'
       - 'tools/test_cipa_meeting_coach_patch_v1.py'
       - 'tools/stage_cipa_meeting_coach_flutter_v1.py'
       - '.github/workflows/validate-cipa-meeting-coach.yml'
+  pull_request:
+    branches:
+      - feature/cipa-facilidade-ciclo-completo-20261111
   workflow_dispatch:
 permissions:
   contents: read
