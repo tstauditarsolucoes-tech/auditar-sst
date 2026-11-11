@@ -12,7 +12,7 @@ class CipaMemberPortalScreen extends StatefulWidget {
     this.view, this.sessionVerified=false,
     this.onRefresh, this.onLogout, this.onAcknowledgeMeeting,
     this.onReportProgress, this.onRequestSupport, this.onObserve,
-    this.onAcknowledgeFeedback,
+    this.onAcknowledgeFeedback, this.onObserveScheduled,
   });
   final String companyName,mandateLabel;
   final CipaMemberView? view;
@@ -21,6 +21,8 @@ class CipaMemberPortalScreen extends StatefulWidget {
   final Future<void> Function(String id)? onAcknowledgeMeeting;
   final Future<void> Function(String id,String note)? onReportProgress,onRequestSupport;
   final Future<void> Function(String place,String note)? onObserve;
+  final Future<void> Function(String scheduleId,String place,String note)?
+    onObserveScheduled;
   final Future<void> Function(String observationId,String reviewId)?
     onAcknowledgeFeedback;
 
@@ -138,7 +140,7 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
     item.description.contains('VISTORIA ORIENTADA DA CIPA');
 
   Future<void> _guidedInspection({String? initialCategory,
-      String? initialPlace}) async {
+      String? initialPlace,String? scheduleId}) async {
     if(!widget.sessionVerified || busy || widget.onObserve==null)return;
     final submitted=await showDialog<bool>(
       context:context,
@@ -154,7 +156,11 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
             throw StateError('Sessão não autorizada');
           }
           // O callback já autorizado decide se o servidor aceitou o relato.
-          await widget.onObserve!(place,note);
+          if(scheduleId!=null && widget.onObserveScheduled!=null) {
+            await widget.onObserveScheduled!(scheduleId,place,note);
+          } else {
+            await widget.onObserve!(place,note);
+          }
         },
       ),
     );
@@ -379,9 +385,11 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
           actions:(item)=>widget.onObserve==null?
             const SizedBox.shrink():
             SizedBox(width:double.infinity,child:OutlinedButton.icon(
-              onPressed:busy?null:()=>_guidedInspection(
+              onPressed:busy||item.status!='Programada'?null:
+                ()=>_guidedInspection(
                 initialCategory:item.title.replaceFirst('Vistoria: ',''),
-                initialPlace:item.title.replaceFirst('Vistoria: ','')),
+                initialPlace:item.title.replaceFirst('Vistoria: ',''),
+                scheduleId:item.id),
               icon:const Icon(Icons.play_arrow),
               label:const Text('Iniciar esta vistoria')))),
         const Padding(padding:EdgeInsets.fromLTRB(16,0,16,10),
