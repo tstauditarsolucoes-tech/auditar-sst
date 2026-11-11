@@ -142,7 +142,10 @@ void main(){
     await tester.ensureVisible(finish);
     await tester.tap(finish);
     await tester.pumpAndSettle();
-    expect(find.text('EDITOR_DE_REUNIAO_ABERTO'),findsOneWidget);
+    final editor=find.text('EDITOR_DE_REUNIAO_ABERTO');
+    await tester.scrollUntilVisible(editor,150,
+      scrollable:find.byType(Scrollable).first);
+    expect(editor,findsOneWidget);
     await tester.binding.setSurfaceSize(null);
   });
 }
