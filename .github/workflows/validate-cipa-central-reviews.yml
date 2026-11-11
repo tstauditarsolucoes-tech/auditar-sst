@@ -4,7 +4,6 @@ on:
     branches:
       - feature/cipa-central-vistorias-devolutivas-20261111
       - feature/cipa-tst-permissoes-vistorias-20261111
-      - feature/cipa-tst-permissoes-vistorias-20261111
       - feature/cipa-vistorias-programadas-20261111
     paths:
       - 'feature_sources/CipaMemberGatewayV1.gs'
@@ -25,6 +24,7 @@ on:
     branches:
       - feature/cipa-portal-membro-uso-facil-20261109
       - feature/cipa-central-vistorias-devolutivas-20261111
+      - feature/cipa-tst-permissoes-vistorias-20261111
   workflow_dispatch:
 permissions:
   contents: read
