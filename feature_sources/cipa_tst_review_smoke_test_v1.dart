@@ -16,6 +16,6 @@ void main() {
     expect(find.text('Autorizar acesso'),findsNothing);
     final actions=AppsScriptHttp.requests.map((x)=>x['action']).toList();
     expect(actions,contains('cipa_tst_review_inbox'));
-    expect(actions,neverContains('cipa_member_admin_list'));
+    expect(actions,isNot(contains('cipa_member_admin_list')));
   });
 }
