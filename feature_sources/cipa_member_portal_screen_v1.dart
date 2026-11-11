@@ -217,6 +217,10 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
       .toList(growable:false);
     final otherObservations=view.observations.where(
       (item)=>!_isGuidedInspection(item)).toList(growable:false);
+    final scheduled=view.reminders.where((item)=>
+      item.title.startsWith('Vistoria programada')).toList(growable:false);
+    final otherReminders=view.reminders.where((item)=>
+      !item.title.startsWith('Vistoria programada')).toList(growable:false);
     return Scaffold(
       appBar:AppBar(title:const Text('Minha CIPA'),actions:[
         if(widget.onRefresh!=null)IconButton(
@@ -312,6 +316,9 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
                 },icon:const Icon(Icons.help_outline),
                 label:const Text('Preciso de apoio')),
           ]))),
+        _section('Minhas vistorias programadas',
+          Icons.event_available_outlined,scheduled,
+          empty:'Nenhuma vistoria programada para você.'),
         _section('Minhas vistorias orientadas',
           Icons.fact_check_outlined,inspections,
           empty:'Nenhuma vistoria orientada disponível nesta consulta.'),
@@ -337,7 +344,31 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
         _section('Meu treinamento',Icons.school_outlined,view.trainings),
         _section('Documentos liberados',Icons.folder_open_outlined,view.documents),
         _section('Outras observações',Icons.visibility_outlined,otherObservations),
-        _section('Lembretes',Icons.alarm_outlined,view.reminders),
+        _section('Outros lembretes',Icons.alarm_outlined,otherReminders),
+          ],
+        )),
+        const Card(child:ExpansionTile(
+          initiallyExpanded:false,
+          leading:Icon(Icons.menu_book_outlined),
+          title:Text('Aprender sobre segurança',
+            style:TextStyle(fontSize:17,fontWeight:FontWeight.w700)),
+          subtitle:Text('Orientações rápidas antes da vistoria'),
+          children:[
+            ListTile(title:Text('Extintores e saídas'),
+              subtitle:Text('Veja se o acesso parece livre. Nunca manuseie '
+                'equipamentos para fazer o registro.')),
+            ListTile(title:Text('Máquinas e eletricidade'),
+              subtitle:Text('Observe de longe. Não abra painéis, '
+                'remova proteções ou teste sensores.')),
+            ListTile(title:Text('Pisos, escadas e andaimes'),
+              subtitle:Text('Registre o que percebe de local seguro. '
+                'Não suba para obter fotografias ou conferir estruturas.')),
+            ListTile(title:Text('Poeira, ruído e calor'),
+              subtitle:Text('Avise se perceber algo incomum, sem entrar '
+                'em ambientes perigosos ou fazer medições.')),
+            ListTile(title:Text('Quando houver perigo imediato'),
+              subtitle:Text('Afaste-se e comunique o responsável conforme '
+                'o procedimento da empresa. Não tente resolver sozinho.')),
           ],
         )),
         const Card(child:ExpansionTile(
