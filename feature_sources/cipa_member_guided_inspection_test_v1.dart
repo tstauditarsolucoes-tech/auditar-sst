@@ -77,53 +77,100 @@ void main() {
       throwsArgumentError);
   });
 
-  testWidgets('Membro consegue enviar observação guiada', (tester) async {
+  testWidgets('Vistoria usa uma pergunta por tela e resumo final',
+    (tester) async {
     String? receivedPlace,receivedNote;
     await tester.pumpWidget(MaterialApp(home:Scaffold(
-      body:CipaGuidedInspectionDialog(onSend:(place,note) async {
-        receivedPlace=place;receivedNote=note;
-      }))));
+      body:CipaGuidedInspectionDialog(
+        memberName:'Maria Silva',memberRole:'Titular',
+        companyName:'Empresa A',mandateLabel:'2026',
+        onSend:(place,note) async {
+          receivedPlace=place;receivedNote=note;
+        }))));
     expect(find.text('Minha Vistoria CIPA'),findsOneWidget);
-    expect(find.text('Enviar para análise'),findsOneWidget);
-    expect(tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton,'Enviar para análise'))
-      .onPressed,isNull);
+    expect(find.text('Integrante: Maria Silva'),findsOneWidget);
+    expect(find.text('Função na CIPA: Titular'),findsOneWidget);
+    expect(find.text('Empresa: Empresa A'),findsOneWidget);
+    expect(find.text('Mandato: 2026'),findsOneWidget);
+    expect(find.text('Pergunta 1 de 3'),findsNothing);
+    final start=find.widgetWithText(FilledButton,'Começar');
+    expect(tester.widget<FilledButton>(start).onPressed,isNull);
     await tester.enterText(find.byType(TextField).first,'Produção');
     await tester.pump();
-    expect(tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton,'Enviar para análise'))
-      .onPressed,isNull);
-    // Nenhuma resposta é preenchida em nome do integrante.
+    await tester.tap(start);
+    await tester.pumpAndSettle();
+    expect(find.text('Pergunta 1 de 3'),findsOneWidget);
+    expect(find.text('Pergunta 2 de 3'),findsNothing);
     for(var i=0;i<3;i++) {
-      final answer=find.byKey(ValueKey('answer-$i-Não sei/não verifiquei'));
-      await tester.ensureVisible(answer);
-      await tester.tap(answer);
+      expect(find.byKey(ValueKey('answer-$i-Sim')),findsOneWidget);
+      if(i<2) {
+        expect(tester.widget<FilledButton>(
+          find.widgetWithText(FilledButton,'Próxima')).onPressed,isNull);
+      }
+      await tester.tap(find.byKey(ValueKey(
+        'answer-$i-Não sei/não verifiquei')));
       await tester.pump();
+      await tester.tap(find.text(i==2?'Conferir respostas':'Próxima'));
+      await tester.pumpAndSettle();
     }
-    expect(find.text('Respondidas: 3 de 3'),findsOneWidget);
+    expect(find.text('Confira suas respostas'),findsOneWidget);
+    expect(find.text('Resposta: Não sei/não verifiquei'),findsNWidgets(3));
     await tester.ensureVisible(find.text('Enviar para análise'));
     await tester.tap(find.text('Enviar para análise'));
     await tester.pumpAndSettle();
     expect(receivedPlace,'Produção');
     expect(receivedNote,contains('OBSERVAÇÃO VISUAL'));
+    expect(receivedNote,contains('Respostas não verificadas: 3'));
+    expect(receivedNote, isNot(contains('Maria Silva')),
+      reason:'O servidor vincula a sessão; não repetir dados pessoais no relato.');
   });
-  testWidgets('Falha de rede não fecha diálogo nem confirma o envio',
+
+  testWidgets('Vistoria programada preenche setor e permite voltar sem perder resposta',
+    (tester) async {
+    await tester.pumpWidget(MaterialApp(home:Scaffold(
+      body:CipaGuidedInspectionDialog(
+        initialCategory:'Cerâmica',initialPlace:'Cerâmica',
+        memberName:'Maria',companyName:'Empresa A',
+        onSend:(_,__) async {}))));
+    final field=tester.widget<TextField>(find.byType(TextField).first);
+    expect(field.controller?.text,'Cerâmica');
+    await tester.tap(find.text('Começar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Há correia ou parte móvel acessível sem proteção visível?'),
+      findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('answer-0-Sim')));
+    await tester.pump();
+    await tester.tap(find.text('Próxima'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pergunta 2 de 3'),findsOneWidget);
+    await tester.tap(find.text('Voltar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pergunta 1 de 3'),findsOneWidget);
+    expect(find.byKey(const ValueKey('answer-0-Sim')),findsOneWidget);
+    expect(tester.widget<RadioListTile<String>>(
+      find.byKey(const ValueKey('answer-0-Sim'))).groupValue,'Sim');
+  });
+
+  testWidgets('Falha de envio mantém revisão aberta e não anuncia sucesso',
     (tester) async {
     await tester.pumpWidget(MaterialApp(home:Scaffold(
       body:CipaGuidedInspectionDialog(onSend:(_,__) async {
         throw StateError('Conexão indisponível');
       }))));
     await tester.enterText(find.byType(TextField).first,'Moinho');
+    await tester.tap(find.text('Começar'));
+    await tester.pumpAndSettle();
     for(var i=0;i<3;i++) {
-      final answer=find.byKey(ValueKey('answer-$i-Não sei/não verifiquei'));
-      await tester.ensureVisible(answer);
-      await tester.tap(answer);
+      await tester.tap(find.byKey(ValueKey(
+        'answer-$i-Não sei/não verifiquei')));
       await tester.pump();
+      await tester.tap(find.text(i==2?'Conferir respostas':'Próxima'));
+      await tester.pumpAndSettle();
     }
+    await tester.ensureVisible(find.text('Enviar para análise'));
     await tester.tap(find.text('Enviar para análise'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Envio não confirmado'),findsOneWidget);
-    expect(find.text('Minha Vistoria CIPA'),findsOneWidget);
+    expect(find.text('Confira suas respostas'),findsOneWidget);
   });
-
 }
