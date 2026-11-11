@@ -86,6 +86,7 @@ class _CipaManagementScreenState extends State<CipaManagementScreen> {
 test=root/"test/cipa_meeting_coach_widget_test.dart"
 test.parent.mkdir(parents=True,exist_ok=True)
 test.write_text(r"""import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cipa_meeting_coach_fixture/screens/cipa_management_screen.dart';
 
@@ -118,6 +119,18 @@ void main(){
   });
   testWidgets('Assistente sugere pauta antes da reunião e abre editor',
     (tester)async{
+    String? copied;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(SystemChannels.platform,(call) async {
+        if(call.method=='Clipboard.setData') {
+          copied=(call.arguments as Map)['text'] as String?;
+        }
+        return null;
+      });
+    addTearDown((){
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform,null);
+    });
     await tester.binding.setSurfaceSize(const Size(600,850));
     await tester.pumpWidget(const MaterialApp(
       home:CipaManagementScreen(hasMandate:true)));
@@ -142,6 +155,9 @@ void main(){
     await tester.ensureVisible(finish);
     await tester.tap(finish);
     await tester.pumpAndSettle();
+    expect(copied,contains('PROPOSTA DE PAUTA DA CIPA'));
+    expect(copied,contains('Prevenção de acidentes em máquinas'));
+    expect(find.text('Escolher tema para a pauta'),findsNothing);
     final editor=find.text('EDITOR_DE_REUNIAO_ABERTO');
     await tester.scrollUntilVisible(editor,150,
       scrollable:find.byType(Scrollable).first);
