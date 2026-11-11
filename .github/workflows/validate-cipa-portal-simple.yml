@@ -5,6 +5,7 @@ on:
       - feature/cipa-portal-simples-acessivel-20261106
       - feature/cipa-membro-vistoria-assistida-20261109
       - feature/cipa-portal-membro-uso-facil-20261109
+      - feature/cipa-central-vistorias-devolutivas-20261111
     paths:
       - 'feature_sources/cipa_member_portal_screen_v1.dart'
       - 'feature_sources/cipa_member_portal_simple_test_v1.dart'
