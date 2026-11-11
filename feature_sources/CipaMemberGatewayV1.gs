@@ -514,6 +514,9 @@ function cipaMemV1Event_(request) {
     return {ok:false,code:'ACCESS_DENIED'};
   var data=cipaMemV1RecordsAllowed_(session);
   if(kind==='observation'&&location.length<2)return {ok:false,code:'INVALID_INPUT'};
+  if(kind==='observation'&&targetId&&!cipaMemV1ScheduleCurrent_(
+      a.companyId,a.mandateId,a.memberId).some(function(s){return s.id===targetId;}))
+    return {ok:false,code:'ACCESS_DENIED'};
   if(kind==='progress'||kind==='support'){
     if(!data.actions.some(function(r){return r.id===targetId&&
       r.status!=='Resolvida'&&r.status!=='Concluída';}))
@@ -528,13 +531,24 @@ function cipaMemV1Event_(request) {
     // A revogação durante a preparação também precisa bloquear a gravação.
     if(!cipaMemV1Authorize_(request.sessionToken))
       return {ok:false,code:'SESSION_INVALID'};
+    if(kind==='observation'&&targetId&&!cipaMemV1ScheduleCurrent_(
+        a.companyId,a.mandateId,a.memberId).some(function(s){return s.id===targetId;}))
+      return {ok:false,code:'ACCESS_DENIED'};
     var sheet=cipaMemV1Sheet_(CIPA_MEM_V1_EVENTS,
       ['request_id','created_at','account_id','company_id','mandate_id',
        'member_id','kind','target_id','location','detail']);
     if(sheet.getLastRow()>1){
-      var ids=sheet.getRange(2,1,sheet.getLastRow()-1,1).getValues();
-      if(ids.some(function(r){return String(r[0])===requestId;}))
-        return {ok:true,duplicate:true};
+      var entries=sheet.getRange(2,1,sheet.getLastRow()-1,10).getValues();
+      var previous=entries.find(function(r){return String(r[0])===requestId;});
+      if(previous)return String(previous[2])===a.id&&
+        String(previous[3])===a.companyId&&
+        String(previous[4])===a.mandateId&&
+        String(previous[5])===a.memberId&&
+        String(previous[6])===kind&&
+        String(previous[7])===targetId&&
+        String(previous[8])===location&&
+        String(previous[9])===detail
+        ?{ok:true,duplicate:true}:{ok:false,code:'ID_REUSED'};
     }
     sheet.appendRow([requestId,new Date().toISOString(),a.id,
       a.companyId,a.mandateId,a.memberId,kind,targetId,location,detail]);
