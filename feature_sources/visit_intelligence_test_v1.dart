@@ -30,6 +30,7 @@ void main() {
     row('a5','empresa-A','r3','Condição insegura',
       correctionStatus:'Resolvida'),
     row('a6','empresa-A','r4','Risco',
+      sector:'Moagem',description:'Partes móveis expostas no moinho',
       correctionStatus:'Validação pendente'),
     row('a7','empresa-A','','Não conformidade'),
     <String,Object?>{'id':'a8','companyId':'empresa-A','payload':'invalido'},
