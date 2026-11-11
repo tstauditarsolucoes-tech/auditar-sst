@@ -140,8 +140,17 @@ class _OfflineSstNrsBrowserScreenState
               ),
               const SizedBox(height: 4),
               const Text(
-                'Consulte por NR, máquina ou situação. O catálogo não envia '
-                'dados nem registra não conformidades automaticamente.',
+                'Estes modelos vêm instalados no aplicativo e funcionam '
+                'sem internet. Para receber novos modelos embarcados, '
+                'é preciso instalar uma versão atualizada do Auditar SST.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Modelos compartilhados pela Central usam o cache e a '
+                'sincronização próprios. Uma atualização da Central não '
+                'substitui os arquivos offline desta instalação.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 12),
               ),

@@ -37,6 +37,9 @@ def once(src,old,new,why):
     return src.replace(old,new,1)
 
 s=status.read_text(encoding="utf-8")
+assert "Future<void> _refreshStatus()" in s, (
+    "A tela instalada não fornece atualização de status local; verificar a versão")
+
 s=once(s,
     "import '../services/offline_knowledge_cloud_service.dart';",
     "import '../services/offline_knowledge_cloud_service.dart';\n"
@@ -49,12 +52,17 @@ s=once(s,
             Card(child:ListTile(
               leading:const Icon(Icons.menu_book_outlined),
               title:const Text('Consultar Biblioteca Técnica por NR'),
-              subtitle:const Text('345 modelos locais, incluindo '
-                'panificação. Disponíveis mesmo sem internet.'),
+              subtitle:const Text('Modelos embarcados no aplicativo, '
+                'disponíveis mesmo sem internet.'),
               trailing:const Icon(Icons.chevron_right),
-              onTap:()=>Navigator.of(context).push(
-                MaterialPageRoute(builder:(_)=>
-                  const OfflineSstNrsBrowserScreen())),
+              onTap:() async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(builder:(_)=>
+                    const OfflineSstNrsBrowserScreen()));
+                // Atualiza os indicadores locais após retornar à biblioteca.
+                // Não envia arquivos/credenciais automaticamente à Central.
+                if(context.mounted) await _refreshStatus();
+              },
             )),
             const SizedBox(height:12),
             Card(child:Padding(""",
