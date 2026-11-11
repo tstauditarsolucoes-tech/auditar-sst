@@ -45,13 +45,17 @@ class CipaMemberAdminScreen extends StatefulWidget {
 class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
   final email=TextEditingController();
   final tstUserId=TextEditingController();
+  final scheduleNote=TextEditingController();
   final noticeTitle=TextEditingController();
   final noticeBody=TextEditingController();
   String? selectedMember,selectedAction,selectedDocument;
   bool confirmNoticeSafe=false,confirmDocumentSafe=false;
   bool busy=false;
   String error='',notice='';
-  List<Map<String,dynamic>> accounts=[],inbox=[],notices=[];
+  List<Map<String,dynamic>> accounts=[],inbox=[],notices=[],schedules=[];
+  DateTime? scheduleDue;
+  String scheduleSector='Organização e circulação';
+  final Map<String,String> _scheduleRequestIds={};
   final Map<String,String> _pendingReviewIds={};
   final Set<String> publishedDocumentIds={};
 
@@ -59,7 +63,7 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
   void initState(){super.initState();_reload();}
   @override
   void dispose(){
-    email.dispose();tstUserId.dispose();
+    email.dispose();tstUserId.dispose();scheduleNote.dispose();
     noticeTitle.dispose();noticeBody.dispose();super.dispose();
   }
 
@@ -104,6 +108,7 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
       final saved=await _call('cipa_member_admin_list');
       final pending=await _call('cipa_member_admin_inbox');
       final publication=await _call('cipa_member_admin_publications');
+      final calendar=await _call('cipa_schedule_list');
       if(!mounted)return;
       setState((){
         accounts=(saved['accounts'] is List?
@@ -114,6 +119,10 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
           (pending['events'] as List).whereType<Map>()
             .map((m)=>Map<String,dynamic>.from(m)).toList():
           <Map<String,dynamic>>[]);
+        schedules=(calendar['items'] is List?
+          (calendar['items'] as List).whereType<Map>()
+            .map((m)=>Map<String,dynamic>.from(m)).toList():
+            <Map<String,dynamic>>[]);
         notices=(publication['notices'] is List?
           (publication['notices'] as List).whereType<Map>()
             .map((m)=>Map<String,dynamic>.from(m)).toList():
@@ -139,6 +148,39 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
         'Permissão de resposta solicitada para o TST neste mandato.':
         'Permissão de resposta revogada deste mandato.');
     });
+  }
+
+  String _scheduleRequestId(String key)=>
+    _scheduleRequestIds.putIfAbsent(key,(){
+      final random=Random.secure();
+      return 'calendar-'+List<int>.generate(24,(_)=>random.nextInt(256))
+        .map((v)=>v.toRadixString(16).padLeft(2,'0')).join();
+    });
+
+  Future<void> _scheduleInspection() async {
+    if(selectedMember==null||scheduleDue==null||busy)return;
+    final due='${scheduleDue!.year.toString().padLeft(4,'0')}-'
+      '${scheduleDue!.month.toString().padLeft(2,'0')}-'
+      '${scheduleDue!.day.toString().padLeft(2,'0')}';
+    final note=scheduleNote.text.trim();
+    final key=[selectedMember,scheduleSector,due,note].join('|');
+    await _perform(()async {
+      await _call('cipa_schedule_create',{
+        'memberId':selectedMember,'sector':scheduleSector,
+        'dueDate':due,'note':note,
+        'requestId':_scheduleRequestId(key),
+      });
+      _scheduleRequestIds.remove(key);
+      if(mounted)setState(()=>notice='Vistoria programada para o integrante.');
+    });
+    if(mounted&&error.isEmpty)await _reload();
+  }
+
+  Future<void> _cancelInspection(String id) async {
+    await _perform(()async {
+      await _call('cipa_schedule_cancel',{'scheduleId':id});
+    });
+    if(mounted&&error.isEmpty)await _reload();
   }
 
   Future<void> _grant() async {
@@ -353,6 +395,70 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
                   icon:const Icon(Icons.block),
                   label:const Text('Revogar')),
               ]),
+            ]))),
+          Card(child:Padding(padding:const EdgeInsets.all(14),
+            child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,
+              children:[
+              Text('Programar vistoria da CIPA',
+                style:Theme.of(context).textTheme.titleMedium),
+              const Text('Escolha o membro, o tema e a data. '
+                'Ele verá essa vistoria em Minha CIPA.'),
+              const SizedBox(height:12),
+              DropdownButtonFormField<String>(
+                isExpanded:true,
+                value:selectedMember,
+                decoration:const InputDecoration(labelText:'Integrante'),
+                items:widget.members.map((m)=>DropdownMenuItem(
+                  value:m.memberId,
+                  child:Text(m.label,overflow:TextOverflow.ellipsis))).toList(),
+                onChanged:busy?null:(v)=>setState(()=>selectedMember=v)),
+              const SizedBox(height:12),
+              DropdownButtonFormField<String>(
+                isExpanded:true,
+                value:scheduleSector,
+                decoration:const InputDecoration(labelText:'Setor/tema'),
+                items:const [
+                  'Organização e circulação','Máquinas e equipamentos',
+                  'Incêndio e emergência','Ambiente e proteção',
+                  'Panificação','Cerâmica','Construção civil',
+                  'Laticínios','Logística e depósitos',
+                  'Limpeza urbana','Comércio e escritórios',
+                ].map((s)=>DropdownMenuItem(
+                  value:s,child:Text(s,overflow:TextOverflow.ellipsis)))
+                  .toList(),
+                onChanged:busy?null:(v)=>setState(()=>
+                  scheduleSector=v??'Organização e circulação')),
+              const SizedBox(height:12),
+              OutlinedButton.icon(
+                onPressed:busy?null:() async {
+                  final now=DateTime.now();
+                  final day=await showDatePicker(
+                    context:context,initialDate:now,
+                    firstDate:now,lastDate:now.add(const Duration(days:180)));
+                  if(day!=null&&mounted)setState(()=>scheduleDue=day);
+                },
+                icon:const Icon(Icons.event),
+                label:Text(scheduleDue==null?'Escolher data':
+                  '${scheduleDue!.day}/${scheduleDue!.month}/${scheduleDue!.year}')),
+              TextField(controller:scheduleNote,maxLength:180,maxLines:2,
+                decoration:const InputDecoration(
+                  labelText:'Orientação simples (opcional)')),
+              FilledButton.icon(
+                onPressed:busy||scheduleDue==null||selectedMember==null?
+                  null:_scheduleInspection,
+                icon:const Icon(Icons.add_task),
+                label:const Text('Programar vistoria')),
+              const SizedBox(height:10),
+              for(final item in schedules)
+                ListTile(
+                  title:Text((item['sector']??'Vistoria').toString()),
+                  subtitle:Text('Data: ${item['dueDate']}'
+                    ' • Membro: ${item['memberId']}'),
+                  trailing:TextButton(
+                    onPressed:busy?null:()=>
+                      _cancelInspection((item['id']??'').toString()),
+                    child:const Text('Cancelar')),
+                ),
             ]))),
           Card(child:ExpansionTile(
             title:Text('Central de Vistorias e Relatos (${inbox.length})'),
