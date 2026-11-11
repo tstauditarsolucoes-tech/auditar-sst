@@ -87,7 +87,8 @@ class CipaMemberApi {
         type==CipaMemberItemType.meeting ||
         type==CipaMemberItemType.training ||
         type==CipaMemberItemType.observation ||
-        type==CipaMemberItemType.reminder;
+        type==CipaMemberItemType.reminder ||
+        type==CipaMemberItemType.scheduledInspection;
       if(privateType&&memberId!=p.memberId)continue;
       if(!privateType&&!shared)continue;
       result.add(CipaMemberItem(
@@ -138,6 +139,8 @@ class CipaMemberApi {
       ..._items(response,'documents',CipaMemberItemType.document,profile),
       ..._items(response,'observations',CipaMemberItemType.observation,profile),
       ..._items(response,'reminders',CipaMemberItemType.reminder,profile),
+      ..._items(response,'scheduledInspections',
+        CipaMemberItemType.scheduledInspection,profile),
     ];
     return CipaMemberPortalRules.build(
       verifiedProfile:profile,records:rows,
