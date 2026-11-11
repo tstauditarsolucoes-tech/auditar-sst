@@ -460,6 +460,27 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
                     child:const Text('Cancelar')),
                 ),
             ]))),
+          Card(child:Padding(padding:const EdgeInsets.all(12),
+            child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,
+              children:[
+              Text('Acompanhamento dos relatos da CIPA',
+                style:Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height:10),
+              Wrap(spacing:8,runSpacing:8,children:[
+                Chip(label:Text('Recebidos: ${inbox.where((e)=>
+                  e['kind']=='observation'&&
+                  (e['status']??'Recebido')=='Recebido').length}')),
+                Chip(label:Text('Em análise: ${inbox.where((e)=>
+                  e['kind']=='observation'&&
+                  e['status']=='Em análise').length}')),
+                Chip(label:Text('Orientações enviadas: ${inbox.where((e)=>
+                  e['kind']=='observation'&&
+                  e['status']=='Orientação enviada').length}')),
+              ]),
+              const Text('Contagem dos registros desta consulta. '
+                'A orientação não encerra não conformidades.',
+                style:TextStyle(fontSize:12)),
+            ]))),
           Card(child:ExpansionTile(
             title:Text('Central de Vistorias e Relatos (${inbox.length})'),
             subtitle:const Text('Receber, conferir e orientar o membro'),
