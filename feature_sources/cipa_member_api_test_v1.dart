@@ -60,6 +60,12 @@ void main(){
               'feedback':'Dado privado de outro membro.'},
           ],
           'reminders':[row('r1','Lembrete pessoal')],
+          'scheduledInspections':[
+            {...row('s1','Vistoria: Cerâmica'),
+              'dueDate':'2026-11-25','status':'Programada'},
+            row('s2','Vistoria de outra empresa',company:'empresa-B'),
+            row('s3','Vistoria de outro membro',member:'membro-2'),
+          ],
         }),200,headers:const {'content-type':'application/json; charset=utf-8'});
       }
       return http.Response('{"ok":false,"code":"ACCESS_DENIED"}',200);
@@ -81,6 +87,7 @@ void main(){
       'Observe a passagem apenas de local seguro.');
     expect(view.observations.single.feedback.contains('Dado privado'),false);
     expect(view.reminders.length,1);
+    expect(view.scheduledInspections.map((x)=>x.id),['s1']);
     expect(calls,['cipa_member_verify','cipa_member_dashboard']);
     api.dispose();
   });
