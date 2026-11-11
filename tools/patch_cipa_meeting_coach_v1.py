@@ -42,6 +42,9 @@ once("import '../services/cipa_guide_rules.dart';",
     "import '../services/cipa_guide_rules.dart';\n"
     "import '../services/cipa_meeting_coach_rules.dart';",
     "importar regras puras de conferência")
+if "import 'package:flutter/services.dart';" not in content:
+    content="import 'package:flutter/services.dart';\n"+content
+
 once("part 'cipa_guided_home.dart';",
     "part 'cipa_guided_home.dart';\n"
     "part 'cipa_meeting_coach_home.dart';",
