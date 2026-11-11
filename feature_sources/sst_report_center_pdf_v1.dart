@@ -89,7 +89,12 @@ class SstFieldReportPdfService {
       final photos=<pw.MemoryImage>[];
       for(final p in answer.photoPaths.take(2)){
         final image=await _storedImage(p);
-        if(image!=null)photos.add(image);
+        if(image==null) {
+          throw StateError('Uma foto selecionada não está acessível '
+            'neste aparelho. Recupere ou substitua a imagem antes de '
+            'gerar o PDF; nenhuma evidência será omitida sem aviso.');
+        }
+        photos.add(image);
       }
       entries.add(pw.Container(
         margin:const pw.EdgeInsets.only(bottom:9),
@@ -127,7 +132,9 @@ class SstFieldReportPdfService {
               pw.SizedBox(height:7),
               pw.Wrap(spacing:8,runSpacing:8,children:[
                 for(final photo in photos)
-                  pw.Container(width:226,height:138,
+                  pw.Container(
+                    width:photos.length==1?410:240,
+                    height:photos.length==1?222:160,
                     decoration:pw.BoxDecoration(border:pw.Border.all(
                       color:const PdfColor(0.80,0.82,0.84))),
                     child:pw.Image(photo,fit:pw.BoxFit.contain)),
@@ -139,6 +146,10 @@ class SstFieldReportPdfService {
     }
 
     final signature=await _storedImage(draft.signaturePath);
+    if(draft.signaturePath.trim().isNotEmpty && signature==null) {
+      throw StateError('A assinatura selecionada não está acessível '
+        'neste aparelho. Recupere ou assine novamente antes de exportar.');
+    }
     doc.addPage(pw.MultiPage(
       pageFormat:PdfPageFormat.a4,
       margin:const pw.EdgeInsets.fromLTRB(28,28,28,37),
