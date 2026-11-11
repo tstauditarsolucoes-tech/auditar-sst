@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feature/android-unified-visits-dashboard-20261105
+      - feature/android-indicadores-vistorias-confiaveis-20261111
     paths:
       - 'feature_sources/android_unified_visit_metrics_v1.dart'
       - 'feature_sources/android_unified_visit_metrics_test_v1.dart'
@@ -14,6 +15,9 @@ on:
       - 'tools/patch_checklist_signature_lock_v1.py'
       - 'tools/test_checklist_signature_lock_v1.py'
       - '.github/workflows/validate-android-unified-visits.yml'
+  pull_request:
+    branches:
+      - feature/android-unified-visits-dashboard-20261105
   workflow_dispatch:
 permissions:
   contents: read
