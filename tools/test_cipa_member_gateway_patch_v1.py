@@ -45,12 +45,18 @@ with tempfile.TemporaryDirectory(prefix="cipa-member-gs-") as temp:
       backend/"CipaMemberGatewayV1.gs").read_text()
     assert "cipaMemV1PublishDocument_" in (
       backend/"CipaMemberPublicationsV1.gs").read_text()
+    assert "cipaMemV1AdminReviewObservation_" in (
+      backend/"CipaMemberReviewsV1.gs").read_text()
+    assert "cipaTstReviewAllowed_" in (
+      backend/"CipaTstReviewAccessV1.gs").read_text()
+    assert "cipaMemV1ScheduleMember_" in (
+      backend/"CipaMemberInspectionSchedulesV1.gs").read_text()
+    assert "cipaFeedbackAcknowledge_" in (
+      backend/"CipaMemberFeedbackReadV1.gs").read_text()
     assert all(p.read_bytes()==b for p,b in before.items())
     tracked={
       p:hashlib.sha256(p.read_bytes()).hexdigest()
-      for p in [code,backend/"CipaMemberGatewayV1.gs",
-        backend/"CipaMemberServerPolicy.gs",
-        backend/"CipaMemberPublicationsV1.gs"]
+      for p in [code,*backend.glob("Cipa*.gs")]
     }
     repeated=subprocess.run([sys.executable,str(patch),str(root),
        "--homologacao"],capture_output=True,text=True)
