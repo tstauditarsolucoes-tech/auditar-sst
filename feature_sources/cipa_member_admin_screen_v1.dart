@@ -44,6 +44,7 @@ class CipaMemberAdminScreen extends StatefulWidget {
 }
 class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
   final email=TextEditingController();
+  final tstUserId=TextEditingController();
   final noticeTitle=TextEditingController();
   final noticeBody=TextEditingController();
   String? selectedMember,selectedAction,selectedDocument;
@@ -58,7 +59,8 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
   void initState(){super.initState();_reload();}
   @override
   void dispose(){
-    email.dispose();noticeTitle.dispose();noticeBody.dispose();super.dispose();
+    email.dispose();tstUserId.dispose();
+    noticeTitle.dispose();noticeBody.dispose();super.dispose();
   }
 
   Future<Map<String,dynamic>> _call(String action,
@@ -123,6 +125,19 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
             .whereType<Map>().map((d)=>(d['id']??'').toString())
             .where((id)=>id.isNotEmpty));
       });
+    });
+  }
+
+  Future<void> _updateTstGrant(String operation) async {
+    final id=tstUserId.text.trim();
+    if(id.length<3)return;
+    await _perform(() async {
+      await _call('cipa_tst_review_grant',{
+        'userId':id,'operation':operation,
+      });
+      if(mounted)setState(()=>notice=operation=='grant'?
+        'Permissão de resposta solicitada para o TST neste mandato.':
+        'Permissão de resposta revogada deste mandato.');
     });
   }
 
@@ -310,6 +325,35 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
               color:Theme.of(context).colorScheme.error)))),
           if(notice.isNotEmpty)Card(child:Padding(
             padding:const EdgeInsets.all(10),child:Text(notice))),
+          Card(child:Padding(padding:const EdgeInsets.all(14),
+            child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,
+              children:[
+              Text('Autorizar TST para responder vistorias',
+                style:Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height:6),
+              const Text('Somente para esta empresa e mandato. '
+                'O TST não recebe acesso ao cadastro administrativo. '
+                'Informe o ID da conta técnica já cadastrada.'),
+              const SizedBox(height:10),
+              TextField(controller:tstUserId,maxLength:120,
+                onChanged:(_)=>setState((){}),
+                decoration:const InputDecoration(
+                  border:OutlineInputBorder(),
+                  labelText:'ID do usuário técnico')),
+              const SizedBox(height:6),
+              Wrap(spacing:10,children:[
+                FilledButton.icon(
+                  onPressed:busy||tstUserId.text.trim().length<3?
+                    null:()=>_updateTstGrant('grant'),
+                  icon:const Icon(Icons.verified_user_outlined),
+                  label:const Text('Autorizar')),
+                OutlinedButton.icon(
+                  onPressed:busy||tstUserId.text.trim().length<3?
+                    null:()=>_updateTstGrant('revoke'),
+                  icon:const Icon(Icons.block),
+                  label:const Text('Revogar')),
+              ]),
+            ]))),
           Card(child:ExpansionTile(
             title:Text('Central de Vistorias e Relatos (${inbox.length})'),
             subtitle:const Text('Receber, conferir e orientar o membro'),
