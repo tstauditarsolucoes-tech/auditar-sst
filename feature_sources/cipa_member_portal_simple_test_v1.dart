@@ -156,6 +156,33 @@ void main() {
     expect(find.text('Relato informal'),findsNothing);
   });
 
+  testWidgets('Agendamentos são exibidos só para integrante autorizado',
+    (tester) async {
+    final mine=view().profile;
+    final safe=CipaMemberPortalRules.build(
+      verifiedProfile:mine,records:[
+      const CipaMemberItem(id:'schedule-own',
+        companyId:'company-A',mandateId:'mandate-A',
+        assignedMemberId:'member-A',
+        type:CipaMemberItemType.scheduledInspection,
+        title:'Vistoria: Cerâmica',status:'Programada'),
+      const CipaMemberItem(id:'schedule-foreign',
+        companyId:'company-B',mandateId:'mandate-A',
+        assignedMemberId:'member-A',
+        type:CipaMemberItemType.scheduledInspection,
+        title:'Vistoria de outra empresa'),
+    ]);
+    await tester.pumpWidget(MaterialApp(home:CipaMemberPortalScreen(
+      companyName:'Empresa A',mandateLabel:'2026',
+      sessionVerified:true,view:safe)));
+    await tester.scrollUntilVisible(
+      find.text('Vistorias programadas (1)'),150);
+    expect(find.text('Vistorias programadas (1)'),findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Vistoria: Cerâmica'),150);
+    expect(find.text('Vistoria: Cerâmica'),findsOneWidget);
+    expect(find.text('Vistoria de outra empresa'),findsNothing);
+  });
+
   testWidgets('Sem login autorizado, nenhum atalho libera dados',
     (tester) async {
     await tester.pumpWidget(MaterialApp(home:CipaMemberPortalScreen(
