@@ -8,7 +8,10 @@ void main() {
     await tester.pumpWidget(
         const MaterialApp(home: OfflineSstNrsBrowserScreen()));
     await tester.pumpAndSettle();
-    expect(find.textContaining('345'), findsOneWidget);
+    expect(find.textContaining('vêm instalados no aplicativo'),
+      findsOneWidget);
+    expect(find.textContaining('sincronização próprios'),
+      findsOneWidget);
     expect(find.text('Norma ou segmento'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), 'amassadeira');
