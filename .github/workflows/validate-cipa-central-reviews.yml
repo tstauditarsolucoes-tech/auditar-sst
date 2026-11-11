@@ -12,6 +12,8 @@ on:
       - 'feature_sources/CipaMemberFeedbackReadV1.gs'
       - 'feature_sources/cipa_member_guided_inspection_v1.dart'
       - 'feature_sources/cipa_member_guided_inspection_test_v1.dart'
+      - 'feature_sources/cipa_member_app_main_v1.dart'
+      - 'tools/stage_cipa_member_android_v1.py'
       - 'feature_sources/cipa_member_portal_screen_v1.dart'
       - 'feature_sources/cipa_member_portal_simple_test_v1.dart'
       - 'feature_sources/CipaTstReviewAccessV1.gs'
@@ -125,3 +127,22 @@ jobs:
           dart format lib test
           flutter analyze --no-fatal-infos --no-fatal-warnings lib test
           flutter test --reporter expanded test/cipa_member_portal_screen_test.dart test/cipa_member_portal_simple_test.dart test/cipa_member_guided_inspection_test.dart
+
+  flutter-member-app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Validar montagem do aplicativo individual sem credenciais técnicas
+        run: |
+          set -euo pipefail
+          flutter create --platforms=android --project-name auditar_cipa_membro /tmp/cipa_real_member_fixture
+          python3 tools/stage_cipa_member_android_v1.py /tmp/cipa_real_member_fixture
+          cd /tmp/cipa_real_member_fixture
+          flutter pub get
+          dart format lib test
+          flutter analyze --no-fatal-infos --no-fatal-warnings lib test
+          flutter test --reporter expanded test/cipa_member_portal_screen_test.dart test/cipa_member_api_test.dart
