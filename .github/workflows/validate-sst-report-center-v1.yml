@@ -3,12 +3,16 @@ on:
   push:
     branches:
       - feature/android-report-center-six-models-20261106
+      - feature/android-pdf-fotos-evidencias-20261111
     paths:
       - 'feature_sources/sst_report_center_*'
       - 'tools/patch_sst_report_center_v1.py'
       - 'tools/test_sst_report_center_patch_v1.py'
       - 'tools/stage_sst_report_center_fixture_v1.py'
       - '.github/workflows/validate-sst-report-center-v1.yml'
+  pull_request:
+    branches:
+      - feature/android-report-center-six-models-20261106
   workflow_dispatch:
 permissions:
   contents: read
@@ -35,4 +39,4 @@ jobs:
           flutter pub get
           dart format lib test
           flutter analyze --no-fatal-infos --no-fatal-warnings
-          flutter test --reporter expanded test/sst_report_center_models_test.dart test/sst_report_center_history_test.dart test/sst_report_center_widget_test.dart
+          flutter test --reporter expanded test/sst_report_center_models_test.dart test/sst_report_center_history_test.dart test/sst_report_center_widget_test.dart test/sst_report_center_pdf_evidence_test.dart
