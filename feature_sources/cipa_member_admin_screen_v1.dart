@@ -225,7 +225,7 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
     if(event['kind']!='observation'||id.isEmpty||
         event['companyId']!=widget.companyId||
         event['mandateId']!=widget.mandateId)return;
-    final note=TextEditingController();
+    String reviewMessage='';
     String status='Em análise';
     final selected=await showDialog<Map<String,String>>(
       context:context,builder:(dialog)=>
@@ -250,8 +250,8 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
             onChanged:(value)=>update(()=>status=value??'Em análise'),
           ),
           const SizedBox(height:10),
-          TextField(controller:note,maxLength:600,maxLines:4,
-            onChanged:(_)=>update((){}),
+          TextField(maxLength:600,maxLines:4,
+            onChanged:(value)=>update(()=>reviewMessage=value),
             decoration:const InputDecoration(
               labelText:'Orientação (opcional em análise)',
               border:OutlineInputBorder())),
@@ -263,14 +263,13 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
             child:const Text('Cancelar')),
           FilledButton(
             onPressed:status=='Orientação enviada'&&
-              note.text.trim().length<8?null:
-              note.text.trim().isNotEmpty&&note.text.trim().length<8
+              reviewMessage.trim().length<8?null:
+              reviewMessage.trim().isNotEmpty&&reviewMessage.trim().length<8
               ?null:()=>Navigator.pop(dialog,{
-                'status':status,'message':note.text.trim()}),
+                'status':status,'message':reviewMessage.trim()}),
             child:const Text('Registrar devolutiva')),
         ],
       )));
-    note.dispose();
     if(selected==null||!mounted)return;
     final key=[id,selected['status'],selected['message']].join('|');
     await _perform(()async {
