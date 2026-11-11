@@ -4,6 +4,7 @@ import 'new_inspection_screen.dart';
 import 'express_round_screen.dart';
 import 'quick_visit_screen.dart';
 import 'field_quick_screen.dart';
+import 'smart_visit_briefing_screen.dart';
 
 /// Apenas um ponto de entrada. Os três formulários originais não são alterados.
 class AuditarVisitTypeChooserScreen extends StatelessWidget {
@@ -43,6 +44,15 @@ class AuditarVisitTypeChooserScreen extends StatelessWidget {
         const SizedBox(height:8),
         const Text('Os registros, relatórios e formulários atuais serão mantidos.'),
         const SizedBox(height:18),
+        if(initialCompany!=null) _option(context,
+          icon:Icons.route_outlined,
+          title:'Preparar Visita Inteligente',
+          subtitle:'Conferir registros anteriores desta empresa antes '
+            'de começar. Somente dados salvos neste aparelho.',
+          onTap:()=>Navigator.of(context).push(
+            MaterialPageRoute(builder:(_)=>
+              SmartVisitBriefingScreen(company:initialCompany!)))),
+        const SizedBox(height:8),
         _option(context,
           icon:Icons.fact_check_outlined,
           title:'Checklist completo',
