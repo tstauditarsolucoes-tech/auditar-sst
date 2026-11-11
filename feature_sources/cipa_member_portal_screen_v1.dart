@@ -180,6 +180,9 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
             subtitle:Text([
               if(item.description.isNotEmpty)item.description,
               if(item.status.isNotEmpty)'Situação: ${item.status}',
+              if(item.type==CipaMemberItemType.observation &&
+                 item.feedback.isNotEmpty)
+                'Resposta do técnico: ${item.feedback}',
               if(item.date!=null)'Data: ${item.date!.day}/${item.date!.month}/${item.date!.year}',
             ].join('\n'))),
           if(actions!=null)Padding(
