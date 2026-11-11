@@ -158,8 +158,12 @@ void main() {
         throw StateError('Conexão indisponível');
       }))));
     await tester.enterText(find.byType(TextField).first,'Moinho');
+    await tester.pump();
+    expect(tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton,'Começar')).onPressed,isNotNull);
     await tester.tap(find.text('Começar'));
     await tester.pumpAndSettle();
+    expect(find.text('Pergunta 1 de 3'),findsOneWidget);
     for(var i=0;i<3;i++) {
       await tester.tap(find.byKey(ValueKey(
         'answer-$i-Não sei/não verifiquei')));
