@@ -35,14 +35,14 @@ function cipaMemV1ReviewSafeText_(value) {
 }
 
 function cipaMemV1AdminReviewObservation_(request) {
-  var admin=cipaMemV1Admin_(request.authToken);
-  if(!admin)return {ok:false,code:'ACCESS_DENIED'};
   var cid=String(request.companyId||'').trim();
   var mid=String(request.mandateId||'').trim();
   var id=String(request.observationId||'').trim();
   var status=String(request.status||'').trim();
   var message=cipaMemV1ReviewSafeText_(request.message);
   var requestId=String(request.requestId||'');
+  var reviewer=cipaMemV1Reviewer_(request.authToken,cid,mid);
+  if(!reviewer)return {ok:false,code:'ACCESS_DENIED'};
   if(!cid||!mid||!id || !/^[A-Za-z0-9_-]{16,120}$/.test(requestId) ||
       ['Em análise','Orientação enviada'].indexOf(status)<0 ||
       message.length>600 ||
@@ -54,8 +54,8 @@ function cipaMemV1AdminReviewObservation_(request) {
   lock.waitLock(20000);
   try {
     // Nova verificação no instante da gravação, sem confiar só no botão UI.
-    admin=cipaMemV1Admin_(request.authToken);
-    if(!admin)return {ok:false,code:'ACCESS_DENIED'};
+    reviewer=cipaMemV1Reviewer_(request.authToken,cid,mid);
+    if(!reviewer)return {ok:false,code:'ACCESS_DENIED'};
     var events=cipaMemV1Sheet_(CIPA_MEM_V1_EVENTS,
       ['request_id','created_at','account_id','company_id','mandate_id',
        'member_id','kind','target_id','location','detail']);
@@ -81,8 +81,8 @@ function cipaMemV1AdminReviewObservation_(request) {
     var reviewId='review-'+Utilities.getUuid();
     var date=new Date().toISOString();
     revisions.appendRow([reviewId,date,cid,mid,memberId,id,
-      status,message,String(admin.id||''),requestId]);
-    auditAuthEvent_(admin,'cipa_member_review','CIPA_OBSERVACAO',id,
+      status,message,String(reviewer.id||''),requestId]);
+    auditAuthEvent_(reviewer,'cipa_member_review','CIPA_OBSERVACAO',id,
       cid,'','cipa_member',{mandateId:mid,memberId:memberId,status:status});
     return {ok:true,reviewId:reviewId,status:status};
   }finally{lock.releaseLock();}
