@@ -34,8 +34,12 @@ function cipaMemV1ReviewSafeText_(value) {
   return text;
 }
 
-function cipaMemV1AdminReviewObservation_(request) {
-  var admin=cipaMemV1Admin_(request.authToken);
+function cipaMemV1AdminReviewObservation_(request,delegatedTst) {
+  var admin=delegatedTst?
+    cipaTstReviewAllowed_(request.authToken,
+      String(request.companyId||'').trim(),
+      String(request.mandateId||'').trim()):
+    cipaMemV1Admin_(request.authToken);
   if(!admin)return {ok:false,code:'ACCESS_DENIED'};
   var cid=String(request.companyId||'').trim();
   var mid=String(request.mandateId||'').trim();
@@ -54,7 +58,9 @@ function cipaMemV1AdminReviewObservation_(request) {
   lock.waitLock(20000);
   try {
     // Nova verificação no instante da gravação, sem confiar só no botão UI.
-    admin=cipaMemV1Admin_(request.authToken);
+    admin=delegatedTst?
+      cipaTstReviewAllowed_(request.authToken,cid,mid):
+      cipaMemV1Admin_(request.authToken);
     if(!admin)return {ok:false,code:'ACCESS_DENIED'};
     var events=cipaMemV1Sheet_(CIPA_MEM_V1_EVENTS,
       ['request_id','created_at','account_id','company_id','mandate_id',
@@ -82,7 +88,8 @@ function cipaMemV1AdminReviewObservation_(request) {
     var date=new Date().toISOString();
     revisions.appendRow([reviewId,date,cid,mid,memberId,id,
       status,message,String(admin.id||''),requestId]);
-    auditAuthEvent_(admin,'cipa_member_review','CIPA_OBSERVACAO',id,
+    auditAuthEvent_(admin,delegatedTst?'cipa_tst_review':'cipa_member_review',
+      'CIPA_OBSERVACAO',id,
       cid,'','cipa_member',{mandateId:mid,memberId:memberId,status:status});
     return {ok:true,reviewId:reviewId,status:status};
   }finally{lock.releaseLock();}
