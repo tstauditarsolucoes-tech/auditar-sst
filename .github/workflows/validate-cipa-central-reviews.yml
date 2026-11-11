@@ -3,9 +3,13 @@ on:
   push:
     branches:
       - feature/cipa-central-vistorias-devolutivas-20261111
+      - feature/cipa-acoes-tst-agenda-educacao-20261111
     paths:
       - 'feature_sources/CipaMemberGatewayV1.gs'
       - 'feature_sources/CipaMemberReviewsV1.gs'
+      - 'feature_sources/CipaMemberTechnicalPermissionsV1.gs'
+      - 'feature_sources/CipaMemberSchedulesV1.gs'
+      - 'feature_sources/cipa_member_portal_screen_v1.dart'
       - 'feature_sources/cipa_member_admin_screen_v1.dart'
       - 'feature_sources/cipa_member_api_v1.dart'
       - 'feature_sources/cipa_member_portal_policy_v1.dart'
@@ -33,6 +37,10 @@ jobs:
           cp feature_sources/CipaMemberReviewsV1.gs /tmp/CipaMemberReviewsV1.js
           node --check /tmp/CipaMemberGatewayV1.js
           node --check /tmp/CipaMemberReviewsV1.js
+          cp feature_sources/CipaMemberTechnicalPermissionsV1.gs /tmp/CipaMemberTechnicalPermissionsV1.js
+          cp feature_sources/CipaMemberSchedulesV1.gs /tmp/CipaMemberSchedulesV1.js
+          node --check /tmp/CipaMemberTechnicalPermissionsV1.js
+          node --check /tmp/CipaMemberSchedulesV1.js
           node tools/test_cipa_member_gateway_v1.cjs
   flutter-admin:
     runs-on: ubuntu-latest
