@@ -18,14 +18,22 @@ root=Path(sys.argv[1])
 repo=Path(__file__).resolve().parents[1]
 backend=root/"painel_web_google_apps_script"
 code=backend/"Code.gs"
-policy=backend/"CipaMemberServerPolicy.gs"
+modules={
+    "CipaMemberServerPolicy.gs":"cipa_member_server_policy_v1.js",
+    "CipaMemberGatewayV1.gs":"CipaMemberGatewayV1.gs",
+    "CipaMemberPublicationsV1.gs":"CipaMemberPublicationsV1.gs",
+    "CipaMemberReviewsV1.gs":"CipaMemberReviewsV1.gs",
+    "CipaTstReviewAccessV1.gs":"CipaTstReviewAccessV1.gs",
+    "CipaMemberInspectionSchedulesV1.gs":"CipaMemberInspectionSchedulesV1.gs",
+    "CipaMemberFeedbackReadV1.gs":"CipaMemberFeedbackReadV1.gs",
+}
+targets={backend/name for name in modules}
 gateway=backend/"CipaMemberGatewayV1.gs"
-publications=backend/"CipaMemberPublicationsV1.gs"
 assert code.is_file() and (backend/"MultiUser.gs").is_file(), (
     "Fonte da Central com autenticação não encontrada")
-assert not policy.exists() and not gateway.exists() and not publications.exists(), (
+assert all(not target.exists() for target in targets), (
     "Não sobrescrever módulos do portal individual já existentes")
-allowed={code,policy,gateway,publications}
+allowed={code,*targets}
 protected={
     p:hashlib.sha256(p.read_bytes()).hexdigest()
     for folder in [root/"lib",backend]
@@ -46,9 +54,8 @@ new=old+"""
 if s.count(old)!=1 or "cipaMemV1Route_(request)" in s:
     raise SystemExit("Code.gs diferente da origem esperada; não sobrescrever.")
 code.write_text(s.replace(old,new,1),encoding="utf-8",newline="\n")
-shutil.copyfile(repo/"feature_sources/cipa_member_server_policy_v1.js",policy)
-shutil.copyfile(repo/"feature_sources/CipaMemberGatewayV1.gs",gateway)
-shutil.copyfile(repo/"feature_sources/CipaMemberPublicationsV1.gs",publications)
+for destination,source in modules.items():
+    shutil.copyfile(repo/"feature_sources"/source,backend/destination)
 assert all(hashlib.sha256(p.read_bytes()).hexdigest()==digest
     for p,digest in protected.items()),"Arquivo existente protegido mudou"
 assert code.read_text().count("cipaMemV1Route_(request)")==1

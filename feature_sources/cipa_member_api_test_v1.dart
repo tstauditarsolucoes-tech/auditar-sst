@@ -31,6 +31,14 @@ void main(){
           'ok':true,'sessionToken':'x'*90,
         }),200,headers:const {'content-type':'application/json; charset=utf-8'});
       }
+      if(input['action']=='cipa_member_ack_feedback') {
+        expect(input['sessionToken'],'x'*90);
+        expect(input['observationId'],'o1');
+        expect(input['reviewId'],'review-test-1234567890123');
+        expect((input['requestId'] as String).length,greaterThan(16));
+        return http.Response('{"ok":true,"read":true}',200,
+          headers:const {'content-type':'application/json; charset=utf-8'});
+      }
       if(input['action']=='cipa_member_dashboard') {
         return http.Response(jsonEncode({
           'ok':true,'profile':memberProfile,
@@ -53,7 +61,9 @@ void main(){
           'observations':[
             {...row('o1','Observação própria'),
               'status':'Orientação enviada',
-              'feedback':'Observe a passagem apenas de local seguro.'},
+              'feedback':'Observe a passagem apenas de local seguro.',
+              'reviewId':'review-test-1234567890123',
+              'feedbackRead':false},
             {...row('o2','Observação de outra empresa',company:'empresa-B'),
               'feedback':'Dado privado de outra empresa.'},
             {...row('o3','Observação de outro integrante',member:'membro-2'),
@@ -86,9 +96,14 @@ void main(){
     expect(view.observations.single.feedback,
       'Observe a passagem apenas de local seguro.');
     expect(view.observations.single.feedback.contains('Dado privado'),false);
+    expect(view.observations.single.reviewId,
+      'review-test-1234567890123');
+    expect(view.observations.single.feedbackRead,false);
+    await api.acknowledgeFeedback('o1','review-test-1234567890123');
     expect(view.reminders.length,1);
     expect(view.scheduledInspections.map((x)=>x.id),['s1']);
-    expect(calls,['cipa_member_verify','cipa_member_dashboard']);
+    expect(calls,['cipa_member_verify','cipa_member_dashboard',
+      'cipa_member_ack_feedback']);
     api.dispose();
   });
 

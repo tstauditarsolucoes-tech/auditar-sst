@@ -99,6 +99,10 @@ class CipaMemberApi {
         type:type,description:_str(r['description']),
         feedback:type==CipaMemberItemType.observation?
           _str(r['feedback']):'',
+        reviewId:type==CipaMemberItemType.observation?
+          _str(r['reviewId']):'',
+        feedbackRead:type==CipaMemberItemType.observation&&
+          r['feedbackRead']==true,
         status:_str(r['status']),
         date:_date(r['date']),dueDate:_date(r['dueDate']),
       ));
@@ -179,6 +183,19 @@ class CipaMemberApi {
     send('support',action,text);
   Future<void> observe(String place,String text)=>
     send('observation','',text,place:place);
+
+  Future<void> acknowledgeFeedback(String observationId,
+      String reviewId) async {
+    if(_token==null)throw StateError('Entre novamente.');
+    if(observationId.isEmpty||reviewId.isEmpty)
+      throw StateError('Orientação não identificada.');
+    final key='feedback|$observationId|$reviewId';
+    await _call('cipa_member_ack_feedback',{
+      'sessionToken':_token,'observationId':observationId,
+      'reviewId':reviewId,'requestId':_id(key),
+    });
+    _pendingIds.remove(key);
+  }
 
   Future<void> logout() async {
     final token=_token;

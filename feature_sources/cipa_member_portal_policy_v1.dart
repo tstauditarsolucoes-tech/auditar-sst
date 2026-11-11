@@ -22,15 +22,17 @@ class CipaMemberItem {
     required this.title,
     this.description = '',
     this.feedback = '',
+    this.reviewId = '',
+    this.feedbackRead = false,
     this.status = '',
     this.assignedMemberId = '',
     this.visibleToAllMembers = false,
     this.date,
     this.dueDate,
   });
-  final String id,companyId,mandateId,title,description,feedback,status,assignedMemberId;
+  final String id,companyId,mandateId,title,description,feedback,reviewId,status,assignedMemberId;
   final CipaMemberItemType type;
-  final bool visibleToAllMembers;
+  final bool visibleToAllMembers,feedbackRead;
   final DateTime? date,dueDate;
 }
 

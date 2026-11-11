@@ -38,6 +38,8 @@ pairs={
       "lib/widgets/cipa_member_access_header.dart",
     "feature_sources/cipa_member_portal_screen_v1.dart":
       "lib/screens/cipa_member_portal_screen.dart",
+    "feature_sources/cipa_member_guided_inspection_v1.dart":
+      "lib/widgets/cipa_member_guided_inspection.dart",
     "feature_sources/cipa_member_portal_screen_test_v1.dart":
       "test/cipa_member_portal_screen_test.dart",
     "feature_sources/cipa_member_api_test_v1.dart":

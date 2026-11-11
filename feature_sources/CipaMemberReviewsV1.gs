@@ -21,7 +21,7 @@ function cipaMemV1Reviews_(cid,mid,memberId,allowedIds) {
     if(String(r[2])!==cid||String(r[3])!==mid||
        (memberId && String(r[4])!==memberId)||!allowed[id])return;
     // A última linha válida é o último registro de revisão gravado.
-    results[id]={status:String(r[6]),feedback:String(r[7]||''),
+    results[id]={reviewId:String(r[0]),status:String(r[6]),feedback:String(r[7]||''),
       reviewedAt:String(r[1]||'')};
   });
   return results;

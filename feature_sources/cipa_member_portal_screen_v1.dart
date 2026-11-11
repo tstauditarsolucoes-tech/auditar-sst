@@ -12,6 +12,7 @@ class CipaMemberPortalScreen extends StatefulWidget {
     this.view, this.sessionVerified=false,
     this.onRefresh, this.onLogout, this.onAcknowledgeMeeting,
     this.onReportProgress, this.onRequestSupport, this.onObserve,
+    this.onAcknowledgeFeedback,
   });
   final String companyName,mandateLabel;
   final CipaMemberView? view;
@@ -20,6 +21,8 @@ class CipaMemberPortalScreen extends StatefulWidget {
   final Future<void> Function(String id)? onAcknowledgeMeeting;
   final Future<void> Function(String id,String note)? onReportProgress,onRequestSupport;
   final Future<void> Function(String place,String note)? onObserve;
+  final Future<void> Function(String observationId,String reviewId)?
+    onAcknowledgeFeedback;
 
   @override
   State<CipaMemberPortalScreen> createState() => _CipaMemberPortalScreenState();
@@ -27,6 +30,7 @@ class CipaMemberPortalScreen extends StatefulWidget {
 class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
   bool busy=false;
   String error='';
+  final Set<String> _confirmedReads={};
   final GlobalKey _meetingsSection=GlobalKey();
   final GlobalKey _tasksSection=GlobalKey();
 
@@ -133,12 +137,18 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
     item.title.toLowerCase().contains('vistoria orientada') ||
     item.description.contains('VISTORIA ORIENTADA DA CIPA');
 
-  Future<void> _guidedInspection() async {
+  Future<void> _guidedInspection({String? initialCategory,
+      String? initialPlace}) async {
     if(!widget.sessionVerified || busy || widget.onObserve==null)return;
     final submitted=await showDialog<bool>(
       context:context,
       barrierDismissible:false,
       builder:(_)=>CipaGuidedInspectionDialog(
+        initialCategory:initialCategory,initialPlace:initialPlace,
+        memberName:widget.view!.profile.fullName,
+        memberRole:widget.view!.profile.cipaRole,
+        companyName:widget.companyName,
+        mandateLabel:widget.mandateLabel,
         onSend:(place,note) async {
           if(!widget.sessionVerified || widget.onObserve==null) {
             throw StateError('Sessão não autorizada');
@@ -165,6 +175,52 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
         'Acompanhe em Minhas vistorias.')));
   }
 
+  Future<void> _acknowledgeFeedback(CipaMemberItem item) async {
+    final callback=widget.onAcknowledgeFeedback;
+    final profile=widget.view?.profile;
+    if(busy||!widget.sessionVerified||callback==null||profile==null||
+      item.companyId!=profile.companyId ||
+      item.mandateId!=profile.mandateId ||
+      item.assignedMemberId!=profile.memberId ||
+      item.status!='Orientação enviada'||item.feedback.isEmpty||
+      item.reviewId.isEmpty)return;
+    final key='${item.id}|${item.reviewId}';
+    setState(() {busy=true;error='';});
+    try {
+      await callback(item.id,item.reviewId);
+      if(mounted)setState(()=>_confirmedReads.add(key));
+      if(widget.onRefresh!=null){
+        try {
+          await widget.onRefresh!();
+        } catch (_) {
+          // A leitura já foi registrada. Não induzir a repetição do envio.
+        }
+      }
+    } catch (_) {
+      if(mounted)setState(()=>error='Leitura não confirmada. '
+        'Confira o histórico antes de tentar novamente.');
+    } finally {
+      if(mounted)setState(()=>busy=false);
+    }
+  }
+
+  Widget _feedbackReadAction(CipaMemberItem item) {
+    final profile=widget.view?.profile;
+    if(widget.onAcknowledgeFeedback==null||profile==null||
+       item.companyId!=profile.companyId||
+       item.mandateId!=profile.mandateId||
+       item.assignedMemberId!=profile.memberId||
+       item.status!='Orientação enviada'||item.feedback.isEmpty||
+       item.reviewId.isEmpty||item.feedbackRead||
+       _confirmedReads.contains('${item.id}|${item.reviewId}')) {
+      return const SizedBox.shrink();
+    }
+    return SizedBox(width:double.infinity,child:OutlinedButton.icon(
+      icon:const Icon(Icons.mark_chat_read_outlined),
+      label:const Text('Li a orientação'),
+      onPressed:busy?null:()=>_acknowledgeFeedback(item)));
+  }
+
   Widget _section(String title,IconData icon,List<CipaMemberItem> items,{
     Widget Function(CipaMemberItem)? actions,String empty='Nenhum registro disponível.',
   })=>Card(child:ExpansionTile(
@@ -183,6 +239,11 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
               if(item.type==CipaMemberItemType.observation &&
                  item.feedback.isNotEmpty)
                 'Resposta do técnico: ${item.feedback}',
+              if(item.type==CipaMemberItemType.observation&&
+                item.feedback.isNotEmpty&&
+                (item.feedbackRead ||
+                 _confirmedReads.contains('${item.id}|${item.reviewId}')))
+                'Leitura confirmada pelo integrante',
               if(item.date!=null)'Data: ${item.date!.day}/${item.date!.month}/${item.date!.year}',
             ].join('\n'))),
           if(actions!=null)Padding(
@@ -314,14 +375,23 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
           ]))),
         _section('Vistorias programadas',Icons.calendar_month_outlined,
           view.scheduledInspections,
-          empty:'Nenhuma vistoria programada para você.'),
+          empty:'Nenhuma vistoria programada para você.',
+          actions:(item)=>widget.onObserve==null?
+            const SizedBox.shrink():
+            SizedBox(width:double.infinity,child:OutlinedButton.icon(
+              onPressed:busy?null:()=>_guidedInspection(
+                initialCategory:item.title.replaceFirst('Vistoria: ',''),
+                initialPlace:item.title.replaceFirst('Vistoria: ','')),
+              icon:const Icon(Icons.play_arrow),
+              label:const Text('Iniciar esta vistoria')))),
         const Padding(padding:EdgeInsets.fromLTRB(16,0,16,10),
           child:Text('Na data programada, use Fazer vistoria. '
             'Evite áreas de risco; o registro será analisado pelo TST.',
             style:TextStyle(fontSize:12))),
         _section('Minhas vistorias orientadas',
           Icons.fact_check_outlined,inspections,
-          empty:'Nenhuma vistoria orientada disponível nesta consulta.'),
+          empty:'Nenhuma vistoria orientada disponível nesta consulta.',
+          actions:_feedbackReadAction),
         const Padding(padding:EdgeInsets.fromLTRB(16,0,16,10),
           child:Text('A situação mostrada é a que a equipe registrou. '
             'O envio não confirma correção nem encerra ação.',
@@ -343,7 +413,8 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
         _section('Avisos',Icons.notifications_none_outlined,view.notices),
         _section('Meu treinamento',Icons.school_outlined,view.trainings),
         _section('Documentos liberados',Icons.folder_open_outlined,view.documents),
-        _section('Outras observações',Icons.visibility_outlined,otherObservations),
+        _section('Outras observações',Icons.visibility_outlined,
+          otherObservations,actions:_feedbackReadAction),
         _section('Lembretes',Icons.alarm_outlined,view.reminders),
           ],
         )),

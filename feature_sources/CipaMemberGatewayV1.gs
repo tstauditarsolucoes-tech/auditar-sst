@@ -23,7 +23,8 @@ function cipaMemV1Route_(request) {
     'cipa_member_admin_publications',
     'cipa_member_admin_review_observation',
     'cipa_tst_review_inbox','cipa_tst_review_observation','cipa_tst_review_grant',
-    'cipa_schedule_create','cipa_schedule_cancel','cipa_schedule_list'];
+    'cipa_schedule_create','cipa_schedule_cancel','cipa_schedule_list',
+    'cipa_member_ack_feedback'];
   if(known.indexOf(action)<0)return null;
   if(PropertiesService.getScriptProperties().getProperty('CIPA_MEMBER_V1_ENABLED')!=='true')
     return {ok:false,code:'FEATURE_DISABLED',message:'Acesso de membros ainda não habilitado.'};
@@ -32,6 +33,8 @@ function cipaMemV1Route_(request) {
     if(action==='cipa_member_verify')return cipaMemV1Verify_(request);
     if(action==='cipa_member_dashboard')return cipaMemV1Dashboard_(request);
     if(action==='cipa_member_event')return cipaMemV1Event_(request);
+    if(action==='cipa_member_ack_feedback')
+      return cipaFeedbackAcknowledge_(request);
     if(action==='cipa_member_logout')return cipaMemV1Logout_(request);
     if(action==='cipa_member_admin_grant')return cipaMemV1AdminGrant_(request);
     if(action==='cipa_member_admin_revoke')return cipaMemV1AdminRevoke_(request);
@@ -471,6 +474,8 @@ function cipaMemV1Dashboard_(request) {
     return e.kind==='observation';});
   var reviews=cipaMemV1Reviews_(a.companyId,a.mandateId,a.memberId,
     observations.map(function(e){return e.id;}));
+  var feedbackRead=cipaFeedbackReadMap_(a,
+    observations.map(function(e){return e.id;}),reviews);
   return {ok:true,companyName:cipaMemV1CompanyName_(a.companyId),
     mandateTitle:mandateRecord?mandateRecord.title:'Mandato atual',
     profile:{
@@ -489,6 +494,8 @@ function cipaMemV1Dashboard_(request) {
         description:e.detail,
         status:review?review.status:'Recebido',
         feedback:review?review.feedback:'',
+        reviewId:review?review.reviewId:'',
+        feedbackRead:feedbackRead[e.id]===true,
         date:e.date,companyId:a.companyId,mandateId:a.mandateId,
         assignedMemberId:a.memberId,visibleToAllMembers:false,
       };
