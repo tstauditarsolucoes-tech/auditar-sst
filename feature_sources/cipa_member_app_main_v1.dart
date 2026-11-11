@@ -131,6 +131,7 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
         onReportProgress:api.progress,
         onRequestSupport:api.support,
         onObserve:api.observe,
+        onAcknowledgeFeedback:api.acknowledgeFeedback,
       );
     }
     return Scaffold(
