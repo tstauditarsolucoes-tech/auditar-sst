@@ -90,6 +90,9 @@ vm.runInContext(fs.readFileSync(path.join(
 vm.runInContext(fs.readFileSync(path.join(
   root,'feature_sources/CipaMemberPublicationsV1.gs'),'utf8'),
   scope,{filename:'CipaMemberPublicationsV1.gs'});
+vm.runInContext(fs.readFileSync(path.join(
+  root,'feature_sources/CipaMemberReviewsV1.gs'),'utf8'),
+  scope,{filename:'CipaMemberReviewsV1.gs'});
 const invoke=(action,fields={})=>JSON.parse(JSON.stringify(
   scope.cipaMemV1Route_({action,...fields})));
 
@@ -294,6 +297,80 @@ assert(inbox.ok&&inbox.events.length===2);
 assert.strictEqual(invoke('cipa_member_admin_inbox',{
  authToken:login.sessionToken,companyId:'company-A',
 }).code,'ACCESS_DENIED');
+
+// Devolutivas: autorização, escopo, histórico e deduplicação obrigatórios.
+const reviewFields={
+  companyId:'company-A',mandateId:'mandate-A',
+  observationId:'test-request-id-12345678902',
+  status:'Em análise',message:'Conferência técnica em andamento.',
+  requestId:'review-request-id-0000000001',
+};
+assert.strictEqual(invoke('cipa_member_admin_review_observation',{
+  ...reviewFields,authToken:login.sessionToken,
+}).code,'ACCESS_DENIED','Membro não responde ao próprio relato como ADM');
+assert.strictEqual(invoke('cipa_member_admin_review_observation',{
+  ...reviewFields,authToken:'invalid',
+}).code,'ACCESS_DENIED','Sem conta ADM não há devolutiva');
+assert.strictEqual(invoke('cipa_member_admin_review_observation',{
+  ...reviewFields,authToken:'valid-admin',companyId:'company-B',
+  mandateId:'mandate-B',
+}).code,'NOT_FOUND','Devolutiva não cruza empresas');
+assert.strictEqual(invoke('cipa_member_admin_review_observation',{
+  ...reviewFields,authToken:'valid-admin',mandateId:'mandate-B',
+}).code,'NOT_FOUND','Devolutiva não cruza mandatos');
+assert.strictEqual(invoke('cipa_member_admin_review_observation',{
+  ...reviewFields,authToken:'valid-admin',
+  observationId:'test-request-id-12345678901',
+}).code,'NOT_FOUND','Apenas observações podem receber devolutiva');
+assert.strictEqual(invoke('cipa_member_admin_review_observation',{
+  ...reviewFields,authToken:'valid-admin',status:'Concluído',
+}).code,'INVALID_INPUT','Devolutiva não encerra NC automaticamente');
+assert.strictEqual(invoke('cipa_member_admin_review_observation',{
+  ...reviewFields,authToken:'valid-admin',status:'Orientação enviada',
+  message:'',
+}).code,'INVALID_INPUT','Orientação exige texto');
+const firstReview=invoke('cipa_member_admin_review_observation',{
+  ...reviewFields,authToken:'valid-admin',
+});
+assert(firstReview.ok&&!firstReview.duplicate);
+const repeatReview=invoke('cipa_member_admin_review_observation',{
+  ...reviewFields,authToken:'valid-admin',
+});
+assert.strictEqual(repeatReview.duplicate,true);
+assert.strictEqual(invoke('cipa_member_admin_review_observation',{
+  ...reviewFields,authToken:'valid-admin',status:'Orientação enviada',
+}).code,'ID_REUSED','RequestId não pode mudar o conteúdo');
+const afterReview=invoke('cipa_member_dashboard',{
+  sessionToken:login.sessionToken,
+});
+const ownObservation=afterReview.observations.find(x=>x.id===
+  'test-request-id-12345678902');
+assert.strictEqual(ownObservation.status,'Em análise');
+assert.strictEqual(ownObservation.feedback,'Conferência técnica em andamento.');
+const reply=invoke('cipa_member_admin_review_observation',{
+  ...reviewFields,authToken:'valid-admin',
+  requestId:'review-request-id-0000000002',
+  status:'Orientação enviada',
+  message:'Verifique a passagem sem se aproximar de máquinas.',
+});
+assert(reply.ok);
+const lastReview=invoke('cipa_member_dashboard',{
+  sessionToken:login.sessionToken,
+}).observations.find(x=>x.id==='test-request-id-12345678902');
+assert.strictEqual(lastReview.status,'Orientação enviada');
+assert.strictEqual(lastReview.feedback,
+  'Verifique a passagem sem se aproximar de máquinas.');
+assert.strictEqual(invoke('cipa_member_admin_inbox',{
+  authToken:'valid-admin',companyId:'company-A',
+  mandateId:'mandate-B',
+}).events.length,0,'Caixa do técnico não mistura mandatos');
+const reviewedInbox=invoke('cipa_member_admin_inbox',{
+  authToken:'valid-admin',companyId:'company-A',
+  mandateId:'mandate-A',
+}).events.find(x=>x.id==='test-request-id-12345678902');
+assert(reviewedInbox&&reviewedInbox.status==='Orientação enviada');
+assert.strictEqual(reviewedInbox.feedback,lastReview.feedback);
+assert(!JSON.stringify(lastReview).includes('admin@example.test'));
 
 const revoke=invoke('cipa_member_admin_revoke',{
  authToken:'valid-admin',accountId:grant.id,
