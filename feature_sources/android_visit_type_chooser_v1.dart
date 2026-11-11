@@ -51,7 +51,7 @@ class AuditarVisitTypeChooserScreen extends StatelessWidget {
             'de começar. Somente dados salvos neste aparelho.',
           onTap:()=>Navigator.of(context).push(
             MaterialPageRoute(builder:(_)=>
-              SmartVisitBriefingScreen(company:initialCompany!))),
+              SmartVisitBriefingScreen(company:initialCompany!)))),
         const SizedBox(height:8),
         _option(context,
           icon:Icons.fact_check_outlined,
