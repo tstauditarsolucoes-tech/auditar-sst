@@ -46,7 +46,7 @@ class CipaMemberView {
     required this.documents,
     required this.observations,
     required this.reminders,
-    required this.scheduledInspections,
+    this.scheduledInspections=const [],
   });
   final CipaMemberAccessProfile profile;
   final String companyLabel,mandateLabel;
