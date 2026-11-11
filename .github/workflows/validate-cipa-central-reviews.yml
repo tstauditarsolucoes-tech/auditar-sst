@@ -4,10 +4,13 @@ on:
     branches:
       - feature/cipa-central-vistorias-devolutivas-20261111
       - feature/cipa-tst-permissoes-vistorias-20261111
+      - feature/cipa-tst-permissoes-vistorias-20261111
+      - feature/cipa-vistorias-programadas-20261111
     paths:
       - 'feature_sources/CipaMemberGatewayV1.gs'
       - 'feature_sources/CipaMemberReviewsV1.gs'
       - 'feature_sources/CipaTstReviewAccessV1.gs'
+      - 'feature_sources/CipaMemberInspectionSchedulesV1.gs'
       - 'feature_sources/cipa_tst_review_screen_v1.dart'
       - 'feature_sources/cipa_member_admin_screen_v1.dart'
       - 'feature_sources/cipa_member_api_v1.dart'
@@ -37,9 +40,11 @@ jobs:
           cp feature_sources/CipaMemberGatewayV1.gs /tmp/CipaMemberGatewayV1.js
           cp feature_sources/CipaMemberReviewsV1.gs /tmp/CipaMemberReviewsV1.js
           cp feature_sources/CipaTstReviewAccessV1.gs /tmp/CipaTstReviewAccessV1.js
+          cp feature_sources/CipaMemberInspectionSchedulesV1.gs /tmp/CipaMemberInspectionSchedulesV1.js
           node --check /tmp/CipaMemberGatewayV1.js
           node --check /tmp/CipaMemberReviewsV1.js
           node --check /tmp/CipaTstReviewAccessV1.js
+          node --check /tmp/CipaMemberInspectionSchedulesV1.js
           node tools/test_cipa_member_gateway_v1.cjs
   flutter-admin:
     runs-on: ubuntu-latest
