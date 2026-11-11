@@ -21,6 +21,7 @@ for target,origin in (
     shutil.copyfile(origin,target)
 screen=root/"lib/screens/cipa_management_screen.dart"
 screen.write_text(r"""import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/cipa_meeting_coach_rules.dart';
 part 'cipa_meeting_coach_home.dart';
 
@@ -85,6 +86,7 @@ class _CipaManagementScreenState extends State<CipaManagementScreen> {
 test=root/"test/cipa_meeting_coach_widget_test.dart"
 test.parent.mkdir(parents=True,exist_ok=True)
 test.write_text(r"""import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cipa_meeting_coach_fixture/screens/cipa_management_screen.dart';
 
@@ -114,6 +116,53 @@ void main(){
     await tester.pumpAndSettle();
     expect(find.text('EDITOR_DE_REUNIAO_ABERTO'),findsOneWidget);
     expect(find.text('Conferir presenças'),findsNothing);
+  });
+  testWidgets('Assistente sugere pauta antes da reunião e abre editor',
+    (tester)async{
+    String? copied;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(SystemChannels.platform,(call) async {
+        if(call.method=='Clipboard.setData') {
+          copied=(call.arguments as Map)['text'] as String?;
+        }
+        return null;
+      });
+    addTearDown((){
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform,null);
+    });
+    await tester.binding.setSurfaceSize(const Size(600,850));
+    await tester.pumpWidget(const MaterialApp(
+      home:CipaManagementScreen(hasMandate:true)));
+    await tester.tap(find.text('Reunião assistida: antes e depois'));
+    await tester.pumpAndSettle();
+    final suggest=find.text('Sugerir tema para a pauta da ata');
+    await tester.scrollUntilVisible(suggest,160);
+    await tester.ensureVisible(suggest);
+    await tester.tap(suggest);
+    await tester.pumpAndSettle();
+    expect(find.text('Escolher tema para a pauta'),findsOneWidget);
+    expect(find.textContaining('PROPOSTA DE PAUTA'),findsWidgets);
+    expect(find.textContaining('Esta proposta não é ata'),findsWidgets);
+    final dropdown=find.widgetWithText(
+      DropdownButtonFormField<String>,'Ramo ou setor da empresa');
+    await tester.tap(dropdown);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cerâmica').last);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('máquinas, fornos e circulação'),findsWidgets);
+    final finish=find.text('Copiar pauta e abrir reunião');
+    await tester.ensureVisible(finish);
+    await tester.tap(finish);
+    await tester.pumpAndSettle();
+    expect(copied,contains('PROPOSTA DE PAUTA DA CIPA'));
+    expect(copied,contains('Prevenção de acidentes em máquinas'));
+    expect(find.text('Escolher tema para a pauta'),findsNothing);
+    final editor=find.text('EDITOR_DE_REUNIAO_ABERTO');
+    await tester.scrollUntilVisible(editor,150,
+      scrollable:find.byType(Scrollable).first);
+    expect(editor,findsOneWidget);
+    await tester.binding.setSurfaceSize(null);
   });
 }
 """,encoding="utf-8")

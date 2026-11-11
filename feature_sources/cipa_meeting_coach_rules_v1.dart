@@ -189,3 +189,113 @@ class CipaMeetingCoachRules {
     );
   }
 }
+
+
+/// Apenas proposta de pauta; nunca substitui o registro da reunião real.
+class CipaTopicSuggestion {
+  const CipaTopicSuggestion(this.title,this.reason,this.points);
+  final String title,reason;
+  final List<String> points;
+
+  String get draftAgenda=>[
+    'PROPOSTA DE PAUTA DA CIPA — revisar antes da reunião',
+    'Tema sugerido: '+title,'',
+    'Pontos para discutir:',
+    for(var i=0;i<points.length;i++)
+      (i+1).toString()+'. '+points[i],
+    '',
+    'Depois da reunião, registrar somente assuntos efetivamente debatidos, '
+      'decisões, responsáveis e prazos definidos.',
+    'Esta proposta não é ata, não comprova presença e não encerra ações.',
+  ].join('\n');
+}
+
+class CipaTopicAdvisor {
+  const CipaTopicAdvisor._();
+  static const sectors=<String>[
+    'Geral','Cerâmica','Construção civil','Panificação','Laticínios',
+    'Logística e depósitos','Limpeza urbana','Comércio e escritórios',
+  ];
+  static const _bySector=<String,CipaTopicSuggestion>{
+    'Geral':CipaTopicSuggestion(
+      'Observações preventivas nos ambientes de trabalho',
+      'Tema geral para reunir sugestões dos integrantes.',
+      ['Quais situações merecem atenção nos setores da empresa?',
+       'Quais sugestões foram recebidas dos trabalhadores?',
+       'Que verificações e encaminhamentos precisam ser avaliados?']),
+    'Cerâmica':CipaTopicSuggestion(
+      'Prevenção de acidentes em máquinas, fornos e circulação',
+      'Tema para indústria cerâmica.',
+      ['Que situações foram observadas nas partes móveis de máquinas?',
+       'Há relatos sobre calor, poeira, circulação ou aberturas?',
+       'Quais medidas precisam ser verificadas pela equipe de SST?']),
+    'Construção civil':CipaTopicSuggestion(
+      'Trabalho em altura, andaimes e proteção coletiva',
+      'Tema para canteiros de obras.',
+      ['Que situações foram relatadas sobre andaimes e acessos?',
+       'Quais proteções coletivas merecem revisão?',
+       'Que encaminhamentos precisam de responsável e prazo?']),
+    'Panificação':CipaTopicSuggestion(
+      'Máquinas, queimaduras e circulação segura na panificação',
+      'Tema para panificadoras.',
+      ['Que relatos existem sobre proteções de máquinas?',
+       'Há situações relacionadas a superfícies quentes e pisos?',
+       'Que orientações preventivas serão propostas?']),
+    'Laticínios':CipaTopicSuggestion(
+      'Segurança de máquinas e prevenção de escorregamentos',
+      'Tema para laticínios.',
+      ['Que situações foram observadas nas proteções de máquinas?',
+       'Há relatos de pisos molhados e circulação?',
+       'Quais recomendações precisam ser avaliadas tecnicamente?']),
+    'Logística e depósitos':CipaTopicSuggestion(
+      'Movimentação de cargas, empilhamento e rotas seguras',
+      'Tema para depósitos e logística.',
+      ['Há relatos sobre cargas, paletes e empilhamentos?',
+       'Como estão as rotas de pedestres?',
+       'Quais verificações e encaminhamentos são necessários?']),
+    'Limpeza urbana':CipaTopicSuggestion(
+      'Segurança nas atividades externas e circulação de veículos',
+      'Tema para limpeza urbana.',
+      ['Quais situações foram relatadas nas atividades externas?',
+       'Há pontos de atenção em sinalização e veículos?',
+       'Quais medidas devem ser avaliadas?']),
+    'Comércio e escritórios':CipaTopicSuggestion(
+      'Organização, ergonomia e rotas de emergência',
+      'Tema para comércio e escritórios.',
+      ['Quais sugestões existem sobre postos de trabalho e organização?',
+       'Há relatos sobre rotas de fuga e instalações aparentes?',
+       'Que ações preventivas merecem acompanhamento?']),
+  };
+
+  static List<CipaTopicSuggestion> suggest({
+    required String sector,
+    required int openActions,
+    required int overdueActions,
+  }) {
+    if(!sectors.contains(sector)||openActions<0||overdueActions<0||
+       overdueActions>openActions)throw ArgumentError('Pauta inválida.');
+    final items=<CipaTopicSuggestion>[];
+    if(openActions>0)items.add(CipaTopicSuggestion(
+      'Acompanhamento das ações pendentes da CIPA',
+      'Neste mandato há '+openActions.toString()+
+        ' ação(ões) em aberto, sendo '+overdueActions.toString()+
+        ' com prazo vencido.',
+      ['Revisar andamento das ações registradas em aberto.',
+       if(overdueActions>0)'Conferir prazos vencidos e obstáculos.',
+       'Verificar evidências, responsáveis e próximos passos.']));
+    items.add(_bySector[sector]!);
+    items.add(const CipaTopicSuggestion(
+      'Participação dos trabalhadores e prevenção do assédio',
+      'Tema preventivo geral; não presume ocorrência na empresa.',
+      ['Ouvir sugestões de prevenção apresentadas à CIPA.',
+       'Reforçar orientações de respeito e prevenção do assédio.',
+       'Avaliar quais propostas precisam de encaminhamento.']));
+    items.add(const CipaTopicSuggestion(
+      'Prevenção de incidentes e melhoria contínua',
+      'Tema preventivo; não pressupõe acidentes registrados.',
+      ['Verificar se há relatos para discussão na CIPA.',
+       'Debater melhorias sem expor dados pessoais.',
+       'Acompanhar propostas e ações aprovadas na reunião.']));
+    return List.unmodifiable(items);
+  }
+}

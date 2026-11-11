@@ -77,6 +77,93 @@ extension _CipaMeetingCoachHome on _CipaManagementScreenState {
     DefaultTabController.of(context).animateTo(tab);
   }
 
+
+  Future<void> _cipaSuggestAgendaTheme() async {
+    if(busy||!mounted)return;
+    final mandate=activeMandate;
+    if(mandate==null){
+      _message('Ative um mandato da CIPA para preparar uma pauta.');
+      return;
+    }
+    final open=mandateActions.where((action)=>
+      action.companyId==widget.companyId &&
+      (action.payload['mandateId']??'').toString()==mandate.id &&
+      !const ['Resolvida','Concluída','Concluído','Cancelada','Arquivada']
+        .contains(action.status)).toList();
+    final overdue=open.where((a)=>a.dueDate!=null &&
+      a.dueDate!.isBefore(DateTime.now())).length;
+    final meeting=_cipaMeetingCoachSnapshot();
+    var sector='Geral';
+    String? chosenTitle;
+    await showDialog<void>(context:context,builder:(dialog)=>
+      StatefulBuilder(builder:(ctx,update){
+        final suggested=CipaTopicAdvisor.suggest(
+          sector:sector,openActions:open.length,overdueActions:overdue);
+        final chosen=suggested.firstWhere(
+          (s)=>s.title==chosenTitle,orElse:()=>suggested.first);
+        return AlertDialog(
+          title:const Text('Escolher tema para a pauta'),
+          content:SizedBox(width:520,child:SingleChildScrollView(
+            child:Column(
+              crossAxisAlignment:CrossAxisAlignment.stretch,
+              mainAxisSize:MainAxisSize.min,children:[
+              const Text('Escolha o setor e um assunto sugerido. '
+                'A CIPA decide o que será discutido.'),
+              const SizedBox(height:12),
+              DropdownButtonFormField<String>(
+                isExpanded:true,value:sector,
+                decoration:const InputDecoration(
+                  labelText:'Ramo ou setor da empresa',
+                  border:OutlineInputBorder()),
+                items:CipaTopicAdvisor.sectors.map((name)=>
+                  DropdownMenuItem(value:name,child:Text(name,
+                    overflow:TextOverflow.ellipsis))).toList(),
+                onChanged:(value)=>update((){
+                  sector=value??'Geral';chosenTitle=null;
+                }),
+              ),
+              const SizedBox(height:12),
+              for(final suggestion in suggested)
+                RadioListTile<String>(
+                  contentPadding:EdgeInsets.zero,
+                  title:Text(suggestion.title),
+                  subtitle:Text(suggestion.reason),
+                  value:suggestion.title,
+                  groupValue:chosen.title,
+                  onChanged:(value)=>update(()=>chosenTitle=value),
+                ),
+              const Divider(),
+              const Text('Texto sugerido (editável no formulário de reunião)',
+                style:TextStyle(fontWeight:FontWeight.w700)),
+              const SizedBox(height:8),
+              SelectableText(chosen.draftAgenda),
+              const SizedBox(height:10),
+              const Text('Isto é somente uma PROPOSTA de pauta. '
+                'Não preenche uma ata, presenças, decisões ou assinaturas.',
+                style:TextStyle(fontSize:12)),
+            ]))),
+          actions:[
+            TextButton(onPressed:()=>Navigator.pop(dialog),
+              child:const Text('Voltar')),
+            FilledButton.icon(
+              onPressed:()async{
+                await Clipboard.setData(ClipboardData(text:chosen.draftAgenda));
+                if(!ctx.mounted)return;
+                Navigator.pop(dialog);
+                if(mounted){
+                  _message('Proposta copiada. Revise e cole no campo de pauta.');
+                  await _cipaMeetingCoachNavigate(
+                    meeting.selectedMeetingId==null?'new_meeting':'meeting',
+                    meeting.selectedMeetingId);
+                }
+              },
+              icon:const Icon(Icons.copy_outlined),
+              label:const Text('Copiar pauta e abrir reunião')),
+          ],
+        );
+      }));
+  }
+
   Widget _cipaMeetingCoachCard() {
     final view=_cipaMeetingCoachSnapshot();
     return Card(child:ExpansionTile(
@@ -111,6 +198,12 @@ extension _CipaMeetingCoachHome on _CipaManagementScreenState {
             onTap:()=>_cipaMeetingCoachNavigate(
               item.target,view.selectedMeetingId),
           ),
+        Padding(padding:const EdgeInsets.fromLTRB(16,6,16,8),
+          child:SizedBox(width:double.infinity,child:OutlinedButton.icon(
+            onPressed:busy||activeMandate==null?null:_cipaSuggestAgendaTheme,
+            icon:const Icon(Icons.lightbulb_outline),
+            label:const Text('Sugerir tema para a pauta da ata'),
+          ))),
         Padding(padding:const EdgeInsets.fromLTRB(16,6,16,14),
           child:SizedBox(width:double.infinity,child:FilledButton.icon(
             onPressed:busy?null:()=>_cipaMeetingCoachNavigate(

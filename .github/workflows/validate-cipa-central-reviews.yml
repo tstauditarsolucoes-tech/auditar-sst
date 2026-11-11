@@ -6,6 +6,8 @@ on:
       - feature/cipa-tst-permissoes-vistorias-20261111
       - feature/cipa-vistorias-programadas-20261111
       - feature/cipa-ux-guiada-ciencia-orientacao-20261111
+      - feature/cipa-facilidade-ciclo-completo-20261111
+      - feature/cipa-sugestor-temas-ata-20261111
     paths:
       - 'feature_sources/CipaMemberGatewayV1.gs'
       - 'feature_sources/CipaMemberReviewsV1.gs'
@@ -36,6 +38,7 @@ on:
       - feature/cipa-central-vistorias-devolutivas-20261111
       - feature/cipa-tst-permissoes-vistorias-20261111
       - feature/cipa-vistorias-programadas-20261111
+      - feature/cipa-facilidade-ciclo-completo-20261111
   workflow_dispatch:
 permissions:
   contents: read

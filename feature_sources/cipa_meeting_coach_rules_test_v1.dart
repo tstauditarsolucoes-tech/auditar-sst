@@ -102,5 +102,48 @@ void main() {
   ]);
   check(two.selectedMeetingId=='realizada',
     'priorizar reunião realizada sem ata sobre agenda nova');
-  print('CIPA_MEETING_COACH_RULES_11_SCENARIOS_OK');
+  final sectors=CipaTopicAdvisor.sectors;
+  check(sectors.contains('Cerâmica')&&sectors.contains('Panificação')&&
+    sectors.contains('Construção civil'),'setores principais disponíveis');
+  for(final sector in sectors){
+    final suggestions=CipaTopicAdvisor.suggest(
+      sector:sector,openActions:0,overdueActions:0);
+    check(suggestions.isNotEmpty,'setor deve ter pauta');
+    check(suggestions.any((s)=>s.reason.contains('Tema')||
+      s.title.isNotEmpty),'tema visível');
+    check(suggestions.every((s)=>s.points.isNotEmpty),
+      'cada proposta tem pontos para discutir');
+    check(suggestions.every((s)=>s.draftAgenda.contains('PROPOSTA DE PAUTA')&&
+      s.draftAgenda.contains('não é ata')),
+      'não apresentar sugestão como ata concluída');
+    check(!suggestions.any((s)=>s.title.contains('ações pendentes')),
+      'não inventar pendências');
+  }
+  final pending=CipaTopicAdvisor.suggest(
+    sector:'Cerâmica',openActions:4,overdueActions:2);
+  check(pending.first.title.contains('ações pendentes'),
+    'priorizar ações em aberto');
+  check(pending.first.reason.contains('4 ação(ões)')&&
+    pending.first.reason.contains('2 com prazo vencido'),
+    'contagem somente com dados informados');
+  check(pending.first.draftAgenda.contains('responsáveis e prazos'),
+    'incluir revisão e próximos passos');
+  check(pending.any((s)=>s.title.contains('máquinas')),
+    'recomendar setor selecionado');
+  check(pending.every((s)=>!s.draftAgenda.contains('Estiveram presentes')&&
+    !s.draftAgenda.contains('Foi deliberado')),
+    'não inventar presença ou decisão');
+  var rejected=false;
+  try {
+    CipaTopicAdvisor.suggest(
+      sector:'Cerâmica',openActions:1,overdueActions:2);
+  }catch(_){rejected=true;}
+  check(rejected,'não aceitar contagem inconsistente');
+  rejected=false;
+  try {
+    CipaTopicAdvisor.suggest(
+      sector:'Empresa inexistente',openActions:0,overdueActions:0);
+  }catch(_){rejected=true;}
+  check(rejected,'não inventar ramo desconhecido');
+  print('CIPA_MEETING_COACH_RULES_TOPICS_AND_11_SCENARIOS_OK');
 }

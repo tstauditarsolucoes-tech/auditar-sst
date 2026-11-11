@@ -104,9 +104,12 @@ void main() {
       companyName:'Empresa A',mandateLabel:'2026',
       sessionVerified:true,view:view(),
     )));
-    await tester.scrollUntilVisible(
-      find.text('Como funciona a minha participação'),130);
-    await tester.tap(find.text('Como funciona a minha participação'));
+    final guide=find.text('Como funciona a minha participação');
+    await tester.scrollUntilVisible(guide,180,
+      scrollable:find.byType(Scrollable).first);
+    await tester.ensureVisible(guide);
+    await tester.pumpAndSettle();
+    await tester.tap(guide);
     await tester.pumpAndSettle();
     expect(find.text('Recebi um aviso de reunião'),findsOneWidget);
     expect(find.text('Tenho uma tarefa'),findsOneWidget);
@@ -191,9 +194,8 @@ void main() {
       companyName:'Empresa A',mandateLabel:'2026',
       view:permitted,sessionVerified:true,onObserve:(_,__)async{})));
     final startButton=find.widgetWithText(OutlinedButton,'Iniciar esta vistoria');
-    await tester.scrollUntilVisible(startButton,180);
-    await tester.drag(find.byType(ListView).first,const Offset(0,-170));
-    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(startButton,150,
+      scrollable:find.byType(Scrollable).first);
     await tester.ensureVisible(startButton);
     await tester.pumpAndSettle();
     await tester.tap(startButton);
