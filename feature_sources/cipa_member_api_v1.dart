@@ -96,6 +96,8 @@ class CipaMemberApi {
         assignedMemberId:memberId,
         visibleToAllMembers:shared,
         type:type,description:_str(r['description']),
+        feedback:type==CipaMemberItemType.observation?
+          _str(r['feedback']):'',
         status:_str(r['status']),
         date:_date(r['date']),dueDate:_date(r['dueDate']),
       ));
