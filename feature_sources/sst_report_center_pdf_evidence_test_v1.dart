@@ -49,10 +49,11 @@ void main() {
     final directory=await Directory.systemTemp.createTemp('auditar-pdf-foto');
     addTearDown(()=>directory.delete(recursive:true));
     final image=File(directory.path+'/foto.png');
-    // PNG transparente 1 x 1; evidência fictícia só para renderização.
+    // PNG fictício 32 x 32 (>100 bytes) para o teste de renderização.
     await image.writeAsBytes(base64Decode(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8'
-      '/x8AAusB9WlJZCAAAAAASUVORK5CYII='));
+      'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAV0lEQVR4nGP8'
+      '//8/AwMDAwMD9/RoCONr5lIqijAx0BjQ3AJGrmlREBZ1QwYuMgyCaDQVEQKj'
+      'qYggGE1FBMFoKiIIRlMRQTCaigiC0VREEIymIoJg6KciAOl1vAamClBHAAAAAElFTkSuQmCC'));
     final bytes=await pdf(draftWith(photos:[image.path]));
     expect(bytes.length,greaterThan(1200));
     expect(String.fromCharCodes(bytes.take(4)),'%PDF');
