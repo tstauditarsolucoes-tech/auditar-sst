@@ -3,9 +3,12 @@ on:
   push:
     branches:
       - feature/cipa-central-vistorias-devolutivas-20261111
+      - feature/cipa-tst-permissoes-vistorias-20261111
     paths:
       - 'feature_sources/CipaMemberGatewayV1.gs'
       - 'feature_sources/CipaMemberReviewsV1.gs'
+      - 'feature_sources/CipaTstReviewAccessV1.gs'
+      - 'feature_sources/cipa_tst_review_screen_v1.dart'
       - 'feature_sources/cipa_member_admin_screen_v1.dart'
       - 'feature_sources/cipa_member_api_v1.dart'
       - 'feature_sources/cipa_member_portal_policy_v1.dart'
@@ -13,6 +16,7 @@ on:
       - 'feature_sources/cipa_member_api_test_v1.dart'
       - 'tools/test_cipa_member_gateway_v1.cjs'
       - 'tools/stage_cipa_review_fixture_v1.py'
+      - 'feature_sources/cipa_tst_review_smoke_test_v1.dart'
       - '.github/workflows/validate-cipa-central-reviews.yml'
   pull_request:
     branches:
@@ -31,8 +35,10 @@ jobs:
           set -euo pipefail
           cp feature_sources/CipaMemberGatewayV1.gs /tmp/CipaMemberGatewayV1.js
           cp feature_sources/CipaMemberReviewsV1.gs /tmp/CipaMemberReviewsV1.js
+          cp feature_sources/CipaTstReviewAccessV1.gs /tmp/CipaTstReviewAccessV1.js
           node --check /tmp/CipaMemberGatewayV1.js
           node --check /tmp/CipaMemberReviewsV1.js
+          node --check /tmp/CipaTstReviewAccessV1.js
           node tools/test_cipa_member_gateway_v1.cjs
   flutter-admin:
     runs-on: ubuntu-latest
@@ -48,10 +54,12 @@ jobs:
           flutter create --project-name cipa_admin_fixture /tmp/cipa_admin_fixture
           python3 tools/stage_cipa_admin_ui_flutter_v1.py /tmp/cipa_admin_fixture
           python3 tools/stage_cipa_review_fixture_v1.py /tmp/cipa_admin_fixture
+          cp feature_sources/cipa_tst_review_screen_v1.dart /tmp/cipa_admin_fixture/lib/screens/cipa_tst_review_screen.dart
+          cp feature_sources/cipa_tst_review_smoke_test_v1.dart /tmp/cipa_admin_fixture/test/cipa_tst_review_smoke_test.dart
           cd /tmp/cipa_admin_fixture
           dart format lib test
           flutter analyze --no-fatal-infos --no-fatal-warnings lib test
-          flutter test --reporter expanded test/cipa_admin_screen_smoke_test.dart test/cipa_admin_review_smoke_test.dart
+          flutter test --reporter expanded test/cipa_admin_screen_smoke_test.dart test/cipa_admin_review_smoke_test.dart test/cipa_tst_review_smoke_test.dart
   flutter-member-api:
     runs-on: ubuntu-latest
     timeout-minutes: 25
