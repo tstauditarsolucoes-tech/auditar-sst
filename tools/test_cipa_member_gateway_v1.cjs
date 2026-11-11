@@ -99,6 +99,9 @@ vm.runInContext(fs.readFileSync(path.join(
 vm.runInContext(fs.readFileSync(path.join(
   root,'feature_sources/CipaTstReviewAccessV1.gs'),'utf8'),
   scope,{filename:'CipaTstReviewAccessV1.gs'});
+vm.runInContext(fs.readFileSync(path.join(
+  root,'feature_sources/CipaMemberInspectionSchedulesV1.gs'),'utf8'),
+  scope,{filename:'CipaMemberInspectionSchedulesV1.gs'});
 const invoke=(action,fields={})=>JSON.parse(JSON.stringify(
   scope.cipaMemV1Route_({action,...fields})));
 
@@ -427,6 +430,53 @@ assert.strictEqual(invoke('cipa_tst_review_observation',{
 assert.strictEqual(invoke('cipa_tst_review_inbox',{
   authToken:'valid-tst',companyId:'company-A',mandateId:'mandate-A',
 }).code,'ACCESS_DENIED','Revogação bloqueia leitura também');
+
+// Calendário: somente ADM agenda; apenas o membro vê o próprio evento.
+const day=new Date(Date.now()+12*86400000).toISOString().slice(0,10);
+const inspectionInput={
+  authToken:'valid-admin',companyId:'company-A',mandateId:'mandate-A',
+  memberId:'member-A',sector:'Cerâmica',dueDate:day,
+  note:'Observe somente de local seguro.',
+  requestId:'schedule-request-123456789012',
+};
+assert.strictEqual(invoke('cipa_schedule_create',{
+  ...inspectionInput,authToken:login.sessionToken,
+}).code,'ACCESS_DENIED');
+assert.strictEqual(invoke('cipa_schedule_create',{
+  ...inspectionInput,memberId:'member-B',
+}).code,'MEMBERSHIP_INVALID','Não agendar membro de outra empresa');
+assert.strictEqual(invoke('cipa_schedule_create',{
+  ...inspectionInput,sector:'Entrada no forno quente',
+}).code,'INVALID_INPUT','Temas indevidos não são aceitos');
+const createdInspection=invoke('cipa_schedule_create',inspectionInput);
+assert(createdInspection.ok&&createdInspection.id);
+assert.strictEqual(invoke('cipa_schedule_create',inspectionInput).duplicate,true);
+assert.strictEqual(invoke('cipa_schedule_create',{
+  ...inspectionInput,sector:'Panificação',
+}).code,'ID_REUSED','RequestId não muda o agendamento');
+const scheduledDashboard=invoke('cipa_member_dashboard',{
+  sessionToken:login.sessionToken,
+});
+assert(scheduledDashboard.scheduledInspections.some(x=>
+  x.id===createdInspection.id&&x.title==='Vistoria: Cerâmica'));
+assert(scheduledDashboard.scheduledInspections.every(x=>
+  x.companyId==='company-A'&&x.mandateId==='mandate-A'&&
+  x.assignedMemberId==='member-A'));
+assert.strictEqual(invoke('cipa_schedule_list',{
+  authToken:login.sessionToken,companyId:'company-A',
+  mandateId:'mandate-A',
+}).code,'ACCESS_DENIED');
+assert.strictEqual(invoke('cipa_schedule_cancel',{
+  authToken:'valid-admin',companyId:'company-B',
+  mandateId:'mandate-B',scheduleId:createdInspection.id,
+}).code,'NOT_FOUND');
+assert(invoke('cipa_schedule_cancel',{
+  authToken:'valid-admin',companyId:'company-A',
+  mandateId:'mandate-A',scheduleId:createdInspection.id,
+}).ok,'Admin pode cancelar agendamento próprio');
+assert(invoke('cipa_member_dashboard',{
+  sessionToken:login.sessionToken,
+}).scheduledInspections.length===0,'Cancelamento retira lembrete do membro');
 
 const revoke=invoke('cipa_member_admin_revoke',{
  authToken:'valid-admin',accountId:grant.id,

@@ -312,6 +312,13 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
                 },icon:const Icon(Icons.help_outline),
                 label:const Text('Preciso de apoio')),
           ]))),
+        _section('Vistorias programadas',Icons.calendar_month_outlined,
+          view.scheduledInspections,
+          empty:'Nenhuma vistoria programada para você.'),
+        const Padding(padding:EdgeInsets.fromLTRB(16,0,16,10),
+          child:Text('Na data programada, use Fazer vistoria. '
+            'Evite áreas de risco; o registro será analisado pelo TST.',
+            style:TextStyle(fontSize:12))),
         _section('Minhas vistorias orientadas',
           Icons.fact_check_outlined,inspections,
           empty:'Nenhuma vistoria orientada disponível nesta consulta.'),

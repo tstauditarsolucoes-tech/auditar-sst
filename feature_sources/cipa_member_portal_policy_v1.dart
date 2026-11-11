@@ -10,6 +10,7 @@ enum CipaMemberItemType {
   document,
   observation,
   reminder,
+  scheduledInspection,
 }
 
 class CipaMemberItem {
@@ -45,11 +46,12 @@ class CipaMemberView {
     required this.documents,
     required this.observations,
     required this.reminders,
+    this.scheduledInspections=const [],
   });
   final CipaMemberAccessProfile profile;
   final String companyLabel,mandateLabel;
   final List<CipaMemberItem> meetings,myActions,notices,trainings,documents,
-      observations,reminders;
+      observations,reminders,scheduledInspections;
   int get pendingActions => myActions.where(
     (item)=>item.status!='Resolvida' && item.status!='Concluída').length;
   int get pendingReminders => reminders.length;
@@ -127,6 +129,8 @@ class CipaMemberPortalRules {
       documents:select(CipaMemberItemType.document),
       observations:select(CipaMemberItemType.observation,onlyMine:true),
       reminders:select(CipaMemberItemType.reminder),
+      scheduledInspections:select(CipaMemberItemType.scheduledInspection,
+        onlyMine:true),
     );
   }
 
