@@ -21,6 +21,7 @@ on:
   pull_request:
     branches:
       - feature/cipa-portal-membro-uso-facil-20261109
+      - feature/cipa-central-vistorias-devolutivas-20261111
   workflow_dispatch:
 permissions:
   contents: read
