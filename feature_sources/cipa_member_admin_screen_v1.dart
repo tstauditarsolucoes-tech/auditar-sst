@@ -46,11 +46,15 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
   final email=TextEditingController();
   final noticeTitle=TextEditingController();
   final noticeBody=TextEditingController();
+  final inspectionLocation=TextEditingController();
   String? selectedMember,selectedAction,selectedDocument;
+  String? selectedInspectionMember;
+  String inspectionTheme='Organização e circulação';
+  DateTime? inspectionDate;
   bool confirmNoticeSafe=false,confirmDocumentSafe=false;
   bool busy=false;
   String error='',notice='';
-  List<Map<String,dynamic>> accounts=[],inbox=[],notices=[];
+  List<Map<String,dynamic>> accounts=[],inbox=[],notices=[],schedules=[];
   final Map<String,String> _pendingReviewIds={};
   final Set<String> publishedDocumentIds={};
 
@@ -58,7 +62,8 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
   void initState(){super.initState();_reload();}
   @override
   void dispose(){
-    email.dispose();noticeTitle.dispose();noticeBody.dispose();super.dispose();
+    email.dispose();noticeTitle.dispose();noticeBody.dispose();
+    inspectionLocation.dispose();super.dispose();
   }
 
   Future<Map<String,dynamic>> _call(String action,
@@ -102,6 +107,7 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
       final saved=await _call('cipa_member_admin_list');
       final pending=await _call('cipa_member_admin_inbox');
       final publication=await _call('cipa_member_admin_publications');
+      final plan=await _call('cipa_member_schedule_list');
       if(!mounted)return;
       setState((){
         accounts=(saved['accounts'] is List?
@@ -110,6 +116,10 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
           <Map<String,dynamic>>[]);
         inbox=(pending['events'] is List?
           (pending['events'] as List).whereType<Map>()
+            .map((m)=>Map<String,dynamic>.from(m)).toList():
+          <Map<String,dynamic>>[]);
+        schedules=(plan['schedules'] is List?
+          (plan['schedules'] as List).whereType<Map>()
             .map((m)=>Map<String,dynamic>.from(m)).toList():
           <Map<String,dynamic>>[]);
         notices=(publication['notices'] is List?
@@ -210,6 +220,52 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
     if(mounted)await _reload();
   }
 
+
+  Future<void> _selectInspectionDate() async {
+    final now=DateTime.now();
+    final day=await showDatePicker(
+      context:context,firstDate:DateTime(now.year,now.month,now.day),
+      lastDate:now.add(const Duration(days:365)),
+      initialDate:now.add(const Duration(days:1)));
+    if(day==null||!mounted)return;
+    final hour=await showTimePicker(context:context,
+      initialTime:const TimeOfDay(hour:9,minute:0));
+    if(hour==null||!mounted)return;
+    setState(()=>inspectionDate=DateTime(day.year,day.month,day.day,
+      hour.hour,hour.minute));
+  }
+
+  Future<void> _scheduleInspection() async {
+    if(selectedInspectionMember==null||inspectionDate==null||
+      inspectionDate!.isBefore(DateTime.now().add(const Duration(hours:1)))||
+      inspectionLocation.text.trim().length<2||busy)return;
+    final r=Random.secure();
+    final id='schedule-'+List<int>.generate(20,(_)=>
+      r.nextInt(256)).map((b)=>b.toRadixString(16).padLeft(2,'0')).join();
+    await _perform(()async {
+      await _call('cipa_member_schedule_create',{
+        'memberId':selectedInspectionMember,
+        'location':inspectionLocation.text.trim(),
+        'theme':inspectionTheme,
+        'plannedAt':inspectionDate!.toUtc().toIso8601String(),
+        'requestId':id,
+      });
+      if(!mounted)return;
+      setState((){
+        inspectionLocation.clear();inspectionDate=null;
+        notice='Vistoria programada para o membro.';
+      });
+    });
+    if(mounted&&error.isEmpty)await _reload();
+  }
+
+  Future<void> _cancelInspection(String scheduleId) async {
+    await _perform(()async {
+      await _call('cipa_member_schedule_cancel',
+        {'scheduleId':scheduleId});
+    });
+    if(mounted&&error.isEmpty)await _reload();
+  }
 
   String _requestIdForReview(String key) =>
     _pendingReviewIds.putIfAbsent(key,(){
