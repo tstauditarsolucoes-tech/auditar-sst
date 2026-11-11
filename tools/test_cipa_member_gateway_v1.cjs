@@ -35,6 +35,7 @@ const props={
 const fakeAdmin={
   id:'admin-A',active:true,role:'admin',email:'admin@example.test',
 };
+const fakeTst={id:'tst-A',active:true,role:'tecnico',email:'tst@example.test'};
 const scope={
   console,
   Date,
@@ -72,7 +73,9 @@ const scope={
   DEVICE_SYNC_SHEET:'SincronizacaoDispositivos',
   authHex_:(arr)=>arr.map(x=>(Number(x)+256)%256)
     .map(x=>x.toString(16).padStart(2,'0')).join(''),
-  authUserFromToken_:(token)=>token==='valid-admin'?fakeAdmin:null,
+  authUserFromToken_:(token)=>token==='valid-admin'?fakeAdmin:
+    token==='valid-tst'?fakeTst:null,
+  cipaMemV1TrustedTechnicalUserLookup_:(id)=>id==='tst-A'?fakeTst:null,
   auditAuthEvent_:()=>{},
   LockService:{getScriptLock(){return {
     waitLock:()=>{},releaseLock:()=>{},
@@ -93,6 +96,11 @@ vm.runInContext(fs.readFileSync(path.join(
 vm.runInContext(fs.readFileSync(path.join(
   root,'feature_sources/CipaMemberReviewsV1.gs'),'utf8'),
   scope,{filename:'CipaMemberReviewsV1.gs'});
+for(const moduleName of ['CipaMemberTechnicalPermissionsV1.gs',
+    'CipaMemberSchedulesV1.gs']) {
+  vm.runInContext(fs.readFileSync(path.join(
+    root,'feature_sources',moduleName),'utf8'),scope,{filename:moduleName});
+}
 const invoke=(action,fields={})=>JSON.parse(JSON.stringify(
   scope.cipaMemV1Route_({action,...fields})));
 
@@ -371,6 +379,104 @@ const reviewedInbox=invoke('cipa_member_admin_inbox',{
 assert(reviewedInbox&&reviewedInbox.status==='Orientação enviada');
 assert.strictEqual(reviewedInbox.feedback,lastReview.feedback);
 assert(!JSON.stringify(lastReview).includes('admin@example.test'));
+
+
+// Permissões TST: administrador concede acesso estritamente por empresa/mandato.
+assert.strictEqual(invoke('cipa_member_tst_inbox',{
+  authToken:'valid-tst',companyId:'company-A',mandateId:'mandate-A'
+}).code,'ACCESS_DENIED','TST sem concessão não acessa relatos');
+assert.strictEqual(invoke('cipa_member_admin_set_tst_permission',{
+  authToken:'valid-tst',userId:'tst-A',
+  companyId:'company-A',mandateId:'mandate-A',active:true,
+}).code,'ACCESS_DENIED','TST não pode liberar o próprio acesso');
+assert.strictEqual(invoke('cipa_member_admin_set_tst_permission',{
+  authToken:'valid-admin',userId:'fake-user',
+  companyId:'company-A',mandateId:'mandate-A',active:true,
+}).code,'TECHNICIAN_NOT_VERIFIED','Não concede a usuário inexistente');
+assert.strictEqual(invoke('cipa_member_admin_set_tst_permission',{
+  authToken:'valid-admin',userId:'tst-A',
+  companyId:'company-A',mandateId:'mandate-B',active:true,
+}).code,'MANDATE_NOT_ACTIVE','Mandato não corresponde à empresa');
+assert(invoke('cipa_member_admin_set_tst_permission',{
+  authToken:'valid-admin',userId:'tst-A',
+  companyId:'company-A',mandateId:'mandate-A',active:true,
+}).ok);
+const tstInbox=invoke('cipa_member_tst_inbox',{
+  authToken:'valid-tst',companyId:'company-A',mandateId:'mandate-A'
+});
+assert(tstInbox.ok&&tstInbox.events.length===1);
+assert(tstInbox.events.every(e=>e.kind==='observation'));
+assert(!JSON.stringify(tstInbox).includes('action-B'));
+assert.strictEqual(invoke('cipa_member_tst_inbox',{
+  authToken:'valid-tst',companyId:'company-B',mandateId:'mandate-B'
+}).code,'ACCESS_DENIED','TST não pode visualizar outra empresa');
+assert.strictEqual(invoke('cipa_member_admin_inbox',{
+  authToken:'valid-tst',companyId:'company-A',mandateId:'mandate-A'
+}).code,'ACCESS_DENIED','TST não herda perfil ADM completo');
+assert.strictEqual(invoke('cipa_member_admin_review_observation',{
+  ...reviewFields,authToken:'valid-tst',
+  requestId:'tst-review-0000000000001',
+  status:'Em análise',message:'Conferência com gerente de setor.',
+}).ok,true,'TST autorizado responde apenas à observação vinculada');
+assert.strictEqual(invoke('cipa_member_admin_review_observation',{
+  ...reviewFields,authToken:'valid-tst',
+  requestId:'tst-review-0000000000002',
+  companyId:'company-B',mandateId:'mandate-B',
+}).code,'ACCESS_DENIED','Sem concessão para outra empresa');
+
+// Programação: só TST autorizado ou ADM, com vínculo a membro ativo.
+const when=new Date(Date.now()+2*86400000).toISOString();
+const scheduleBase={companyId:'company-A',mandateId:'mandate-A',
+  memberId:'member-A',location:'Produção',theme:'Organização e circulação',
+  plannedAt:when,requestId:'schedule-request-00000001'};
+assert.strictEqual(invoke('cipa_member_schedule_create',{
+  ...scheduleBase,authToken:login.sessionToken
+}).code,'ACCESS_DENIED','Membro não agenda vistoria por conta própria');
+assert.strictEqual(invoke('cipa_member_schedule_create',{
+  ...scheduleBase,authToken:'valid-tst',companyId:'company-B',
+  mandateId:'mandate-B'
+}).code,'ACCESS_DENIED');
+const scheduled=invoke('cipa_member_schedule_create',{
+  ...scheduleBase,authToken:'valid-tst'
+});
+assert(scheduled.ok&&scheduled.id);
+assert.strictEqual(invoke('cipa_member_schedule_create',{
+  ...scheduleBase,authToken:'valid-tst'
+}).duplicate,true,'Criação repetida não duplica programação');
+const agenda=invoke('cipa_member_schedule_list',{
+  authToken:'valid-tst',companyId:'company-A',mandateId:'mandate-A'
+});
+assert(agenda.schedules.some(x=>x.id===scheduled.id));
+const memberAgenda=invoke('cipa_member_dashboard',{
+  sessionToken:login.sessionToken
+});
+assert(memberAgenda.reminders.some(x=>x.id===scheduled.id&&
+  x.title.includes('Vistoria programada')));
+assert.strictEqual(invoke('cipa_member_schedule_cancel',{
+  authToken:login.sessionToken,companyId:'company-A',
+  mandateId:'mandate-A',scheduleId:scheduled.id,
+}).code,'ACCESS_DENIED');
+assert.strictEqual(invoke('cipa_member_schedule_cancel',{
+  authToken:'valid-tst',companyId:'company-B',
+  mandateId:'mandate-B',scheduleId:scheduled.id,
+}).code,'ACCESS_DENIED');
+assert(invoke('cipa_member_schedule_cancel',{
+  authToken:'valid-tst',companyId:'company-A',
+  mandateId:'mandate-A',scheduleId:scheduled.id
+}).ok);
+assert(!invoke('cipa_member_dashboard',{sessionToken:login.sessionToken})
+  .reminders.some(x=>x.id===scheduled.id));
+assert(invoke('cipa_member_admin_set_tst_permission',{
+  authToken:'valid-admin',userId:'tst-A',
+  companyId:'company-A',mandateId:'mandate-A',active:false,
+}).ok);
+assert.strictEqual(invoke('cipa_member_tst_inbox',{
+  authToken:'valid-tst',companyId:'company-A',mandateId:'mandate-A'
+}).code,'ACCESS_DENIED','Acesso revogado bloqueia consulta imediatamente');
+assert.strictEqual(invoke('cipa_member_schedule_create',{
+  ...scheduleBase,authToken:'valid-tst',
+  requestId:'schedule-request-00000002'
+}).code,'ACCESS_DENIED','Revogação também bloqueia agendamento');
 
 const revoke=invoke('cipa_member_admin_revoke',{
  authToken:'valid-admin',accountId:grant.id,
