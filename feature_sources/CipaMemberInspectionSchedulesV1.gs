@@ -36,6 +36,11 @@ function cipaMemV1ScheduleCurrent_(cid,mid,memberId){
     }).slice(0,100);
 }
 function cipaMemV1ScheduleMember_(account){
+  var linked=Object.create(null);
+  cipaMemV1Events_(account).forEach(function(e){
+    if(e.kind==='observation'&&e.targetId)
+      linked[e.targetId]=e.id;
+  });
   return cipaMemV1ScheduleCurrent_(
     account.companyId,account.mandateId,account.memberId)
     .map(function(r){return {
@@ -43,7 +48,8 @@ function cipaMemV1ScheduleMember_(account){
       title:'Vistoria: '+r.sector,
       description:'Setor: '+r.sector+
         (r.note?' • Orientação: '+r.note:''),
-      status:'Programada',dueDate:r.dueDate,
+      status:linked[r.id]?'Relato enviado para análise':'Programada',
+      observationId:linked[r.id]||'',dueDate:r.dueDate,
       companyId:r.companyId,mandateId:r.mandateId,
       assignedMemberId:r.memberId,visibleToAllMembers:false,
     };});

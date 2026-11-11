@@ -183,6 +183,10 @@ class CipaMemberApi {
     send('support',action,text);
   Future<void> observe(String place,String text)=>
     send('observation','',text,place:place);
+  Future<void> observeScheduled(String scheduleId,String place,String text) async {
+    if(scheduleId.isEmpty)throw StateError('Agendamento não identificado.');
+    await send('observation',scheduleId,text,place:place);
+  }
 
   Future<void> acknowledgeFeedback(String observationId,
       String reviewId) async {
