@@ -28,6 +28,9 @@ with tempfile.TemporaryDirectory(prefix="auditar-nrs-browser-") as temp:
     text=status.read_text(encoding="utf-8")
     assert text.count("OfflineSstNrsBrowserScreen()")==1
     assert text.count("Consultar Biblioteca Técnica por NR")==1
+    assert text.count("await _refreshStatus();")==1
+    assert "345 modelos" not in text
+    assert "Modelos embarcados no aplicativo" in text
     assert "OfflineKnowledgeCloudService.sync();" in text
     assert (screens/"offline_sst_nrs_browser_screen.dart").is_file()
     assert (tests/"offline_sst_nrs_browser_test.dart").is_file()
