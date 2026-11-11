@@ -12,10 +12,13 @@ void main() {
       members:[],actions:[],documents:[],
     )));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Central de Vistorias e Relatos (1)'),200);
+    await tester.scrollUntilVisible(
+      find.text('Central de Vistorias e Relatos (1)'),200,
+      scrollable:find.byType(Scrollable).first);
     await tester.tap(find.text('Central de Vistorias e Relatos (1)'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Orientar'),150);
+    await tester.scrollUntilVisible(find.text('Orientar'),150,
+      scrollable:find.byType(Scrollable).first);
     await tester.tap(find.text('Orientar'));
     await tester.pumpAndSettle();
     expect(find.text('Orientar integrante da CIPA'),findsOneWidget);
