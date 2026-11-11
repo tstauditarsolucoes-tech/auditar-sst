@@ -115,6 +115,35 @@ void main(){
     expect(find.text('EDITOR_DE_REUNIAO_ABERTO'),findsOneWidget);
     expect(find.text('Conferir presenças'),findsNothing);
   });
+  testWidgets('Assistente sugere pauta antes da reunião e abre editor',
+    (tester)async{
+    await tester.binding.setSurfaceSize(const Size(600,850));
+    await tester.pumpWidget(const MaterialApp(
+      home:CipaManagementScreen(hasMandate:true)));
+    await tester.tap(find.text('Reunião assistida: antes e depois'));
+    await tester.pumpAndSettle();
+    final suggest=find.text('Sugerir tema para a pauta da ata');
+    await tester.scrollUntilVisible(suggest,160);
+    await tester.ensureVisible(suggest);
+    await tester.tap(suggest);
+    await tester.pumpAndSettle();
+    expect(find.text('Escolher tema para a pauta'),findsOneWidget);
+    expect(find.textContaining('PROPOSTA DE PAUTA'),findsWidgets);
+    expect(find.textContaining('Esta proposta não é ata'),findsWidgets);
+    final dropdown=find.widgetWithText(
+      DropdownButtonFormField<String>,'Ramo ou setor da empresa');
+    await tester.tap(dropdown);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cerâmica').last);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('máquinas, fornos e circulação'),findsWidgets);
+    final finish=find.text('Copiar pauta e abrir reunião');
+    await tester.ensureVisible(finish);
+    await tester.tap(finish);
+    await tester.pumpAndSettle();
+    expect(find.text('EDITOR_DE_REUNIAO_ABERTO'),findsOneWidget);
+    await tester.binding.setSurfaceSize(null);
+  });
 }
 """,encoding="utf-8")
 template=root/"test/widget_test.dart"
