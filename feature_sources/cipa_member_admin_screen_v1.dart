@@ -311,6 +311,31 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
               color:Theme.of(context).colorScheme.error)))),
           if(notice.isNotEmpty)Card(child:Padding(
             padding:const EdgeInsets.all(10),child:Text(notice))),
+          Card(child:ExpansionTile(
+            title:Text('Central de Vistorias e Relatos (${inbox.length})'),
+            subtitle:const Text('Receber, conferir e orientar o membro'),
+            children:inbox.reversed.take(80).map((event){
+              final isObservation=event['kind']=='observation';
+              final guided=(event['detail']??'').toString()
+                .startsWith('VISTORIA ORIENTADA DA CIPA');
+              return ListTile(
+                title:Text(isObservation?
+                  (guided?'Vistoria orientada':'Situação observada'):
+                  (event['kind']??'Registro').toString()),
+                subtitle:Text([
+                  (event['location']??'').toString(),
+                  (event['detail']??'').toString(),
+                  if(isObservation)
+                    'Situação: ${event['status']??'Recebido'}',
+                  if((event['feedback']??'').toString().isNotEmpty)
+                    'Orientação: ${event['feedback']}',
+                ].where((s)=>s.isNotEmpty).join('\n')),
+                trailing:isObservation?TextButton(
+                  onPressed:busy?null:()=>_reviewObservation(event),
+                  child:const Text('Orientar')):null,
+              );
+            }).toList(),
+          )),
           Card(child:Padding(padding:const EdgeInsets.all(14),
             child:Column(
               crossAxisAlignment:CrossAxisAlignment.stretch,
@@ -479,31 +504,7 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
               );
             }).toList(),
           )),
-          Card(child:ExpansionTile(
-            title:Text('Central de Vistorias e Relatos (${inbox.length})'),
-            subtitle:const Text('Receber, conferir e orientar o membro'),
-            children:inbox.reversed.take(80).map((event){
-              final isObservation=event['kind']=='observation';
-              final guided=(event['detail']??'').toString()
-                .startsWith('VISTORIA ORIENTADA DA CIPA');
-              return ListTile(
-                title:Text(isObservation?
-                  (guided?'Vistoria orientada':'Situação observada'):
-                  (event['kind']??'Registro').toString()),
-                subtitle:Text([
-                  (event['location']??'').toString(),
-                  (event['detail']??'').toString(),
-                  if(isObservation)
-                    'Situação: ${event['status']??'Recebido'}',
-                  if((event['feedback']??'').toString().isNotEmpty)
-                    'Orientação: ${event['feedback']}',
-                ].where((s)=>s.isNotEmpty).join('\n')),
-                trailing:isObservation?TextButton(
-                  onPressed:busy?null:()=>_reviewObservation(event),
-                  child:const Text('Orientar')):null,
-              );
-            }).toList(),
-          )),
+
         ],
       )),
     );
