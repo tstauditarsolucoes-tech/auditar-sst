@@ -50,7 +50,15 @@ void main(){
           ],
           'documents':[row('d1','Documento permitido',member:'',shared:true)],
           'trainings':[row('t1','Treinamento próprio')],
-          'observations':[row('o1','Observação própria')],
+          'observations':[
+            {...row('o1','Observação própria'),
+              'status':'Orientação enviada',
+              'feedback':'Observe a passagem apenas de local seguro.'},
+            {...row('o2','Observação de outra empresa',company:'empresa-B'),
+              'feedback':'Dado privado de outra empresa.'},
+            {...row('o3','Observação de outro integrante',member:'membro-2'),
+              'feedback':'Dado privado de outro membro.'},
+          ],
           'reminders':[row('r1','Lembrete pessoal')],
         }),200,headers:const {'content-type':'application/json; charset=utf-8'});
       }
@@ -68,6 +76,10 @@ void main(){
     expect(view.documents.map((x)=>x.id),['d1']);
     expect(view.trainings.length,1);
     expect(view.observations.length,1);
+    expect(view.observations.single.status,'Orientação enviada');
+    expect(view.observations.single.feedback,
+      'Observe a passagem apenas de local seguro.');
+    expect(view.observations.single.feedback.contains('Dado privado'),false);
     expect(view.reminders.length,1);
     expect(calls,['cipa_member_verify','cipa_member_dashboard']);
     api.dispose();

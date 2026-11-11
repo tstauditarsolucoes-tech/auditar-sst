@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 
@@ -50,6 +51,7 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
   bool busy=false;
   String error='',notice='';
   List<Map<String,dynamic>> accounts=[],inbox=[],notices=[];
+  final Map<String,String> _pendingReviewIds={};
   final Set<String> publishedDocumentIds={};
 
   @override
@@ -208,6 +210,81 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
     if(mounted)await _reload();
   }
 
+
+  String _requestIdForReview(String key) =>
+    _pendingReviewIds.putIfAbsent(key,(){
+      final r=Random.secure();
+      final bytes=List<int>.generate(24,(_)=>r.nextInt(256));
+      return 'review-'+bytes.map((b)=>
+        b.toRadixString(16).padLeft(2,'0')).join();
+    });
+
+  Future<void> _reviewObservation(Map<String,dynamic> event) async {
+    if(busy||!AuthService.isAdmin)return;
+    final id=(event['id']??'').toString();
+    if(event['kind']!='observation'||id.isEmpty||
+        event['companyId']!=widget.companyId||
+        event['mandateId']!=widget.mandateId)return;
+    String reviewMessage='';
+    String status='Em análise';
+    final selected=await showDialog<Map<String,String>>(
+      context:context,builder:(dialog)=>
+      StatefulBuilder(builder:(context,update)=>AlertDialog(
+        title:const Text('Orientar integrante da CIPA'),
+        content:SingleChildScrollView(child:Column(
+          mainAxisSize:MainAxisSize.min,
+          crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+          const Text('A resposta ficará disponível somente para o '
+            'integrante que enviou o relato. Não inclua dados de saúde '
+            'nem nomes de outras pessoas.'),
+          const SizedBox(height:12),
+          DropdownButtonFormField<String>(
+            value:status,
+            decoration:const InputDecoration(labelText:'Situação'),
+            items:const [
+              DropdownMenuItem(value:'Em análise',
+                child:Text('Em análise')),
+              DropdownMenuItem(value:'Orientação enviada',
+                child:Text('Orientação enviada')),
+            ],
+            onChanged:(value)=>update(()=>status=value??'Em análise'),
+          ),
+          const SizedBox(height:10),
+          TextField(maxLength:600,maxLines:4,
+            onChanged:(value)=>update(()=>reviewMessage=value),
+            decoration:const InputDecoration(
+              labelText:'Orientação (opcional em análise)',
+              border:OutlineInputBorder())),
+          const Text('A orientação não fecha uma não conformidade '
+            'nem comprova correção de uma situação.'),
+        ])),
+        actions:[
+          TextButton(onPressed:()=>Navigator.pop(dialog),
+            child:const Text('Cancelar')),
+          FilledButton(
+            onPressed:status=='Orientação enviada'&&
+              reviewMessage.trim().length<8?null:
+              reviewMessage.trim().isNotEmpty&&reviewMessage.trim().length<8
+              ?null:()=>Navigator.pop(dialog,{
+                'status':status,'message':reviewMessage.trim()}),
+            child:const Text('Registrar devolutiva')),
+        ],
+      )));
+    if(selected==null||!mounted)return;
+    final key=[id,selected['status'],selected['message']].join('|');
+    await _perform(()async {
+      await _call('cipa_member_admin_review_observation',{
+        'observationId':id,
+        'status':selected['status'],
+        'message':selected['message'],
+        'requestId':_requestIdForReview(key),
+      });
+      _pendingReviewIds.remove(key);
+      if(mounted)setState(()=>notice='Devolutiva registrada para o membro.');
+    });
+    if(mounted&&error.isEmpty)await _reload();
+  }
+
   @override
   Widget build(BuildContext context) {
     if(!AuthService.isAdmin)return const Scaffold(
@@ -233,6 +310,31 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
               color:Theme.of(context).colorScheme.error)))),
           if(notice.isNotEmpty)Card(child:Padding(
             padding:const EdgeInsets.all(10),child:Text(notice))),
+          Card(child:ExpansionTile(
+            title:Text('Central de Vistorias e Relatos (${inbox.length})'),
+            subtitle:const Text('Receber, conferir e orientar o membro'),
+            children:inbox.reversed.take(80).map((event){
+              final isObservation=event['kind']=='observation';
+              final guided=(event['detail']??'').toString()
+                .startsWith('VISTORIA ORIENTADA DA CIPA');
+              return ListTile(
+                title:Text(isObservation?
+                  (guided?'Vistoria orientada':'Situação observada'):
+                  (event['kind']??'Registro').toString()),
+                subtitle:Text([
+                  (event['location']??'').toString(),
+                  (event['detail']??'').toString(),
+                  if(isObservation)
+                    'Situação: ${event['status']??'Recebido'}',
+                  if((event['feedback']??'').toString().isNotEmpty)
+                    'Orientação: ${event['feedback']}',
+                ].where((s)=>s.isNotEmpty).join('\n')),
+                trailing:isObservation?TextButton(
+                  onPressed:busy?null:()=>_reviewObservation(event),
+                  child:const Text('Orientar')):null,
+              );
+            }).toList(),
+          )),
           Card(child:Padding(padding:const EdgeInsets.all(14),
             child:Column(
               crossAxisAlignment:CrossAxisAlignment.stretch,
@@ -401,15 +503,7 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
               );
             }).toList(),
           )),
-          Card(child:ExpansionTile(
-            title:Text('Registros recebidos (${inbox.length})'),
-            subtitle:const Text('Relatos para avaliação, sem fechar NC'),
-            children:inbox.reversed.take(80).map((event)=>ListTile(
-              title:Text((event['kind']??'Registro').toString()),
-              subtitle:Text((event['location']??'').toString()+
-                '\n'+(event['detail']??'').toString()),
-            )).toList(),
-          )),
+
         ],
       )),
     );

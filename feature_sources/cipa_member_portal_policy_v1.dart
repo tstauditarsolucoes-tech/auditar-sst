@@ -20,13 +20,14 @@ class CipaMemberItem {
     required this.type,
     required this.title,
     this.description = '',
+    this.feedback = '',
     this.status = '',
     this.assignedMemberId = '',
     this.visibleToAllMembers = false,
     this.date,
     this.dueDate,
   });
-  final String id,companyId,mandateId,title,description,status,assignedMemberId;
+  final String id,companyId,mandateId,title,description,feedback,status,assignedMemberId;
   final CipaMemberItemType type;
   final bool visibleToAllMembers;
   final DateTime? date,dueDate;

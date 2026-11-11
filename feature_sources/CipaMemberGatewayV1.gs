@@ -20,7 +20,8 @@ function cipaMemV1Route_(request) {
     'cipa_member_admin_inbox',
     'cipa_member_admin_publish_notice','cipa_member_admin_withdraw_notice',
     'cipa_member_admin_publish_document','cipa_member_admin_unpublish_document',
-    'cipa_member_admin_publications'];
+    'cipa_member_admin_publications',
+    'cipa_member_admin_review_observation'];
   if(known.indexOf(action)<0)return null;
   if(PropertiesService.getScriptProperties().getProperty('CIPA_MEMBER_V1_ENABLED')!=='true')
     return {ok:false,code:'FEATURE_DISABLED',message:'Acesso de membros ainda não habilitado.'};
@@ -35,6 +36,8 @@ function cipaMemV1Route_(request) {
     if(action==='cipa_member_admin_list')return cipaMemV1AdminList_(request);
     if(action==='cipa_member_admin_assign')return cipaMemV1AdminAssign_(request);
     if(action==='cipa_member_admin_inbox')return cipaMemV1AdminInbox_(request);
+    if(action==='cipa_member_admin_review_observation')
+      return cipaMemV1AdminReviewObservation_(request);
     if(action==='cipa_member_admin_publish_notice')
       return cipaMemV1PublishNotice_(request);
     if(action==='cipa_member_admin_withdraw_notice')
@@ -455,6 +458,10 @@ function cipaMemV1Dashboard_(request) {
   var v=session.verified,a=v.account;
   var data=cipaMemV1RecordsAllowed_(session);
   var mandateRecord=v.rows.find(function(r){return r.id===a.mandateId;});
+  var observations=cipaMemV1Events_(a).filter(function(e){
+    return e.kind==='observation';});
+  var reviews=cipaMemV1Reviews_(a.companyId,a.mandateId,a.memberId,
+    observations.map(function(e){return e.id;}));
   return {ok:true,companyName:cipaMemV1CompanyName_(a.companyId),
     mandateTitle:mandateRecord?mandateRecord.title:'Mandato atual',
     profile:{
@@ -464,15 +471,18 @@ function cipaMemV1Dashboard_(request) {
     representation:String(v.rows.find(function(r){
       return r.id===a.memberId;}).payload.representation||''),
     jobTitle:''},
-    ...data,observations:cipaMemV1Events_(a)
-      .filter(function(e){return e.kind==='observation';})
-      .map(function(e){return {
+    ...data,observations:observations.map(function(e){
+      var review=reviews[e.id];
+      return {
         id:e.id,type:'observation',
         title:'Situação observada • '+e.location,
-        description:e.detail,status:'Registrada',date:e.date,
-        companyId:a.companyId,mandateId:a.mandateId,
+        description:e.detail,
+        status:review?review.status:'Recebido',
+        feedback:review?review.feedback:'',
+        date:e.date,companyId:a.companyId,mandateId:a.mandateId,
         assignedMemberId:a.memberId,visibleToAllMembers:false,
-      };})};
+      };
+    })};
 }
 function cipaMemV1Event_(request) {
   var session=cipaMemV1Authorize_(request.sessionToken);
@@ -532,11 +542,21 @@ function cipaMemV1AdminInbox_(request) {
     ['request_id','created_at','account_id','company_id','mandate_id',
      'member_id','kind','target_id','location','detail']);
   if(sheet.getLastRow()<2)return {ok:true,events:[]};
-  return {ok:true,events:sheet.getRange(2,1,sheet.getLastRow()-1,10)
-    .getValues().filter(function(r){return String(r[3])===cid;})
-    .slice(-250).map(function(r){return {
-      id:String(r[0]),createdAt:String(r[1]),accountId:String(r[2]),
+  var mid=String(request.mandateId||'').trim();
+  var rows=sheet.getRange(2,1,sheet.getLastRow()-1,10).getValues()
+    .filter(function(r){return String(r[3])===cid &&
+      (!mid||String(r[4])===mid);}).slice(-250);
+  var reviews=mid?cipaMemV1Reviews_(cid,mid,'',
+    rows.filter(function(r){return String(r[6])==='observation';})
+      .map(function(r){return String(r[0]);})):{};
+  return {ok:true,events:rows.map(function(r){
+    var id=String(r[0]),kind=String(r[6]),review=reviews[id];
+    return {id:id,createdAt:String(r[1]),accountId:String(r[2]),
       companyId:cid,mandateId:String(r[4]),memberId:String(r[5]),
-      kind:String(r[6]),targetId:String(r[7]),location:String(r[8]),
-      detail:String(r[9]).slice(0,1200)};})};
+      kind:kind,targetId:String(r[7]),location:String(r[8]),
+      detail:String(r[9]).slice(0,1200),
+      status:kind==='observation'?
+        (review?review.status:'Recebido'):'',
+      feedback:kind==='observation'&&review?review.feedback:''};
+  })};
 }
