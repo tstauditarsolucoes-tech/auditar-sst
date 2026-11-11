@@ -77,3 +77,30 @@ function cipaMemV1AdminSetTstPermission_(request) {
     return {ok:true,active:active};
   }finally{lock.releaseLock();}
 }
+
+/** Consulta exclusiva de observações para TST com concessão vigente. */
+function cipaMemV1TechnicalInbox_(request) {
+  var cid=String(request.companyId||'').trim();
+  var mid=String(request.mandateId||'').trim();
+  var reviewer=cipaMemV1Reviewer_(request.authToken,cid,mid);
+  if(!reviewer)return {ok:false,code:'ACCESS_DENIED'};
+  var events=cipaMemV1Sheet_(CIPA_MEM_V1_EVENTS,
+    ['request_id','created_at','account_id','company_id','mandate_id',
+     'member_id','kind','target_id','location','detail']);
+  if(events.getLastRow()<2)return {ok:true,events:[]};
+  var rows=events.getRange(2,1,events.getLastRow()-1,10).getValues()
+    .filter(function(row){return String(row[3])===cid&&
+      String(row[4])===mid&&String(row[6])==='observation';})
+    .slice(-120);
+  var reviews=cipaMemV1Reviews_(cid,mid,'',rows.map(function(row){
+    return String(row[0]);}));
+  return {ok:true,events:rows.map(function(row){
+    var id=String(row[0]),review=reviews[id];
+    return {id:id,companyId:cid,mandateId:mid,
+      memberId:String(row[5]),kind:'observation',
+      createdAt:String(row[1]),location:String(row[8]).slice(0,120),
+      detail:String(row[9]).slice(0,1200),
+      status:review?review.status:'Recebido',
+      feedback:review?review.feedback:''};
+  })};
+}
