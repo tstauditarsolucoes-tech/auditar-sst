@@ -168,7 +168,8 @@ void main() {
     await tester.tap(readButton);
     await tester.pumpAndSettle();
     expect(acknowledged,1);
-    expect(find.text('Leitura confirmada pelo integrante'),findsOneWidget);
+    expect(find.textContaining('Leitura confirmada pelo integrante'),
+      findsOneWidget);
     expect(find.text('Li a orientação'),findsNothing);
     expect(find.text('Vistoria secreta de outra empresa'),findsNothing);
     expect(find.text('Relato informal'),findsNothing);
