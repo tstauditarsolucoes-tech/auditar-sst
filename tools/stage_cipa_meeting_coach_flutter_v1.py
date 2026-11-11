@@ -21,6 +21,7 @@ for target,origin in (
     shutil.copyfile(origin,target)
 screen=root/"lib/screens/cipa_management_screen.dart"
 screen.write_text(r"""import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/cipa_meeting_coach_rules.dart';
 part 'cipa_meeting_coach_home.dart';
 
