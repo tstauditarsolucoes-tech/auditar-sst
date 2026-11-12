@@ -8,6 +8,7 @@ on:
       - feature/cipa-ux-guiada-ciencia-orientacao-20261111
       - feature/cipa-facilidade-ciclo-completo-20261111
       - feature/cipa-sugestor-temas-ata-20261111
+      - feature/auditar-sst-consolidacao-homologacao-20261112
     paths:
       - 'feature_sources/CipaMemberGatewayV1.gs'
       - 'feature_sources/CipaMemberReviewsV1.gs'
