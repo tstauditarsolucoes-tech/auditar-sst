@@ -5,6 +5,7 @@ on:
       - feature/android-unified-visits-dashboard-20261105
       - feature/android-indicadores-vistorias-confiaveis-20261111
       - feature/android-visita-inteligente-homologacao-20261111
+      - feature/auditar-sst-consolidacao-homologacao-20261112
     paths:
       - 'feature_sources/android_unified_visit_metrics_v1.dart'
       - 'feature_sources/android_unified_visit_metrics_test_v1.dart'
