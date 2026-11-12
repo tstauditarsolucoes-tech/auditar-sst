@@ -4,6 +4,7 @@ on:
     branches:
       - feature/cipa-meeting-coach-20261106
       - feature/cipa-sugestor-temas-ata-20261111
+      - feature/auditar-sst-consolidacao-homologacao-20261112
     paths:
       - 'feature_sources/cipa_meeting_coach_*'
       - 'tools/patch_cipa_meeting_coach_v1.py'
