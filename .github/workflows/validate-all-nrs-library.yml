@@ -4,6 +4,7 @@ on:
     branches:
       - feature/android-biblioteca-todas-nrs-20261105
       - feature/android-biblioteca-atualizacao-clara-20261111
+      - feature/auditar-sst-consolidacao-homologacao-20261112
     paths:
       - 'feature_sources/offline_sst_all_nrs_v1.dart'
       - 'feature_sources/offline_sst_all_nrs_test_v1.dart'
