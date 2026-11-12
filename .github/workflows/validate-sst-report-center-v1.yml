@@ -4,6 +4,7 @@ on:
     branches:
       - feature/android-report-center-six-models-20261106
       - feature/android-pdf-fotos-evidencias-20261111
+      - feature/auditar-sst-consolidacao-homologacao-20261112
     paths:
       - 'feature_sources/sst_report_center_*'
       - 'tools/patch_sst_report_center_v1.py'
