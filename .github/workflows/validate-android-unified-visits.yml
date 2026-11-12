@@ -5,6 +5,7 @@ on:
       - feature/android-unified-visits-dashboard-20261105
       - feature/android-indicadores-vistorias-confiaveis-20261111
       - feature/android-visita-inteligente-homologacao-20261111
+      - feature/auditar-sst-consolidacao-homologacao-20261112
     paths:
       - 'feature_sources/android_unified_visit_metrics_v1.dart'
       - 'feature_sources/android_unified_visit_metrics_test_v1.dart'
@@ -16,6 +17,9 @@ on:
       - 'feature_sources/smart_visit_briefing_screen_v1.dart'
       - 'feature_sources/smart_visit_briefing_widget_test_v1.dart'
       - 'tools/stage_smart_visit_fixture_v1.py'
+      - 'tools/integrate_sst_homologation_v1.py'
+      - 'tools/patch_windows_smart_visit_v1.py'
+      - 'tools/test_integrate_sst_homologation_v1.py'
       - 'tools/patch_android_unified_visits_v1.py'
       - 'tools/patch_android_standard_conclusion_v1.py'
       - 'tools/patch_checklist_signature_lock_v1.py'
@@ -38,6 +42,8 @@ jobs:
         run: |
           python3 -m py_compile tools/patch_android_unified_visits_v1.py tools/patch_android_standard_conclusion_v1.py tools/patch_checklist_signature_lock_v1.py tools/test_checklist_signature_lock_v1.py tools/stage_smart_visit_fixture_v1.py
           python3 tools/test_checklist_signature_lock_v1.py
+          python3 -m py_compile tools/integrate_sst_homologation_v1.py tools/patch_windows_smart_visit_v1.py tools/test_integrate_sst_homologation_v1.py
+          python3 tools/test_integrate_sst_homologation_v1.py
       - name: Validar métricas e conclusão de forma independente
         run: |
           dart format feature_sources/android_unified_visit_metrics_v1.dart feature_sources/android_unified_visit_metrics_test_v1.dart feature_sources/auditar_unified_conclusion_v1.dart feature_sources/auditar_unified_conclusion_test_v1.dart feature_sources/visit_intelligence_v1.dart feature_sources/visit_intelligence_test_v1.dart

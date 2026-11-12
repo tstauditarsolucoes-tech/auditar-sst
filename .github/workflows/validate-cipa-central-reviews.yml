@@ -1,0 +1,155 @@
+name: Validar Central de Vistorias e Devolutivas CIPA (sem publicar)
+on:
+  push:
+    branches:
+      - feature/cipa-central-vistorias-devolutivas-20261111
+      - feature/cipa-tst-permissoes-vistorias-20261111
+      - feature/cipa-vistorias-programadas-20261111
+      - feature/cipa-ux-guiada-ciencia-orientacao-20261111
+      - feature/cipa-facilidade-ciclo-completo-20261111
+      - feature/cipa-sugestor-temas-ata-20261111
+      - feature/auditar-sst-consolidacao-homologacao-20261112
+    paths:
+      - 'feature_sources/CipaMemberGatewayV1.gs'
+      - 'feature_sources/CipaMemberReviewsV1.gs'
+      - 'feature_sources/CipaMemberFeedbackReadV1.gs'
+      - 'feature_sources/cipa_member_guided_inspection_v1.dart'
+      - 'feature_sources/cipa_member_guided_inspection_test_v1.dart'
+      - 'feature_sources/cipa_member_app_main_v1.dart'
+      - 'tools/stage_cipa_member_android_v1.py'
+      - 'tools/patch_cipa_member_gateway_experimental_v1.py'
+      - 'tools/test_cipa_member_gateway_patch_v1.py'
+      - 'feature_sources/cipa_member_portal_screen_v1.dart'
+      - 'feature_sources/cipa_member_portal_simple_test_v1.dart'
+      - 'feature_sources/CipaTstReviewAccessV1.gs'
+      - 'feature_sources/CipaMemberInspectionSchedulesV1.gs'
+      - 'feature_sources/cipa_tst_review_screen_v1.dart'
+      - 'feature_sources/cipa_member_admin_screen_v1.dart'
+      - 'feature_sources/cipa_member_api_v1.dart'
+      - 'feature_sources/cipa_member_portal_policy_v1.dart'
+      - 'feature_sources/cipa_admin_review_smoke_test_v1.dart'
+      - 'feature_sources/cipa_member_api_test_v1.dart'
+      - 'tools/test_cipa_member_gateway_v1.cjs'
+      - 'tools/stage_cipa_review_fixture_v1.py'
+      - 'feature_sources/cipa_tst_review_smoke_test_v1.dart'
+      - '.github/workflows/validate-cipa-central-reviews.yml'
+  pull_request:
+    branches:
+      - feature/cipa-portal-membro-uso-facil-20261109
+      - feature/cipa-central-vistorias-devolutivas-20261111
+      - feature/cipa-tst-permissoes-vistorias-20261111
+      - feature/cipa-vistorias-programadas-20261111
+      - feature/cipa-facilidade-ciclo-completo-20261111
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sintaxe Apps Script e autorização em duas empresas
+        run: |
+          set -euo pipefail
+          cp feature_sources/CipaMemberGatewayV1.gs /tmp/CipaMemberGatewayV1.js
+          cp feature_sources/CipaMemberReviewsV1.gs /tmp/CipaMemberReviewsV1.js
+          cp feature_sources/CipaMemberFeedbackReadV1.gs /tmp/CipaMemberFeedbackReadV1.js
+          cp feature_sources/CipaTstReviewAccessV1.gs /tmp/CipaTstReviewAccessV1.js
+          cp feature_sources/CipaMemberInspectionSchedulesV1.gs /tmp/CipaMemberInspectionSchedulesV1.js
+          node --check /tmp/CipaMemberGatewayV1.js
+          node --check /tmp/CipaMemberReviewsV1.js
+          node --check /tmp/CipaMemberFeedbackReadV1.js
+          node --check /tmp/CipaTstReviewAccessV1.js
+          node --check /tmp/CipaMemberInspectionSchedulesV1.js
+          node tools/test_cipa_member_gateway_v1.cjs
+          python3 tools/test_cipa_member_gateway_patch_v1.py
+  flutter-admin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Construir fixture e validação da central administrativa
+        run: |
+          set -euo pipefail
+          flutter create --project-name cipa_admin_fixture /tmp/cipa_admin_fixture
+          python3 tools/stage_cipa_admin_ui_flutter_v1.py /tmp/cipa_admin_fixture
+          python3 tools/stage_cipa_review_fixture_v1.py /tmp/cipa_admin_fixture
+          cp feature_sources/cipa_tst_review_screen_v1.dart /tmp/cipa_admin_fixture/lib/screens/cipa_tst_review_screen.dart
+          cp feature_sources/cipa_tst_review_smoke_test_v1.dart /tmp/cipa_admin_fixture/test/cipa_tst_review_smoke_test.dart
+          cd /tmp/cipa_admin_fixture
+          dart format lib test
+          flutter analyze --no-fatal-infos --no-fatal-warnings lib test
+          flutter test --reporter expanded test/cipa_admin_screen_smoke_test.dart test/cipa_admin_review_smoke_test.dart test/cipa_tst_review_smoke_test.dart
+  flutter-member-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Teste do cliente e das devolutivas por sessão
+        run: |
+          set -euo pipefail
+          flutter create --platforms=android --project-name auditar_cipa_membro /tmp/cipa_member_fixture
+          mkdir -p /tmp/cipa_member_fixture/lib/services
+          cp feature_sources/cipa_member_identity_v1.dart /tmp/cipa_member_fixture/lib/services/cipa_member_identity.dart
+          cp feature_sources/cipa_member_portal_policy_v1.dart /tmp/cipa_member_fixture/lib/services/cipa_member_portal_policy.dart
+          cp feature_sources/cipa_member_api_v1.dart /tmp/cipa_member_fixture/lib/services/cipa_member_api.dart
+          cp feature_sources/cipa_member_api_test_v1.dart /tmp/cipa_member_fixture/test/cipa_member_api_test.dart
+          rm /tmp/cipa_member_fixture/test/widget_test.dart
+          cd /tmp/cipa_member_fixture
+          flutter pub add http
+          dart format lib test
+          flutter analyze --no-fatal-infos --no-fatal-warnings lib test
+          flutter test --reporter expanded test/cipa_member_api_test.dart
+
+  flutter-member-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Validar recebimento da resposta pelo membro
+        run: |
+          set -euo pipefail
+          flutter create --platforms=android --project-name auditar_sst /tmp/cipa_member_ui_fixture
+          mkdir -p /tmp/cipa_member_ui_fixture/lib/services /tmp/cipa_member_ui_fixture/lib/screens /tmp/cipa_member_ui_fixture/lib/widgets
+          cp feature_sources/cipa_member_identity_v1.dart /tmp/cipa_member_ui_fixture/lib/services/cipa_member_identity.dart
+          cp feature_sources/cipa_member_portal_policy_v1.dart /tmp/cipa_member_ui_fixture/lib/services/cipa_member_portal_policy.dart
+          cp feature_sources/cipa_member_access_header_v1.dart /tmp/cipa_member_ui_fixture/lib/widgets/cipa_member_access_header.dart
+          cp feature_sources/cipa_member_guided_inspection_v1.dart /tmp/cipa_member_ui_fixture/lib/widgets/cipa_member_guided_inspection.dart
+          cp feature_sources/cipa_member_portal_screen_v1.dart /tmp/cipa_member_ui_fixture/lib/screens/cipa_member_portal_screen.dart
+          cp feature_sources/cipa_member_portal_screen_test_v1.dart /tmp/cipa_member_ui_fixture/test/cipa_member_portal_screen_test.dart
+          cp feature_sources/cipa_member_portal_simple_test_v1.dart /tmp/cipa_member_ui_fixture/test/cipa_member_portal_simple_test.dart
+          cp feature_sources/cipa_member_guided_inspection_test_v1.dart /tmp/cipa_member_ui_fixture/test/cipa_member_guided_inspection_test.dart
+          rm /tmp/cipa_member_ui_fixture/test/widget_test.dart
+          cd /tmp/cipa_member_ui_fixture
+          dart format lib test
+          flutter analyze --no-fatal-infos --no-fatal-warnings lib test
+          flutter test --reporter expanded test/cipa_member_portal_screen_test.dart test/cipa_member_portal_simple_test.dart test/cipa_member_guided_inspection_test.dart
+
+  flutter-member-app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Validar montagem do aplicativo individual sem credenciais técnicas
+        run: |
+          set -euo pipefail
+          flutter create --platforms=android --project-name auditar_cipa_membro /tmp/cipa_real_member_fixture
+          python3 tools/stage_cipa_member_android_v1.py /tmp/cipa_real_member_fixture
+          cd /tmp/cipa_real_member_fixture
+          flutter pub get
+          dart format lib test
+          flutter analyze --no-fatal-infos --no-fatal-warnings lib test
+          flutter test --reporter expanded test/cipa_member_portal_screen_test.dart test/cipa_member_api_test.dart

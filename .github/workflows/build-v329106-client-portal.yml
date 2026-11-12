@@ -1,11 +1,11 @@
-name: Auditar SST Android v3.29.200 CIPA Participacao
+name: Auditar SST Android v3.29.202 HOMOLOGACAO
 # Clean rebuild v3.29.145 after protected productivity consolidation
 # Rebuild v3.29.113 logo recovery
 
 on:
   workflow_dispatch:
   push:
-    branches: [feature/client-panel-permissions-v329106]
+    branches: [feature/client-panel-permissions-v329106, feature/auditar-sst-consolidacao-homologacao-20261112]
     paths:
       - 'feature_sources/cipa_participation*'
       - 'tools/patch_cipa_participation_v1.py'
@@ -77,6 +77,10 @@ on:
       - 'feature_sources/quick_visit_screen_v329174_v33097.dart'
       - 'feature_sources/quick_visit_test_v329174_v33097.dart'
       - '.github/workflows/build-v329106-client-portal.yml'
+      - 'tools/integrate_sst_homologation_v1.py'
+      - 'tools/patch_windows_smart_visit_v1.py'
+      - 'feature_sources/visit_intelligence_v1.dart'
+      - 'feature_sources/sst_report_center_pdf_v1.dart'
       - 'feature_sources/company_organization_v329173_v33096.dart'
       - 'feature_sources/company_organization_test_v329173_v33096.dart'
       - 'feature_sources/CompanyGroupsSync_v1.gs'
@@ -1637,6 +1641,16 @@ jobs:
           python3 tools/regression_checklist_builder_reliability_v329200_v330128.py "$APP_DIR" android
           grep -Fq "version: 3.29.200+342" "$APP_DIR/pubspec.yaml"
 
+      - name: Consolidar módulos adicionais do Android (candidato de homologação)
+        run: |
+          set -euo pipefail
+          python3 tools/integrate_sst_homologation_v1.py "$APP_DIR" android
+          cd "$APP_DIR"
+          dart format lib/screens/smart_visit_briefing_screen.dart lib/screens/visit_type_chooser_screen.dart lib/services/visit_intelligence.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+          grep -Fq 'version: 3.29.202+344' pubspec.yaml
+
       - name: Salvar diagnostico CIPA Android
         if: always()
         uses: actions/upload-artifact@v4
@@ -1735,12 +1749,12 @@ jobs:
           cp "$APP_DIR/painel_web_google_apps_script/ClientPortal.html" dist/Central-Painel-Cliente/ClientPortal.html
           cp "$APP_DIR/painel_web_google_apps_script/Index.html" dist/Central-Painel-Cliente/Index.html
           sha256sum dist/Central-Painel-Cliente/* > dist/Central-Painel-Cliente/SHA256.txt
-          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.200-Android.apk
-          sha256sum dist/Auditar-SST-v3.29.200-Android.apk > dist/Auditar-SST-v3.29.200-Android.sha256.txt
+          cp "$APP_DIR/build/app/outputs/flutter-apk/app-release.apk" dist/Auditar-SST-v3.29.202-HOMOLOGACAO-Android.apk
+          sha256sum dist/Auditar-SST-v3.29.202-HOMOLOGACAO-Android.apk > dist/Auditar-SST-v3.29.202-HOMOLOGACAO-Android.sha256.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-v3.29.200-Android-Biblioteca-Ampliada
+          name: Auditar-SST-v3.29.202-Android-HOMOLOGACAO
           path: dist/*
           retention-days: 30
 
