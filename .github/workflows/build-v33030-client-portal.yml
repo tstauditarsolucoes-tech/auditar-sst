@@ -2209,12 +2209,12 @@ jobs:
           $issPath="$env:RUNNER_TEMP\auditar-v33021.iss"
           $lines=@(
             '[Setup]',
-            'AppId={{E659A16C-8CF2-4B57-B357-5B4DB8F32200}',
-            'AppName=Auditar SST',
+            'AppId={{9CEB751A-475C-471F-A3A4-3FC375693E54}',
+            'AppName=Auditar SST - Homologacao',
             'AppVersion=3.30.129',
             'AppPublisher=Auditar Solucoes',
-            'DefaultDirName={autopf}\Auditar SST',
-            'DefaultGroupName=Auditar SST',
+            'DefaultDirName={autopf}\Auditar SST Homologacao',
+            'DefaultGroupName=Auditar SST Homologacao',
             "OutputDir=$output",
             'OutputBaseFilename=Auditar-SST-Setup-v3.30.129-HOMOLOGACAO',
             'Compression=lzma2',
@@ -2225,8 +2225,8 @@ jobs:
             '[Files]',
             ('Source: "' + $release + '\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs'),
             '[Icons]',
-            'Name: "{autoprograms}\Auditar SST"; Filename: "{app}\auditar_sst.exe"',
-            'Name: "{autodesktop}\Auditar SST"; Filename: "{app}\auditar_sst.exe"',
+            'Name: "{autoprograms}\Auditar SST Homologacao"; Filename: "{app}\auditar_sst.exe"',
+            'Name: "{autodesktop}\Auditar SST Homologacao"; Filename: "{app}\auditar_sst.exe"',
             '[Run]',
             'Filename: "{app}\auditar_sst.exe"; Description: "Abrir Auditar SST"; Flags: nowait postinstall skipifsilent'
           )
