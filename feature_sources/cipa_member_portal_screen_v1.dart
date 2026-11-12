@@ -1,0 +1,500 @@
+import 'package:flutter/material.dart';
+import '../services/cipa_member_portal_policy.dart';
+import '../widgets/cipa_member_access_header.dart';
+import '../widgets/cipa_member_guided_inspection.dart';
+
+/// UI do membro, independente da gestão interna. Este widget recebe somente
+/// dados previamente filtrados no servidor; não consulta o banco de técnicos.
+/// Sem sessão autorizada, o portal fica fechado (fail closed).
+class CipaMemberPortalScreen extends StatefulWidget {
+  const CipaMemberPortalScreen({
+    super.key, required this.companyName, required this.mandateLabel,
+    this.view, this.sessionVerified=false,
+    this.onRefresh, this.onLogout, this.onAcknowledgeMeeting,
+    this.onReportProgress, this.onRequestSupport, this.onObserve,
+    this.onAcknowledgeFeedback, this.onObserveScheduled,
+  });
+  final String companyName,mandateLabel;
+  final CipaMemberView? view;
+  final bool sessionVerified;
+  final Future<void> Function()? onRefresh,onLogout;
+  final Future<void> Function(String id)? onAcknowledgeMeeting;
+  final Future<void> Function(String id,String note)? onReportProgress,onRequestSupport;
+  final Future<void> Function(String place,String note)? onObserve;
+  final Future<void> Function(String scheduleId,String place,String note)?
+    onObserveScheduled;
+  final Future<void> Function(String observationId,String reviewId)?
+    onAcknowledgeFeedback;
+
+  @override
+  State<CipaMemberPortalScreen> createState() => _CipaMemberPortalScreenState();
+}
+class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
+  bool busy=false;
+  bool largerLetters=false;
+  String error='';
+  final Set<String> _confirmedReads={};
+  final GlobalKey _meetingsSection=GlobalKey();
+  final GlobalKey _tasksSection=GlobalKey();
+
+  void _goTo(GlobalKey section) {
+    final target=section.currentContext;
+    if(target==null)return;
+    Scrollable.ensureVisible(target,
+      duration:const Duration(milliseconds:300),
+      curve:Curves.easeInOut,
+      alignment:0.08,
+    );
+  }
+
+  Widget _largeAction({
+    required String title,required IconData icon,
+    required VoidCallback? onPressed,bool primary=false,
+  })=>SizedBox(
+    width:double.infinity,
+    height:58,
+    child:primary
+      ?FilledButton.icon(
+        onPressed:onPressed,icon:Icon(icon,size:25),
+        label:Text(title,style:const TextStyle(fontSize:17,
+          fontWeight:FontWeight.w700)),
+      )
+      :OutlinedButton.icon(
+        onPressed:onPressed,icon:Icon(icon,size:25),
+        label:Text(title,style:const TextStyle(fontSize:17,
+          fontWeight:FontWeight.w700)),
+      ),
+  );
+
+  Future<void> _submit(Future<void> Function() call) async {
+    if(busy||!widget.sessionVerified) return;
+    setState(() {busy=true;error='';});
+    try {
+      await call();
+      if(widget.onRefresh!=null)await widget.onRefresh!();
+    } catch (_) {
+      if(mounted) setState(()=>error='Não foi possível enviar. Confira a conexão '
+        'e tente novamente, sem repetir registros já enviados.');
+    } finally {
+      if(mounted)setState(()=>busy=false);
+    }
+  }
+
+  Future<String?> _askNote(String title,String hint) async {
+    final controller=TextEditingController();
+    final result=await showDialog<String>(context:context,
+      builder:(dialog)=>StatefulBuilder(builder:(context,update)=>AlertDialog(
+        title:Text(title),
+        content:SingleChildScrollView(child:Column(
+          mainAxisSize:MainAxisSize.min,children:[
+          Text(hint),const SizedBox(height:12),
+          TextField(controller:controller,maxLength:1000,maxLines:4,
+            onChanged:(_)=>update((){}),
+            decoration:const InputDecoration(border:OutlineInputBorder(),
+              labelText:'Descreva com suas palavras')),
+        ])),
+        actions:[
+          TextButton(onPressed:()=>Navigator.pop(dialog),
+            child:const Text('Cancelar')),
+          FilledButton(onPressed:controller.text.trim().length<8?null:
+            ()=>Navigator.pop(dialog,controller.text.trim()),
+            child:const Text('Enviar para avaliação')),
+        ],
+      )));
+    controller.dispose();
+    return result;
+  }
+
+  Future<void> _newObservation() async {
+    if(widget.onObserve==null)return;
+    final place=TextEditingController(),text=TextEditingController();
+    final save=await showDialog<bool>(context:context,builder:(dialog)=>
+      StatefulBuilder(builder:(context,update)=>AlertDialog(
+        title:const Text('Registrar situação observada'),
+        content:SingleChildScrollView(child:Column(
+          mainAxisSize:MainAxisSize.min,children:[
+          const Text('Não se aproxime de um perigo para registrar. '
+            'A equipe técnica analisará a informação.'),
+          const SizedBox(height:8),
+          TextField(controller:place,maxLength:120,
+            onChanged:(_)=>update((){}),
+            decoration:const InputDecoration(labelText:'Local')),
+          TextField(controller:text,maxLength:1200,maxLines:4,
+            onChanged:(_)=>update((){}),
+            decoration:const InputDecoration(labelText:'O que você observou?')),
+        ])),
+        actions:[
+          TextButton(onPressed:()=>Navigator.pop(dialog,false),
+            child:const Text('Cancelar')),
+          FilledButton(onPressed:place.text.trim().isEmpty||
+            text.text.trim().length<8?null:()=>Navigator.pop(dialog,true),
+            child:const Text('Enviar observação')),
+        ],
+      )));
+    final p=place.text.trim(),v=text.text.trim();
+    place.dispose();text.dispose();
+    if(save==true&&mounted)await _submit(()=>widget.onObserve!(p,v));
+  }
+
+  static bool _isGuidedInspection(CipaMemberItem item) =>
+    item.title.toLowerCase().contains('vistoria orientada') ||
+    item.description.contains('VISTORIA ORIENTADA DA CIPA');
+
+  Future<void> _guidedInspection({String? initialCategory,
+      String? initialPlace,String? scheduleId}) async {
+    if(!widget.sessionVerified || busy || widget.onObserve==null)return;
+    final submitted=await showDialog<bool>(
+      context:context,
+      barrierDismissible:false,
+      builder:(_)=>CipaGuidedInspectionDialog(
+        initialCategory:initialCategory,initialPlace:initialPlace,
+        memberName:widget.view!.profile.fullName,
+        memberRole:widget.view!.profile.cipaRole,
+        companyName:widget.companyName,
+        mandateLabel:widget.mandateLabel,
+        onSend:(place,note) async {
+          if(!widget.sessionVerified || widget.onObserve==null) {
+            throw StateError('Sessão não autorizada');
+          }
+          // O callback já autorizado decide se o servidor aceitou o relato.
+          if(scheduleId!=null && widget.onObserveScheduled!=null) {
+            await widget.onObserveScheduled!(scheduleId,place,note);
+          } else {
+            await widget.onObserve!(place,note);
+          }
+        },
+      ),
+    );
+    if(submitted!=true || !mounted)return;
+    if(widget.onRefresh!=null) {
+      try {
+        await widget.onRefresh!();
+      } catch (_) {
+        if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content:Text('Relato enviado pelo canal '
+            'autorizado, mas não foi possível atualizar a lista. '
+            'Atualize mais tarde; não reenvie sem conferir.')));
+        return;
+      }
+    }
+    if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content:Text('Registro enviado para análise. '
+        'Acompanhe em Minhas vistorias.')));
+  }
+
+  Future<void> _acknowledgeFeedback(CipaMemberItem item) async {
+    final callback=widget.onAcknowledgeFeedback;
+    final profile=widget.view?.profile;
+    if(busy||!widget.sessionVerified||callback==null||profile==null||
+      item.companyId!=profile.companyId ||
+      item.mandateId!=profile.mandateId ||
+      item.assignedMemberId!=profile.memberId ||
+      item.status!='Orientação enviada'||item.feedback.isEmpty||
+      item.reviewId.isEmpty)return;
+    final key='${item.id}|${item.reviewId}';
+    setState(() {busy=true;error='';});
+    try {
+      await callback(item.id,item.reviewId);
+      if(mounted)setState(()=>_confirmedReads.add(key));
+      if(widget.onRefresh!=null){
+        try {
+          await widget.onRefresh!();
+        } catch (_) {
+          // A leitura já foi registrada. Não induzir a repetição do envio.
+        }
+      }
+    } catch (_) {
+      if(mounted)setState(()=>error='Leitura não confirmada. '
+        'Confira o histórico antes de tentar novamente.');
+    } finally {
+      if(mounted)setState(()=>busy=false);
+    }
+  }
+
+  Widget _feedbackReadAction(CipaMemberItem item) {
+    final profile=widget.view?.profile;
+    if(widget.onAcknowledgeFeedback==null||profile==null||
+       item.companyId!=profile.companyId||
+       item.mandateId!=profile.mandateId||
+       item.assignedMemberId!=profile.memberId||
+       item.status!='Orientação enviada'||item.feedback.isEmpty||
+       item.reviewId.isEmpty||item.feedbackRead||
+       _confirmedReads.contains('${item.id}|${item.reviewId}')) {
+      return const SizedBox.shrink();
+    }
+    return SizedBox(width:double.infinity,child:OutlinedButton.icon(
+      icon:const Icon(Icons.mark_chat_read_outlined),
+      label:const Text('Li a orientação'),
+      onPressed:busy?null:()=>_acknowledgeFeedback(item)));
+  }
+
+  Widget _section(String title,IconData icon,List<CipaMemberItem> items,{
+    Widget Function(CipaMemberItem)? actions,String empty='Nenhum registro disponível.',
+  })=>Card(child:ExpansionTile(
+    initiallyExpanded:items.isNotEmpty,
+    leading:Icon(icon),
+    title:Text('$title (${items.length})',
+      style:const TextStyle(fontWeight:FontWeight.w700)),
+    children:[
+      if(items.isEmpty)ListTile(title:Text(empty)),
+      for(final item in items)
+        Column(children:[
+          ListTile(title:Text(item.title),
+            subtitle:Text([
+              if(item.description.isNotEmpty)item.description,
+              if(item.status.isNotEmpty)'Situação: ${item.status}',
+              if(item.type==CipaMemberItemType.observation &&
+                 item.feedback.isNotEmpty)
+                'Resposta do técnico: ${item.feedback}',
+              if(item.type==CipaMemberItemType.observation&&
+                item.feedback.isNotEmpty&&
+                (item.feedbackRead ||
+                 _confirmedReads.contains('${item.id}|${item.reviewId}')))
+                'Leitura confirmada pelo integrante',
+              if(item.date!=null)'Data: ${item.date!.day}/${item.date!.month}/${item.date!.year}',
+            ].join('\n'))),
+          if(actions!=null)Padding(
+            padding:const EdgeInsets.fromLTRB(12,0,12,12),
+            child:actions(item)),
+        ]),
+    ],
+  ));
+
+  @override
+  Widget build(BuildContext context) {
+    final view=widget.view;
+    if(!widget.sessionVerified || view==null) {
+      return Scaffold(appBar:AppBar(title:const Text('Minha CIPA')),
+        body:const SafeArea(child:Center(child:Padding(
+          padding:EdgeInsets.all(24),
+          child:Column(mainAxisSize:MainAxisSize.min,children:[
+            Icon(Icons.lock_outline,size:48),
+            SizedBox(height:14),
+            Text('Acesso pessoal não liberado',
+              textAlign:TextAlign.center,
+              style:TextStyle(fontSize:20,fontWeight:FontWeight.w800)),
+            SizedBox(height:10),
+            Text('Somente uma sessão individual validada pela Central '
+              'permite abrir o portal. Não use a conta do técnico ou administrador.',
+              textAlign:TextAlign.center),
+          ]),
+        ))));
+    }
+    final profile=view.profile;
+    final inspections=view.observations.where(_isGuidedInspection)
+      .toList(growable:false);
+    final soon=DateUtils.dateOnly(DateTime.now().add(const Duration(days:1)));
+    final upcoming=view.scheduledInspections.where((item)=>
+      item.status=='Programada'&&item.dueDate!=null&&
+      !DateUtils.dateOnly(item.dueDate!).isAfter(soon)).length;
+    final unread=view.observations.where((item)=>
+      item.status=='Orientação enviada'&&item.feedback.isNotEmpty&&
+      !item.feedbackRead&&item.reviewId.isNotEmpty&&
+      !_confirmedReads.contains('${item.id}|${item.reviewId}')).length;
+    final otherObservations=view.observations.where(
+      (item)=>!_isGuidedInspection(item)).toList(growable:false);
+    return Scaffold(
+      appBar:AppBar(title:const Text('Minha CIPA'),actions:[
+        if(widget.onRefresh!=null)IconButton(
+          onPressed:busy?null:()=>_submit(widget.onRefresh!),
+          tooltip:'Atualizar',icon:const Icon(Icons.refresh)),
+        if(widget.onLogout!=null)IconButton(
+          onPressed:busy?null:()=>_submit(widget.onLogout!),
+          tooltip:'Sair da conta',icon:const Icon(Icons.logout)),
+      ]),
+      body:MediaQuery(
+        data:MediaQuery.of(context).copyWith(
+          textScaler:TextScaler.linear(
+            MediaQuery.textScalerOf(context).scale(1.0)*
+              (largerLetters?1.25:1.0))),
+        child:SafeArea(child:ListView(
+        padding:const EdgeInsets.fromLTRB(12,12,12,64),children:[
+        Row(mainAxisAlignment:MainAxisAlignment.end,children:[
+          TextButton.icon(
+            onPressed:()=>setState(()=>largerLetters=!largerLetters),
+            icon:const Icon(Icons.text_increase),
+            label:Text(largerLetters?'Letras normais':'Letras maiores')),
+        ]),
+        CipaMemberAccessHeader(profile:profile,
+          companyName:widget.companyName,mandateLabel:widget.mandateLabel),
+        Card(child:Padding(padding:const EdgeInsets.all(16),
+          child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+            Text('O que você quer fazer hoje?',
+              style:Theme.of(context).textTheme.titleLarge
+                ?.copyWith(fontWeight:FontWeight.w800)),
+            const SizedBox(height:5),
+            const Text('Para fazer uma vistoria, toque no primeiro botão. '
+              'São somente 3 perguntas por setor.',
+              style:TextStyle(fontSize:16)),
+            const SizedBox(height:14),
+            if(widget.onObserve!=null)...[
+              _largeAction(
+                title:'Fazer vistoria',
+                icon:Icons.assignment_outlined,
+                onPressed:busy?null:_guidedInspection,
+                primary:true,
+              ),
+              const SizedBox(height:10),
+            ],
+            _largeAction(
+              title:'Minhas tarefas',icon:Icons.fact_check_outlined,
+              onPressed:busy?null:()=>_goTo(_tasksSection),
+            ),
+            const SizedBox(height:10),
+            _largeAction(
+              title:'Ver reuniões',icon:Icons.event_outlined,
+              onPressed:busy?null:()=>_goTo(_meetingsSection),
+            ),
+            const SizedBox(height:10),
+            Text('Você tem '+
+              view.pendingActions.toString()+' tarefa(s) em acompanhamento.',
+              style:const TextStyle(fontSize:15)),
+            const SizedBox(height:4),
+            const Text('Você só registra o que viu de um local seguro. '
+              'A equipe de SST confere os relatos e as ações.',
+              style:TextStyle(fontSize:14)),
+          ]))),
+        if(upcoming>0||unread>0)Card(child:Padding(
+          padding:const EdgeInsets.all(14),
+          child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            const Text('Atenção às suas atividades',
+              style:TextStyle(fontSize:17,fontWeight:FontWeight.w700)),
+            if(upcoming>0)Text('$upcoming vistoria(s) até amanhã. '
+              'Consulte Vistorias programadas.'),
+            if(unread>0)Text('$unread orientação(ões) do TST '
+              'ainda sem confirmação de leitura.'),
+            const Text('Avisos dentro do portal; não são notificações '
+              'do celular.',style:TextStyle(fontSize:12)),
+          ]))),
+        if(busy)const LinearProgressIndicator(),
+        if(error.isNotEmpty)Padding(
+          padding:const EdgeInsets.all(12),
+          child:Text(error,style:TextStyle(color:
+            Theme.of(context).colorScheme.error))),
+        KeyedSubtree(key:_meetingsSection,
+          child:_section('Convocações e reuniões',Icons.event_outlined,view.meetings,
+          empty:'Nenhuma convocação liberada para você.',
+          actions:(item)=>Align(alignment:Alignment.centerRight,
+            child:widget.onAcknowledgeMeeting!=null &&
+                 CipaMemberPortalRules.canAcknowledge(profile,item)
+              ?TextButton.icon(
+                onPressed:busy?null:()=>_submit(
+                  ()=>widget.onAcknowledgeMeeting!(item.id)),
+                icon:const Icon(Icons.mark_email_read_outlined),
+                label:const Text('Confirmar ciência do aviso'))
+              :const SizedBox.shrink()))),
+        const Padding(padding:EdgeInsets.fromLTRB(16,0,16,10),
+          child:Text('Ciência não é presença na reunião nem assinatura da ata.',
+            style:TextStyle(fontSize:12))),
+        KeyedSubtree(key:_tasksSection,
+          child:_section('Minhas tarefas',Icons.task_alt_outlined,view.myActions,
+          empty:'Não há ação atribuída ao seu cadastro individual.',
+          actions:(item)=>Wrap(spacing:8,runSpacing:8,children:[
+            if(widget.onReportProgress!=null &&
+               CipaMemberPortalRules.canReportAction(profile,item))
+              OutlinedButton.icon(
+                onPressed:busy?null:() async {
+                  final note=await _askNote('Informar andamento',
+                    'Descreva o que mudou. A equipe técnica vai conferir.');
+                  if(note!=null&&mounted)await _submit(
+                    ()=>widget.onReportProgress!(item.id,note));
+                },icon:const Icon(Icons.edit_note_outlined),
+                label:const Text('Informar andamento')),
+            if(widget.onRequestSupport!=null &&
+               CipaMemberPortalRules.canReportAction(profile,item))
+              TextButton.icon(
+                onPressed:busy?null:() async {
+                  final note=await _askNote('Solicitar apoio',
+                    'Conte o que está impedindo sua tarefa.');
+                  if(note!=null&&mounted)await _submit(
+                    ()=>widget.onRequestSupport!(item.id,note));
+                },icon:const Icon(Icons.help_outline),
+                label:const Text('Preciso de apoio')),
+          ]))),
+        _section('Vistorias programadas',Icons.calendar_month_outlined,
+          view.scheduledInspections,
+          empty:'Nenhuma vistoria programada para você.',
+          actions:(item)=>widget.onObserve==null?
+            const SizedBox.shrink():
+            SizedBox(width:double.infinity,child:OutlinedButton.icon(
+              onPressed:busy||item.status!='Programada'?null:
+                ()=>_guidedInspection(
+                initialCategory:item.title.replaceFirst('Vistoria: ',''),
+                initialPlace:item.title.replaceFirst('Vistoria: ',''),
+                scheduleId:item.id),
+              icon:const Icon(Icons.play_arrow),
+              label:const Text('Iniciar esta vistoria')))),
+        const Padding(padding:EdgeInsets.fromLTRB(16,0,16,10),
+          child:Text('Na data programada, use Fazer vistoria. '
+            'Evite áreas de risco; o registro será analisado pelo TST.',
+            style:TextStyle(fontSize:12))),
+        _section('Minhas vistorias orientadas',
+          Icons.fact_check_outlined,inspections,
+          empty:'Nenhuma vistoria orientada disponível nesta consulta.',
+          actions:_feedbackReadAction),
+        const Padding(padding:EdgeInsets.fromLTRB(16,0,16,10),
+          child:Text('A situação mostrada é a que a equipe registrou. '
+            'O envio não confirma correção nem encerra ação.',
+            style:TextStyle(fontSize:12))),
+        Card(child:ExpansionTile(
+          initiallyExpanded:false,
+          leading:const Icon(Icons.more_horiz,size:28),
+          title:const Text('Mais informações',
+            style:TextStyle(fontSize:17,fontWeight:FontWeight.w700)),
+          subtitle:const Text('Relatos, avisos, treinamentos e documentos'),
+          children:[
+        if(widget.onObserve!=null)
+          Padding(padding:const EdgeInsets.fromLTRB(12,4,12,12),
+            child:SizedBox(width:double.infinity,height:52,
+              child:OutlinedButton.icon(
+                onPressed:busy?null:_newObservation,
+                icon:const Icon(Icons.edit_note),
+                label:const Text('Avisar uma situação')))),
+        _section('Avisos',Icons.notifications_none_outlined,view.notices),
+        _section('Meu treinamento',Icons.school_outlined,view.trainings),
+        _section('Documentos liberados',Icons.folder_open_outlined,view.documents),
+        _section('Outras observações',Icons.visibility_outlined,
+          otherObservations,actions:_feedbackReadAction),
+        _section('Lembretes',Icons.alarm_outlined,view.reminders),
+          ],
+        )),
+        const Card(child:ExpansionTile(
+          initiallyExpanded:false,
+          leading:Icon(Icons.help_outline),
+          title:Text('Como funciona a minha participação',
+            style:TextStyle(fontSize:17,fontWeight:FontWeight.w700)),
+          subtitle:Text('Guia rápido em quatro passos'),
+          children:[
+            ListTile(
+              leading:CircleAvatar(child:Text('1')),
+              title:Text('Recebi um aviso de reunião'),
+              subtitle:Text('Leia data, local e pauta. Confirmar ciência '
+                'significa que você viu o aviso, não que esteve presente.')),
+            ListTile(
+              leading:CircleAvatar(child:Text('2')),
+              title:Text('Tenho uma tarefa'),
+              subtitle:Text('Leia o que foi combinado. Use Informar andamento '
+                'ou Preciso de apoio. O responsável precisa conferir a execução.')),
+            ListTile(
+              leading:CircleAvatar(child:Text('3')),
+              title:Text('Quero fazer uma vistoria'),
+              subtitle:Text('Escolha o setor e responda às perguntas '
+                'apenas sobre o que pode observar com segurança. '
+                'Se não souber, marque Não sei/não verifiquei.')),
+            ListTile(
+              leading:CircleAvatar(child:Text('4')),
+              title:Text('Observei uma situação'),
+              subtitle:Text('Informe local e descrição com suas palavras, '
+                'sem se expor a riscos. O envio não abre nem encerra '
+                'automaticamente uma não conformidade.')),
+          ],
+        )),
+        const Card(child:Padding(padding:EdgeInsets.all(14),
+          child:Text('Como participar: observe sem se aproximar de perigos, '
+            'registre local e situação, acompanhe sua tarefa e peça apoio. '
+            'Não precisa indicar qual NR se aplica. A gestão é responsável '
+            'pela avaliação técnica e conclusão de ações.'))),
+      ]))),
+    );
+  }
+}
