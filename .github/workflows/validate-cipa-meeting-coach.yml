@@ -1,0 +1,51 @@
+name: Validar roteiro de reunião assistida CIPA
+on:
+  push:
+    branches:
+      - feature/cipa-meeting-coach-20261106
+      - feature/cipa-sugestor-temas-ata-20261111
+    paths:
+      - 'feature_sources/cipa_meeting_coach_*'
+      - 'tools/patch_cipa_meeting_coach_v1.py'
+      - 'tools/test_cipa_meeting_coach_patch_v1.py'
+      - 'tools/stage_cipa_meeting_coach_flutter_v1.py'
+      - '.github/workflows/validate-cipa-meeting-coach.yml'
+  pull_request:
+    branches:
+      - feature/cipa-facilidade-ciclo-completo-20261111
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  meeting-coach:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - name: Instalar em cópia isolada, sem tocar no servidor nem login
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/patch_cipa_meeting_coach_v1.py tools/test_cipa_meeting_coach_patch_v1.py
+          python3 tools/test_cipa_meeting_coach_patch_v1.py
+      - name: Analisar as regras e cenários da NR-05
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/cipa-meeting-coach
+          cp feature_sources/cipa_meeting_coach_rules_v1.dart /tmp/cipa-meeting-coach/cipa_meeting_coach_rules_v1.dart
+          cp feature_sources/cipa_meeting_coach_rules_test_v1.dart /tmp/cipa-meeting-coach/cipa_meeting_coach_rules_test_v1.dart
+          dart format /tmp/cipa-meeting-coach
+          dart analyze /tmp/cipa-meeting-coach
+          dart /tmp/cipa-meeting-coach/cipa_meeting_coach_rules_test_v1.dart
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Testar tela real com e sem mandato no Flutter
+        run: |
+          set -euo pipefail
+          flutter create --platforms=android --project-name cipa_meeting_coach_fixture /tmp/cipa-coach-flutter
+          python3 tools/stage_cipa_meeting_coach_flutter_v1.py /tmp/cipa-coach-flutter
+          cd /tmp/cipa-coach-flutter
+          dart format lib test
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/cipa_meeting_coach_widget_test.dart
