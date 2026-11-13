@@ -246,6 +246,10 @@ class _CipaTstReviewScreenState extends State<CipaTstReviewScreen> {
             'não conformidades nesta tela.'),
           if(busy)const LinearProgressIndicator(),
           if(error.isNotEmpty)Text(error),
+          CipaMuralModerationPanel(
+            onLoad:_muralList,onReview:_muralReview,
+            onCommentReview:_muralReviewComment,
+            onReply:_muralReply,onPhoto:_muralPhoto),
           CipaManagerMetricsPanel(companyId:widget.companyId,
             mandateId:widget.mandateId,serverData:metrics),
           if(!busy&&records.isEmpty)const Text('Nenhum relato disponível.'),
