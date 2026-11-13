@@ -3,11 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/cipa_member_identity.dart';
 import '../services/cipa_member_role_meetings.dart';
+import '../services/cipa_member_portal_policy.dart';
 
 /// Guia pessoal somente de leitura: não cadastra cargo ou valida ata.
 class CipaMeetingRoleCoachPanel extends StatelessWidget {
-  const CipaMeetingRoleCoachPanel({super.key,required this.profile});
+  const CipaMeetingRoleCoachPanel({super.key,required this.profile,
+    this.meetings=const [],this.onSendMinutes,this.onListMinutes});
   final CipaMemberAccessProfile profile;
+  final List<CipaMemberItem> meetings;
+  final Future<void> Function(String meetingId,String content)? onSendMinutes;
+  final Future<List<Map<String,dynamic>>> Function()? onListMinutes;
 
   void _roleDialog(BuildContext context){
     showDialog<void>(context:context,builder:(ctx)=>AlertDialog(
@@ -39,7 +44,36 @@ class CipaMeetingRoleCoachPanel extends StatelessWidget {
 
   void _meetingGuide(BuildContext context){
     showDialog<void>(context:context,builder:(ctx)=>
-      const _CipaMeetingGuideDialog());
+      _CipaMeetingGuideDialog(meetings:meetings,
+        onSendMinutes:onSendMinutes));
+  }
+
+  void _seeMinutes(BuildContext context){
+    if(onListMinutes==null)return;
+    showDialog<void>(context:context,builder:(ctx)=>AlertDialog(
+      title:const Text('Minhas minutas em revisão'),
+      content:SizedBox(width:420,height:300,child:FutureBuilder<
+        List<Map<String,dynamic>>>(
+        future:onListMinutes!(),builder:(context,snapshot){
+          if(!snapshot.hasData&&snapshot.connectionState!=
+             ConnectionState.done)return const Center(
+               child:CircularProgressIndicator());
+          if(snapshot.hasError)return const Text(
+            'Não foi possível consultar suas minutas.');
+          final rows=snapshot.data??const <Map<String,dynamic>>[];
+          if(rows.isEmpty)return const Text(
+            'Nenhuma minuta enviada para revisão da Central.');
+          return ListView(children:[for(final item in rows)ListTile(
+            leading:const Icon(Icons.description_outlined),
+            title:Text('Reunião: '+(item['meetingId']??'').toString()),
+            subtitle:Text((item['status']??'Recebida').toString()+
+              '\n'+(item['reviewNote']??'').toString()),
+            isThreeLine:true,
+          )]);
+        })),
+      actions:[FilledButton(onPressed:()=>Navigator.pop(ctx),
+        child:const Text('Fechar'))],
+    ));
   }
 
   @override Widget build(BuildContext context)=>Card(
@@ -64,6 +98,13 @@ class CipaMeetingRoleCoachPanel extends StatelessWidget {
           icon:const Icon(Icons.menu_book_outlined),
           onPressed:()=>_meetingGuide(context),
           label:const Text('Aprender reunião e ata')),
+        if(onListMinutes!=null)...[
+          const SizedBox(height:8),
+          OutlinedButton.icon(
+            onPressed:()=>_seeMinutes(context),
+            icon:const Icon(Icons.history_edu_outlined),
+            label:const Text('Ver minhas minutas na Central')),
+        ],
       ],
     )),
   );
@@ -71,7 +112,10 @@ class CipaMeetingRoleCoachPanel extends StatelessWidget {
 
 /// Etapas simuladas: jamais registra início oficial de reunião.
 class _CipaMeetingGuideDialog extends StatefulWidget {
-  const _CipaMeetingGuideDialog();
+  const _CipaMeetingGuideDialog({required this.meetings,
+    required this.onSendMinutes});
+  final List<CipaMemberItem> meetings;
+  final Future<void> Function(String meetingId,String content)? onSendMinutes;
   @override State<_CipaMeetingGuideDialog> createState()=>
     _CipaMeetingGuideDialogState();
 }
@@ -140,7 +184,9 @@ class _CipaMeetingGuideDialogState extends State<_CipaMeetingGuideDialog>{
         onPressed:(){
           Navigator.pop(context);
           showDialog<void>(context:context,
-            builder:(ctx)=>const _CipaMinutesPracticeDialog());
+            builder:(ctx)=>_CipaMinutesPracticeDialog(
+              meetings:widget.meetings,
+              onSendMinutes:widget.onSendMinutes));
         },
         child:const Text('Montar rascunho da ata')),
     ],
@@ -148,7 +194,10 @@ class _CipaMeetingGuideDialogState extends State<_CipaMeetingGuideDialog>{
 }
 
 class _CipaMinutesPracticeDialog extends StatefulWidget{
-  const _CipaMinutesPracticeDialog();
+  const _CipaMinutesPracticeDialog({required this.meetings,
+    required this.onSendMinutes});
+  final List<CipaMemberItem> meetings;
+  final Future<void> Function(String meetingId,String content)? onSendMinutes;
   @override State<_CipaMinutesPracticeDialog> createState()=>
     _CipaMinutesPracticeDialogState();
 }
@@ -160,7 +209,8 @@ class _CipaMinutesPracticeDialogState
     assignments=TextEditingController();
   DateTime? meetingDate;
   String meetingType='Ordinária',message='';
-  String? generated;
+  String? generated,selectedMeetingId;
+  bool submitting=false,submitted=false;
   @override void dispose(){
     for(final ctrl in [place,agenda,discussion,decisions,secretary,
       members,assignments])ctrl.dispose();
@@ -190,6 +240,33 @@ class _CipaMinutesPracticeDialogState
     });}
   }
 
+  Future<void> _submitCentral()async{
+    final send=widget.onSendMinutes;
+    if(send==null||selectedMeetingId==null||generated==null||submitting)return;
+    final confirmed=await showDialog<bool>(context:context,builder:(dialog)=>
+      AlertDialog(
+        title:const Text('Enviar minuta para revisão?'),
+        content:const Text('A minuta será encaminhada à Central para '
+          'conferência pela equipe autorizada. Não registra presença, '
+          'assinatura ou ata oficial. Confira os dados antes de enviar.'),
+        actions:[
+          TextButton(onPressed:()=>Navigator.pop(dialog,false),
+            child:const Text('Voltar')),
+          FilledButton(onPressed:()=>Navigator.pop(dialog,true),
+            child:const Text('Confirmar envio')),
+        ]));
+    if(confirmed!=true||!mounted)return;
+    setState((){submitting=true;message='';});
+    try{
+      await send(selectedMeetingId!,generated!);
+      if(mounted)setState((){submitted=true;
+        message='Minuta recebida para revisão da Central. '
+          'Ainda não é uma ata assinada.';});
+    }catch(_){if(mounted)setState(()=>message=
+      'Envio não confirmado. Consulte Minhas minutas antes de tentar novamente.');}
+    finally{if(mounted)setState(()=>submitting=false);}
+  }
+
   @override Widget build(BuildContext context)=>AlertDialog(
     title:const Text('Como iniciar uma ata — exercício'),
     content:SizedBox(width:430,height:480,child:SingleChildScrollView(
@@ -198,6 +275,20 @@ class _CipaMinutesPracticeDialogState
           'Este texto é um modelo educativo, não uma ata assinada '
           'nem um registro salvo na Central.',
           style:TextStyle(fontWeight:FontWeight.w700)),
+        if(widget.onSendMinutes!=null)...[
+          const SizedBox(height:12),
+          if(widget.meetings.isEmpty)
+            const Text('Nenhuma reunião vinculada à sua conta '
+              'está disponível para enviar minuta à Central.'),
+          if(widget.meetings.isNotEmpty)DropdownButtonFormField<String>(
+            isExpanded:true,value:selectedMeetingId,
+            decoration:const InputDecoration(
+              labelText:'Reunião vinculada à sua CIPA'),
+            items:widget.meetings.map((meeting)=>DropdownMenuItem(
+              value:meeting.id,child:Text(meeting.title,
+                overflow:TextOverflow.ellipsis))).toList(),
+            onChanged:(v)=>setState(()=>selectedMeetingId=v)),
+        ],
         const SizedBox(height:12),
         DropdownButtonFormField<String>(
           initialValue:meetingType,
@@ -241,6 +332,12 @@ class _CipaMinutesPracticeDialogState
         child:const Text('Fechar')),
       FilledButton(onPressed:_generate,
         child:const Text('Ver rascunho')),
+      if(generated!=null&&widget.onSendMinutes!=null)
+        FilledButton.icon(onPressed:submitting||submitted||
+          selectedMeetingId==null?null:_submitCentral,
+          icon:const Icon(Icons.cloud_upload_outlined),
+          label:Text(submitted?'Minuta enviada à Central':
+            'Enviar minuta para revisão')),
       if(generated!=null)OutlinedButton.icon(
         onPressed:()async{
           await Clipboard.setData(ClipboardData(text:generated!));
