@@ -201,8 +201,15 @@ class _CipaGuidedInspectionDialogState
 
   @override void initState() {
     super.initState();
-    if(widget.initialRequestId!=null){
-      if(!RegExp(r'^[A-Za-z0-9_-]{16,120}
+    final initialId=widget.initialRequestId;
+    if(initialId!=null){
+      if(initialId.length<16||initialId.length>120||
+         RegExp(r'[^A-Za-z0-9_-]').hasMatch(initialId))
+        throw StateError('Identificação de rascunho inválida');
+      requestId=initialId;
+    }
+    _activeDraftStore=widget.draftStore??
+      widget.draftStoreFactory?.call(requestId);
     WidgetsBinding.instance.addObserver(this);
     final proposed=widget.initialCategory;
     if(proposed!=null &&
