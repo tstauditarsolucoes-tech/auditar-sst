@@ -184,10 +184,10 @@ class CipaMemberApi {
   Future<void> observe(String place,String text)=>
     send('observation','',text,place:place);
   /// Associação obrigatória no servidor ao agendamento pessoal vigente.
-  Future<void> observeScheduled(String scheduleId,String place,String text) {
+  Future<void> observeScheduled(String scheduleId,String place,String text) async {
     if(!scheduleId.startsWith('cipa-inspection-'))
       throw StateError('Agendamento não identificado.');
-    return send('observation',scheduleId,text,place:place);
+    await send('observation',scheduleId,text,place:place);
   }
 
   Future<void> acknowledgeFeedback(String observationId,
