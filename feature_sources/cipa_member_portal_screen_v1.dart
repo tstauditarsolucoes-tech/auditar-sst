@@ -12,7 +12,7 @@ class CipaMemberPortalScreen extends StatefulWidget {
     this.view, this.sessionVerified=false,
     this.onRefresh, this.onLogout, this.onAcknowledgeMeeting,
     this.onReportProgress, this.onRequestSupport, this.onObserve,
-    this.onAcknowledgeFeedback,
+    this.onObserveScheduled, this.onAcknowledgeFeedback,
   });
   final String companyName,mandateLabel;
   final CipaMemberView? view;
@@ -21,6 +21,8 @@ class CipaMemberPortalScreen extends StatefulWidget {
   final Future<void> Function(String id)? onAcknowledgeMeeting;
   final Future<void> Function(String id,String note)? onReportProgress,onRequestSupport;
   final Future<void> Function(String place,String note)? onObserve;
+  final Future<void> Function(String scheduleId,String place,String note)?
+    onObserveScheduled;
   final Future<void> Function(String observationId,String reviewId)?
     onAcknowledgeFeedback;
 
@@ -138,8 +140,10 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
     item.description.contains('VISTORIA ORIENTADA DA CIPA');
 
   Future<void> _guidedInspection({String? initialCategory,
-      String? initialPlace}) async {
-    if(!widget.sessionVerified || busy || widget.onObserve==null)return;
+      String? initialPlace,String? scheduleId}) async {
+    if(!widget.sessionVerified || busy ||
+      (scheduleId==null?widget.onObserve==null:
+        widget.onObserveScheduled==null))return;
     final submitted=await showDialog<bool>(
       context:context,
       barrierDismissible:false,
@@ -150,11 +154,19 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
         companyName:widget.companyName,
         mandateLabel:widget.mandateLabel,
         onSend:(place,note) async {
-          if(!widget.sessionVerified || widget.onObserve==null) {
+          if(!widget.sessionVerified) {
             throw StateError('Sessão não autorizada');
           }
-          // O callback já autorizado decide se o servidor aceitou o relato.
-          await widget.onObserve!(place,note);
+          // Sem vínculo, nunca informar que uma vistoria agendada foi realizada.
+          if(scheduleId!=null){
+            final sendScheduled=widget.onObserveScheduled;
+            if(sendScheduled==null)throw StateError('Envio não autorizado');
+            await sendScheduled(scheduleId,place,note);
+          }else{
+            final sendFree=widget.onObserve;
+            if(sendFree==null)throw StateError('Envio não autorizado');
+            await sendFree(place,note);
+          }
         },
       ),
     );
@@ -376,12 +388,13 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
         _section('Vistorias programadas',Icons.calendar_month_outlined,
           view.scheduledInspections,
           empty:'Nenhuma vistoria programada para você.',
-          actions:(item)=>widget.onObserve==null?
+          actions:(item)=>widget.onObserveScheduled==null||
+            item.status!='Programada'?
             const SizedBox.shrink():
             SizedBox(width:double.infinity,child:OutlinedButton.icon(
               onPressed:busy?null:()=>_guidedInspection(
                 initialCategory:item.title.replaceFirst('Vistoria: ',''),
-                initialPlace:item.title.replaceFirst('Vistoria: ','')),
+                scheduleId:item.id),
               icon:const Icon(Icons.play_arrow),
               label:const Text('Iniciar esta vistoria')))),
         const Padding(padding:EdgeInsets.fromLTRB(16,0,16,10),
