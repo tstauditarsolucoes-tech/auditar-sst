@@ -202,11 +202,21 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
   }
 
   Future<void> _logout() async {
-    if(pendingDraftCount>0 && mounted){
+    final localView=view??lastOnlineView;
+    var count=pendingDraftCount;
+    if(localView!=null){
+      try {count=await pendingSync.count(localView);}
+      catch (_) {count=-1;} // Falha de leitura exige confirmação explícita.
+    }
+    if(count!=0 && mounted){
       final confirmed=await showDialog<bool>(context:context,
         builder:(dialog)=>AlertDialog(
           title:const Text('Sair e apagar dados locais?'),
-          content:Text('Existem '+pendingDraftCount.toString()+
+          content:Text(count<0?
+            'Não foi possível conferir os rascunhos protegidos. '
+            'Sair pode apagar registros ainda não enviados. '
+            'Para mantê-los, toque em Voltar.':
+            'Existem '+count.toString()+
             ' rascunhos ainda no aparelho. Sair da conta apaga '
             'esses rascunhos e o acesso offline. Para manter, '
             'toque em Voltar.'),
