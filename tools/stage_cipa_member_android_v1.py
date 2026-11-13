@@ -41,7 +41,7 @@ pairs={
     "feature_sources/cipa_member_home_alerts_v1.dart":
       "lib/services/cipa_member_home_alerts.dart",
     "feature_sources/cipa_member_engagement_v1.dart":
-      "lib/services/cipa_member_engagement.dart",,
+      "lib/services/cipa_member_engagement.dart",
     "feature_sources/cipa_member_api_v1.dart":
       "lib/services/cipa_member_api.dart",
     "feature_sources/cipa_member_draft_store_v1.dart":
@@ -57,7 +57,7 @@ pairs={
     "feature_sources/cipa_member_guided_inspection_v1.dart":
       "lib/widgets/cipa_member_guided_inspection.dart",
     "feature_sources/cipa_member_engagement_panel_v1.dart":
-      "lib/widgets/cipa_member_engagement_panel.dart",,
+      "lib/widgets/cipa_member_engagement_panel.dart",
     "feature_sources/cipa_member_portal_screen_test_v1.dart":
       "test/cipa_member_portal_screen_test.dart",
     "feature_sources/cipa_member_api_test_v1.dart":
@@ -75,7 +75,7 @@ pairs={
     "feature_sources/cipa_member_engagement_test_v1.dart":
       "test/cipa_member_engagement_test.dart",
     "feature_sources/cipa_member_engagement_panel_test_v1.dart":
-      "test/cipa_member_engagement_panel_test.dart",,
+      "test/cipa_member_engagement_panel_test.dart",
 }
 for source,target in pairs.items():
     path=app/target
