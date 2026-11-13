@@ -357,7 +357,46 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
        fresh.profile.mandateId!=person.profile.mandateId||
        fresh.profile.memberId!=person.profile.memberId)
       throw StateError('Mandato mudou. Não envie rascunhos antigos.');
-    final report=await pendingSync.sync(fresh,_sendStoredDraft);
+    final plan=CipaPendingSyncPlan.fromEntries(await pendingSync.list(fresh));
+    if(!mounted)return;
+    if(!plan.canSend){
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content:Text('Não há vistoria completa e autorizada para enviar. '
+          'Confira os rascunhos pendentes.')));
+      return;
+    }
+    final confirmed=await showDialog<bool>(context:context,
+      builder:(dialog)=>AlertDialog(
+        title:const Text('Conferir antes de enviar'),
+        content:SingleChildScrollView(child:Column(
+          mainAxisSize:MainAxisSize.min,
+          crossAxisAlignment:CrossAxisAlignment.start,children:[
+            Text('Prontas para envio: ${plan.ready}',
+              style:const TextStyle(fontWeight:FontWeight.w700,fontSize:18)),
+            Text('Fotografias destas vistorias: ${plan.photoCount}'),
+            Text('Incompletas: ${plan.incomplete}'),
+            Text('Bloqueadas ou não recuperáveis: ${plan.blocked}'),
+            const SizedBox(height:10),
+            const Text('As vistorias incompletas e bloqueadas NÃO serão '
+              'enviadas nem apagadas. O envio pode usar dados móveis. '
+              'Confira fotos e relatos antes de continuar.'),
+          ])),
+        actions:[
+          TextButton(onPressed:()=>Navigator.pop(dialog,false),
+            child:const Text('Voltar')),
+          FilledButton(onPressed:()=>Navigator.pop(dialog,true),
+            child:const Text('Confirmar envio')),
+        ],
+      ));
+    if(confirmed!=true||!mounted)return;
+    // Vínculo conferido novamente após confirmação do usuário.
+    final newest=await api.dashboard();
+    if(newest.profile.userId!=fresh.profile.userId||
+       newest.profile.companyId!=fresh.profile.companyId||
+       newest.profile.mandateId!=fresh.profile.mandateId||
+       newest.profile.memberId!=fresh.profile.memberId)
+      throw StateError('Vínculo mudou durante o envio. Entre novamente.');
+    final report=await pendingSync.sync(newest,_sendStoredDraft);
     if(mounted){
       await _loadDraftCount(fresh);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
