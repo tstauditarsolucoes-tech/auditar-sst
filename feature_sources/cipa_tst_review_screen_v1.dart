@@ -7,6 +7,7 @@ import '../services/auth_service.dart';
 import '../services/web_service_config.dart';
 import '../widgets/cipa_manager_metrics_panel.dart';
 import '../widgets/cipa_mural_moderation_panel.dart';
+import '../widgets/cipa_minutes_review_panel.dart';
 
 /// Apenas consultar observações e responder: controle real fica no servidor.
 class CipaTstReviewScreen extends StatefulWidget {
@@ -233,6 +234,20 @@ class _CipaTstReviewScreenState extends State<CipaTstReviewScreen> {
     return bytes;
   }
 
+
+  Future<List<Map<String,dynamic>>> _minutesStaffList() async{
+    final reply=await _call('cipa_minutes_staff_list');
+    final data=reply['minutes'];
+    if(data is! List)return const [];
+    return data.whereType<Map>()
+      .map((row)=>Map<String,dynamic>.from(row)).toList();
+  }
+  Future<void> _minutesStaffReview(String id,String status,String note) async{
+    await _call('cipa_minutes_review',{
+      'minuteId':id,'status':status,'note':note,
+    });
+  }
+
   @override Widget build(BuildContext context) {
     return Scaffold(
       appBar:AppBar(title:const Text('Vistorias da CIPA'),actions:[
@@ -246,6 +261,8 @@ class _CipaTstReviewScreenState extends State<CipaTstReviewScreen> {
             'não conformidades nesta tela.'),
           if(busy)const LinearProgressIndicator(),
           if(error.isNotEmpty)Text(error),
+          CipaMinutesReviewPanel(
+            onLoad:_minutesStaffList,onReview:_minutesStaffReview),
           CipaMuralModerationPanel(
             onLoad:_muralList,onReview:_muralReview,
             onCommentReview:_muralReviewComment,
