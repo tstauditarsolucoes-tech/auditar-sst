@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as image_codec;
 import 'package:image_picker/image_picker.dart';
+import '../services/cipa_member_draft_store.dart';
 
 /// Roteiro educativo de observação visual, sem avaliação normativa automática.
 /// O registro somente é enviado por um callback já autorizado pela sessão CIPA.
@@ -148,6 +151,7 @@ class CipaGuidedInspection {
 class CipaGuidedInspectionDialog extends StatefulWidget {
   const CipaGuidedInspectionDialog({
     super.key,required this.onSend,this.onSendWithPhotos,
+    this.onSubmitDraft,this.draftStore,
     this.initialCategory,this.initialPlace,
     this.memberName='',this.companyName='',
     this.memberRole='',this.mandateLabel='',
@@ -155,6 +159,9 @@ class CipaGuidedInspectionDialog extends StatefulWidget {
   final Future<void> Function(String place,String note) onSend;
   final Future<void> Function(String place,String note,List<Uint8List> photos)?
     onSendWithPhotos;
+  final Future<void> Function(String place,String note,List<Uint8List> photos,
+    String requestId)? onSubmitDraft;
+  final CipaMemberDraftStore? draftStore;
   final String? initialCategory,initialPlace;
   final String memberName,companyName,memberRole,mandateLabel;
 
@@ -164,7 +171,7 @@ class CipaGuidedInspectionDialog extends StatefulWidget {
 }
 
 class _CipaGuidedInspectionDialogState
-    extends State<CipaGuidedInspectionDialog> {
+    extends State<CipaGuidedInspectionDialog> with WidgetsBindingObserver {
   final place=TextEditingController();
   final observation=TextEditingController();
   String category=CipaGuidedInspection.questions.keys.first;
@@ -174,9 +181,20 @@ class _CipaGuidedInspectionDialogState
   String error='';
   final List<Uint8List> photos=[];
   bool takingPhoto=false;
+  bool restoring=false;
+  String saveStatus='';
+  Timer? _saveTimer;
+  Future<void> _writeQueue=Future<void>.value();
+  String requestId=_newRequestId();
+  static String _newRequestId(){
+    final rng=Random.secure();
+    return 'mobile-'+List<int>.generate(24,(_)=>rng.nextInt(256))
+      .map((v)=>v.toRadixString(16).padLeft(2,'0')).join();
+  }
 
   @override void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final proposed=widget.initialCategory;
     if(proposed!=null &&
        (CipaGuidedInspection.questions.containsKey(proposed) ||
@@ -186,23 +204,99 @@ class _CipaGuidedInspectionDialogState
     final initial=widget.initialPlace?.trim()??'';
     if(initial.length>=2&&initial.length<=120)place.text=initial;
     _resetAnswers();
+    place.addListener(_queueSave);
+    observation.addListener(_queueSave);
+    if(widget.draftStore!=null){
+      restoring=true;
+      _restoreDraft();
+    }
   }
   void _resetAnswers() {
     answers=List<String?>.filled(
       CipaGuidedInspection.questionsFor(category).length,null);
   }
   @override void dispose() {
+    _saveTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    place.removeListener(_queueSave);
+    observation.removeListener(_queueSave);
     place.dispose();
     observation.dispose();
     super.dispose();
+  }
+
+  @override void didChangeAppLifecycleState(AppLifecycleState state){
+    if(state==AppLifecycleState.paused||state==AppLifecycleState.inactive)
+      _saveNow();
+  }
+
+  Future<void> _restoreDraft() async {
+    try {
+      final saved=await widget.draftStore!.load();
+      if(!mounted)return;
+      if(saved!=null&&(
+        CipaGuidedInspection.questions.containsKey(saved.category)||
+        CipaGuidedInspection.sectorQuestions.containsKey(saved.category))){
+        setState((){
+          requestId=saved.requestId;
+          category=saved.category;
+          place.text=saved.place;
+          observation.text=saved.observation;
+          answers=List<String?>.from(saved.answers);
+          photos..clear()..addAll(saved.photos);
+          saveStatus='Rascunho protegido recuperado';
+        });
+      }
+    }catch(_){
+      if(mounted)setState(()=>error='O rascunho protegido não pôde ser aberto. '
+        'Nenhum dado de outra pessoa será exibido.');
+    }finally{
+      restoring=false;
+      if(mounted)setState((){});
+    }
+  }
+  void _queueSave(){
+    if(restoring||widget.draftStore==null)return;
+    _saveTimer?.cancel();
+    _saveTimer=Timer(const Duration(milliseconds:250),_saveNow);
+  }
+  Future<void> _saveNow() async {
+    final store=widget.draftStore;
+    if(store==null||restoring)return;
+    _saveTimer?.cancel();
+    final snapshot=CipaInspectionDraft(
+      requestId:requestId,category:category,place:place.text,
+      answers:List<String?>.from(answers),
+      observation:observation.text,
+      photos:List<Uint8List>.from(photos),
+      savedAt:DateTime.now().toUtc());
+    _writeQueue=_writeQueue.then((_)=>store.save(snapshot));
+    try {
+      await _writeQueue;
+      if(mounted)setState(()=>saveStatus='Rascunho protegido salvo');
+    }catch(_){
+      // A falha não pode ser tratada como salvamento bem sucedido.
+      if(mounted)setState(()=>saveStatus='Não foi possível salvar. '
+        'Use Guardar e sair para tentar novamente.');
+      _writeQueue=Future<void>.value();
+    }
+  }
+  Future<void> _exit() async {
+    if(widget.draftStore!=null){
+      await _saveNow();
+      if(saveStatus.startsWith('Não foi possível'))return;
+    }
+    if(mounted)Navigator.pop(context,false);
   }
 
   void _next() {
     if(sending)return;
     if(page==0&&place.text.trim().length>=2) {
       setState(()=>page=1);
+      _queueSave();
     } else if(page>=1&&page<=3&&answers[page-1]!=null) {
       setState(()=>page=page+1);
+      _queueSave();
     }
   }
 
@@ -230,7 +324,7 @@ class _CipaGuidedInspectionDialogState
           image_codec.encodeJpg(smaller,quality:60));
       }
       if(output.length>700000)throw StateError('Fotografia muito grande');
-      if(mounted)setState(()=>photos.add(output));
+      if(mounted){setState(()=>photos.add(output));_queueSave();}
     }catch (_) {
       if(mounted)setState(()=>error='Não foi possível preparar a foto. '
         'Tente novamente em um local seguro.');
@@ -248,15 +342,27 @@ class _CipaGuidedInspectionDialogState
         answers.any((answer)=>answer==null))return;
     setState(() {sending=true;error='';});
     try {
+      // Guardar requestId antes de enviar: retries após queda não duplicam.
+      await _saveNow();
+      if(widget.draftStore!=null&&
+         saveStatus.startsWith('Não foi possível'))
+        throw StateError('Falha no salvamento protegido');
       final note=CipaGuidedInspection.summary(
         place:place.text,category:category,
         answers:answers.cast<String>(),observation:observation.text);
-      if(photos.isNotEmpty){
+      if(widget.onSubmitDraft!=null){
+        await widget.onSubmitDraft!(place.text.trim(),note,
+          List<Uint8List>.from(photos),requestId);
+      }else if(photos.isNotEmpty){
         final upload=widget.onSendWithPhotos;
         if(upload==null)throw StateError('Envio de fotos não habilitado');
         await upload(place.text.trim(),note,List<Uint8List>.from(photos));
       }else{
         await widget.onSend(place.text.trim(),note);
+      }
+      _saveTimer?.cancel();
+      if(widget.draftStore!=null){
+        try{await widget.draftStore!.clear();}catch(_){}
       }
       if(mounted)Navigator.of(context).pop(true);
     } catch (_) {
@@ -315,6 +421,7 @@ class _CipaGuidedInspectionDialogState
                 onChanged:sending?null:(next) {
                   if(next==null)return;
                   setState((){category=next;_resetAnswers();});
+                  _queueSave();
                 }),
               const SizedBox(height:12),
               const Text('Serão apenas 3 perguntas, uma por vez. '
@@ -340,8 +447,10 @@ class _CipaGuidedInspectionDialogState
                     horizontal:12,vertical:7),
                   title:Text(answer,style:const TextStyle(fontSize:16)),
                   value:answer,groupValue:answers[step-1],
-                  onChanged:sending?null:(next)=>
-                    setState(()=>answers[step-1]=next),
+                  onChanged:sending?null:(next){
+                    setState(()=>answers[step-1]=next);
+                    _queueSave();
+                  },
                 )),
               const SizedBox(height:12),
               ExpansionTile(
@@ -387,8 +496,10 @@ class _CipaGuidedInspectionDialogState
                       Column(mainAxisSize:MainAxisSize.min,children:[
                         Image.memory(photos[i],width:110,height:88,
                           fit:BoxFit.cover),
-                        TextButton(onPressed:sending?null:()=>
-                          setState(()=>photos.removeAt(i)),
+                        TextButton(onPressed:sending?null:(){
+                          setState(()=>photos.removeAt(i));
+                          _queueSave();
+                        },
                           child:const Text('Remover')),
                       ]),
                   ]),
@@ -408,6 +519,9 @@ class _CipaGuidedInspectionDialogState
                 'É necessária internet para enviar; não há rascunho offline.',
                 style:TextStyle(fontSize:12)),
             ],
+            if(widget.draftStore!=null)
+              Text(restoring?'Recuperando rascunho protegido...':saveStatus,
+                style:const TextStyle(fontSize:12)),
             if(error.isNotEmpty)
               Text(error,style:TextStyle(
                 color:Theme.of(context).colorScheme.error)),
@@ -415,13 +529,14 @@ class _CipaGuidedInspectionDialogState
         ))),
       actions:[
         TextButton(
-          onPressed:sending?null:()=>Navigator.pop(context,false),
-          child:const Text('Cancelar')),
+          onPressed:sending?null:_exit,
+          child:Text(widget.draftStore==null?'Cancelar':'Guardar e sair')),
         if(step>0)OutlinedButton(
-          onPressed:sending?null:()=>setState(()=>page=page-1),
+          onPressed:sending?null:(){setState(()=>page=page-1);
+            _queueSave();},
           child:const Text('Voltar')),
         if(step<4)FilledButton(
-          onPressed:sending||
+          onPressed:sending||restoring||
             (step==0&&place.text.trim().length<2)||
             (step>=1&&answers[step-1]==null)?null:_next,
           child:Text(step==0?'Começar':step==3?

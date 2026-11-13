@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../services/cipa_member_portal_policy.dart';
+import '../services/cipa_member_draft_store.dart';
 import '../widgets/cipa_member_access_header.dart';
 import '../widgets/cipa_member_guided_inspection.dart';
 
@@ -15,7 +16,7 @@ class CipaMemberPortalScreen extends StatefulWidget {
     this.onReportProgress, this.onRequestSupport, this.onObserve,
     this.onObserveScheduled, this.onAcknowledgeFeedback,
     this.onObserveWithPhotos,this.onObserveScheduledWithPhotos,
-    this.onViewPhotos,
+    this.onViewPhotos,this.onObserveDraft,this.onObserveScheduledDraft,
   });
   final String companyName,mandateLabel;
   final CipaMemberView? view;
@@ -33,6 +34,10 @@ class CipaMemberPortalScreen extends StatefulWidget {
   final Future<void> Function(String scheduleId,String place,String note,
     List<Uint8List> photos)? onObserveScheduledWithPhotos;
   final Future<List<Uint8List>> Function(String observationId)? onViewPhotos;
+  final Future<void> Function(String place,String note,
+    List<Uint8List> photos,String requestId)? onObserveDraft;
+  final Future<void> Function(String scheduleId,String place,String note,
+    List<Uint8List> photos,String requestId)? onObserveScheduledDraft;
 
   @override
   State<CipaMemberPortalScreen> createState() => _CipaMemberPortalScreenState();
@@ -152,11 +157,31 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
     if(!widget.sessionVerified || busy ||
       (scheduleId==null?widget.onObserve==null:
         widget.onObserveScheduled==null))return;
+    final profile=widget.view!.profile;
+    final canPersist=scheduleId==null?
+      widget.onObserveDraft!=null:widget.onObserveScheduledDraft!=null;
+    final store=canPersist?CipaMemberDraftStore(
+      accountId:profile.userId,companyId:profile.companyId,
+      mandateId:profile.mandateId,memberId:profile.memberId,
+      scheduleId:scheduleId):null;
     final submitted=await showDialog<bool>(
       context:context,
       barrierDismissible:false,
       builder:(_)=>CipaGuidedInspectionDialog(
         initialCategory:initialCategory,initialPlace:initialPlace,
+        draftStore:store,
+        onSubmitDraft:store==null?null:(place,note,photos,requestId) async {
+          if(!widget.sessionVerified)throw StateError('Sessão inválida');
+          if(scheduleId==null){
+            final send=widget.onObserveDraft;
+            if(send==null)throw StateError('Envio indisponível');
+            await send(place,note,photos,requestId);
+          }else{
+            final send=widget.onObserveScheduledDraft;
+            if(send==null)throw StateError('Envio indisponível');
+            await send(scheduleId,place,note,photos,requestId);
+          }
+        },
         memberName:widget.view!.profile.fullName,
         memberRole:widget.view!.profile.cipaRole,
         companyName:widget.companyName,

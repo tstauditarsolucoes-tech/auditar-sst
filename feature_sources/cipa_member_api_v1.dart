@@ -162,7 +162,8 @@ class CipaMemberApi {
   });
 
   Future<void> send(String kind,String target,String note,
-      {String place='',List<Uint8List> photos=const []}) async {
+      {String place='',List<Uint8List> photos=const [],
+      String? durableRequestId}) async {
     if(_token==null)throw StateError('Entre novamente.');
     if(!['acknowledge','progress','support','observation'].contains(kind))
       throw StateError('Operação não permitida.');
@@ -172,7 +173,10 @@ class CipaMemberApi {
     if(clean.length<8||clean.length>1200)
       throw StateError('Descrição obrigatória de 8 a 1200 caracteres.');
     final key=kind+'|'+target+'|'+place.trim()+'|'+clean;
-    final eventId=_id(key);
+    if(durableRequestId!=null&&
+       !RegExp(r'^[A-Za-z0-9_-]{16,120}$').hasMatch(durableRequestId))
+      throw StateError('Identificação do rascunho inválida.');
+    final eventId=durableRequestId??_id(key);
     await _call('cipa_member_event',{
       'sessionToken':_token,'kind':kind,'targetId':target,
       'detail':clean,'location':place.trim(),'requestId':eventId});
@@ -211,6 +215,19 @@ class CipaMemberApi {
     if(!scheduleId.startsWith('cipa-inspection-'))
       throw StateError('Agendamento não identificado.');
     await send('observation',scheduleId,text,place:place,photos:photos);
+  }
+
+  Future<void> observeDraft(String place,String text,
+      List<Uint8List> photos,String requestId)=>
+    send('observation','',text,place:place,photos:photos,
+      durableRequestId:requestId);
+
+  Future<void> observeScheduledDraft(String scheduleId,String place,
+      String text,List<Uint8List> photos,String requestId) async {
+    if(!scheduleId.startsWith('cipa-inspection-'))
+      throw StateError('Agendamento não identificado.');
+    await send('observation',scheduleId,text,place:place,photos:photos,
+      durableRequestId:requestId);
   }
 
   Future<List<Uint8List>> photosForObservation(String observationId) async {

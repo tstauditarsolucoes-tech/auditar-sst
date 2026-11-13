@@ -24,7 +24,10 @@ anchor="\ndependencies:\n"
 assert yaml.count(anchor)==1
 yaml=yaml.replace(anchor,anchor+"  http: ^1.3.0\n"
     "  image_picker: ^1.2.2\n"
-    "  image: ^4.3.0\n",1)
+    "  image: ^4.3.0\n"
+    "  cryptography: ^2.7.0\n"
+    "  flutter_secure_storage: ^11.2.0\n"
+    "  path_provider: ^2.1.6\n",1)
 pubspec.write_text(yaml,encoding="utf-8")
 
 pairs={
@@ -36,6 +39,8 @@ pairs={
       "lib/services/cipa_member_portal_policy.dart",
     "feature_sources/cipa_member_api_v1.dart":
       "lib/services/cipa_member_api.dart",
+    "feature_sources/cipa_member_draft_store_v1.dart":
+      "lib/services/cipa_member_draft_store.dart",
     "feature_sources/cipa_member_access_header_v1.dart":
       "lib/widgets/cipa_member_access_header.dart",
     "feature_sources/cipa_member_portal_screen_v1.dart":
@@ -46,6 +51,8 @@ pairs={
       "test/cipa_member_portal_screen_test.dart",
     "feature_sources/cipa_member_api_test_v1.dart":
       "test/cipa_member_api_test.dart",
+    "feature_sources/cipa_member_draft_store_test_v1.dart":
+      "test/cipa_member_draft_store_test.dart",
 }
 for source,target in pairs.items():
     path=app/target
