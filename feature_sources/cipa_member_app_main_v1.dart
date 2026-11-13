@@ -7,6 +7,8 @@ import 'screens/cipa_member_portal_screen.dart';
 import 'services/cipa_member_api.dart';
 import 'services/cipa_member_draft_store.dart';
 import 'services/cipa_member_portal_policy.dart';
+import 'services/cipa_member_offline_cache.dart';
+import 'services/cipa_member_pending_sync.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,13 +41,25 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
     'AUDITAR_MEMBER_ENDPOINT',defaultValue:'');
   late final CipaMemberApi api=CipaMemberApi(
     endpoint:endpoint,onSessionRevoked:(){
-      final person=view;
+      final person=view??lastOnlineView;
       if(person!=null){
         _draftStoreFor(person).clearAllForMember().catchError((_) {});
       }
-      if(mounted)setState(()=>view=null);
+      final address=onlineEmail;
+      if(address!=null)offlineCache.clear(address).catchError((_) {});
+      if(mounted)setState((){
+        view=null;offlineUnlocked=false;lastOnlineView=null;
+      });
     });
-  final email=TextEditingController(),code=TextEditingController();
+  final email=TextEditingController(),code=TextEditingController(),
+    offlinePin=TextEditingController();
+  final CipaMemberOfflineCache offlineCache=CipaMemberOfflineCache();
+  final CipaMemberPendingSync pendingSync=CipaMemberPendingSync();
+  String? onlineEmail;
+  CipaMemberView? lastOnlineView;
+  DateTime? lastSync;
+  bool offlineUnlocked=false;
+  int pendingDraftCount=0;
   bool busy=false,requested=false;
   String message='',error='';
   CipaMemberView? view;
@@ -60,7 +74,9 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
     if(state==AppLifecycleState.inactive||
        state==AppLifecycleState.hidden||
        state==AppLifecycleState.paused) {
-      if(mounted)setState(()=>view=null); // Dados não ficam visíveis em segundo plano.
+      if(mounted)setState((){
+        view=null;offlineUnlocked=false;
+      }); // Bloquear tela e exigir novo desbloqueio após retorno.
     } else if(state==AppLifecycleState.resumed&&api.hasSession) {
       _refresh();
     }
@@ -68,7 +84,8 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    email.dispose();code.dispose();api.dispose();super.dispose();
+    email.dispose();code.dispose();offlinePin.dispose();
+    api.dispose();super.dispose();
   }
   Future<void> _run(Future<void> Function() work) async {
     if(busy)return;
@@ -141,7 +158,14 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
       await api.verifyCode(email.text,code.text);
       final current=await api.dashboard();
       if(mounted){
-        setState((){view=current;code.clear();});
+        final address=email.text.trim();
+        setState((){
+          view=current;lastOnlineView=current;onlineEmail=address;
+          offlineUnlocked=false;lastSync=DateTime.now();
+          code.clear();offlinePin.clear();
+        });
+        try{await offlineCache.updateFromServer(address,current);}catch(_){}
+        await _loadDraftCount(current);
         await _showWelcomeOnce(current);
       }
     });
@@ -153,7 +177,17 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
     }
     try {
       final current=await api.dashboard();
-      if(mounted)setState(()=>view=current);
+      if(mounted){
+        setState((){
+          view=current;lastOnlineView=current;offlineUnlocked=false;
+          lastSync=DateTime.now();
+        });
+        final address=onlineEmail;
+        if(address!=null){
+          try{await offlineCache.updateFromServer(address,current);}catch(_){}
+        }
+        await _loadDraftCount(current);
+      }
     } catch (_) {
       if(mounted)setState(()=>view=null);
       rethrow;
@@ -167,14 +201,20 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
   }
 
   Future<void> _logout() async {
-    final current=view;
+    final current=view??lastOnlineView;
+    final address=onlineEmail;
     if(current!=null){
       try {await _draftStoreFor(current).clearAllForMember();}
       catch (_) {/* Não impedir a saída nem expor conteúdo criptografado. */}
     }
+    if(address!=null){
+      try{await offlineCache.clear(address);}catch(_){}
+    }
     await api.logout();
     if(mounted)setState((){
-      view=null;code.clear();requested=false;message='';error='';
+      view=null;lastOnlineView=null;onlineEmail=null;
+      offlineUnlocked=false;lastSync=null;pendingDraftCount=0;
+      code.clear();offlinePin.clear();requested=false;message='';error='';
     });
   }
 
