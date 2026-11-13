@@ -44,6 +44,10 @@ pairs={
       "lib/services/cipa_member_api.dart",
     "feature_sources/cipa_member_draft_store_v1.dart":
       "lib/services/cipa_member_draft_store.dart",
+    "feature_sources/cipa_member_offline_cache_v1.dart":
+      "lib/services/cipa_member_offline_cache.dart",
+    "feature_sources/cipa_member_pending_sync_v1.dart":
+      "lib/services/cipa_member_pending_sync.dart",
     "feature_sources/cipa_member_access_header_v1.dart":
       "lib/widgets/cipa_member_access_header.dart",
     "feature_sources/cipa_member_portal_screen_v1.dart":
@@ -56,6 +60,10 @@ pairs={
       "test/cipa_member_api_test.dart",
     "feature_sources/cipa_member_draft_store_test_v1.dart":
       "test/cipa_member_draft_store_test.dart",
+    "feature_sources/cipa_member_offline_cache_test_v1.dart":
+      "test/cipa_member_offline_cache_test.dart",
+    "feature_sources/cipa_member_pending_sync_test_v1.dart":
+      "test/cipa_member_pending_sync_test.dart",
 }
 for source,target in pairs.items():
     path=app/target

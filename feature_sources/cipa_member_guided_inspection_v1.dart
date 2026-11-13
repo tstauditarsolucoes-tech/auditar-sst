@@ -152,7 +152,7 @@ class CipaGuidedInspection {
 class CipaGuidedInspectionDialog extends StatefulWidget {
   const CipaGuidedInspectionDialog({
     super.key,required this.onSend,this.onSendWithPhotos,
-    this.onSubmitDraft,this.draftStore,
+    this.onSubmitDraft,this.draftStore,this.offlineDraftMode=false,
     this.initialCategory,this.initialPlace,
     this.memberName='',this.companyName='',
     this.memberRole='',this.mandateLabel='',
@@ -163,6 +163,7 @@ class CipaGuidedInspectionDialog extends StatefulWidget {
   final Future<void> Function(String place,String note,List<Uint8List> photos,
     String requestId)? onSubmitDraft;
   final CipaMemberDraftStore? draftStore;
+  final bool offlineDraftMode;
   final String? initialCategory,initialPlace;
   final String memberName,companyName,memberRole,mandateLabel;
 
@@ -320,7 +321,7 @@ class _CipaGuidedInspectionDialogState
 
   Future<void> _takePhoto() async {
     if(sending||takingPhoto||photos.length>=2||
-       widget.onSendWithPhotos==null)return;
+       (widget.onSendWithPhotos==null&&!widget.offlineDraftMode))return;
     setState(() {takingPhoto=true;error='';});
     XFile? capture;
     try {
@@ -356,7 +357,7 @@ class _CipaGuidedInspectionDialogState
   }
 
   Future<void> _send() async {
-    if(sending||page!=4||place.text.trim().length<2||
+    if(widget.offlineDraftMode||sending||page!=4||place.text.trim().length<2||
         answers.any((answer)=>answer==null))return;
     setState(() {sending=true;error='';});
     try {
@@ -505,7 +506,7 @@ class _CipaGuidedInspectionDialogState
                 Text('Resposta: ${answers[i]}'),
                 const SizedBox(height:8),
               ],
-              if(widget.onSendWithPhotos!=null)...[
+              if(widget.onSendWithPhotos!=null||widget.offlineDraftMode)...[
                 const SizedBox(height:12),
                 SizedBox(height:54,child:OutlinedButton.icon(
                   onPressed:takingPhoto||sending||photos.length>=2?
@@ -539,11 +540,14 @@ class _CipaGuidedInspectionDialogState
                 decoration:const InputDecoration(
                   labelText:'Quer acrescentar algo? (opcional)',
                   border:OutlineInputBorder())),
-              const Text('A equipe técnica receberá o relato. '
-                'As respostas não comprovam conformidade e não encerram '
-                'não conformidades. Não inclua nomes ou dados de saúde. '
-                'É necessária internet para enviar; não há rascunho offline.',
-                style:TextStyle(fontSize:12)),
+              Text(widget.offlineDraftMode?
+                'Sem internet: suas respostas e fotos ficam guardadas '
+                'somente neste aparelho. Use Guardar e sair. '
+                'O envio será feito quando entrar com internet.':
+                'A equipe técnica receberá o relato. As respostas não '
+                'comprovam conformidade e não encerram ações. '
+                'Não inclua nomes nem dados de saúde.',
+                style:const TextStyle(fontSize:12)),
             ],
             if(widget.draftStore!=null)
               Text(restoring?'Recuperando rascunho protegido...':saveStatus,
@@ -567,7 +571,7 @@ class _CipaGuidedInspectionDialogState
             (step>=1&&answers[step-1]==null)?null:_next,
           child:Text(step==0?'Começar':step==3?
             'Conferir respostas':'Próxima')),
-        if(step==4)FilledButton.icon(
+        if(step==4&&!widget.offlineDraftMode)FilledButton.icon(
           onPressed:sending||answers.any((a)=>a==null)?null:_send,
           icon:const Icon(Icons.send_outlined),
           label:Text(sending?'Enviando...':'Enviar para análise')),

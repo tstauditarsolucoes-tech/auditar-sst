@@ -105,7 +105,10 @@ void main() {
       sessionVerified:true,view:view(),
     )));
     await tester.scrollUntilVisible(
-      find.text('Como funciona a minha participação'),130);
+      find.text('Como funciona a minha participação'),160);
+    await tester.ensureVisible(
+      find.text('Como funciona a minha participação'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Como funciona a minha participação'));
     await tester.pumpAndSettle();
     expect(find.text('Recebi um aviso de reunião'),findsOneWidget);
@@ -161,8 +164,6 @@ void main() {
       findsOneWidget);
     final readButton=find.widgetWithText(OutlinedButton,'Li a orientação');
     await tester.scrollUntilVisible(readButton,180);
-    await tester.drag(find.byType(ListView).first,const Offset(0,-170));
-    await tester.pumpAndSettle();
     await tester.ensureVisible(readButton);
     await tester.pumpAndSettle();
     await tester.tap(readButton);
@@ -193,8 +194,6 @@ void main() {
       onObserveScheduled:(_,__,___)async{})));
     final startButton=find.widgetWithText(OutlinedButton,'Iniciar esta vistoria');
     await tester.scrollUntilVisible(startButton,180);
-    await tester.drag(find.byType(ListView).first,const Offset(0,-170));
-    await tester.pumpAndSettle();
     await tester.ensureVisible(startButton);
     await tester.pumpAndSettle();
     await tester.tap(startButton);

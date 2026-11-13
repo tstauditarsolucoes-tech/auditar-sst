@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -7,6 +8,8 @@ import 'screens/cipa_member_portal_screen.dart';
 import 'services/cipa_member_api.dart';
 import 'services/cipa_member_draft_store.dart';
 import 'services/cipa_member_portal_policy.dart';
+import 'services/cipa_member_offline_cache.dart';
+import 'services/cipa_member_pending_sync.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,13 +42,25 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
     'AUDITAR_MEMBER_ENDPOINT',defaultValue:'');
   late final CipaMemberApi api=CipaMemberApi(
     endpoint:endpoint,onSessionRevoked:(){
-      final person=view;
+      final person=view??lastOnlineView;
       if(person!=null){
         _draftStoreFor(person).clearAllForMember().catchError((_) {});
       }
-      if(mounted)setState(()=>view=null);
+      final address=onlineEmail;
+      if(address!=null)offlineCache.clear(address).catchError((_) {});
+      if(mounted)setState((){
+        view=null;offlineUnlocked=false;lastOnlineView=null;
+      });
     });
-  final email=TextEditingController(),code=TextEditingController();
+  final email=TextEditingController(),code=TextEditingController(),
+    offlinePin=TextEditingController();
+  final CipaMemberOfflineCache offlineCache=CipaMemberOfflineCache();
+  final CipaMemberPendingSync pendingSync=CipaMemberPendingSync();
+  String? onlineEmail;
+  CipaMemberView? lastOnlineView;
+  DateTime? lastSync;
+  bool offlineUnlocked=false;
+  int pendingDraftCount=0;
   bool busy=false,requested=false;
   String message='',error='';
   CipaMemberView? view;
@@ -60,7 +75,9 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
     if(state==AppLifecycleState.inactive||
        state==AppLifecycleState.hidden||
        state==AppLifecycleState.paused) {
-      if(mounted)setState(()=>view=null); // Dados não ficam visíveis em segundo plano.
+      if(mounted)setState((){
+        view=null;offlineUnlocked=false;
+      }); // Bloquear tela e exigir novo desbloqueio após retorno.
     } else if(state==AppLifecycleState.resumed&&api.hasSession) {
       _refresh();
     }
@@ -68,7 +85,8 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    email.dispose();code.dispose();api.dispose();super.dispose();
+    email.dispose();code.dispose();offlinePin.dispose();
+    api.dispose();super.dispose();
   }
   Future<void> _run(Future<void> Function() work) async {
     if(busy)return;
@@ -141,7 +159,14 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
       await api.verifyCode(email.text,code.text);
       final current=await api.dashboard();
       if(mounted){
-        setState((){view=current;code.clear();});
+        final address=email.text.trim();
+        setState((){
+          view=current;lastOnlineView=current;onlineEmail=address;
+          offlineUnlocked=false;lastSync=DateTime.now();
+          code.clear();offlinePin.clear();
+        });
+        try{await offlineCache.updateFromServer(address,current);}catch(_){}
+        await _loadDraftCount(current);
         await _showWelcomeOnce(current);
       }
     });
@@ -153,7 +178,17 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
     }
     try {
       final current=await api.dashboard();
-      if(mounted)setState(()=>view=current);
+      if(mounted){
+        setState((){
+          view=current;lastOnlineView=current;offlineUnlocked=false;
+          lastSync=DateTime.now();
+        });
+        final address=onlineEmail;
+        if(address!=null){
+          try{await offlineCache.updateFromServer(address,current);}catch(_){}
+        }
+        await _loadDraftCount(current);
+      }
     } catch (_) {
       if(mounted)setState(()=>view=null);
       rethrow;
@@ -167,15 +202,170 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
   }
 
   Future<void> _logout() async {
-    final current=view;
+    final localView=view??lastOnlineView;
+    var count=pendingDraftCount;
+    if(localView!=null){
+      try {count=await pendingSync.count(localView);}
+      catch (_) {count=-1;} // Falha de leitura exige confirmação explícita.
+    }
+    if(count!=0 && mounted){
+      final confirmed=await showDialog<bool>(context:context,
+        builder:(dialog)=>AlertDialog(
+          title:const Text('Sair e apagar dados locais?'),
+          content:Text(count<0?
+            'Não foi possível conferir os rascunhos protegidos. '
+            'Sair pode apagar registros ainda não enviados. '
+            'Para mantê-los, toque em Voltar.':
+            'Existem '+count.toString()+
+            ' rascunhos ainda no aparelho. Sair da conta apaga '
+            'esses rascunhos e o acesso offline. Para manter, '
+            'toque em Voltar.'),
+          actions:[
+            TextButton(onPressed:()=>Navigator.pop(dialog,false),
+              child:const Text('Voltar')),
+            FilledButton(onPressed:()=>Navigator.pop(dialog,true),
+              child:const Text('Sair e apagar')),
+          ],
+        ));
+      if(confirmed!=true)return;
+    }
+    final current=view??lastOnlineView;
+    final address=onlineEmail;
     if(current!=null){
       try {await _draftStoreFor(current).clearAllForMember();}
       catch (_) {/* Não impedir a saída nem expor conteúdo criptografado. */}
     }
+    if(address!=null){
+      try{await offlineCache.clear(address);}catch(_){}
+    }
     await api.logout();
     if(mounted)setState((){
-      view=null;code.clear();requested=false;message='';error='';
+      view=null;lastOnlineView=null;onlineEmail=null;
+      offlineUnlocked=false;lastSync=null;pendingDraftCount=0;
+      code.clear();offlinePin.clear();requested=false;message='';error='';
     });
+  }
+
+  Future<void> _loadDraftCount(CipaMemberView current) async {
+    try {
+      final n=await pendingSync.count(current);
+      if(mounted && view?.profile.userId==current.profile.userId &&
+         view?.profile.mandateId==current.profile.mandateId)
+        setState(()=>pendingDraftCount=n);
+    }catch(_){
+      if(mounted)setState(()=>pendingDraftCount=0);
+    }
+  }
+
+  Future<void> _enableOffline() async {
+    final current=view,address=onlineEmail;
+    if(current==null||address==null||!api.hasSession)
+      throw StateError('Entre com seu código por e-mail primeiro.');
+    final pin=TextEditingController(),repeat=TextEditingController();
+    String? chosen;
+    try {
+      chosen=await showDialog<String>(context:context,builder:(dialog)=>
+        StatefulBuilder(builder:(context,update)=>AlertDialog(
+          title:const Text('Ativar uso offline neste aparelho'),
+          content:SingleChildScrollView(child:Column(
+            mainAxisSize:MainAxisSize.min,children:[
+            const Text('Escolha um PIN de seis números. Só este PIN '
+              'abrirá os dados salvos depois de você entrar com '
+              'internet ao menos uma vez. Os dados vencem em 24 horas.'),
+            const SizedBox(height:12),
+            TextField(controller:pin,obscureText:true,
+              keyboardType:TextInputType.number,maxLength:6,
+              onChanged:(_)=>update((){}),
+              decoration:const InputDecoration(labelText:'Meu PIN offline')),
+            TextField(controller:repeat,obscureText:true,
+              keyboardType:TextInputType.number,maxLength:6,
+              onChanged:(_)=>update((){}),
+              decoration:const InputDecoration(labelText:'Repetir PIN')),
+          ])),
+          actions:[
+            TextButton(onPressed:()=>Navigator.pop(dialog),
+              child:const Text('Cancelar')),
+            FilledButton(onPressed:pin.text.length==6&&
+                pin.text==repeat.text?()=>Navigator.pop(dialog,pin.text):null,
+              child:const Text('Ativar offline')),
+          ],
+        )));
+    }finally{
+      pin.dispose();repeat.dispose();
+    }
+    if(chosen==null||!mounted)return;
+    // Ativação só com autorização ainda válida neste instante.
+    final fresh=await api.dashboard();
+    if(fresh.profile.userId!=current.profile.userId||
+       fresh.profile.companyId!=current.profile.companyId||
+       fresh.profile.mandateId!=current.profile.mandateId||
+       fresh.profile.memberId!=current.profile.memberId)
+      throw StateError('Vínculo mudou; entre novamente.');
+    await offlineCache.enroll(address,chosen,fresh);
+    if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content:Text('Uso offline ativado neste aparelho. '
+        'Guarde seu PIN. Validade da consulta: 24 horas.')));
+  }
+
+  Future<void> _openOffline() async {
+    final address=email.text.trim(),pin=offlinePin.text.trim();
+    if(!CipaMemberOfflineCache.validEmail(address)||
+       !CipaMemberOfflineCache.validPin(pin)){
+      setState(()=>error='Informe o e-mail cadastrado e seu PIN offline '
+        'de seis números.');
+      return;
+    }
+    await _run(()async {
+      final snapshot=await offlineCache.unlock(address,pin);
+      if(!mounted)return;
+      setState((){
+        view=snapshot.view;offlineUnlocked=true;
+        lastSync=snapshot.syncedAt;
+        offlinePin.clear();error='';
+      });
+      await _loadDraftCount(snapshot.view);
+    });
+  }
+
+  Future<void> _closeOffline() async {
+    if(mounted)setState((){
+      view=null;offlineUnlocked=false;pendingDraftCount=0;
+      offlinePin.clear();
+    });
+  }
+
+  Future<void> _sendStoredDraft({
+    String? scheduleId,required String place,required String note,
+    required List<Uint8List> photos,required String requestId,
+  }) async {
+    if(!api.hasSession)throw StateError('Entre novamente com internet');
+    if(scheduleId!=null){
+      await api.observeScheduledDraft(scheduleId,place,note,photos,requestId);
+    }else{
+      await api.observeDraft(place,note,photos,requestId);
+    }
+  }
+
+  Future<void> _syncPending() async {
+    final person=view;
+    if(person==null||!api.hasSession||offlineUnlocked)
+      throw StateError('Entre com internet para enviar registros.');
+    // Conferir mandato de novo antes de tocar nos registros locais.
+    final fresh=await api.dashboard();
+    if(fresh.profile.userId!=person.profile.userId||
+       fresh.profile.companyId!=person.profile.companyId||
+       fresh.profile.mandateId!=person.profile.mandateId||
+       fresh.profile.memberId!=person.profile.memberId)
+      throw StateError('Mandato mudou. Não envie rascunhos antigos.');
+    final report=await pendingSync.sync(fresh,_sendStoredDraft);
+    if(mounted){
+      await _loadDraftCount(fresh);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content:Text('Confirmados pela Central: '+report.sent.toString()+
+          '. Pendentes/incompletos: '+report.remaining.toString()+
+          '. Falhas: '+report.failed.toString()+'.'),
+      ));
+    }
   }
 
   @override
@@ -184,19 +374,27 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
     if(person!=null) {
       return CipaMemberPortalScreen(
         companyName:person.companyLabel,mandateLabel:person.mandateLabel,
-        view:person,sessionVerified:api.hasSession,
-        onRefresh:_refresh,onLogout:_logout,
-        onAcknowledgeMeeting:api.acknowledge,
-        onReportProgress:api.progress,
-        onRequestSupport:api.support,
-        onObserve:api.observe,
-        onObserveWithPhotos:api.observeWithPhotos,
-        onObserveDraft:api.observeDraft,
-        onObserveScheduled:api.observeScheduled,
-        onObserveScheduledWithPhotos:api.observeScheduledWithPhotos,
-        onObserveScheduledDraft:api.observeScheduledDraft,
-        onViewPhotos:api.photosForObservation,
-        onAcknowledgeFeedback:api.acknowledgeFeedback,
+        view:person,sessionVerified:api.hasSession||offlineUnlocked,
+        offlineMode:offlineUnlocked,pendingDraftCount:pendingDraftCount,
+        lastSync:lastSync,
+        onRefresh:offlineUnlocked?null:_refresh,
+        onLogout:offlineUnlocked?_closeOffline:_logout,
+        onEnableOffline:offlineUnlocked?null:_enableOffline,
+        onSyncPending:offlineUnlocked?null:_syncPending,
+        onDraftSaved:()=>_loadDraftCount(person),
+        onAcknowledgeMeeting:offlineUnlocked?null:api.acknowledge,
+        onReportProgress:offlineUnlocked?null:api.progress,
+        onRequestSupport:offlineUnlocked?null:api.support,
+        onObserve:offlineUnlocked?null:api.observe,
+        onObserveWithPhotos:offlineUnlocked?null:api.observeWithPhotos,
+        onObserveDraft:offlineUnlocked?null:api.observeDraft,
+        onObserveScheduled:offlineUnlocked?null:api.observeScheduled,
+        onObserveScheduledWithPhotos:
+          offlineUnlocked?null:api.observeScheduledWithPhotos,
+        onObserveScheduledDraft:
+          offlineUnlocked?null:api.observeScheduledDraft,
+        onViewPhotos:offlineUnlocked?null:api.photosForObservation,
+        onAcknowledgeFeedback:offlineUnlocked?null:api.acknowledgeFeedback,
       );
     }
     return Scaffold(
@@ -265,9 +463,28 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
                       requested=false;code.clear();message='';error='';
                     }),child:const Text('Trocar e-mail')),
                   const SizedBox(height:10),
-                  const Text('Este acesso não utiliza o login '
-                    'de técnico/administrador e não tem sincronização '
-                    'completa nem acesso offline.',
+                  if(!requested)...[
+                    const Divider(height:28),
+                    const Text('Sem internet?',
+                      style:TextStyle(fontWeight:FontWeight.w700,fontSize:18)),
+                    const Text('Se já ativou o modo offline neste aparelho, '
+                      'use o seu e-mail e PIN de seis números.'),
+                    const SizedBox(height:10),
+                    TextField(controller:offlinePin,obscureText:true,
+                      enabled:!busy,maxLength:6,
+                      keyboardType:TextInputType.number,
+                      decoration:const InputDecoration(
+                        labelText:'Meu PIN offline',
+                        prefixIcon:Icon(Icons.offline_bolt_outlined))),
+                    OutlinedButton.icon(
+                      onPressed:busy?null:_openOffline,
+                      icon:const Icon(Icons.lock_open_outlined),
+                      label:const Text('Abrir dados salvos offline')),
+                  ],
+                  const SizedBox(height:10),
+                  const Text('Aplicativo exclusivo dos integrantes: '
+                    'sem login de técnico ou sincronização geral da base '
+                    'do Auditar SST. O primeiro acesso exige internet.',
                     textAlign:TextAlign.center,
                     style:TextStyle(fontSize:12)),
                 ],

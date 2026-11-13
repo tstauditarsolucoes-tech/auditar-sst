@@ -18,10 +18,15 @@ class CipaMemberPortalScreen extends StatefulWidget {
     this.onObserveScheduled, this.onAcknowledgeFeedback,
     this.onObserveWithPhotos,this.onObserveScheduledWithPhotos,
     this.onViewPhotos,this.onObserveDraft,this.onObserveScheduledDraft,
+    this.offlineMode=false,this.pendingDraftCount=0,
+    this.onEnableOffline,this.onSyncPending,this.onDraftSaved,this.lastSync,
   });
   final String companyName,mandateLabel;
   final CipaMemberView? view;
-  final bool sessionVerified;
+  final bool sessionVerified,offlineMode;
+  final int pendingDraftCount;
+  final DateTime? lastSync;
+  final Future<void> Function()? onEnableOffline,onSyncPending,onDraftSaved;
   final Future<void> Function()? onRefresh,onLogout;
   final Future<void> Function(String id)? onAcknowledgeMeeting;
   final Future<void> Function(String id,String note)? onReportProgress,onRequestSupport;
@@ -159,11 +164,11 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
   Future<void> _guidedInspection({String? initialCategory,
       String? initialPlace,String? scheduleId}) async {
     if(!widget.sessionVerified || busy ||
-      (scheduleId==null?widget.onObserve==null:
-        widget.onObserveScheduled==null))return;
+      (!widget.offlineMode && (scheduleId==null?widget.onObserve==null:
+        widget.onObserveScheduled==null)))return;
     final profile=widget.view!.profile;
-    final canPersist=scheduleId==null?
-      widget.onObserveDraft!=null:widget.onObserveScheduledDraft!=null;
+    final canPersist=widget.offlineMode||(scheduleId==null?
+      widget.onObserveDraft!=null:widget.onObserveScheduledDraft!=null);
     final store=canPersist?CipaMemberDraftStore(
       accountId:profile.userId,companyId:profile.companyId,
       mandateId:profile.mandateId,memberId:profile.memberId,
@@ -173,8 +178,9 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
       barrierDismissible:false,
       builder:(_)=>CipaGuidedInspectionDialog(
         initialCategory:initialCategory,initialPlace:initialPlace,
-        draftStore:store,
-        onSubmitDraft:store==null?null:(place,note,photos,requestId) async {
+        draftStore:store,offlineDraftMode:widget.offlineMode,
+        onSubmitDraft:store==null||widget.offlineMode?null:
+          (place,note,photos,requestId) async {
           if(!widget.sessionVerified)throw StateError('Sessão inválida');
           if(scheduleId==null){
             final send=widget.onObserveDraft;
@@ -221,6 +227,9 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
         },
       ),
     );
+    if(widget.onDraftSaved!=null){
+      try {await widget.onDraftSaved!();}catch(_){}
+    }
     if(submitted!=true || !mounted)return;
     if(widget.onRefresh!=null) {
       try {
@@ -401,17 +410,53 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
           icon:Icon(easyMode?Icons.text_decrease:Icons.text_increase)),
         IconButton(onPressed:_showTutorial,tooltip:'Como usar',
           icon:const Icon(Icons.help_outline)),
-        if(widget.onRefresh!=null)IconButton(
+        if(!widget.offlineMode&&widget.onRefresh!=null)IconButton(
           onPressed:busy?null:()=>_submit(widget.onRefresh!),
           tooltip:'Atualizar',icon:const Icon(Icons.refresh)),
         if(widget.onLogout!=null)IconButton(
           onPressed:busy?null:()=>_submit(widget.onLogout!),
-          tooltip:'Sair da conta',icon:const Icon(Icons.logout)),
+          tooltip:widget.offlineMode?'Fechar dados salvos':'Sair da conta',
+          icon:const Icon(Icons.logout)),
       ]),
       body:SafeArea(child:ListView(
         padding:const EdgeInsets.fromLTRB(12,12,12,64),children:[
         CipaMemberAccessHeader(profile:profile,
           companyName:widget.companyName,mandateLabel:widget.mandateLabel),
+        Card(child:Padding(padding:const EdgeInsets.all(12),
+          child:Column(
+            crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+              Row(children:[
+                Icon(widget.offlineMode?Icons.wifi_off:Icons.cloud_done_outlined),
+                const SizedBox(width:8),
+                Expanded(child:Text(widget.offlineMode?
+                  'Offline: informações protegidas neste aparelho':
+                  'Última consulta confirmada pela Central',
+                  style:const TextStyle(fontWeight:FontWeight.w700))),
+              ]),
+              if(widget.lastSync!=null)
+                Text('Última atualização: '+
+                  widget.lastSync!.toLocal().toString().substring(0,16)),
+              if(widget.offlineMode)
+                const Text('Você pode consultar informações salvas e '
+                  'preencher vistorias. Para enviar, entre com internet. '
+                  'As informações podem ter mudado na Central.'),
+              if(widget.pendingDraftCount>0)
+                Text('Rascunhos no aparelho: '+
+                  widget.pendingDraftCount.toString()+
+                  '. Ainda não foram confirmados pela Central.'),
+              if(widget.onEnableOffline!=null&&!widget.offlineMode)
+                OutlinedButton.icon(
+                  onPressed:busy?null:()=>_submit(widget.onEnableOffline!),
+                  icon:const Icon(Icons.offline_bolt_outlined),
+                  label:const Text('Ativar acesso offline com PIN')),
+              if(widget.onSyncPending!=null&&!widget.offlineMode&&
+                 widget.pendingDraftCount>0)
+                FilledButton.icon(
+                  onPressed:busy?null:()=>_submit(widget.onSyncPending!),
+                  icon:const Icon(Icons.sync),
+                  label:const Text('Enviar vistorias salvas')),
+            ],
+          ))),
         if(alerts.isNotEmpty)Card(child:Padding(
           padding:const EdgeInsets.all(12),
           child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
@@ -444,7 +489,7 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
               'São somente 3 perguntas por setor.',
               style:TextStyle(fontSize:16)),
             const SizedBox(height:14),
-            if(widget.onObserve!=null)...[
+            if(widget.onObserve!=null||widget.offlineMode)...[
               _largeAction(
                 title:'Fazer vistoria',
                 icon:Icons.assignment_outlined,
@@ -520,8 +565,8 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
           child:_section('Vistorias programadas',Icons.calendar_month_outlined,
           view.scheduledInspections,
           empty:'Nenhuma vistoria programada para você.',
-          actions:(item)=>widget.onObserveScheduled==null||
-            item.status!='Programada'?
+          actions:(item)=>(widget.onObserveScheduled==null&&
+            !widget.offlineMode)||item.status!='Programada'?
             const SizedBox.shrink():
             SizedBox(width:double.infinity,child:OutlinedButton.icon(
               onPressed:busy?null:()=>_guidedInspection(
@@ -538,7 +583,7 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
           Icons.fact_check_outlined,inspections,
           empty:'Nenhuma vistoria orientada disponível nesta consulta.',
           actions:(item)=>Wrap(spacing:8,runSpacing:8,children:[
-            if(widget.onViewPhotos!=null)
+            if(widget.onViewPhotos!=null&&!widget.offlineMode)
               OutlinedButton.icon(onPressed:busy?null:()=>_viewPhotos(item),
                 icon:const Icon(Icons.photo_outlined),
                 label:const Text('Ver fotos')),
