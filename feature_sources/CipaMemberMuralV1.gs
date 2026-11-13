@@ -154,6 +154,7 @@ function cipaMuralMemberList_(request) {
     return {id:p.id,place:p.place,detail:p.detail,
       createdAt:p.createdAt,status:p.status,
       visibility:p.visibility,hasPhoto:!!p.fileId,isMine:own,
+      ...cipaMuralAfterMetadata_(p,a,false),
       comments:comments.filter(function(c) {
         return c.postId===p.id&&(c.visibility==='Aprovado'||
           (c.memberId===a.memberId&&c.authorKind==='member'));
@@ -197,6 +198,7 @@ function cipaMuralModeratorList_(request) {
   return {ok:true,posts:posts.map(function(p) {
     return {id:p.id,place:p.place,detail:p.detail,status:p.status,
       visibility:p.visibility,hasPhoto:!!p.fileId,
+      ...cipaMuralAfterMetadata_(p,null,true),
       createdAt:p.createdAt,comments:comments
         .filter(function(c){return c.postId===p.id;})
         .slice(-25).map(function(c){

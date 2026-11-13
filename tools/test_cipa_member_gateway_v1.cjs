@@ -155,6 +155,15 @@ vm.runInContext(fs.readFileSync(path.join(
 vm.runInContext(fs.readFileSync(path.join(
   root,'feature_sources/CipaMemberMuralV1.gs'),'utf8'),
   scope,{filename:'CipaMemberMuralV1.gs'});
+vm.runInContext(fs.readFileSync(path.join(
+  root,'feature_sources/CipaMemberAvatarV1.gs'),'utf8'),
+  scope,{filename:'CipaMemberAvatarV1.gs'});
+vm.runInContext(fs.readFileSync(path.join(
+  root,'feature_sources/CipaMemberMinutesV1.gs'),'utf8'),
+  scope,{filename:'CipaMemberMinutesV1.gs'});
+vm.runInContext(fs.readFileSync(path.join(
+  root,'feature_sources/CipaMemberMuralAfterV1.gs'),'utf8'),
+  scope,{filename:'CipaMemberMuralAfterV1.gs'});
 const invoke=(action,fields={})=>JSON.parse(JSON.stringify(
   scope.cipaMemV1Route_({action,...fields})));
 
@@ -841,6 +850,136 @@ assert(!invoke('cipa_mural_list',{
 assert.strictEqual(invoke('cipa_mural_comment',{
   ...comment,requestId:'mural-comment-1234567890123456780'
 }).code,'NOT_FOUND','Sem comentários em post ocultado');
+
+
+// Foto do perfil: própria sessão, no mesmo mandato, sem link público.
+assert.strictEqual(invoke('cipa_member_avatar_get',{
+  sessionToken:login.sessionToken,
+}).hasPhoto,false);
+assert.strictEqual(invoke('cipa_member_avatar_save',{
+  sessionToken:'sem-sessao',jpegBase64:jpg,
+}).code,'ACCESS_DENIED');
+assert(invoke('cipa_member_avatar_save',{
+  sessionToken:login.sessionToken,jpegBase64:jpg,
+}).ok);
+assert.strictEqual(invoke('cipa_member_avatar_get',{
+  sessionToken:login.sessionToken,
+}).jpegBase64,jpg);
+assert.strictEqual(invoke('cipa_member_avatar_get',{
+  sessionToken:otherLogin.sessionToken,
+}).hasPhoto,false,'Avatar não pertence ao outro integrante');
+assert.strictEqual(invoke('cipa_member_admin_avatar_save',{
+  authToken:'valid-admin',companyId:'company-B',mandateId:'mandate-B',
+  memberId:'member-A',jpegBase64:jpg,
+}).code,'ACCESS_DENIED','Admin não troca foto fora do vínculo');
+assert(invoke('cipa_member_avatar_delete',{
+  sessionToken:login.sessionToken,
+}).ok);
+assert.strictEqual(invoke('cipa_member_avatar_get',{
+  sessionToken:login.sessionToken,
+}).hasPhoto,false);
+
+// Fotos antes/depois: novo arquivo privado exige aprovação separada.
+const afterPost='mural-post-photo-1234567890123456';
+assert.strictEqual(invoke('cipa_mural_after_upload',{
+  sessionToken:otherLogin.sessionToken,postId:afterPost,jpegBase64:jpg,
+}).code,'NOT_FOUND','Colega não envia foto depois na ocorrência alheia');
+assert(invoke('cipa_mural_after_upload',{
+  sessionToken:login.sessionToken,postId:afterPost,jpegBase64:jpg,
+}).ok);
+assert.strictEqual(invoke('cipa_mural_after_upload',{
+  sessionToken:login.sessionToken,postId:afterPost,jpegBase64:jpg,
+}).duplicate,true,'Mesmo conteúdo é idempotente');
+assert.strictEqual(invoke('cipa_mural_after_photo',{
+  sessionToken:otherLogin.sessionToken,postId:afterPost,
+}).code,'NOT_FOUND','Foto posterior pendente fica oculta');
+assert.strictEqual(invoke('cipa_mural_after_photo',{
+  sessionToken:login.sessionToken,postId:afterPost,
+}).jpegBase64,jpg,'Autor vê sua foto posterior pendente');
+assert.strictEqual(invoke('cipa_mural_list',{
+  sessionToken:otherLogin.sessionToken,
+}).posts.find(x=>x.id===afterPost).hasAfter,false);
+assert(invoke('cipa_mural_after_moderate',{
+  authToken:'valid-admin',companyId:'company-A',mandateId:'mandate-A',
+  postId:afterPost,visibility:'Aprovado',
+}).ok);
+assert.strictEqual(invoke('cipa_mural_after_photo',{
+  sessionToken:otherLogin.sessionToken,postId:afterPost,
+}).jpegBase64,jpg,'Foto posterior só é compartilhada depois da revisão');
+assert.strictEqual(invoke('cipa_mural_list',{
+  sessionToken:otherLogin.sessionToken,
+}).posts.find(x=>x.id===afterPost).afterStatus,'Aprovado');
+assert.strictEqual(invoke('cipa_mural_list',{
+  sessionToken:otherLogin.sessionToken,
+}).posts.find(x=>x.id===afterPost).status,'Em análise',
+  'Aprovar foto posterior não encerra ocorrência');
+assert.strictEqual(invoke('cipa_mural_after_moderate',{
+  authToken:'valid-admin',companyId:'company-B',mandateId:'mandate-B',
+  postId:afterPost,visibility:'Não publicado',
+}).code,'NOT_FOUND','Sem moderação da foto em outro mandato');
+
+// Minutas: só reuniões autorizadas, sem presença ou assinatura automática.
+const minutesText='RASCUNHO EDUCATIVO — NÃO É ATA OFICIAL\n'+
+  'Reunião com pauta, secretário e decisões relatadas pelo integrante. '+
+  'Confirmação e assinatura precisam ser providenciadas pela comissão. '.repeat(3);
+const minutesInput={
+  sessionToken:login.sessionToken,meetingId:'meeting-A',
+  requestId:'cipa-minutes-draft-123456789012345',
+  content:minutesText,
+};
+assert.strictEqual(invoke('cipa_minutes_submit',{
+  ...minutesInput,meetingId:'meeting-B',
+}).code,'MEETING_NOT_ALLOWED','Outro mandato não recebe minuta');
+assert.strictEqual(invoke('cipa_minutes_submit',{
+  ...minutesInput,sessionToken:otherLogin.sessionToken,
+}).code,'MEETING_NOT_ALLOWED','Outra pessoa sem convocação não envia minuta');
+assert(invoke('cipa_minutes_submit',minutesInput).ok);
+assert.strictEqual(invoke('cipa_minutes_submit',minutesInput).duplicate,true);
+assert.strictEqual(invoke('cipa_minutes_submit',{
+  ...minutesInput,content:minutesText+' adulterado',
+}).code,'ID_REUSED');
+assert.strictEqual(invoke('cipa_minutes_list',{
+  sessionToken:otherLogin.sessionToken,
+}).minutes.length,0,'Minuta não aparece a colega');
+assert.strictEqual(invoke('cipa_minutes_review',{
+  authToken:login.sessionToken,companyId:'company-A',
+  mandateId:'mandate-A',minuteId:minutesInput.requestId,
+  status:'Pronta para formalização',
+}).code,'ACCESS_DENIED','Cipeiro não assina nem revisa minuta');
+assert.strictEqual(invoke('cipa_minutes_staff_list',{
+  authToken:'valid-admin',companyId:'company-B',
+  mandateId:'mandate-B',
+}).minutes.length,0,'ADM não lista minuta de empresa diferente');
+assert.strictEqual(invoke('cipa_minutes_staff_list',{
+  authToken:'valid-admin',companyId:'company-A',mandateId:'mandate-A',
+}).minutes[0].status,'Recebida');
+assert.strictEqual(invoke('cipa_minutes_review',{
+  authToken:'valid-admin',companyId:'company-A',mandateId:'mandate-A',
+  minuteId:minutesInput.requestId,status:'Devolvida',note:'curto',
+}).code,'INVALID_INPUT','Devolução exige explicação');
+assert(invoke('cipa_minutes_review',{
+  authToken:'valid-admin',companyId:'company-A',mandateId:'mandate-A',
+  minuteId:minutesInput.requestId,status:'Devolvida',
+  note:'Rever relato e confirmar a lista real de presentes.',
+}).ok);
+assert.strictEqual(invoke('cipa_minutes_list',{
+  sessionToken:login.sessionToken,
+}).minutes[0].status,'Devolvida');
+assert(invoke('cipa_minutes_review',{
+  authToken:'valid-admin',companyId:'company-A',mandateId:'mandate-A',
+  minuteId:minutesInput.requestId,status:'Pronta para formalização',
+  note:'Conferir e providenciar assinaturas reais.',
+}).ok);
+assert.strictEqual(invoke('cipa_minutes_list',{
+  sessionToken:login.sessionToken,
+}).minutes[0].status,'Pronta para formalização');
+assert.strictEqual(invoke('cipa_minutes_review',{
+  authToken:'valid-admin',companyId:'company-A',mandateId:'mandate-A',
+  minuteId:minutesInput.requestId,status:'Assinada',note:'',
+}).code,'INVALID_INPUT','Sistema não permite certificar ata assinada');
+assert(!JSON.stringify(invoke('cipa_mural_list',{
+  sessionToken:otherLogin.sessionToken,
+})).includes(minutesText),'Minutas privadas não vazam no mural');
 
 const revoke=invoke('cipa_member_admin_revoke',{
  authToken:'valid-admin',accountId:grant.id,

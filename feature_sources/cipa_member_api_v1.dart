@@ -55,13 +55,91 @@ class CipaMemberApi {
     return result;
   }
 
+
+
+
+  Future<void> submitAfterPhoto(String postId,Uint8List jpeg) async {
+    if(_token==null)throw StateError('Entre para registrar a foto posterior.');
+    if(!RegExp(r'^[A-Za-z0-9_-]{16,120}$').hasMatch(postId)||
+       !CipaMuralCodec.validPhoto(jpeg))
+      throw StateError('Imagem posterior inválida.');
+    await _call('cipa_mural_after_upload',{
+      'sessionToken':_token,'postId':postId,
+      'jpegBase64':base64Encode(jpeg),
+    });
+  }
+  Future<Uint8List?> afterPhoto(String postId) async {
+    if(_token==null)throw StateError('Entre para consultar a foto posterior.');
+    if(!RegExp(r'^[A-Za-z0-9_-]{16,120}$').hasMatch(postId))
+      throw StateError('Ocorrência não identificada.');
+    final reply=await _call('cipa_mural_after_photo',{
+      'sessionToken':_token,'postId':postId,
+    });
+    if(reply['hasPhoto']!=true)return null;
+    final encoded=(reply['jpegBase64']??'').toString();
+    if(encoded.length>340000)throw StateError('Imagem acima do limite.');
+    final bytes=Uint8List.fromList(base64Decode(encoded));
+    if(!CipaMuralCodec.validPhoto(bytes))
+      throw StateError('Imagem posterior inválida.');
+    return bytes;
+  }
+
+  Future<void> submitMinutes(String meetingId,String content) async {
+    if(_token==null)throw StateError('Entre para enviar sua minuta.');
+    if(!RegExp(r'^[A-Za-z0-9_-]{3,150}$').hasMatch(meetingId)||
+      content.length<130||content.length>5000||
+      !content.startsWith('RASCUNHO EDUCATIVO'))
+      throw StateError('Minuta inválida ou sem vínculo de reunião.');
+    final key='minuta|'+meetingId+'|'+content;
+    await _call('cipa_minutes_submit',{
+      'sessionToken':_token,'meetingId':meetingId,
+      'content':content,'requestId':_id(key),
+    });
+    _pendingIds.remove(key);
+  }
+
+  Future<List<Map<String,dynamic>>> myMinutes() async {
+    if(_token==null)throw StateError('Entre para consultar suas minutas.');
+    final reply=await _call('cipa_minutes_list',{'sessionToken':_token});
+    final items=reply['minutes'];
+    if(items is! List)return const [];
+    return items.whereType<Map>()
+      .map((r)=>Map<String,dynamic>.from(r)).take(50).toList();
+  }
+
+  Future<Uint8List?> loadAvatar() async {
+    if(_token==null)throw StateError('Entre para visualizar o perfil.');
+    final reply=await _call('cipa_member_avatar_get',{'sessionToken':_token});
+    if(reply['hasPhoto']!=true)return null;
+    final encoded=(reply['jpegBase64']??'').toString();
+    if(encoded.length>210000)throw StateError('Foto acima do limite.');
+    final bytes=Uint8List.fromList(base64Decode(encoded));
+    if(bytes.length<8||bytes.length>150000||bytes[0]!=255||
+      bytes[1]!=216||bytes[2]!=255||bytes[bytes.length-2]!=255||
+      bytes.last!=217)throw StateError('Foto inválida.');
+    return bytes;
+  }
+  Future<void> saveAvatar(Uint8List jpeg) async {
+    if(_token==null)throw StateError('Entre para alterar seu perfil.');
+    if(jpeg.length<8||jpeg.length>150000||jpeg[0]!=255||
+      jpeg[1]!=216||jpeg[2]!=255||jpeg[jpeg.length-2]!=255||
+      jpeg.last!=217)throw StateError('Foto inválida.');
+    await _call('cipa_member_avatar_save',{
+      'sessionToken':_token,'jpegBase64':base64Encode(jpeg)});
+  }
+  Future<void> deleteAvatar() async {
+    if(_token==null)throw StateError('Entre para remover sua foto.');
+    await _call('cipa_member_avatar_delete',{'sessionToken':_token});
+  }
+
   Future<List<CipaMuralPost>> mural() async {
     if(_token==null)throw StateError('Entre para visualizar o mural.');
     final result=await _call('cipa_mural_list',{'sessionToken':_token});
     return CipaMuralCodec.parsePosts(result['posts']);
   }
 
-  Future<void> muralCreate(String place,String detail,Uint8List? photo) async {
+  Future<void> muralCreate(String place,String detail,Uint8List? photo,
+      {String? durableRequestId}) async {
     if(_token==null)throw StateError('Entre para registrar no mural.');
     final local=place.trim(),note=detail.trim();
     if(local.length<2||local.length>120||note.length<12||note.length>900)
@@ -70,7 +148,10 @@ class CipaMemberApi {
       throw StateError('Foto não permitida. Escolha outra.');
     final key='mural-post|'+local+'|'+note+'|'+
       (photo==null?'sem-foto':base64Encode(photo));
-    final id=_id(key);
+    if(durableRequestId!=null&&
+      !RegExp(r'^[A-Za-z0-9_-]{16,120}$').hasMatch(durableRequestId))
+      throw StateError('Identificador de rascunho inválido.');
+    final id=durableRequestId??_id(key);
     await _call('cipa_mural_create',{
       'sessionToken':_token,'requestId':id,
       'place':local,'detail':note,

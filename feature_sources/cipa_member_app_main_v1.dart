@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -10,6 +11,7 @@ import 'services/cipa_member_draft_store.dart';
 import 'services/cipa_member_portal_policy.dart';
 import 'services/cipa_member_offline_cache.dart';
 import 'services/cipa_member_pending_sync.dart';
+import 'services/cipa_member_mural_draft_store.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,6 +47,7 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
       final person=view??lastOnlineView;
       if(person!=null){
         _draftStoreFor(person).clearAllForMember().catchError((_) {});
+        _muralDraftStoreFor(person).clearAll().catchError((_) {});
       }
       final address=onlineEmail;
       if(address!=null)offlineCache.clear(address).catchError((_) {});
@@ -61,6 +64,7 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
   DateTime? lastSync;
   bool offlineUnlocked=false;
   int pendingDraftCount=0;
+  int muralDraftCount=0;
   bool busy=false,requested=false;
   String message='',error='';
   CipaMemberView? view;
@@ -167,6 +171,7 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
         });
         try{await offlineCache.updateFromServer(address,current);}catch(_){}
         await _loadDraftCount(current);
+        await _loadMuralDraftCount(current);
         await _showWelcomeOnce(current);
       }
     });
@@ -188,6 +193,7 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
           try{await offlineCache.updateFromServer(address,current);}catch(_){}
         }
         await _loadDraftCount(current);
+        await _loadMuralDraftCount(current);
       }
     } catch (_) {
       if(mounted)setState(()=>view=null);
@@ -201,23 +207,115 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
       mandateId:p.mandateId,memberId:p.memberId);
   }
 
+  CipaMuralDraftStore _muralDraftStoreFor(CipaMemberView person){
+    final p=person.profile;
+    return CipaMuralDraftStore(accountId:p.userId,
+      companyId:p.companyId,mandateId:p.mandateId,memberId:p.memberId);
+  }
+  Future<void> _loadMuralDraftCount(CipaMemberView person)async{
+    try{
+      final count=await _muralDraftStoreFor(person).count();
+      if(mounted&&view?.profile.userId==person.profile.userId&&
+        view?.profile.mandateId==person.profile.mandateId)
+        setState(()=>muralDraftCount=count);
+    }catch(_){if(mounted)setState(()=>muralDraftCount=-1);}
+  }
+
+  Future<void> _saveMuralDraft(
+      String place,String detail,Uint8List? photo)async{
+    final person=view;
+    if(person==null||!(api.hasSession||offlineUnlocked))
+      throw StateError('Entre com seu acesso pessoal.');
+    final rng=Random.secure();
+    final id='mural-'+List<int>.generate(24,(_)=>rng.nextInt(256))
+      .map((v)=>v.toRadixString(16).padLeft(2,'0')).join();
+    await _muralDraftStoreFor(person).save(CipaMuralDraft(
+      id:id,place:place,detail:detail,savedAt:DateTime.now(),photo:photo));
+    await _loadMuralDraftCount(person);
+  }
+
+  Future<void> _syncMuralDrafts()async{
+    final person=view;
+    if(person==null||offlineUnlocked||!api.hasSession)
+      throw StateError('Entre com internet para enviar rascunhos do mural.');
+    final fresh=await api.dashboard();
+    bool same(CipaMemberView x,CipaMemberView y)=>
+      x.profile.userId==y.profile.userId&&
+      x.profile.companyId==y.profile.companyId&&
+      x.profile.mandateId==y.profile.mandateId&&
+      x.profile.memberId==y.profile.memberId;
+    if(!same(person,fresh))throw StateError(
+      'O vínculo mudou. Não envie rascunhos de outro mandato.');
+    final store=_muralDraftStoreFor(fresh);
+    final drafts=await store.list();
+    if(drafts.isEmpty){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content:Text('Não há rascunhos do mural.')));
+      return;
+    }
+    if(!mounted)return;
+    final accepted=await showDialog<bool>(context:context,builder:(dialog)=>
+      AlertDialog(
+        title:const Text('Confirmar envio ao Mural da CIPA'),
+        content:SingleChildScrollView(child:Column(
+          mainAxisSize:MainAxisSize.min,
+          crossAxisAlignment:CrossAxisAlignment.start,children:[
+            Text('Rascunhos: '+drafts.length.toString()),
+            Text('Fotos: '+drafts.where((d)=>d.photo!=null)
+              .length.toString()),
+            for(final item in drafts)Text('• '+item.place+': '+
+              item.detail.substring(0,item.detail.length>75?75:
+                item.detail.length)),
+            const Text('Os relatos serão recebidos para moderação. '
+              'Confirme locais e fotografias antes de continuar. '
+              'Eles não ficam públicos automaticamente.'),
+          ])),
+        actions:[
+          TextButton(onPressed:()=>Navigator.pop(dialog,false),
+            child:const Text('Voltar')),
+          FilledButton(onPressed:()=>Navigator.pop(dialog,true),
+            child:const Text('Enviar rascunhos')),
+        ]));
+    if(accepted!=true||!mounted)return;
+    final check=await api.dashboard();
+    if(!same(fresh,check))throw StateError(
+      'O mandato mudou durante o envio. Entre novamente.');
+    var sent=0,failed=0;
+    for(final draft in drafts){
+      try{
+        await api.muralCreate(draft.place,draft.detail,draft.photo,
+          durableRequestId:draft.id);
+        await store.delete(draft.id);
+        sent++;
+      }catch(_){failed++;}
+    }
+    await _loadMuralDraftCount(check);
+    if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content:Text('Recebidos para moderação: '+sent.toString()+
+        '. Permanecem no aparelho: '+failed.toString()+'.')));
+  }
+
   Future<void> _logout() async {
     final localView=view??lastOnlineView;
     var count=pendingDraftCount;
+    var muralCount=muralDraftCount;
     if(localView!=null){
       try {count=await pendingSync.count(localView);}
-      catch (_) {count=-1;} // Falha de leitura exige confirmação explícita.
+      catch (_) {count=-1;}
+      try {muralCount=await _muralDraftStoreFor(localView).count();}
+      catch (_) {muralCount=-1;}
     }
-    if(count!=0 && mounted){
+    if((count!=0||muralCount!=0) && mounted){
       final confirmed=await showDialog<bool>(context:context,
         builder:(dialog)=>AlertDialog(
           title:const Text('Sair e apagar dados locais?'),
-          content:Text(count<0?
+          content:Text(count<0||muralCount<0?
             'Não foi possível conferir os rascunhos protegidos. '
             'Sair pode apagar registros ainda não enviados. '
             'Para mantê-los, toque em Voltar.':
-            'Existem '+count.toString()+
-            ' rascunhos ainda no aparelho. Sair da conta apaga '
+            'Existem '+count.toString()+' rascunhos de vistorias e '+
+            muralCount.toString()+' rascunhos do mural no aparelho. '
+            'Sair da conta apaga '
             'esses rascunhos e o acesso offline. Para manter, '
             'toque em Voltar.'),
           actions:[
@@ -234,6 +332,8 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
     if(current!=null){
       try {await _draftStoreFor(current).clearAllForMember();}
       catch (_) {/* Não impedir a saída nem expor conteúdo criptografado. */}
+      try {await _muralDraftStoreFor(current).clearAll();}
+      catch (_) {/* Não expor dados privados. */}
     }
     if(address!=null){
       try{await offlineCache.clear(address);}catch(_){}
@@ -242,6 +342,7 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
     if(mounted)setState((){
       view=null;lastOnlineView=null;onlineEmail=null;
       offlineUnlocked=false;lastSync=null;pendingDraftCount=0;
+      muralDraftCount=0;
       code.clear();offlinePin.clear();requested=false;message='';error='';
     });
   }
@@ -324,12 +425,14 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
         offlinePin.clear();error='';
       });
       await _loadDraftCount(snapshot.view);
+      await _loadMuralDraftCount(snapshot.view);
     });
   }
 
   Future<void> _closeOffline() async {
     if(mounted)setState((){
       view=null;offlineUnlocked=false;pendingDraftCount=0;
+      muralDraftCount=0;
       offlinePin.clear();
     });
   }
@@ -415,6 +518,7 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
         companyName:person.companyLabel,mandateLabel:person.mandateLabel,
         view:person,sessionVerified:api.hasSession||offlineUnlocked,
         offlineMode:offlineUnlocked,pendingDraftCount:pendingDraftCount,
+        muralDraftCount:muralDraftCount,
         lastSync:lastSync,
         onRefresh:offlineUnlocked?null:_refresh,
         onLogout:offlineUnlocked?_closeOffline:_logout,
@@ -439,6 +543,15 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
         onCreateMural:offlineUnlocked?null:api.muralCreate,
         onCommentMural:offlineUnlocked?null:api.muralComment,
         onPhotoMural:offlineUnlocked?null:api.muralPhoto,
+        onSubmitAfter:offlineUnlocked?null:api.submitAfterPhoto,
+        onPhotoAfter:offlineUnlocked?null:api.afterPhoto,
+        onSaveMuralDraft:_saveMuralDraft,
+        onSyncMuralDrafts:offlineUnlocked?null:_syncMuralDrafts,
+        onLoadAvatar:offlineUnlocked?null:api.loadAvatar,
+        onSaveAvatar:offlineUnlocked?null:api.saveAvatar,
+        onDeleteAvatar:offlineUnlocked?null:api.deleteAvatar,
+        onSendMinutes:offlineUnlocked?null:api.submitMinutes,
+        onListMinutes:offlineUnlocked?null:api.myMinutes,
       );
     }
     return Scaffold(

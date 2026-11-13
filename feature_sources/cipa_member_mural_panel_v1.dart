@@ -6,13 +6,18 @@ import '../services/cipa_member_mural_model.dart';
 /// Mural de ocorrência, não chat público. Tudo passa por moderação.
 class CipaMuralPanel extends StatefulWidget{
   const CipaMuralPanel({super.key,this.offline=false,
-    this.onLoad,this.onCreate,this.onComment,this.onPhoto});
+    this.onLoad,this.onCreate,this.onComment,this.onPhoto,
+    this.onSubmitAfter,this.onPhotoAfter,this.onSaveDraft});
   final bool offline;
   final Future<List<CipaMuralPost>> Function()? onLoad;
   final Future<void> Function(String place,String detail,Uint8List? photo)?
     onCreate;
   final Future<void> Function(String id,String text)? onComment;
   final Future<Uint8List?> Function(String id)? onPhoto;
+  final Future<void> Function(String place,String detail,
+    Uint8List? photo)? onSaveDraft;
+  final Future<void> Function(String id,Uint8List jpeg)? onSubmitAfter;
+  final Future<Uint8List?> Function(String id)? onPhotoAfter;
   @override State<CipaMuralPanel> createState()=>_CipaMuralPanelState();
 }
 class _CipaMuralPanelState extends State<CipaMuralPanel>{
@@ -96,6 +101,89 @@ class _CipaMuralPanelState extends State<CipaMuralPanel>{
         child:const Text('Fechar'))],
     ));
   }
+
+
+  Future<void> _saveLocally() async{
+    if(widget.onSaveDraft==null||sending)return;
+    final draft=await showDialog<_MuralDraft>(context:context,
+      builder:(_)=>const _MuralCreateDialog());
+    if(draft==null||!mounted)return;
+    setState(()=>sending=true);
+    try{
+      await widget.onSaveDraft!(draft.place,draft.detail,draft.photo);
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content:Text('Rascunho do mural salvo '
+          'de forma protegida neste celular. Ainda não foi enviado.')));
+    }catch(_){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content:Text('Não foi possível salvar o '
+          'rascunho protegido. Confira o espaço e tente novamente.')));
+    }finally{if(mounted)setState(()=>sending=false);}
+  }
+
+  Future<void> _submitAfter(CipaMuralPost post)async{
+    if(widget.onSubmitAfter==null||sending||widget.offline)return;
+    final source=await showModalBottomSheet<ImageSource>(context:context,
+      builder:(sheet)=>SafeArea(child:Column(mainAxisSize:MainAxisSize.min,
+        children:[
+          ListTile(leading:const Icon(Icons.camera_alt_outlined),
+            title:const Text('Tirar foto depois'),
+            onTap:()=>Navigator.pop(sheet,ImageSource.camera)),
+          ListTile(leading:const Icon(Icons.photo_library_outlined),
+            title:const Text('Escolher foto depois'),
+            onTap:()=>Navigator.pop(sheet,ImageSource.gallery)),
+        ])));
+    if(source==null||!mounted)return;
+    setState(()=>sending=true);
+    try {
+      final picked=await ImagePicker().pickImage(source:source,
+        maxWidth:1200,maxHeight:1200,imageQuality:80,
+        requestFullMetadata:false);
+      if(picked==null)return;
+      final cleaned=CipaMuralCodec.preparePhoto(await picked.readAsBytes());
+      if(!mounted)return;
+      final confirmed=await showDialog<bool>(context:context,
+        builder:(dialog)=>AlertDialog(
+          title:const Text('Enviar foto depois?'),
+          content:const Text('A foto posterior será analisada antes '
+            'de aparecer para os colegas. Não confirma correção '
+            'nem encerra automaticamente a ocorrência.'),
+          actions:[
+            TextButton(onPressed:()=>Navigator.pop(dialog,false),
+              child:const Text('Voltar')),
+            FilledButton(onPressed:()=>Navigator.pop(dialog,true),
+              child:const Text('Enviar para análise')),
+          ]));
+      if(confirmed!=true||!mounted)return;
+      await widget.onSubmitAfter!(post.id,cleaned);
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content:Text('Foto depois enviada para revisão.')));
+      await _refresh();
+    }catch(_){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content:Text('Foto não confirmada. Atualize '
+          'o mural antes de enviar outra.')));
+    }finally{if(mounted)setState(()=>sending=false);}
+  }
+  Future<void> _showAfter(CipaMuralPost post)async{
+    final fetch=widget.onPhotoAfter;
+    if(fetch==null||widget.offline)return;
+    await showDialog<void>(context:context,builder:(dialog)=>AlertDialog(
+      title:const Text('Foto depois'),
+      content:FutureBuilder<Uint8List?>(
+        future:fetch(post.id),builder:(context,snapshot){
+          if(snapshot.connectionState!=ConnectionState.done)
+            return const SizedBox(height:100,
+              child:Center(child:CircularProgressIndicator()));
+          if(snapshot.hasError)return const Text('Foto indisponível.');
+          if(snapshot.data==null)return const Text('Foto não enviada.');
+          return Image.memory(snapshot.data!,width:380,fit:BoxFit.contain);
+        }),
+      actions:[TextButton(onPressed:()=>Navigator.pop(dialog),
+        child:const Text('Fechar'))],
+    ));
+  }
+
   @override Widget build(BuildContext context)=>Card(child:Padding(
     padding:const EdgeInsets.all(14),
     child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
@@ -119,10 +207,19 @@ class _CipaMuralPanelState extends State<CipaMuralPanel>{
         style:TextStyle(fontSize:12)),
       const SizedBox(height:12),
       if(widget.offline)...[
-        const Text('Mural indisponível offline. Entre com internet para '
-          'proteger a privacidade das publicações.',
+        const Text('As publicações dos colegas não ficam salvas offline. '
+          'Você pode preencher um rascunho privado e enviar depois.',
           style:TextStyle(fontWeight:FontWeight.w700)),
+        if(widget.onSaveDraft!=null)
+          FilledButton.icon(onPressed:sending?null:_saveLocally,
+            icon:const Icon(Icons.save_outlined),
+            label:const Text('Salvar ocorrência no celular')),
       ]else...[
+        if(widget.onSaveDraft!=null)
+          OutlinedButton.icon(onPressed:sending?null:_saveLocally,
+            icon:const Icon(Icons.save_outlined),
+            label:const Text('Salvar rascunho no celular')),
+        const SizedBox(height:8),
         SizedBox(height:54,child:FilledButton.icon(
           onPressed:sending||loading||widget.onCreate==null?null:_create,
           icon:const Icon(Icons.add_a_photo_outlined,size:24),
@@ -159,7 +256,23 @@ class _CipaMuralPanelState extends State<CipaMuralPanel>{
             child:TextButton.icon(
               onPressed:widget.onPhoto==null?null:()=>_photo(post),
               icon:const Icon(Icons.photo_outlined),
-              label:const Text('Ver foto da ocorrência'))),
+              label:const Text('Ver foto antes'))),
+          if(post.afterStatus.isNotEmpty&&post.isMine)
+            Text('Foto depois: '+post.afterStatus,
+              style:const TextStyle(fontSize:12)),
+          if(post.hasAfter&&widget.onPhotoAfter!=null)
+            Align(alignment:Alignment.centerLeft,child:TextButton.icon(
+              onPressed:()=>_showAfter(post),
+              icon:const Icon(Icons.image_outlined),
+              label:const Text('Ver foto depois'))),
+          if(post.isMine&&post.visibility=='Aprovado'&&
+             (post.afterStatus.isEmpty||
+              post.afterStatus=='Não publicado')&&
+             widget.onSubmitAfter!=null)
+            Align(alignment:Alignment.centerLeft,child:OutlinedButton.icon(
+              onPressed:sending?null:()=>_submitAfter(post),
+              icon:const Icon(Icons.add_a_photo_outlined),
+              label:const Text('Adicionar foto depois'))),
           if(post.visibility=='Aprovado')...[
             for(final comment in post.comments)
               Padding(padding:const EdgeInsets.symmetric(vertical:4),

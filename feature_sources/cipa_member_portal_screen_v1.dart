@@ -2,6 +2,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../services/cipa_member_portal_policy.dart';
 import '../services/cipa_member_home_alerts.dart';
+import '../services/cipa_member_today.dart';
+import '../widgets/cipa_member_today_panel.dart';
 import '../services/cipa_member_engagement.dart';
 import '../widgets/cipa_member_engagement_panel.dart';
 import '../widgets/cipa_member_role_meeting_panel.dart';
@@ -24,18 +26,33 @@ class CipaMemberPortalScreen extends StatefulWidget {
     this.onObserveWithPhotos,this.onObserveScheduledWithPhotos,
     this.onViewPhotos,this.onObserveDraft,this.onObserveScheduledDraft,
     this.offlineMode=false,this.pendingDraftCount=0,
+    this.muralDraftCount=0,
     this.onEnableOffline,this.onSyncPending,this.onDraftSaved,
     this.onLoadPending,this.lastSync,
     this.onLoadMural,this.onCreateMural,this.onCommentMural,this.onPhotoMural,
+    this.onSubmitAfter,this.onPhotoAfter,
+    this.onSaveMuralDraft,this.onSyncMuralDrafts,
+    this.onLoadAvatar,this.onSaveAvatar,this.onDeleteAvatar,
+    this.onSendMinutes,this.onListMinutes,
   });
+  final Future<void> Function(String place,String detail,
+    Uint8List? photo)? onSaveMuralDraft;
+  final Future<void> Function()? onSyncMuralDrafts;
+  final Future<void> Function(String id,Uint8List jpeg)? onSubmitAfter;
+  final Future<Uint8List?> Function(String id)? onPhotoAfter;
   final Future<List<CipaMuralPost>> Function()? onLoadMural;
   final Future<void> Function(String place,String detail,Uint8List? photo)? onCreateMural;
   final Future<void> Function(String id,String text)? onCommentMural;
   final Future<Uint8List?> Function(String id)? onPhotoMural;
+  final Future<void> Function(String meetingId,String content)? onSendMinutes;
+  final Future<List<Map<String,dynamic>>> Function()? onListMinutes;
+  final Future<Uint8List?> Function()? onLoadAvatar;
+  final Future<void> Function(Uint8List jpeg)? onSaveAvatar;
+  final Future<void> Function()? onDeleteAvatar;
   final String companyName,mandateLabel;
   final CipaMemberView? view;
   final bool sessionVerified,offlineMode;
-  final int pendingDraftCount;
+  final int pendingDraftCount,muralDraftCount;
   final DateTime? lastSync;
   final Future<void> Function()? onEnableOffline,onSyncPending,onDraftSaved;
   final Future<List<CipaStoredDraft>> Function()? onLoadPending;
@@ -71,6 +88,15 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
   final GlobalKey _observationsSection=GlobalKey();
   final GlobalKey _questionsSection=GlobalKey();
   final GlobalKey _muralSection=GlobalKey();
+
+  void _goToToday(CipaTodayTarget target){
+    switch(target){
+      case CipaTodayTarget.meetings:_goTo(_meetingsSection);break;
+      case CipaTodayTarget.actions:_goTo(_tasksSection);break;
+      case CipaTodayTarget.inspections:_goTo(_inspectionsSection);break;
+      case CipaTodayTarget.answers:_goTo(_observationsSection);break;
+    }
+  }
 
   void _goTo(GlobalKey section) {
     final target=section.currentContext;
@@ -535,7 +561,10 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
       body:SafeArea(child:ListView(
         padding:const EdgeInsets.fromLTRB(12,12,12,64),children:[
         CipaMemberAccessHeader(profile:profile,
-          companyName:widget.companyName,mandateLabel:widget.mandateLabel),
+          companyName:widget.companyName,mandateLabel:widget.mandateLabel,
+          onLoadAvatar:widget.offlineMode?null:widget.onLoadAvatar,
+          onSaveAvatar:widget.offlineMode?null:widget.onSaveAvatar,
+          onDeleteAvatar:widget.offlineMode?null:widget.onDeleteAvatar),
         Card(child:Padding(padding:const EdgeInsets.all(12),
           child:Column(
             crossAxisAlignment:CrossAxisAlignment.stretch,children:[
@@ -554,6 +583,18 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
                 const Text('Você pode consultar informações salvas e '
                   'preencher vistorias. Para enviar, entre com internet. '
                   'As informações podem ter mudado na Central.'),
+              if(widget.muralDraftCount>0)
+                Text('Rascunhos do mural protegidos no celular: '+
+                  widget.muralDraftCount.toString()),
+              if(widget.muralDraftCount<0)
+                const Text('Não foi possível conferir os rascunhos '
+                  'protegidos do mural. Não apague os dados.'),
+              if(widget.onSyncMuralDrafts!=null&&
+                 widget.muralDraftCount>0&&!widget.offlineMode)
+                FilledButton.icon(
+                  onPressed:busy?null:()=>_submit(widget.onSyncMuralDrafts!),
+                  icon:const Icon(Icons.cloud_upload_outlined),
+                  label:const Text('Enviar rascunhos do mural')),
               if(widget.pendingDraftCount>0)
                 Text('Rascunhos no aparelho: '+
                   widget.pendingDraftCount.toString()+
@@ -586,15 +627,23 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
               dense:!easyMode,
               leading:Icon(alert.kind==CipaHomeAlertKind.inspection?
                 Icons.assignment_outlined:
-                alert.kind==CipaHomeAlertKind.meetingTomorrow?
-                Icons.event_outlined:Icons.mark_chat_unread_outlined),
+                (alert.kind==CipaHomeAlertKind.meetingTomorrow||
+                 alert.kind==CipaHomeAlertKind.meetingToday)?
+                Icons.event_outlined:
+                (alert.kind==CipaHomeAlertKind.actionOverdue||
+                 alert.kind==CipaHomeAlertKind.actionDue)?
+                Icons.fact_check_outlined:Icons.mark_chat_unread_outlined),
               title:Text(alert.message,style:TextStyle(
                 fontSize:easyMode?19:16,fontWeight:FontWeight.w600)),
               trailing:const Icon(Icons.chevron_right),
               onTap:()=>_goTo(alert.kind==CipaHomeAlertKind.inspection?
                 _inspectionsSection:
-                alert.kind==CipaHomeAlertKind.meetingTomorrow?
-                _meetingsSection:_observationsSection),
+                (alert.kind==CipaHomeAlertKind.meetingTomorrow||
+                 alert.kind==CipaHomeAlertKind.meetingToday)?
+                _meetingsSection:
+                (alert.kind==CipaHomeAlertKind.actionOverdue||
+                 alert.kind==CipaHomeAlertKind.actionDue)?
+                _tasksSection:_observationsSection),
             ),
             const Text('Toque no aviso para ver os detalhes.',
               style:TextStyle(fontSize:13)),
@@ -641,6 +690,8 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
               'A equipe de SST confere os relatos e as ações.',
               style:TextStyle(fontSize:14)),
           ]))),
+        CipaTodayPanel(view:view,offlineMode:widget.offlineMode,
+          onSelect:_goToToday),
         KeyedSubtree(key:_muralSection,
           child:CipaMuralPanel(
             key:ValueKey('mural-'+profile.userId+'-'+profile.companyId+
@@ -648,8 +699,13 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
             offline:widget.offlineMode,
             onLoad:widget.onLoadMural,onCreate:widget.onCreateMural,
             onComment:widget.onCommentMural,onPhoto:widget.onPhotoMural,
+            onSubmitAfter:widget.onSubmitAfter,
+            onPhotoAfter:widget.onPhotoAfter,
+            onSaveDraft:widget.onSaveMuralDraft,
           )),
-        CipaMeetingRoleCoachPanel(profile:profile),
+        CipaMeetingRoleCoachPanel(profile:profile,
+          meetings:view.meetings,onSendMinutes:widget.onSendMinutes,
+          onListMinutes:widget.onListMinutes),
         CipaMemberEngagementPanel(
           view:view,offlineMode:widget.offlineMode,
           onStartMission:(widget.offlineMode||widget.onObserve!=null)?

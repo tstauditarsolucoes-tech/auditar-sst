@@ -10,6 +10,7 @@ import '../services/web_service_config.dart';
 import '../widgets/cipa_manager_metrics_panel.dart';
 import '../services/cipa_member_role_meetings.dart';
 import '../widgets/cipa_mural_moderation_panel.dart';
+import '../widgets/cipa_minutes_review_panel.dart';
 
 class CipaAdminMemberOption {
   const CipaAdminMemberOption({
@@ -428,6 +429,37 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
     return bytes;
   }
 
+
+
+  Future<Uint8List?> _muralAfterPhoto(String id) async{
+    final data=await _call('cipa_mural_after_staff_photo',{'postId':id});
+    if(data['hasPhoto']!=true)return null;
+    final encoded=(data['jpegBase64']??'').toString();
+    if(encoded.length>340000)throw StateError('Foto muito grande.');
+    final bytes=Uint8List.fromList(base64Decode(encoded));
+    if(bytes.length<8||bytes.length>250000)
+      throw StateError('Foto inválida.');
+    return bytes;
+  }
+  Future<void> _muralAfterReview(String id,bool approve)async{
+    await _call('cipa_mural_after_moderate',{
+      'postId':id,'visibility':approve?'Aprovado':'Não publicado',
+    });
+  }
+
+  Future<List<Map<String,dynamic>>> _minutesStaffList() async{
+    final reply=await _call('cipa_minutes_staff_list');
+    final data=reply['minutes'];
+    if(data is! List)return const [];
+    return data.whereType<Map>()
+      .map((row)=>Map<String,dynamic>.from(row)).toList();
+  }
+  Future<void> _minutesStaffReview(String id,String status,String note) async{
+    await _call('cipa_minutes_review',{
+      'minuteId':id,'status':status,'note':note,
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if(!AuthService.isAdmin)return const Scaffold(
@@ -546,10 +578,14 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
                     child:const Text('Cancelar')),
                 ),
             ]))),
+          CipaMinutesReviewPanel(
+            onLoad:_minutesStaffList,onReview:_minutesStaffReview),
           CipaMuralModerationPanel(
             onLoad:_muralList,onReview:_muralReview,
             onCommentReview:_muralReviewComment,
-            onReply:_muralReply,onPhoto:_muralPhoto),
+            onReply:_muralReply,onPhoto:_muralPhoto,
+            onPhotoAfter:_muralAfterPhoto,
+            onReviewAfter:_muralAfterReview),
           CipaManagerMetricsPanel(companyId:widget.companyId,
             mandateId:widget.mandateId,serverData:metrics),
           Card(child:Padding(padding:const EdgeInsets.all(12),

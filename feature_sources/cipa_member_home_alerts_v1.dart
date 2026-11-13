@@ -2,7 +2,8 @@ import 'cipa_member_portal_policy.dart';
 
 /// Avisos calculados somente a partir do painel pessoal autorizado.
 /// Nenhuma notificação push é emitida e dados de outra pessoa não são usados.
-enum CipaHomeAlertKind { inspection, meetingTomorrow, technicalReply }
+enum CipaHomeAlertKind { inspection, meetingTomorrow, meetingToday,
+  actionDue, actionOverdue, technicalReply }
 
 class CipaHomeAlert {
   const CipaHomeAlert(this.kind,this.message);
@@ -44,9 +45,40 @@ class CipaHomeAlertBuilder {
       final calendarDate=DateTime(date.year,date.month,date.day);
       return calendarDate==tomorrow;
     }).length;
+    final todayMeetings=view.meetings.where((item){
+      final date=item.date??item.dueDate;
+      if(item.companyId!=profile.companyId||
+        item.mandateId!=profile.mandateId||
+        !(item.assignedMemberId==profile.memberId||item.visibleToAllMembers)||
+        item.status!='Agendada'||date==null)return false;
+      return DateTime(date.year,date.month,date.day)==today;
+    }).length;
+    if(todayMeetings>0)alerts.add(const CipaHomeAlert(
+      CipaHomeAlertKind.meetingToday,'Você tem reunião da CIPA hoje.'));
     if(tomorrowMeetings>0)alerts.add(const CipaHomeAlert(
       CipaHomeAlertKind.meetingTomorrow,'Reunião da CIPA amanhã.'));
 
+    final actions=view.myActions.where((item)=>belongs(item)&&
+      item.status!='Resolvida'&&item.status!='Concluída').toList();
+    final overdue=actions.where((item){
+      final due=item.dueDate;
+      return due!=null&&DateTime(due.year,due.month,due.day).isBefore(today);
+    }).length;
+    final dueSoon=actions.where((item){
+      final due=item.dueDate;
+      if(due==null)return false;
+      final date=DateTime(due.year,due.month,due.day);
+      return !date.isBefore(today)&&
+        !date.isAfter(today.add(const Duration(days:3)));
+    }).length;
+    if(overdue>0)alerts.add(CipaHomeAlert(
+      CipaHomeAlertKind.actionOverdue,
+      overdue==1?'Você tem uma tarefa com prazo ultrapassado.':
+        'Você tem $overdue tarefas com prazo ultrapassado.'));
+    if(dueSoon>0)alerts.add(CipaHomeAlert(
+      CipaHomeAlertKind.actionDue,
+      dueSoon==1?'Uma tarefa vence nos próximos 3 dias.':
+        '$dueSoon tarefas vencem nos próximos 3 dias.'));
     final unread=view.observations.where((item)=>
       belongs(item)&&item.status=='Orientação enviada'&&
       item.feedback.trim().isNotEmpty&&item.reviewId.isNotEmpty&&
