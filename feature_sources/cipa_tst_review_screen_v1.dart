@@ -179,7 +179,7 @@ class _CipaTstReviewScreenState extends State<CipaTstReviewScreen> {
               SizedBox(height:50,child:OutlinedButton.icon(
                 onPressed:busy?null:()=>_viewPhotos(record),
                 icon:const Icon(Icons.photo_outlined),
-                label:const Text('Ver fotos')),
+                label:const Text('Ver fotos'))),
               const SizedBox(height:8),
               SizedBox(height:50,child:FilledButton.icon(
                 onPressed:busy?null:()=>_reply(record),
