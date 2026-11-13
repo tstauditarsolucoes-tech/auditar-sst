@@ -149,6 +149,9 @@ vm.runInContext(fs.readFileSync(path.join(
 vm.runInContext(fs.readFileSync(path.join(
   root,'feature_sources/CipaMemberPhotosV1.gs'),'utf8'),
   scope,{filename:'CipaMemberPhotosV1.gs'});
+vm.runInContext(fs.readFileSync(path.join(
+  root,'feature_sources/CipaMemberMetricsV1.gs'),'utf8'),
+  scope,{filename:'CipaMemberMetricsV1.gs'});
 const invoke=(action,fields={})=>JSON.parse(JSON.stringify(
   scope.cipaMemV1Route_({action,...fields})));
 
@@ -480,6 +483,22 @@ assert(invoke('cipa_tst_review_grant',{
   authToken:'valid-admin',userId:'tst-A',companyId:'company-A',
   mandateId:'mandate-A',operation:'grant',
 }).ok,'Administrador concede somente o escopo escolhido');
+const tstStats=invoke('cipa_tst_metrics',{
+  authToken:'valid-tst',companyId:'company-A',mandateId:'mandate-A',
+});
+assert(tstStats.ok&&tstStats.metrics.membersActive===1);
+assert(tstStats.metrics.membersParticipating===1);
+assert(tstStats.metrics.meetingsScheduled===1);
+assert(tstStats.metrics.observationsPendingReview>=0);
+assert.strictEqual(invoke('cipa_tst_metrics',{
+  authToken:login.sessionToken,companyId:'company-A',mandateId:'mandate-A',
+}).code,'ACCESS_DENIED','Integrante não lê métricas da equipe');
+assert.strictEqual(invoke('cipa_tst_metrics',{
+  authToken:'valid-tst',companyId:'company-B',mandateId:'mandate-B',
+}).code,'ACCESS_DENIED','TST não lê métricas de outra empresa');
+assert.strictEqual(invoke('cipa_tst_metrics',{
+  authToken:'valid-admin',companyId:'company-B',mandateId:'mandate-A',
+}).code,'MANDATE_INVALID','ADM só pode consultar mandato existente no escopo');
 const tstInbox=invoke('cipa_tst_review_inbox',{
   authToken:'valid-tst',companyId:'company-A',mandateId:'mandate-A',
 });
