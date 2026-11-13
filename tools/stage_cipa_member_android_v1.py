@@ -96,6 +96,8 @@ pairs={
       "test/cipa_member_mural_model_test.dart",
     "feature_sources/cipa_member_today_test_v1.dart":
       "test/cipa_member_today_test.dart",
+    "feature_sources/cipa_member_avatar_test_v1.dart":
+      "test/cipa_member_avatar_test.dart",
     "feature_sources/cipa_member_mural_draft_store_test_v1.dart":
       "test/cipa_member_mural_draft_store_test.dart",
     "feature_sources/cipa_member_mural_panel_test_v1.dart":
