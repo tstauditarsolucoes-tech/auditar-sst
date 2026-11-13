@@ -152,7 +152,8 @@ class CipaGuidedInspection {
 class CipaGuidedInspectionDialog extends StatefulWidget {
   const CipaGuidedInspectionDialog({
     super.key,required this.onSend,this.onSendWithPhotos,
-    this.onSubmitDraft,this.draftStore,this.offlineDraftMode=false,
+    this.onSubmitDraft,this.draftStore,this.draftStoreFactory,
+    this.initialRequestId,this.offlineDraftMode=false,
     this.initialCategory,this.initialPlace,
     this.memberName='',this.companyName='',
     this.memberRole='',this.mandateLabel='',
@@ -163,6 +164,8 @@ class CipaGuidedInspectionDialog extends StatefulWidget {
   final Future<void> Function(String place,String note,List<Uint8List> photos,
     String requestId)? onSubmitDraft;
   final CipaMemberDraftStore? draftStore;
+  final CipaMemberDraftStore Function(String requestId)? draftStoreFactory;
+  final String? initialRequestId;
   final bool offlineDraftMode;
   final String? initialCategory,initialPlace;
   final String memberName,companyName,memberRole,mandateLabel;
@@ -187,6 +190,7 @@ class _CipaGuidedInspectionDialogState
   bool restoring=false;
   String saveStatus='';
   Timer? _saveTimer;
+  CipaMemberDraftStore? _activeDraftStore;
   Future<void> _writeQueue=Future<void>.value();
   String requestId=_newRequestId();
   static String _newRequestId(){
@@ -197,6 +201,15 @@ class _CipaGuidedInspectionDialogState
 
   @override void initState() {
     super.initState();
+    final initialId=widget.initialRequestId;
+    if(initialId!=null){
+      if(initialId.length<16||initialId.length>120||
+         RegExp(r'[^A-Za-z0-9_-]').hasMatch(initialId))
+        throw StateError('Identificação de rascunho inválida');
+      requestId=initialId;
+    }
+    _activeDraftStore=widget.draftStore??
+      widget.draftStoreFactory?.call(requestId);
     WidgetsBinding.instance.addObserver(this);
     final proposed=widget.initialCategory;
     if(proposed!=null &&
@@ -209,7 +222,7 @@ class _CipaGuidedInspectionDialogState
     _resetAnswers();
     place.addListener(_queueSave);
     observation.addListener(_queueSave);
-    if(widget.draftStore!=null){
+    if(_activeDraftStore!=null){
       restoring=true;
       _restoreDraft();
     }
@@ -236,7 +249,7 @@ class _CipaGuidedInspectionDialogState
 
   Future<void> _restoreDraft() async {
     try {
-      final saved=await widget.draftStore!.load();
+      final saved=await _activeDraftStore!.load();
       if(!mounted)return;
       if(saved!=null&&(
         CipaGuidedInspection.questions.containsKey(saved.category)||
@@ -260,12 +273,12 @@ class _CipaGuidedInspectionDialogState
     }
   }
   void _queueSave(){
-    if(restoring||widget.draftStore==null)return;
+    if(restoring||_activeDraftStore==null)return;
     _saveTimer?.cancel();
     _saveTimer=Timer(const Duration(milliseconds:250),_saveNow);
   }
   Future<void> _saveNow() async {
-    final store=widget.draftStore;
+    final store=_activeDraftStore;
     if(store==null||restoring)return;
     _saveTimer?.cancel();
     final snapshot=CipaInspectionDraft(
@@ -286,7 +299,7 @@ class _CipaGuidedInspectionDialogState
     }
   }
   Future<void> _exit() async {
-    if(widget.draftStore!=null){
+    if(_activeDraftStore!=null){
       await _saveNow();
       if(saveStatus.startsWith('Não foi possível'))return;
     }
@@ -363,7 +376,7 @@ class _CipaGuidedInspectionDialogState
     try {
       // Guardar requestId antes de enviar: retries após queda não duplicam.
       await _saveNow();
-      if(widget.draftStore!=null&&
+      if(_activeDraftStore!=null&&
          saveStatus.startsWith('Não foi possível'))
         throw StateError('Falha no salvamento protegido');
       final note=CipaGuidedInspection.summary(
@@ -380,8 +393,8 @@ class _CipaGuidedInspectionDialogState
         await widget.onSend(place.text.trim(),note);
       }
       _saveTimer?.cancel();
-      if(widget.draftStore!=null){
-        try{await widget.draftStore!.clear();}catch(_){}
+      if(_activeDraftStore!=null){
+        try{await _activeDraftStore!.clear();}catch(_){}
       }
       if(mounted)Navigator.of(context).pop(true);
     } catch (_) {
@@ -549,7 +562,7 @@ class _CipaGuidedInspectionDialogState
                 'Não inclua nomes nem dados de saúde.',
                 style:const TextStyle(fontSize:12)),
             ],
-            if(widget.draftStore!=null)
+            if(_activeDraftStore!=null)
               Text(restoring?'Recuperando rascunho protegido...':saveStatus,
                 style:const TextStyle(fontSize:12)),
             if(error.isNotEmpty)
@@ -560,7 +573,7 @@ class _CipaGuidedInspectionDialogState
       actions:[
         TextButton(
           onPressed:sending?null:_exit,
-          child:Text(widget.draftStore==null?'Cancelar':'Guardar e sair')),
+          child:Text(_activeDraftStore==null?'Cancelar':'Guardar e sair')),
         if(step>0)OutlinedButton(
           onPressed:sending?null:(){setState(()=>page=page-1);
             _queueSave();},

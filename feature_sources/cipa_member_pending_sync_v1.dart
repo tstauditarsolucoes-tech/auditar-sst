@@ -18,60 +18,61 @@ class CipaPendingSyncStatus {
   final int sent,remaining,incomplete,failed;
 }
 
-/// Sincronização MANUAL após login online: rascunhos da pessoa/mandato.
-/// Cada reenvio conserva o ID original e nunca declara sucesso por timeout.
+/// Sincronização MANUAL após login online e revalidação do mandato.
+/// Múltiplos rascunhos avulsos têm IDs próprios, sem sobrescrita.
 class CipaMemberPendingSync {
   CipaMemberPendingSync({
-    CipaMemberDraftStore Function(CipaMemberView,String?)? storage,
-  }):_storage=storage??((view,id){
+    CipaMemberDraftStore Function(CipaMemberView,String?,String?)? storage,
+  }):_storage=storage??((view,schedule,draftId){
     final p=view.profile;
     return CipaMemberDraftStore(accountId:p.userId,
       companyId:p.companyId,mandateId:p.mandateId,
-      memberId:p.memberId,scheduleId:id);
+      memberId:p.memberId,scheduleId:schedule,draftId:draftId);
   });
-  final CipaMemberDraftStore Function(CipaMemberView,String?) _storage;
+  final CipaMemberDraftStore Function(CipaMemberView,String?,String?) _storage;
 
-  List<String?> _scheduledIds(CipaMemberView view){
-    final profile=view.profile;
-    final result=<String?>[null];
-    for(final item in view.scheduledInspections){
-      if(item.companyId!=profile.companyId||
-         item.mandateId!=profile.mandateId||
-         item.assignedMemberId!=profile.memberId||
-         !['Programada','Registro enviado'].contains(item.status))continue;
-      if(item.id.startsWith('cipa-inspection-'))result.add(item.id);
-    }
-    return result;
+  Set<String> _allowedSchedules(CipaMemberView view){
+    final p=view.profile;
+    return view.scheduledInspections.where((item)=>
+      item.companyId==p.companyId &&
+      item.mandateId==p.mandateId &&
+      item.assignedMemberId==p.memberId &&
+      ['Programada','Registro enviado'].contains(item.status) &&
+      item.id.startsWith('cipa-inspection-'))
+      .map((item)=>item.id).toSet();
   }
 
-  Future<int> count(CipaMemberView view) async {
-    var total=0;
-    for(final id in _scheduledIds(view)){
-      final data=await _storage(view,id).load();
-      if(data!=null)total++;
-    }
-    return total;
-  }
+  Future<List<CipaStoredDraft>> list(CipaMemberView view) =>
+    _storage(view,null,null).listForMember(
+      scheduledIds:_allowedSchedules(view));
+
+  Future<int> count(CipaMemberView view) async =>
+    (await list(view)).length;
 
   Future<CipaPendingSyncStatus> sync(CipaMemberView view,
       CipaDraftDispatcher dispatch) async {
+    final allowedSchedules=_allowedSchedules(view);
+    final saved=await list(view);
     var sent=0,remaining=0,incomplete=0,failed=0;
-    for(final id in _scheduledIds(view)){
-      final store=_storage(view,id);
-      CipaInspectionDraft? data;
-      try {data=await store.load();}catch(_){failed++;continue;}
-      if(data==null)continue;
-      if(data.answers.length!=3||data.answers.any((v)=>v==null)||
-         data.place.trim().length<2){
-        remaining++;incomplete++;
-        continue;
+    for(final entry in saved){
+      final data=entry.draft;
+      if(!entry.canResume||data==null||
+         (entry.scheduleId!=null&&
+          !allowedSchedules.contains(entry.scheduleId))){
+        remaining++;failed++;continue;
+      }
+      if(!entry.complete){
+        remaining++;incomplete++;continue;
       }
       try {
+        final store=_storage(view,entry.scheduleId,entry.draftId);
+        // Salva o mesmo ID persistido. Não assumir sucesso em timeout.
         final note=CipaGuidedInspection.summary(
           place:data.place,category:data.category,
           answers:data.answers.cast<String>(),
           observation:data.observation);
-        await dispatch(scheduleId:id,place:data.place.trim(),note:note,
+        await dispatch(scheduleId:entry.scheduleId,
+          place:data.place.trim(),note:note,
           photos:data.photos,requestId:data.requestId);
         await store.clear();
         sent++;
@@ -79,7 +80,7 @@ class CipaMemberPendingSync {
         remaining++;failed++;
       }
     }
-    return CipaPendingSyncStatus(
-      sent:sent,remaining:remaining,incomplete:incomplete,failed:failed);
+    return CipaPendingSyncStatus(sent:sent,remaining:remaining,
+      incomplete:incomplete,failed:failed);
   }
 }

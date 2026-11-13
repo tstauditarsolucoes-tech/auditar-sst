@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:auditar_sst/screens/cipa_member_portal_screen.dart';
 import 'package:auditar_sst/services/cipa_member_identity.dart';
 import 'package:auditar_sst/services/cipa_member_portal_policy.dart';
+import 'package:auditar_sst/services/cipa_member_draft_store.dart';
 
 CipaMemberView view() {
   final profile=CipaMemberProfileContract.fromVerifiedMembership(
@@ -242,6 +243,35 @@ void main() {
     expect(find.text('Vistoria de outra empresa'),findsNothing);
   });
 
+  testWidgets('Lista pendências offline e preserva arquivos não autorizados',
+    (tester) async {
+    await tester.binding.setSurfaceSize(const Size(400,820));
+    final entry=CipaInspectionDraft(
+      requestId:'mobile-unique-111111111111111111',
+      category:'Cerâmica',place:'Moinho de cavaco',
+      answers:['Sim',null,null],observation:'',photos:[],
+      savedAt:DateTime.now().toUtc());
+    await tester.pumpWidget(MaterialApp(home:CipaMemberPortalScreen(
+      companyName:'Empresa A',mandateLabel:'2026',
+      view:view(),sessionVerified:true,offlineMode:true,
+      pendingDraftCount:2,onLoadPending:()async=>[
+        CipaStoredDraft(draft:entry,draftId:entry.requestId),
+        const CipaStoredDraft(warning:'Agendamento indisponível'),
+      ],
+    )));
+    await tester.scrollUntilVisible(
+      find.text('Ver rascunhos no celular'),140);
+    await tester.ensureVisible(find.text('Ver rascunhos no celular'));
+    await tester.tap(find.text('Ver rascunhos no celular'));
+    await tester.pumpAndSettle();
+    expect(find.text('Vistorias salvas no celular'),findsOneWidget);
+    expect(find.text('Moinho de cavaco'),findsOneWidget);
+    expect(find.text('Incompleta: continuar preenchimento'),findsOneWidget);
+    expect(find.text('Agendamento indisponível'),findsOneWidget);
+    await tester.tap(find.text('Fechar'));
+    await tester.pumpAndSettle();
+    await tester.binding.setSurfaceSize(null);
+  });
   testWidgets('Sem login autorizado, nenhum atalho libera dados',
     (tester) async {
     await tester.pumpWidget(MaterialApp(home:CipaMemberPortalScreen(
