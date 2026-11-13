@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import 'cipa_member_identity.dart';
 import 'cipa_member_portal_policy.dart';
+import 'cipa_member_mural_model.dart';
 
 /// Cliente pessoal separado: SEM AuthService, SQLite, syncKey, Drive ou
 /// sincronização geral do aplicativo técnico.
@@ -52,6 +53,60 @@ class CipaMemberApi {
         (result['message']??'Operação não concluída.').toString());
     }
     return result;
+  }
+
+  Future<List<CipaMuralPost>> mural() async {
+    if(_token==null)throw StateError('Entre para visualizar o mural.');
+    final result=await _call('cipa_mural_list',{'sessionToken':_token});
+    return CipaMuralCodec.parsePosts(result['posts']);
+  }
+
+  Future<void> muralCreate(String place,String detail,Uint8List? photo) async {
+    if(_token==null)throw StateError('Entre para registrar no mural.');
+    final local=place.trim(),note=detail.trim();
+    if(local.length<2||local.length>120||note.length<12||note.length>900)
+      throw StateError('Informe o local e a situação (12 a 900 letras).');
+    if(photo!=null&&!CipaMuralCodec.validPhoto(photo))
+      throw StateError('Foto não permitida. Escolha outra.');
+    final key='mural-post|'+local+'|'+note+'|'+
+      (photo==null?'sem-foto':base64Encode(photo));
+    final id=_id(key);
+    await _call('cipa_mural_create',{
+      'sessionToken':_token,'requestId':id,
+      'place':local,'detail':note,
+      if(photo!=null)'jpegBase64':base64Encode(photo),
+    });
+    _pendingIds.remove(key);
+  }
+
+  Future<void> muralComment(String postId,String message) async {
+    if(_token==null)throw StateError('Entre para comentar.');
+    final note=message.trim();
+    if(!RegExp(r'^[A-Za-z0-9_-]{16,120}$').hasMatch(postId)||
+       note.length<5||note.length>450)
+      throw StateError('Comentário inválido.');
+    final key='mural-comment|'+postId+'|'+note;
+    await _call('cipa_mural_comment',{
+      'sessionToken':_token,'postId':postId,
+      'body':note,'requestId':_id(key),
+    });
+    _pendingIds.remove(key);
+  }
+
+  Future<Uint8List?> muralPhoto(String postId) async {
+    if(_token==null)throw StateError('Entre para ver a foto.');
+    if(!RegExp(r'^[A-Za-z0-9_-]{16,120}$').hasMatch(postId))
+      throw StateError('Publicação inválida.');
+    final result=await _call('cipa_mural_photo',{
+      'sessionToken':_token,'postId':postId,
+    });
+    if(result['hasPhoto']!=true)return null;
+    final raw=(result['jpegBase64']??'').toString();
+    if(raw.length>340000)throw StateError('Foto muito grande.');
+    final bytes=Uint8List.fromList(base64Decode(raw));
+    if(!CipaMuralCodec.validPhoto(bytes))
+      throw StateError('Foto inválida.');
+    return bytes;
   }
 
   Future<void> requestCode(String email) async {

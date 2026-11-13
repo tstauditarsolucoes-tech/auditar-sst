@@ -5,6 +5,8 @@ import '../services/cipa_member_home_alerts.dart';
 import '../services/cipa_member_engagement.dart';
 import '../widgets/cipa_member_engagement_panel.dart';
 import '../widgets/cipa_member_role_meeting_panel.dart';
+import '../widgets/cipa_member_mural_panel.dart';
+import '../services/cipa_member_mural_model.dart';
 import '../services/cipa_member_draft_store.dart';
 import '../widgets/cipa_member_access_header.dart';
 import '../widgets/cipa_member_guided_inspection.dart';
@@ -24,7 +26,12 @@ class CipaMemberPortalScreen extends StatefulWidget {
     this.offlineMode=false,this.pendingDraftCount=0,
     this.onEnableOffline,this.onSyncPending,this.onDraftSaved,
     this.onLoadPending,this.lastSync,
+    this.onLoadMural,this.onCreateMural,this.onCommentMural,this.onPhotoMural,
   });
+  final Future<List<CipaMuralPost>> Function()? onLoadMural;
+  final Future<void> Function(String place,String detail,Uint8List? photo)? onCreateMural;
+  final Future<void> Function(String id,String text)? onCommentMural;
+  final Future<Uint8List?> Function(String id)? onPhotoMural;
   final String companyName,mandateLabel;
   final CipaMemberView? view;
   final bool sessionVerified,offlineMode;
@@ -63,6 +70,7 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
   final GlobalKey _inspectionsSection=GlobalKey();
   final GlobalKey _observationsSection=GlobalKey();
   final GlobalKey _questionsSection=GlobalKey();
+  final GlobalKey _muralSection=GlobalKey();
 
   void _goTo(GlobalKey section) {
     final target=section.currentContext;
@@ -616,6 +624,11 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
             ),
             const SizedBox(height:10),
             _largeAction(
+              title:'Mural da CIPA',icon:Icons.dynamic_feed_outlined,
+              onPressed:busy?null:()=>_goTo(_muralSection),
+            ),
+            const SizedBox(height:10),
+            _largeAction(
               title:'Ver reuniões',icon:Icons.event_outlined,
               onPressed:busy?null:()=>_goTo(_meetingsSection),
             ),
@@ -628,6 +641,14 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
               'A equipe de SST confere os relatos e as ações.',
               style:TextStyle(fontSize:14)),
           ]))),
+        KeyedSubtree(key:_muralSection,
+          child:CipaMuralPanel(
+            key:ValueKey('mural-'+profile.userId+'-'+profile.companyId+
+              '-'+profile.mandateId+'-'+profile.memberId),
+            offline:widget.offlineMode,
+            onLoad:widget.onLoadMural,onCreate:widget.onCreateMural,
+            onComment:widget.onCommentMural,onPhoto:widget.onPhotoMural,
+          )),
         CipaMeetingRoleCoachPanel(profile:profile),
         CipaMemberEngagementPanel(
           view:view,offlineMode:widget.offlineMode,

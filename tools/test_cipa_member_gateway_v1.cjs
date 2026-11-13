@@ -152,6 +152,9 @@ vm.runInContext(fs.readFileSync(path.join(
 vm.runInContext(fs.readFileSync(path.join(
   root,'feature_sources/CipaMemberMetricsV1.gs'),'utf8'),
   scope,{filename:'CipaMemberMetricsV1.gs'});
+vm.runInContext(fs.readFileSync(path.join(
+  root,'feature_sources/CipaMemberMuralV1.gs'),'utf8'),
+  scope,{filename:'CipaMemberMuralV1.gs'});
 const invoke=(action,fields={})=>JSON.parse(JSON.stringify(
   scope.cipaMemV1Route_({action,...fields})));
 
@@ -678,6 +681,166 @@ assert(invoke('cipa_schedule_cancel',{
 assert(invoke('cipa_member_dashboard',{
   sessionToken:login.sessionToken,
 }).scheduledInspections.length===0,'Cancelamento retira lembrete do membro');
+
+
+// Mural interno, privado e moderado, isolado de vistorias e chats públicos.
+const postInput={
+  sessionToken:login.sessionToken,
+  place:'Área industrial',
+  detail:'Observada obstrução parcial do corredor; solicito avaliação.',
+  requestId:'mural-post-12345678901234567890',
+};
+assert.strictEqual(invoke('cipa_mural_create',{
+  ...postInput,sessionToken:'sem-sessao'
+}).code,'ACCESS_DENIED');
+assert.strictEqual(invoke('cipa_mural_create',{
+  ...postInput,jpegBase64:'aW52YWxpZG8='
+}).code,'INVALID_PHOTO');
+assert(invoke('cipa_mural_create',postInput).ok);
+assert.strictEqual(invoke('cipa_mural_create',postInput).duplicate,true);
+assert.strictEqual(invoke('cipa_mural_create',{
+  ...postInput,detail:'Tentativa de adulteração do ID'
+}).code,'ID_REUSED'); // Mesmo ID com outra descrição não altera relato.
+const secondMemberRecord={
+  mandateId:'mandate-A',workerId:'worker-A2',cipaRole:'Titular',
+  representation:'Empregados',
+};
+record('member-A2','company-A','CIPA_MEMBRO','Integrante de Teste','Ativo',
+  secondMemberRecord);
+const grantOther=invoke('cipa_member_admin_grant',{
+  authToken:'valid-admin',companyId:'company-A',
+  mandateId:'mandate-A',memberId:'member-A2',workerId:'worker-A2',
+  email:'outro@example.test',
+});
+assert(grantOther.ok);
+assert(invoke('cipa_member_begin',{email:'outro@example.test'}).ok);
+const otherMail=mail.find(x=>x.to==='outro@example.test');
+const otherCode=otherMail.body.match(/\b\d{8}\b/);
+const otherLogin=invoke('cipa_member_verify',{
+  email:'outro@example.test',code:otherCode[0],
+});
+assert(otherLogin.ok);
+assert.strictEqual(invoke('cipa_mural_list',{
+  sessionToken:otherLogin.sessionToken,
+}).posts.length,0,'Post pendente não aparece para colega');
+assert.strictEqual(invoke('cipa_mural_moderator_list',{
+  authToken:login.sessionToken,companyId:'company-A',
+  mandateId:'mandate-A',
+}).code,'ACCESS_DENIED','Membro não se torna moderador');
+assert.strictEqual(invoke('cipa_mural_moderator_list',{
+  authToken:'valid-admin',companyId:'company-B',mandateId:'mandate-B'
+}).posts.length,0,'Nenhum mural de outra empresa');
+assert.strictEqual(invoke('cipa_mural_moderator_list',{
+  authToken:'valid-tst',companyId:'company-A',mandateId:'mandate-A',
+}).code,'ACCESS_DENIED','TST sem delegação não modera mural');
+assert(invoke('cipa_tst_review_grant',{
+  authToken:'valid-admin',userId:'tst-A',companyId:'company-A',
+  mandateId:'mandate-A',operation:'grant',
+}).ok,'Administrador delega somente este mandato');
+assert(invoke('cipa_mural_moderator_list',{
+  authToken:'valid-tst',companyId:'company-A',mandateId:'mandate-A',
+}).ok,'TST delegado pode consultar a fila');
+assert.strictEqual(invoke('cipa_mural_moderator_list',{
+  authToken:'valid-tst',companyId:'company-B',mandateId:'mandate-B',
+}).code,'ACCESS_DENIED','Delegação não abre outra empresa');
+const modList=invoke('cipa_mural_moderator_list',{
+  authToken:'valid-admin',companyId:'company-A',mandateId:'mandate-A'
+});
+assert.strictEqual(modList.posts[0].visibility,'Pendente');
+assert.strictEqual(invoke('cipa_mural_moderate',{
+  authToken:'valid-admin',companyId:'company-A',mandateId:'mandate-A',
+  postId:postInput.requestId,visibility:'Aprovado',status:'Resolvido',
+}).code,'CONFIRMATION_REQUIRED','Não concluir sem confirmação técnica');
+assert(invoke('cipa_mural_moderate',{
+  authToken:'valid-admin',companyId:'company-A',mandateId:'mandate-A',
+  postId:postInput.requestId,visibility:'Aprovado',status:'Em análise',
+}).ok);
+const visible=invoke('cipa_mural_list',{
+  sessionToken:otherLogin.sessionToken,
+});
+assert.strictEqual(visible.posts.length,1);
+assert.strictEqual(visible.posts[0].isMine,false);
+assert.strictEqual(visible.posts[0].detail,postInput.detail);
+assert(!JSON.stringify(visible).includes('accountId')&&
+  !JSON.stringify(visible).includes('memberId'),
+  'Identificadores de membros não podem vazar para o mural');
+const comment={
+  sessionToken:otherLogin.sessionToken,postId:postInput.requestId,
+  requestId:'mural-comment-1234567890123456789',
+  body:'Esta passagem está sinalizada?',
+};
+assert(invoke('cipa_mural_comment',comment).ok);
+assert.strictEqual(invoke('cipa_mural_comment',comment).duplicate,true);
+const commentsBefore=invoke('cipa_mural_list',{
+  sessionToken:login.sessionToken,
+});
+assert.strictEqual(commentsBefore.posts[0].comments.length,0,
+  'Comentário pendente não fica público');
+const muralReply=invoke('cipa_mural_reply',{
+  authToken:'valid-admin',companyId:'company-A',mandateId:'mandate-A',
+  postId:postInput.requestId,requestId:'mural-reply-1234567890123456789',
+  body:'A equipe de SST vai avaliar a circulação.',
+});
+assert(muralReply.ok);
+assert.strictEqual(invoke('cipa_mural_list',{
+  sessionToken:login.sessionToken,
+}).posts[0].comments.length,1,'Resposta técnica aparece');
+assert(invoke('cipa_mural_moderate_comment',{
+  authToken:'valid-admin',companyId:'company-A',mandateId:'mandate-A',
+  commentId:comment.requestId,visibility:'Aprovado',
+}).ok);
+assert.strictEqual(invoke('cipa_mural_list',{
+  sessionToken:login.sessionToken,
+}).posts[0].comments.length,2);
+assert.strictEqual(invoke('cipa_mural_moderate_comment',{
+  authToken:'valid-admin',companyId:'company-B',mandateId:'mandate-B',
+  commentId:comment.requestId,visibility:'Aprovado',
+}).code,'NOT_FOUND','Sem moderação entre empresas');
+assert.strictEqual(invoke('cipa_mural_create',{
+  ...postInput,requestId:'mural-post-photo-1234567890123456',
+  jpegBase64:jpg,
+}).ok,true);
+assert.strictEqual(invoke('cipa_mural_photo',{
+  sessionToken:otherLogin.sessionToken,
+  postId:'mural-post-photo-1234567890123456',
+}).code,'NOT_FOUND','Foto pendente invisível a outros membros');
+assert.strictEqual(invoke('cipa_mural_photo',{
+  sessionToken:login.sessionToken,
+  postId:'mural-post-photo-1234567890123456',
+}).jpegBase64,jpg,'Autor vê foto própria pendente');
+assert(invoke('cipa_mural_moderate',{
+  authToken:'valid-admin',companyId:'company-A',mandateId:'mandate-A',
+  postId:'mural-post-photo-1234567890123456',
+  visibility:'Aprovado',status:'Em análise',
+}).ok);
+assert.strictEqual(invoke('cipa_mural_photo',{
+  sessionToken:otherLogin.sessionToken,
+  postId:'mural-post-photo-1234567890123456',
+}).jpegBase64,jpg,'Foto aprovada visível só em escopo');
+assert.strictEqual(invoke('cipa_mural_moderator_photo',{
+  authToken:'valid-admin',companyId:'company-B',mandateId:'mandate-B',
+  postId:'mural-post-photo-1234567890123456',
+}).code,'NOT_FOUND');
+assert(!JSON.stringify(invoke('cipa_mural_list',{
+  sessionToken:login.sessionToken,
+})).includes(jpg),'Fotos não são inseridas na listagem');
+assert.strictEqual(invoke('cipa_mural_moderate',{
+  authToken:'valid-admin',companyId:'company-A',mandateId:'mandate-A',
+  postId:postInput.requestId,visibility:'Aprovado',
+  status:'Resolvido',confirmedByResponsible:true,
+}).status,'Resolvido');
+assert.strictEqual(invoke('cipa_mural_moderate',{
+  authToken:'valid-admin',companyId:'company-A',mandateId:'mandate-A',
+  postId:postInput.requestId,visibility:'Não publicado',
+  status:'Em análise',
+}).visibility,'Não publicado');
+assert(!invoke('cipa_mural_list',{
+  sessionToken:otherLogin.sessionToken,
+}).posts.some(x=>x.id===postInput.requestId),
+  'Publicação ocultada não pode continuar no mural dos colegas');
+assert.strictEqual(invoke('cipa_mural_comment',{
+  ...comment,requestId:'mural-comment-1234567890123456780'
+}).code,'NOT_FOUND','Sem comentários em post ocultado');
 
 const revoke=invoke('cipa_member_admin_revoke',{
  authToken:'valid-admin',accountId:grant.id,

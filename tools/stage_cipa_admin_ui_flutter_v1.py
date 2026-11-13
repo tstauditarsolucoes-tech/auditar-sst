@@ -18,6 +18,9 @@ screen=root/"lib/screens/cipa_member_admin_screen.dart"
 screen.parent.mkdir(parents=True,exist_ok=True)
 assert not screen.exists()
 shutil.copyfile(repo/"feature_sources/cipa_member_admin_screen_v1.dart",screen)
+moderator=root/"lib/widgets/cipa_mural_moderation_panel.dart"
+moderator.parent.mkdir(parents=True,exist_ok=True)
+shutil.copyfile(repo/"feature_sources/cipa_mural_moderation_panel_v1.dart",moderator)
 for source,destination in [
     ("cipa_member_identity_v1.dart","cipa_member_identity.dart"),
     ("cipa_member_role_meetings_v1.dart","cipa_member_role_meetings.dart"),

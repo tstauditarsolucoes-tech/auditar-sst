@@ -16,10 +16,11 @@ repo=Path(__file__).resolve().parents[1]
 screen=app/"lib/screens/cipa_management_screen.dart"
 admin=app/"lib/screens/cipa_member_admin_screen.dart"
 role_guide=app/"lib/services/cipa_member_role_meetings.dart"
+mural_moderator=app/"lib/widgets/cipa_mural_moderation_panel.dart"
 assert screen.is_file() and (app/"lib/services/cipa_member_identity.dart").is_file()
-assert not admin.exists() and not role_guide.exists(),(
+assert not admin.exists() and not role_guide.exists() and not mural_moderator.exists(),(
     "Tela ou biblioteca de cargos já existe: não sobrescrever")
-allowed={screen,admin,role_guide}
+allowed={screen,admin,role_guide,mural_moderator}
 protected={
     p:hashlib.sha256(p.read_bytes()).hexdigest()
     for folder in [app/"lib",app/"painel_web_google_apps_script"]
@@ -74,6 +75,9 @@ s=once(s,"          title: const Text('CIPA'),\n          actions: [",
 screen.write_text(s,encoding="utf-8",newline="\n")
 shutil.copyfile(repo/"feature_sources/cipa_member_admin_screen_v1.dart",admin)
 shutil.copyfile(repo/"feature_sources/cipa_member_role_meetings_v1.dart",role_guide)
+mural_moderator.parent.mkdir(parents=True,exist_ok=True)
+shutil.copyfile(repo/"feature_sources/cipa_mural_moderation_panel_v1.dart",
+                mural_moderator)
 for p,d in protected.items():
     assert hashlib.sha256(p.read_bytes()).hexdigest()==d,str(p)
 assert s.count("CipaMemberAdminScreen(")==1

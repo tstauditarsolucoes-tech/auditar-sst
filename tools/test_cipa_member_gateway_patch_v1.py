@@ -57,6 +57,8 @@ with tempfile.TemporaryDirectory(prefix="cipa-member-gs-") as temp:
       backend/"CipaMemberPhotosV1.gs").read_text()
     assert "cipaTstMetrics_" in (
       backend/"CipaMemberMetricsV1.gs").read_text()
+    assert "cipaMuralCreate_" in (
+      backend/"CipaMemberMuralV1.gs").read_text()
     assert all(p.read_bytes()==b for p,b in before.items())
     tracked={
       p:hashlib.sha256(p.read_bytes()).hexdigest()
