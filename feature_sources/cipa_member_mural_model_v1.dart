@@ -11,9 +11,10 @@ class CipaMuralPost {
   const CipaMuralPost({required this.id,required this.place,
     required this.detail,required this.status,required this.visibility,
     required this.createdAt,required this.hasPhoto,required this.isMine,
-    required this.comments});
+    required this.comments,this.hasAfter=false,this.afterStatus=''});
   final String id,place,detail,status,visibility,createdAt;
-  final bool hasPhoto,isMine;
+  final bool hasPhoto,isMine,hasAfter;
+  final String afterStatus;
   final List<CipaMuralComment> comments;
 }
 class CipaMuralCodec {
@@ -75,6 +76,8 @@ class CipaMuralCodec {
         visibility:value('visibility'),
         createdAt:value('createdAt'),
         hasPhoto:data['hasPhoto']==true,isMine:data['isMine']==true,
+        hasAfter:data['hasAfter']==true,
+        afterStatus:value('afterStatus'),
         comments:List.unmodifiable(cs)));
     }
     return List.unmodifiable(parsed);
