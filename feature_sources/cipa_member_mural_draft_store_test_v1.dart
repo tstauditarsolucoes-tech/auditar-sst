@@ -33,7 +33,7 @@ void main(){
       now:DateTime(2026,11,22)).list(),throwsStateError);
     final staged=(files.single as File);
     await staged.rename(staged.path+'.next');
-    expect(await a.count(),1,'Recupera arquivo cifrado interrompido');
+    expect(await a.count(),1,reason:'Recupera arquivo cifrado interrompido');
     expect((await a.list()).single.id,id);
     await a.delete(id);
     expect(await a.count(),0);
