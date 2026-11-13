@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
@@ -8,6 +9,7 @@ import '../services/auth_service.dart';
 import '../services/web_service_config.dart';
 import '../widgets/cipa_manager_metrics_panel.dart';
 import '../services/cipa_member_role_meetings.dart';
+import '../widgets/cipa_mural_moderation_panel.dart';
 
 class CipaAdminMemberOption {
   const CipaAdminMemberOption({
@@ -391,6 +393,41 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
     if(mounted&&error.isEmpty)await _reload();
   }
 
+
+  Future<List<Map<String,dynamic>>> _muralList() async {
+    final data=await _call('cipa_mural_moderator_list');
+    final rows=data['posts'];
+    return rows is List?rows.whereType<Map>()
+      .map((row)=>Map<String,dynamic>.from(row)).toList():[];
+  }
+  Future<void> _muralReview(
+    String id,String visibility,String status,bool verified) async {
+    await _call('cipa_mural_moderate',{
+      'postId':id,'visibility':visibility,'status':status,
+      'confirmedByResponsible':verified,
+    });
+  }
+  Future<void> _muralReviewComment(String id,bool approved) async {
+    await _call('cipa_mural_moderate_comment',{
+      'commentId':id,'visibility':approved?'Aprovado':'Não publicado',
+    });
+  }
+  Future<void> _muralReply(String id,String text,String requestId) async {
+    await _call('cipa_mural_reply',{
+      'postId':id,'body':text,'requestId':requestId,
+    });
+  }
+  Future<Uint8List?> _muralPhoto(String id) async {
+    final data=await _call('cipa_mural_moderator_photo',{'postId':id});
+    if(data['hasPhoto']!=true)return null;
+    final encoded=(data['jpegBase64']??'').toString();
+    if(encoded.length>340000)throw StateError('Foto muito grande.');
+    final bytes=Uint8List.fromList(base64Decode(encoded));
+    if(bytes.length<8||bytes.length>250000)
+      throw StateError('Foto inválida.');
+    return bytes;
+  }
+
   @override
   Widget build(BuildContext context) {
     if(!AuthService.isAdmin)return const Scaffold(
@@ -509,6 +546,10 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
                     child:const Text('Cancelar')),
                 ),
             ]))),
+          CipaMuralModerationPanel(
+            onLoad:_muralList,onReview:_muralReview,
+            onCommentReview:_muralReviewComment,
+            onReply:_muralReply,onPhoto:_muralPhoto),
           CipaManagerMetricsPanel(companyId:widget.companyId,
             mandateId:widget.mandateId,serverData:metrics),
           Card(child:Padding(padding:const EdgeInsets.all(12),
