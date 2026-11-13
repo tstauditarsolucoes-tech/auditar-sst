@@ -41,7 +41,12 @@ const photoStore={
       getId(){return this.id;},
       getSharingAccess:()=> 'PRIVATE',
       getViewers:()=>[],getEditors:()=>[],
-      getParents:()=>({hasNext:()=>true,next:()=>photoStore}),
+      getParents:()=>{
+        let consumed=false;
+        return {hasNext:()=>!consumed,next:()=>{
+          consumed=true;return photoStore;
+        }};
+      },
       getBlob(){return {getBytes:()=>Array.from(bytes)};},
       setTrashed(v){this.trashed=v;},
     };
