@@ -22,7 +22,7 @@ assert "name: auditar_cipa_membro" in yaml, (
 assert "  http:" not in yaml
 anchor="\ndependencies:\n"
 assert yaml.count(anchor)==1
-yaml=yaml.replace(anchor,anchor+"  http: ^1.3.0\n",1)
+yaml=yaml.replace(anchor,anchor+"  http: ^1.3.0\n"\n    "  image_picker: ^1.2.2\n  image: ^4.3.0\n",1)
 pubspec.write_text(yaml,encoding="utf-8")
 
 pairs={
