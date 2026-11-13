@@ -16,7 +16,7 @@ void main(){
     (tester)async{
     await tester.pumpWidget(const MaterialApp(home:Scaffold(
       body:SingleChildScrollView(child:CipaMuralPanel(offline:true)))));
-    expect(find.textContaining('indisponível offline'),findsOneWidget);
+    expect(find.textContaining('não ficam salvas offline'),findsOneWidget);
     expect(find.text('Registrar ocorrência'),findsNothing);
   });
   testWidgets('Mural inclui publicação e resposta aprovada',
