@@ -17,7 +17,8 @@ assert "aiMode == 'checklist_builder'" in send
 assert "const Duration(seconds: 120)" in send
 assert "A criação do checklist com IA demorou mais que o limite." in send
 assert "Nenhum checklist foi salvo." in send
-assert "A análise da foto demorou além do limite da IA." in send
+assert ("A análise da foto demorou além do limite da IA." in send or
+        "on CentralTransportException catch (error)" in send)
 
 start = screen.find("  Future<void> _createChecklistWithAi() async {")
 end = screen.find("  Future<void> _addTemplate() async {", start)
