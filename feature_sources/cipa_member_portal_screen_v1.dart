@@ -27,11 +27,15 @@ class CipaMemberPortalScreen extends StatefulWidget {
     this.onEnableOffline,this.onSyncPending,this.onDraftSaved,
     this.onLoadPending,this.lastSync,
     this.onLoadMural,this.onCreateMural,this.onCommentMural,this.onPhotoMural,
+    this.onLoadAvatar,this.onSaveAvatar,this.onDeleteAvatar,
   });
   final Future<List<CipaMuralPost>> Function()? onLoadMural;
   final Future<void> Function(String place,String detail,Uint8List? photo)? onCreateMural;
   final Future<void> Function(String id,String text)? onCommentMural;
   final Future<Uint8List?> Function(String id)? onPhotoMural;
+  final Future<Uint8List?> Function()? onLoadAvatar;
+  final Future<void> Function(Uint8List jpeg)? onSaveAvatar;
+  final Future<void> Function()? onDeleteAvatar;
   final String companyName,mandateLabel;
   final CipaMemberView? view;
   final bool sessionVerified,offlineMode;
@@ -535,7 +539,10 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
       body:SafeArea(child:ListView(
         padding:const EdgeInsets.fromLTRB(12,12,12,64),children:[
         CipaMemberAccessHeader(profile:profile,
-          companyName:widget.companyName,mandateLabel:widget.mandateLabel),
+          companyName:widget.companyName,mandateLabel:widget.mandateLabel,
+          onLoadAvatar:widget.offlineMode?null:widget.onLoadAvatar,
+          onSaveAvatar:widget.offlineMode?null:widget.onSaveAvatar,
+          onDeleteAvatar:widget.offlineMode?null:widget.onDeleteAvatar),
         Card(child:Padding(padding:const EdgeInsets.all(12),
           child:Column(
             crossAxisAlignment:CrossAxisAlignment.stretch,children:[
