@@ -16,6 +16,7 @@ on:
       - feature/cipa-confiabilidade-acessibilidade-sync-20261113
       - feature/cipa-missao-aprender-apoio-impacto-20261113
       - feature/cipa-reuniao-ata-funcoes-guiadas-20261113
+      - feature/minha-cipa-nome-oficial-20261113
     paths:
       - 'feature_sources/CipaMemberGatewayV1.gs'
       - 'feature_sources/CipaMemberPhotosV1.gs'

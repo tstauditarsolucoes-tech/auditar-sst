@@ -105,7 +105,7 @@ if 'android.permission.INTERNET' not in xml:
         '<uses-permission android:name="android.permission.INTERNET"/>\n'
         '    <application',1)
 xml=xml.replace('android:label="auditar_cipa_membro"',
-                'android:label="Minha CIPA - Auditar"')
+                'android:label="Minha CIPA"')
 manifest.write_text(xml,encoding="utf-8")
 
 # Nenhum código operacional, banco, autenticação técnica ou chave de sync.

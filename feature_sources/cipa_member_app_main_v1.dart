@@ -21,7 +21,7 @@ class AuditarCipaMemberApp extends StatelessWidget {
   @override
   Widget build(BuildContext context)=>MaterialApp(
     debugShowCheckedModeBanner:false,
-    title:'Minha CIPA • Auditar',
+    title:'Minha CIPA',
     theme:ThemeData(
       useMaterial3:true,
       colorScheme:ColorScheme.fromSeed(seedColor:const Color(0xFF17477D)),
@@ -438,7 +438,7 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
       );
     }
     return Scaffold(
-      appBar:AppBar(title:const Text('Minha CIPA • Auditar')),
+      appBar:AppBar(title:const Text('Minha CIPA')),
       body:SafeArea(child:Center(
         child:SingleChildScrollView(
           padding:const EdgeInsets.all(18),
