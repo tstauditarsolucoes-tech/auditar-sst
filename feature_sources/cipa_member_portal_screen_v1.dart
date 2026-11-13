@@ -565,8 +565,6 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
           onLoadAvatar:widget.offlineMode?null:widget.onLoadAvatar,
           onSaveAvatar:widget.offlineMode?null:widget.onSaveAvatar,
           onDeleteAvatar:widget.offlineMode?null:widget.onDeleteAvatar),
-        CipaTodayPanel(view:view,offlineMode:widget.offlineMode,
-          onSelect:_goToToday),
         Card(child:Padding(padding:const EdgeInsets.all(12),
           child:Column(
             crossAxisAlignment:CrossAxisAlignment.stretch,children:[
@@ -692,6 +690,8 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
               'A equipe de SST confere os relatos e as ações.',
               style:TextStyle(fontSize:14)),
           ]))),
+        CipaTodayPanel(view:view,offlineMode:widget.offlineMode,
+          onSelect:_goToToday),
         KeyedSubtree(key:_muralSection,
           child:CipaMuralPanel(
             key:ValueKey('mural-'+profile.userId+'-'+profile.companyId+
