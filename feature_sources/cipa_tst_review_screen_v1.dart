@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../services/apps_script_http.dart';
 import '../services/auth_service.dart';
 import '../services/web_service_config.dart';
 import '../widgets/cipa_manager_metrics_panel.dart';
+import '../widgets/cipa_mural_moderation_panel.dart';
 
 /// Apenas consultar observações e responder: controle real fica no servidor.
 class CipaTstReviewScreen extends StatefulWidget {
@@ -196,6 +198,41 @@ class _CipaTstReviewScreenState extends State<CipaTstReviewScreen> {
       ),
     );
   }
+
+  Future<List<Map<String,dynamic>>> _muralList() async {
+    final data=await _call('cipa_mural_moderator_list');
+    final rows=data['posts'];
+    return rows is List?rows.whereType<Map>()
+      .map((row)=>Map<String,dynamic>.from(row)).toList():[];
+  }
+  Future<void> _muralReview(
+    String id,String visibility,String status,bool verified) async {
+    await _call('cipa_mural_moderate',{
+      'postId':id,'visibility':visibility,'status':status,
+      'confirmedByResponsible':verified,
+    });
+  }
+  Future<void> _muralReviewComment(String id,bool approved) async {
+    await _call('cipa_mural_moderate_comment',{
+      'commentId':id,'visibility':approved?'Aprovado':'Não publicado',
+    });
+  }
+  Future<void> _muralReply(String id,String text,String requestId) async {
+    await _call('cipa_mural_reply',{
+      'postId':id,'body':text,'requestId':requestId,
+    });
+  }
+  Future<Uint8List?> _muralPhoto(String id) async {
+    final data=await _call('cipa_mural_moderator_photo',{'postId':id});
+    if(data['hasPhoto']!=true)return null;
+    final encoded=(data['jpegBase64']??'').toString();
+    if(encoded.length>340000)throw StateError('Foto muito grande.');
+    final bytes=Uint8List.fromList(base64Decode(encoded));
+    if(bytes.length<8||bytes.length>250000)
+      throw StateError('Foto inválida.');
+    return bytes;
+  }
+
   @override Widget build(BuildContext context) {
     return Scaffold(
       appBar:AppBar(title:const Text('Vistorias da CIPA'),actions:[
