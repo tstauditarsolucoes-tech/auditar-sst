@@ -439,6 +439,9 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
         onCreateMural:offlineUnlocked?null:api.muralCreate,
         onCommentMural:offlineUnlocked?null:api.muralComment,
         onPhotoMural:offlineUnlocked?null:api.muralPhoto,
+        onLoadAvatar:offlineUnlocked?null:api.loadAvatar,
+        onSaveAvatar:offlineUnlocked?null:api.saveAvatar,
+        onDeleteAvatar:offlineUnlocked?null:api.deleteAvatar,
       );
     }
     return Scaffold(
