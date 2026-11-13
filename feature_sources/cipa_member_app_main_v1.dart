@@ -439,6 +439,8 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
         onCreateMural:offlineUnlocked?null:api.muralCreate,
         onCommentMural:offlineUnlocked?null:api.muralComment,
         onPhotoMural:offlineUnlocked?null:api.muralPhoto,
+        onSubmitAfter:offlineUnlocked?null:api.submitAfterPhoto,
+        onPhotoAfter:offlineUnlocked?null:api.afterPhoto,
         onLoadAvatar:offlineUnlocked?null:api.loadAvatar,
         onSaveAvatar:offlineUnlocked?null:api.saveAvatar,
         onDeleteAvatar:offlineUnlocked?null:api.deleteAvatar,
