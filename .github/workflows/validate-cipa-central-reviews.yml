@@ -37,6 +37,10 @@ on:
       - 'feature_sources/cipa_member_role_meeting_panel_v1.dart'
       - 'feature_sources/cipa_member_role_meetings_test_v1.dart'
       - 'feature_sources/cipa_member_role_meeting_panel_test_v1.dart'
+      - 'feature_sources/cipa_member_admin_role_onboarding_test_v1.dart'
+      - 'tools/patch_cipa_role_onboarding_v1.py'
+      - 'tools/test_cipa_role_onboarding_patch_v1.py'
+      - 'tools/stage_cipa_admin_ui_flutter_v1.py'
       - 'feature_sources/cipa_member_draft_store_test_v1.dart'
       - 'feature_sources/cipa_member_draft_widget_test_v1.dart'
       - 'feature_sources/cipa_member_home_alerts_v1.dart'
@@ -98,6 +102,7 @@ jobs:
           node --check /tmp/CipaMemberInspectionSchedulesV1.js
           node tools/test_cipa_member_gateway_v1.cjs
           python3 tools/test_cipa_member_gateway_patch_v1.py
+          python3 tools/test_cipa_role_onboarding_patch_v1.py
   flutter-admin:
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -115,12 +120,13 @@ jobs:
           mkdir -p /tmp/cipa_admin_fixture/lib/widgets
           cp feature_sources/cipa_manager_metrics_panel_v1.dart /tmp/cipa_admin_fixture/lib/widgets/cipa_manager_metrics_panel.dart
           cp feature_sources/cipa_manager_metrics_panel_test_v1.dart /tmp/cipa_admin_fixture/test/cipa_manager_metrics_panel_test.dart
+          cp feature_sources/cipa_member_admin_role_onboarding_test_v1.dart /tmp/cipa_admin_fixture/test/cipa_member_admin_role_onboarding_test.dart
           cp feature_sources/cipa_tst_review_screen_v1.dart /tmp/cipa_admin_fixture/lib/screens/cipa_tst_review_screen.dart
           cp feature_sources/cipa_tst_review_smoke_test_v1.dart /tmp/cipa_admin_fixture/test/cipa_tst_review_smoke_test.dart
           cd /tmp/cipa_admin_fixture
           dart format lib test
           flutter analyze --no-fatal-infos --no-fatal-warnings lib test
-          flutter test --reporter expanded test/cipa_admin_screen_smoke_test.dart test/cipa_admin_review_smoke_test.dart test/cipa_tst_review_smoke_test.dart test/cipa_manager_metrics_panel_test.dart
+          flutter test --reporter expanded test/cipa_admin_screen_smoke_test.dart test/cipa_admin_review_smoke_test.dart test/cipa_tst_review_smoke_test.dart test/cipa_manager_metrics_panel_test.dart test/cipa_member_admin_role_onboarding_test.dart
   flutter-member-api:
     runs-on: ubuntu-latest
     timeout-minutes: 25
