@@ -17,8 +17,16 @@ on:
       - feature/cipa-missao-aprender-apoio-impacto-20261113
       - feature/cipa-reuniao-ata-funcoes-guiadas-20261113
       - feature/minha-cipa-nome-oficial-20261113
+      - feature/minha-cipa-mural-moderado-20261113
     paths:
       - 'feature_sources/CipaMemberGatewayV1.gs'
+      - 'feature_sources/CipaMemberMuralV1.gs'
+      - 'feature_sources/cipa_member_mural_model_v1.dart'
+      - 'feature_sources/cipa_member_mural_model_test_v1.dart'
+      - 'feature_sources/cipa_member_mural_panel_v1.dart'
+      - 'feature_sources/cipa_member_mural_panel_test_v1.dart'
+      - 'feature_sources/cipa_mural_moderation_panel_v1.dart'
+      - 'feature_sources/cipa_mural_moderation_panel_test_v1.dart'
       - 'feature_sources/CipaMemberPhotosV1.gs'
       - 'feature_sources/CipaMemberMetricsV1.gs'
       - 'feature_sources/cipa_manager_metrics_panel_v1.dart'
@@ -88,6 +96,7 @@ jobs:
         run: |
           set -euo pipefail
           cp feature_sources/CipaMemberGatewayV1.gs /tmp/CipaMemberGatewayV1.js
+          cp feature_sources/CipaMemberMuralV1.gs /tmp/CipaMemberMuralV1.js
           cp feature_sources/CipaMemberPhotosV1.gs /tmp/CipaMemberPhotosV1.js
           cp feature_sources/CipaMemberMetricsV1.gs /tmp/CipaMemberMetricsV1.js
           cp feature_sources/CipaMemberReviewsV1.gs /tmp/CipaMemberReviewsV1.js
@@ -95,6 +104,7 @@ jobs:
           cp feature_sources/CipaTstReviewAccessV1.gs /tmp/CipaTstReviewAccessV1.js
           cp feature_sources/CipaMemberInspectionSchedulesV1.gs /tmp/CipaMemberInspectionSchedulesV1.js
           node --check /tmp/CipaMemberGatewayV1.js
+          node --check /tmp/CipaMemberMuralV1.js
           node --check /tmp/CipaMemberPhotosV1.js
           node --check /tmp/CipaMemberMetricsV1.js
           node --check /tmp/CipaMemberReviewsV1.js
@@ -122,12 +132,13 @@ jobs:
           cp feature_sources/cipa_manager_metrics_panel_v1.dart /tmp/cipa_admin_fixture/lib/widgets/cipa_manager_metrics_panel.dart
           cp feature_sources/cipa_manager_metrics_panel_test_v1.dart /tmp/cipa_admin_fixture/test/cipa_manager_metrics_panel_test.dart
           cp feature_sources/cipa_member_admin_role_onboarding_test_v1.dart /tmp/cipa_admin_fixture/test/cipa_member_admin_role_onboarding_test.dart
+          cp feature_sources/cipa_mural_moderation_panel_test_v1.dart /tmp/cipa_admin_fixture/test/cipa_mural_moderation_panel_test.dart
           cp feature_sources/cipa_tst_review_screen_v1.dart /tmp/cipa_admin_fixture/lib/screens/cipa_tst_review_screen.dart
           cp feature_sources/cipa_tst_review_smoke_test_v1.dart /tmp/cipa_admin_fixture/test/cipa_tst_review_smoke_test.dart
           cd /tmp/cipa_admin_fixture
           dart format lib test
           flutter analyze --no-fatal-infos --no-fatal-warnings lib test
-          flutter test --reporter expanded test/cipa_admin_screen_smoke_test.dart test/cipa_admin_review_smoke_test.dart test/cipa_tst_review_smoke_test.dart test/cipa_manager_metrics_panel_test.dart test/cipa_member_admin_role_onboarding_test.dart
+          flutter test --reporter expanded test/cipa_admin_screen_smoke_test.dart test/cipa_admin_review_smoke_test.dart test/cipa_tst_review_smoke_test.dart test/cipa_manager_metrics_panel_test.dart test/cipa_member_admin_role_onboarding_test.dart test/cipa_mural_moderation_panel_test.dart
   flutter-member-api:
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -143,11 +154,12 @@ jobs:
           mkdir -p /tmp/cipa_member_fixture/lib/services
           cp feature_sources/cipa_member_identity_v1.dart /tmp/cipa_member_fixture/lib/services/cipa_member_identity.dart
           cp feature_sources/cipa_member_portal_policy_v1.dart /tmp/cipa_member_fixture/lib/services/cipa_member_portal_policy.dart
+          cp feature_sources/cipa_member_mural_model_v1.dart /tmp/cipa_member_fixture/lib/services/cipa_member_mural_model.dart
           cp feature_sources/cipa_member_api_v1.dart /tmp/cipa_member_fixture/lib/services/cipa_member_api.dart
           cp feature_sources/cipa_member_api_test_v1.dart /tmp/cipa_member_fixture/test/cipa_member_api_test.dart
           rm /tmp/cipa_member_fixture/test/widget_test.dart
           cd /tmp/cipa_member_fixture
-          flutter pub add http
+          flutter pub add http image
           dart format lib test
           flutter analyze --no-fatal-infos --no-fatal-warnings lib test
           flutter test --reporter expanded test/cipa_member_api_test.dart
@@ -169,6 +181,8 @@ jobs:
           cp feature_sources/cipa_member_portal_policy_v1.dart /tmp/cipa_member_ui_fixture/lib/services/cipa_member_portal_policy.dart
           cp feature_sources/cipa_member_home_alerts_v1.dart /tmp/cipa_member_ui_fixture/lib/services/cipa_member_home_alerts.dart
           cp feature_sources/cipa_member_engagement_v1.dart /tmp/cipa_member_ui_fixture/lib/services/cipa_member_engagement.dart
+          cp feature_sources/cipa_member_mural_model_v1.dart /tmp/cipa_member_ui_fixture/lib/services/cipa_member_mural_model.dart
+          cp feature_sources/cipa_member_mural_model_test_v1.dart /tmp/cipa_member_ui_fixture/test/cipa_member_mural_model_test.dart
           cp feature_sources/cipa_member_role_meetings_v1.dart /tmp/cipa_member_ui_fixture/lib/services/cipa_member_role_meetings.dart
           cp feature_sources/cipa_member_role_meetings_test_v1.dart /tmp/cipa_member_ui_fixture/test/cipa_member_role_meetings_test.dart
           cp feature_sources/cipa_member_engagement_test_v1.dart /tmp/cipa_member_ui_fixture/test/cipa_member_engagement_test.dart
@@ -176,6 +190,8 @@ jobs:
           cp feature_sources/cipa_member_access_header_v1.dart /tmp/cipa_member_ui_fixture/lib/widgets/cipa_member_access_header.dart
           cp feature_sources/cipa_member_guided_inspection_v1.dart /tmp/cipa_member_ui_fixture/lib/widgets/cipa_member_guided_inspection.dart
           cp feature_sources/cipa_member_engagement_panel_v1.dart /tmp/cipa_member_ui_fixture/lib/widgets/cipa_member_engagement_panel.dart
+          cp feature_sources/cipa_member_mural_panel_v1.dart /tmp/cipa_member_ui_fixture/lib/widgets/cipa_member_mural_panel.dart
+          cp feature_sources/cipa_member_mural_panel_test_v1.dart /tmp/cipa_member_ui_fixture/test/cipa_member_mural_panel_test.dart
           cp feature_sources/cipa_member_role_meeting_panel_v1.dart /tmp/cipa_member_ui_fixture/lib/widgets/cipa_member_role_meeting_panel.dart
           cp feature_sources/cipa_member_role_meeting_panel_test_v1.dart /tmp/cipa_member_ui_fixture/test/cipa_member_role_meeting_panel_test.dart
           cp feature_sources/cipa_member_engagement_panel_test_v1.dart /tmp/cipa_member_ui_fixture/test/cipa_member_engagement_panel_test.dart
@@ -190,7 +206,7 @@ jobs:
           flutter pub add image_picker image cryptography flutter_secure_storage path_provider flutter_tts
           dart format lib test
           flutter analyze --no-fatal-infos --no-fatal-warnings lib test
-          flutter test --reporter expanded test/cipa_member_portal_screen_test.dart test/cipa_member_portal_simple_test.dart test/cipa_member_guided_inspection_test.dart test/cipa_member_draft_widget_test.dart test/cipa_member_home_alerts_test.dart test/cipa_member_engagement_test.dart test/cipa_member_engagement_panel_test.dart test/cipa_member_role_meetings_test.dart test/cipa_member_role_meeting_panel_test.dart
+          flutter test --reporter expanded test/cipa_member_portal_screen_test.dart test/cipa_member_portal_simple_test.dart test/cipa_member_guided_inspection_test.dart test/cipa_member_draft_widget_test.dart test/cipa_member_home_alerts_test.dart test/cipa_member_engagement_test.dart test/cipa_member_engagement_panel_test.dart test/cipa_member_role_meetings_test.dart test/cipa_member_role_meeting_panel_test.dart test/cipa_member_mural_model_test.dart test/cipa_member_mural_panel_test.dart
 
   flutter-member-app:
     runs-on: ubuntu-latest
@@ -209,4 +225,4 @@ jobs:
           flutter pub get
           dart format lib test
           flutter analyze --no-fatal-infos --no-fatal-warnings lib test
-          flutter test --reporter expanded test/cipa_member_portal_screen_test.dart test/cipa_member_api_test.dart test/cipa_member_draft_store_test.dart test/cipa_member_offline_cache_test.dart test/cipa_member_pending_sync_test.dart test/cipa_member_multi_draft_test.dart test/cipa_member_recovery_test.dart test/cipa_member_engagement_test.dart test/cipa_member_engagement_panel_test.dart test/cipa_member_role_meetings_test.dart test/cipa_member_role_meeting_panel_test.dart
+          flutter test --reporter expanded test/cipa_member_portal_screen_test.dart test/cipa_member_api_test.dart test/cipa_member_draft_store_test.dart test/cipa_member_offline_cache_test.dart test/cipa_member_pending_sync_test.dart test/cipa_member_multi_draft_test.dart test/cipa_member_recovery_test.dart test/cipa_member_engagement_test.dart test/cipa_member_engagement_panel_test.dart test/cipa_member_role_meetings_test.dart test/cipa_member_role_meeting_panel_test.dart test/cipa_member_mural_model_test.dart test/cipa_member_mural_panel_test.dart
