@@ -27,6 +27,9 @@ function cipaMemV1Route_(request) {
     'cipa_member_ack_feedback',
     'cipa_member_photo_upload','cipa_member_photo_list',
     'cipa_member_photo_get','cipa_tst_photo_list','cipa_tst_photo_get',
+    'cipa_member_avatar_get','cipa_member_avatar_save',
+    'cipa_member_avatar_delete','cipa_member_admin_avatar_save',
+    'cipa_member_admin_avatar_delete',
     'cipa_tst_metrics'];
   if(known.indexOf(action)<0)return null;
   if(PropertiesService.getScriptProperties().getProperty('CIPA_MEMBER_V1_ENABLED')!=='true')
@@ -36,6 +39,11 @@ function cipaMemV1Route_(request) {
     if(action==='cipa_member_verify')return cipaMemV1Verify_(request);
     if(action==='cipa_member_dashboard')return cipaMemV1Dashboard_(request);
     if(action==='cipa_member_event')return cipaMemV1Event_(request);
+    if(action==='cipa_member_avatar_get')return cipaAvatarV1MemberGet_(request);
+    if(action==='cipa_member_avatar_save')return cipaAvatarV1MemberSave_(request);
+    if(action==='cipa_member_avatar_delete')return cipaAvatarV1MemberDelete_(request);
+    if(action==='cipa_member_admin_avatar_save')return cipaAvatarV1AdminSave_(request);
+    if(action==='cipa_member_admin_avatar_delete')return cipaAvatarV1AdminDelete_(request);
     if(action==='cipa_member_photo_upload')return cipaPhotoV1Upload_(request);
     if(action==='cipa_member_photo_list')return cipaPhotoV1List_(request,false);
     if(action==='cipa_member_photo_get')return cipaPhotoV1Get_(request,false);
