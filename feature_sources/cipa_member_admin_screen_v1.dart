@@ -10,6 +10,7 @@ import '../services/web_service_config.dart';
 import '../widgets/cipa_manager_metrics_panel.dart';
 import '../services/cipa_member_role_meetings.dart';
 import '../widgets/cipa_mural_moderation_panel.dart';
+import '../widgets/cipa_minutes_review_panel.dart';
 
 class CipaAdminMemberOption {
   const CipaAdminMemberOption({
@@ -428,6 +429,20 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
     return bytes;
   }
 
+
+  Future<List<Map<String,dynamic>>> _minutesStaffList() async{
+    final reply=await _call('cipa_minutes_staff_list');
+    final data=reply['minutes'];
+    if(data is! List)return const [];
+    return data.whereType<Map>()
+      .map((row)=>Map<String,dynamic>.from(row)).toList();
+  }
+  Future<void> _minutesStaffReview(String id,String status,String note) async{
+    await _call('cipa_minutes_review',{
+      'minuteId':id,'status':status,'note':note,
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if(!AuthService.isAdmin)return const Scaffold(
@@ -546,6 +561,8 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
                     child:const Text('Cancelar')),
                 ),
             ]))),
+          CipaMinutesReviewPanel(
+            onLoad:_minutesStaffList,onReview:_minutesStaffReview),
           CipaMuralModerationPanel(
             onLoad:_muralList,onReview:_muralReview,
             onCommentReview:_muralReviewComment,
