@@ -763,12 +763,12 @@ const commentsBefore=invoke('cipa_mural_list',{
 });
 assert.strictEqual(commentsBefore.posts[0].comments.length,0,
   'Comentário pendente não fica público');
-const reply=invoke('cipa_mural_reply',{
+const muralReply=invoke('cipa_mural_reply',{
   authToken:'valid-admin',companyId:'company-A',mandateId:'mandate-A',
   postId:postInput.requestId,requestId:'mural-reply-1234567890123456789',
   body:'A equipe de SST vai avaliar a circulação.',
 });
-assert(reply.ok);
+assert(muralReply.ok);
 assert.strictEqual(invoke('cipa_mural_list',{
   sessionToken:login.sessionToken,
 }).posts[0].comments.length,1,'Resposta técnica aparece');
