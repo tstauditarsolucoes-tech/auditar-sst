@@ -34,11 +34,17 @@ function cipaMemV1Route_(request) {
     'cipa_mural_reply','cipa_mural_moderator_photo',
     'cipa_member_avatar_get','cipa_member_avatar_save',
     'cipa_member_avatar_delete','cipa_member_admin_avatar_save',
-    'cipa_member_admin_avatar_delete'];
+    'cipa_member_admin_avatar_delete',
+    'cipa_minutes_submit','cipa_minutes_list',
+    'cipa_minutes_staff_list','cipa_minutes_review'];
   if(known.indexOf(action)<0)return null;
   if(PropertiesService.getScriptProperties().getProperty('CIPA_MEMBER_V1_ENABLED')!=='true')
     return {ok:false,code:'FEATURE_DISABLED',message:'Acesso de membros ainda não habilitado.'};
   try {
+    if(action==='cipa_minutes_submit')return cipaMinutesV1Submit_(request);
+    if(action==='cipa_minutes_list')return cipaMinutesV1MemberList_(request);
+    if(action==='cipa_minutes_staff_list')return cipaMinutesV1StaffList_(request);
+    if(action==='cipa_minutes_review')return cipaMinutesV1Review_(request);
     if(action==='cipa_member_avatar_get')return cipaAvatarV1MemberGet_(request);
     if(action==='cipa_member_avatar_save')return cipaAvatarV1MemberSave_(request);
     if(action==='cipa_member_avatar_delete')return cipaAvatarV1MemberDelete_(request);
