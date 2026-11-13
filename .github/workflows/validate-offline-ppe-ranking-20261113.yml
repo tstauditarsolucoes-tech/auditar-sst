@@ -1,0 +1,34 @@
+name: Validar seleção de EPI respiratório offline
+on:
+  push:
+    branches:
+      - feature/auditar-sst-offline-ranking-ajuste-20261113
+    paths:
+      - 'feature_sources/offline_report_inline_suggestions_v329175.dart'
+      - 'feature_sources/offline_respiration_ranking_regression_v20261113.dart'
+      - '.github/workflows/validate-offline-ppe-ranking-20261113.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-ranking:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Validar regras em aplicativo fictício sem rede ou dados reais
+        run: |
+          set -euo pipefail
+          flutter create --platforms=android --project-name auditar_sst /tmp/auditar_offline_ranking
+          mkdir -p /tmp/auditar_offline_ranking/lib/services /tmp/auditar_offline_ranking/lib/widgets
+          cp feature_sources/offline_reasoning_v329175.dart /tmp/auditar_offline_ranking/lib/services/offline_reasoning.dart
+          cp feature_sources/offline_report_inline_suggestions_v329175.dart /tmp/auditar_offline_ranking/lib/widgets/offline_report_inline_suggestions.dart
+          cp feature_sources/offline_respiration_ranking_regression_v20261113.dart /tmp/auditar_offline_ranking/test/offline_respiration_ranking_test.dart
+          cd /tmp/auditar_offline_ranking
+          flutter pub add path_provider
+          dart format lib test
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/offline_respiration_ranking_test.dart
