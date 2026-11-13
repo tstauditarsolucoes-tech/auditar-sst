@@ -75,6 +75,24 @@ void main(){
     }finally{await dir.delete(recursive:true);}
   });
 
+  test('Retrocesso abrupto do relógio exige autenticação online',()async{
+    final dir=await Directory.systemTemp.createTemp('cipa-clock-');
+    var clock=DateTime.utc(2026,11,13,12);
+    try {
+      final cache=CipaMemberOfflineCache(
+        vault:MemoryVault(),directory:()async=>dir,clock:()=>clock);
+      await cache.enroll('joana@example.test','314159',testView());
+      clock=clock.add(const Duration(hours:2));
+      expect((await cache.unlock('joana@example.test','314159'))
+        .view.myActions.length,1);
+      clock=clock.subtract(const Duration(hours:1));
+      await expectLater(cache.unlock('joana@example.test','314159'),
+        throwsStateError);
+      await cache.updateFromServer('joana@example.test',testView());
+      expect((await cache.unlock('joana@example.test','314159'))
+        .view.myActions.length,1);
+    }finally{await dir.delete(recursive:true);}
+  });
   test('PIN incorreto bloqueia consulta offline após cinco tentativas',()async{
     final dir=await Directory.systemTemp.createTemp('cipa-pin-');
     try {
