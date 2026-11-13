@@ -442,6 +442,8 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
         onLoadAvatar:offlineUnlocked?null:api.loadAvatar,
         onSaveAvatar:offlineUnlocked?null:api.saveAvatar,
         onDeleteAvatar:offlineUnlocked?null:api.deleteAvatar,
+        onSendMinutes:offlineUnlocked?null:api.submitMinutes,
+        onListMinutes:offlineUnlocked?null:api.myMinutes,
       );
     }
     return Scaffold(
