@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'screens/cipa_member_portal_screen.dart';
 import 'services/cipa_member_api.dart';
+import 'services/cipa_member_draft_store.dart';
 import 'services/cipa_member_portal_policy.dart';
 
 void main() {
@@ -35,6 +36,10 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
     'AUDITAR_MEMBER_ENDPOINT',defaultValue:'');
   late final CipaMemberApi api=CipaMemberApi(
     endpoint:endpoint,onSessionRevoked:(){
+      final person=view;
+      if(person!=null){
+        _draftStoreFor(person).clearAllForMember().catchError((_) {});
+      }
       if(mounted)setState(()=>view=null);
     });
   final email=TextEditingController(),code=TextEditingController();
@@ -112,7 +117,19 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
       rethrow;
     }
   }
+  CipaMemberDraftStore _draftStoreFor(CipaMemberView person){
+    final p=person.profile;
+    return CipaMemberDraftStore(
+      accountId:p.userId,companyId:p.companyId,
+      mandateId:p.mandateId,memberId:p.memberId);
+  }
+
   Future<void> _logout() async {
+    final current=view;
+    if(current!=null){
+      try {await _draftStoreFor(current).clearAllForMember();}
+      catch (_) {/* Não impedir a saída nem expor conteúdo criptografado. */}
+    }
     await api.logout();
     if(mounted)setState((){
       view=null;code.clear();requested=false;message='';error='';
@@ -132,8 +149,10 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
         onRequestSupport:api.support,
         onObserve:api.observe,
         onObserveWithPhotos:api.observeWithPhotos,
+        onObserveDraft:api.observeDraft,
         onObserveScheduled:api.observeScheduled,
         onObserveScheduledWithPhotos:api.observeScheduledWithPhotos,
+        onObserveScheduledDraft:api.observeScheduledDraft,
         onViewPhotos:api.photosForObservation,
         onAcknowledgeFeedback:api.acknowledgeFeedback,
       );
