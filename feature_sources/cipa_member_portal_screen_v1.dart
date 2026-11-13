@@ -415,7 +415,8 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
           tooltip:'Atualizar',icon:const Icon(Icons.refresh)),
         if(widget.onLogout!=null)IconButton(
           onPressed:busy?null:()=>_submit(widget.onLogout!),
-          tooltip:'Sair da conta',icon:const Icon(Icons.logout)),
+          tooltip:widget.offlineMode?'Fechar dados salvos':'Sair da conta',
+          icon:const Icon(Icons.logout)),
       ]),
       body:SafeArea(child:ListView(
         padding:const EdgeInsets.fromLTRB(12,12,12,64),children:[
