@@ -93,11 +93,24 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
     if(busy||!widget.sessionVerified) return;
     setState(() {busy=true;error='';});
     try {
-      await call();
-      if(widget.onRefresh!=null)await widget.onRefresh!();
-    } catch (_) {
-      if(mounted) setState(()=>error='Não foi possível enviar. Confira a conexão '
-        'e tente novamente, sem repetir registros já enviados.');
+      try {
+        await call();
+      } catch (_) {
+        if(mounted)setState(()=>error='A operação não foi confirmada. '
+          'Confira o histórico antes de tentar novamente.');
+        return;
+      }
+      // Atualizar a lista é separado de enviar. Falha de atualização
+      // jamais pode induzir o membro a duplicar um registro recebido.
+      if(widget.onRefresh!=null){
+        try {
+          await widget.onRefresh!();
+        } catch (_) {
+          if(mounted)setState(()=>error='A operação terminou, mas a lista '
+            'não pôde ser atualizada. Confira o histórico quando voltar '
+            'a ter conexão; não envie novamente sem conferir.');
+        }
+      }
     } finally {
       if(mounted)setState(()=>busy=false);
     }
