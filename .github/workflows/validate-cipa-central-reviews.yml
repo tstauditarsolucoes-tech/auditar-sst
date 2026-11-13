@@ -22,6 +22,7 @@ on:
       - 'feature_sources/cipa_member_offline_cache_v1.dart'
       - 'feature_sources/cipa_member_offline_cache_test_v1.dart'
       - 'feature_sources/cipa_member_pending_sync_v1.dart'
+      - 'feature_sources/cipa_member_pending_sync_test_v1.dart'
       - 'feature_sources/cipa_member_draft_store_test_v1.dart'
       - 'feature_sources/cipa_member_draft_widget_test_v1.dart'
       - 'feature_sources/cipa_member_home_alerts_v1.dart'
