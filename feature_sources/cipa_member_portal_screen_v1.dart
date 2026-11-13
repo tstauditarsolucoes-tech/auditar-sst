@@ -29,9 +29,12 @@ class CipaMemberPortalScreen extends StatefulWidget {
     this.onEnableOffline,this.onSyncPending,this.onDraftSaved,
     this.onLoadPending,this.lastSync,
     this.onLoadMural,this.onCreateMural,this.onCommentMural,this.onPhotoMural,
+    this.onSubmitAfter,this.onPhotoAfter,
     this.onLoadAvatar,this.onSaveAvatar,this.onDeleteAvatar,
     this.onSendMinutes,this.onListMinutes,
   });
+  final Future<void> Function(String id,Uint8List jpeg)? onSubmitAfter;
+  final Future<Uint8List?> Function(String id)? onPhotoAfter;
   final Future<List<CipaMuralPost>> Function()? onLoadMural;
   final Future<void> Function(String place,String detail,Uint8List? photo)? onCreateMural;
   final Future<void> Function(String id,String text)? onCommentMural;
@@ -679,6 +682,8 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
             offline:widget.offlineMode,
             onLoad:widget.onLoadMural,onCreate:widget.onCreateMural,
             onComment:widget.onCommentMural,onPhoto:widget.onPhotoMural,
+            onSubmitAfter:widget.onSubmitAfter,
+            onPhotoAfter:widget.onPhotoAfter,
           )),
         CipaMeetingRoleCoachPanel(profile:profile,
           meetings:view.meetings,onSendMinutes:widget.onSendMinutes,
