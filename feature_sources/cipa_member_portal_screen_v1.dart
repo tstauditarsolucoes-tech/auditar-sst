@@ -4,6 +4,7 @@ import '../services/cipa_member_portal_policy.dart';
 import '../services/cipa_member_home_alerts.dart';
 import '../services/cipa_member_engagement.dart';
 import '../widgets/cipa_member_engagement_panel.dart';
+import '../widgets/cipa_member_role_meeting_panel.dart';
 import '../services/cipa_member_draft_store.dart';
 import '../widgets/cipa_member_access_header.dart';
 import '../widgets/cipa_member_guided_inspection.dart';
@@ -627,6 +628,7 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
               'A equipe de SST confere os relatos e as ações.',
               style:TextStyle(fontSize:14)),
           ]))),
+        CipaMeetingRoleCoachPanel(profile:profile),
         CipaMemberEngagementPanel(
           view:view,offlineMode:widget.offlineMode,
           onStartMission:(widget.offlineMode||widget.onObserve!=null)?

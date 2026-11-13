@@ -7,6 +7,7 @@ import '../services/apps_script_http.dart';
 import '../services/auth_service.dart';
 import '../services/web_service_config.dart';
 import '../widgets/cipa_manager_metrics_panel.dart';
+import '../services/cipa_member_role_meetings.dart';
 
 class CipaAdminMemberOption {
   const CipaAdminMemberOption({
@@ -50,6 +51,7 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
   final noticeTitle=TextEditingController();
   final noticeBody=TextEditingController();
   String? selectedMember,selectedAction,selectedDocument;
+  String? selectedRegistrationRole;
   bool confirmNoticeSafe=false,confirmDocumentSafe=false;
   bool busy=false;
   String error='',notice='';
@@ -198,10 +200,14 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
       m.memberId==selectedMember).toList();
     if(selected.isEmpty||email.text.trim().isEmpty)return;
     final m=selected.single;
+    if(selectedRegistrationRole!=m.cipaRole)
+      throw StateError('A função selecionada não coincide com o ' 
+        'cadastro oficial da CIPA. Corrija em Membros da CIPA.');
     await _perform(() async {
       await _call('cipa_member_admin_grant',{
         'memberId':m.memberId,
         'workerId':m.workerId,'email':email.text.trim(),
+        'cipaRole':selectedRegistrationRole,
       });
       if(mounted)setState(()=>notice=
         'Acesso cadastrado para '+m.label+'. '
@@ -569,7 +575,36 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
                     DropdownMenuItem(value:m.memberId,
                       child:Text(m.label,overflow:TextOverflow.ellipsis)))
                       .toList(),
-                  onChanged:busy?null:(v)=>setState(()=>selectedMember=v)),
+                  onChanged:busy?null:(v)=>setState((){
+                    selectedMember=v;
+                    final options=widget.members.where((m)=>m.memberId==v);
+                    selectedRegistrationRole=options.isEmpty?
+                      null:options.first.cipaRole;
+                  })),
+                const SizedBox(height:10),
+                DropdownButtonFormField<String>(
+                  isExpanded:true,
+                  value:selectedRegistrationRole,
+                  decoration:const InputDecoration(
+                    labelText:'Função do integrante na CIPA'),
+                  items:CipaRoleGuide.roles.map((role)=>DropdownMenuItem(
+                    value:role,child:Text(role))).toList(),
+                  onChanged:busy||selectedMember==null?null:
+                    (value)=>setState(()=>selectedRegistrationRole=value)),
+                if(selectedRegistrationRole!=null)...[
+                  const SizedBox(height:8),
+                  Text(CipaRoleGuide.summary(selectedRegistrationRole!)),
+                  const SizedBox(height:6),
+                  Text(CipaRoleGuide.hint(selectedRegistrationRole!),
+                    style:const TextStyle(fontSize:12)),
+                  const SizedBox(height:8),
+                  if(widget.members.any((m)=>m.memberId==selectedMember&&
+                       m.cipaRole!=selectedRegistrationRole))
+                    const Text('A função selecionada não corresponde ao ' 
+                      'registro oficial. Volte à seção Membros da CIPA ' 
+                      'e atualize o cargo antes de autorizar acesso.',
+                      style:TextStyle(fontWeight:FontWeight.w700)),
+                ],
                 const SizedBox(height:10),
                 TextField(controller:email,enabled:!busy,
                   onChanged:(_)=>setState((){}),
@@ -578,8 +613,11 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
                     labelText:'E-mail individual do integrante')),
                 const SizedBox(height:12),
                 FilledButton.icon(
-                  onPressed:busy||selectedMember==null||email.text.trim().isEmpty
-                    ?null:_grant,
+                  onPressed:busy||selectedMember==null||
+                    selectedRegistrationRole==null||
+                    !widget.members.any((m)=>m.memberId==selectedMember&&
+                      m.cipaRole==selectedRegistrationRole)||
+                    email.text.trim().isEmpty?null:_grant,
                   icon:const Icon(Icons.person_add_alt_outlined),
                   label:const Text('Autorizar acesso')),
               ]))),

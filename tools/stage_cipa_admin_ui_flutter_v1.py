@@ -18,6 +18,13 @@ screen=root/"lib/screens/cipa_member_admin_screen.dart"
 screen.parent.mkdir(parents=True,exist_ok=True)
 assert not screen.exists()
 shutil.copyfile(repo/"feature_sources/cipa_member_admin_screen_v1.dart",screen)
+for source,destination in [
+    ("cipa_member_identity_v1.dart","cipa_member_identity.dart"),
+    ("cipa_member_role_meetings_v1.dart","cipa_member_role_meetings.dart"),
+]:
+    target=root/"lib/services"/destination
+    target.parent.mkdir(parents=True,exist_ok=True)
+    shutil.copyfile(repo/"feature_sources"/source,target)
 
 files={
   "lib/services/auth_service.dart": """class AuthService {
