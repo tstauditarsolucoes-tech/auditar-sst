@@ -3,7 +3,7 @@ name: Auditar SST Windows v3.30.129 HOMOLOGACAO
 
 on:
   push:
-    branches: [feature/client-panel-permissions-v329106, feature/auditar-sst-consolidacao-homologacao-20261112]
+    branches: [feature/client-panel-permissions-v329106, feature/auditar-sst-consolidacao-homologacao-20261112, feature/auditar-sst-estabilizacao-ci-20261113]
     paths:
       - 'feature_sources/cipa_participation*'
       - 'tools/patch_cipa_participation_v1.py'

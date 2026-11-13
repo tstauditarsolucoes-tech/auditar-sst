@@ -88,7 +88,34 @@ new_timeout_reply = """          if (aiMode == 'checklist_builder') {
             message:
                 'A análise da foto demorou além do limite da IA. O registro continua salvo; tente novamente em alguns instantes.',
           );"""
-ai = replace_once(ai, old_timeout_reply, new_timeout_reply, "mensagem de timeout específica do criador")
+if old_timeout_reply in ai:
+    ai = replace_once(ai, old_timeout_reply, new_timeout_reply,
+        "mensagem de timeout específica do criador")
+elif "A criação do checklist com IA demorou mais que o limite." not in ai:
+    # Em montagens atualizadas, a mensagem antiga foi refatorada pelo módulo
+    # de transporte. Inserir a exceção apenas no tratamento do timeout, em
+    # vez de depender do texto anterior da resposta.
+    transport_catch = re.compile(
+        r"(on CentralTransportException catch\s*\(error\)\s*\{\s*"
+        r"final message\s*=\s*error\.message\.toLowerCase\(\);)",
+        re.S,
+    )
+    guard = """\n        // O criador não salva nada após timeout; não confundir com foto.
+        if (aiMode == 'checklist_builder' &&
+            (message.contains('não respondeu a tempo') ||
+             message.contains('timeout'))) {
+          return const AiAssistantReply(
+            success: false,
+            message:
+                'A criação do checklist com IA demorou mais que o limite. Nenhum checklist foi salvo. Aguarde alguns instantes e tente novamente com uma descrição mais curta.',
+          );
+        }"""
+    ai, found = transport_catch.subn(lambda m: m.group(1)+guard, ai, count=1)
+    if found != 1:
+        raise RuntimeError(
+            "Tratamento de timeout da IA não identificado: "
+            "não modificar transporte nem login sem examinar a fonte atual.")
+
 write(rel, ai)
 
 # Clear an old SnackBar (for example from photo analysis) when opening the
@@ -174,7 +201,8 @@ screen = read("lib/screens/checklist_templates_screen.dart")
 assert "aiMode == 'checklist_builder'" in ai
 assert "const Duration(seconds: 120)" in ai
 assert "A criação do checklist com IA demorou mais que o limite." in ai
-assert "A análise da foto demorou além do limite da IA." in ai
+assert ("A análise da foto demorou além do limite da IA." in ai or
+        "on CentralTransportException catch (error)" in ai)
 assert "ScaffoldMessenger.of(context).clearSnackBars();" in screen
 assert "AiAssistantReply reply;" in screen
 assert "Não foi possível concluir a criação do checklist." in screen
