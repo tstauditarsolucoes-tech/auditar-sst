@@ -207,6 +207,7 @@ class CipaMemberDraftStore {
     final records=<CipaStoredDraft>[];
     await for(final entity in directory.list(followLinks:false)){
       if(entity is! File)continue;
+      var currentFile=entity;
       var name=entity.uri.pathSegments.last;
       if(!name.startsWith('${prefix}_'))continue;
       if(name.endsWith('.enc.next')){
@@ -221,8 +222,8 @@ class CipaMemberDraftStore {
               warning:'Rascunho temporário inválido; procure suporte'));
             continue;
           }
-          await entity.rename(finalFile.path);
-          name=finalFile.uri.pathSegments.last;
+          currentFile=await entity.rename(finalFile.path);
+          name=currentFile.uri.pathSegments.last;
         }catch(_){
           records.add(const CipaStoredDraft(
             warning:'Salvamento interrompido; procure suporte'));
@@ -232,7 +233,7 @@ class CipaMemberDraftStore {
       if(!name.endsWith('.enc'))continue;
       try {
         final plain=await CipaDraftCipher.open(
-          await entity.readAsString(),await _key(create:false));
+          await currentFile.readAsString(),await _key(create:false));
         final draft=CipaInspectionDraft.fromJson(plain);
         if(draft==null){
           records.add(const CipaStoredDraft(
