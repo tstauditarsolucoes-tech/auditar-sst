@@ -138,7 +138,8 @@ class CipaMemberApi {
     return CipaMuralCodec.parsePosts(result['posts']);
   }
 
-  Future<void> muralCreate(String place,String detail,Uint8List? photo) async {
+  Future<void> muralCreate(String place,String detail,Uint8List? photo,
+      {String? durableRequestId}) async {
     if(_token==null)throw StateError('Entre para registrar no mural.');
     final local=place.trim(),note=detail.trim();
     if(local.length<2||local.length>120||note.length<12||note.length>900)
@@ -147,7 +148,10 @@ class CipaMemberApi {
       throw StateError('Foto não permitida. Escolha outra.');
     final key='mural-post|'+local+'|'+note+'|'+
       (photo==null?'sem-foto':base64Encode(photo));
-    final id=_id(key);
+    if(durableRequestId!=null&&
+      !RegExp(r'^[A-Za-z0-9_-]{16,120}$').hasMatch(durableRequestId))
+      throw StateError('Identificador de rascunho inválido.');
+    final id=durableRequestId??_id(key);
     await _call('cipa_mural_create',{
       'sessionToken':_token,'requestId':id,
       'place':local,'detail':note,
