@@ -156,7 +156,7 @@ function cipaMuralMemberList_(request) {
       visibility:p.visibility,hasPhoto:!!p.fileId,isMine:own,
       comments:comments.filter(function(c) {
         return c.postId===p.id&&(c.visibility==='Aprovado'||
-          (own&&c.memberId===a.memberId));
+          (c.memberId===a.memberId&&c.authorKind==='member'));
       }).slice(-15).map(function(c){
         return {id:c.id,body:c.body,createdAt:c.createdAt,
           visibility:c.visibility,
