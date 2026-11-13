@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../services/cipa_member_portal_policy.dart';
+import '../services/cipa_member_home_alerts.dart';
 import '../services/cipa_member_draft_store.dart';
 import '../widgets/cipa_member_access_header.dart';
 import '../widgets/cipa_member_guided_inspection.dart';
@@ -44,10 +45,13 @@ class CipaMemberPortalScreen extends StatefulWidget {
 }
 class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
   bool busy=false;
+  bool easyMode=false;
   String error='';
   final Set<String> _confirmedReads={};
   final GlobalKey _meetingsSection=GlobalKey();
   final GlobalKey _tasksSection=GlobalKey();
+  final GlobalKey _inspectionsSection=GlobalKey();
+  final GlobalKey _observationsSection=GlobalKey();
 
   void _goTo(GlobalKey section) {
     final target=section.currentContext;
@@ -64,16 +68,16 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
     required VoidCallback? onPressed,bool primary=false,
   })=>SizedBox(
     width:double.infinity,
-    height:58,
+    height:easyMode?70:58,
     child:primary
       ?FilledButton.icon(
         onPressed:onPressed,icon:Icon(icon,size:25),
-        label:Text(title,style:const TextStyle(fontSize:17,
+        label:Text(title,style:TextStyle(fontSize:easyMode?20:17,
           fontWeight:FontWeight.w700)),
       )
       :OutlinedButton.icon(
         onPressed:onPressed,icon:Icon(icon,size:25),
-        label:Text(title,style:const TextStyle(fontSize:17,
+        label:Text(title,style:TextStyle(fontSize:easyMode?20:17,
           fontWeight:FontWeight.w700)),
       ),
   );
@@ -307,6 +311,31 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
       onPressed:busy?null:()=>_acknowledgeFeedback(item)));
   }
 
+  void _showTutorial(){
+    showDialog<void>(context:context,builder:(dialog)=>AlertDialog(
+      title:const Text('Como usar a Minha CIPA'),
+      content:const SingleChildScrollView(child:Column(
+        mainAxisSize:MainAxisSize.min,
+        crossAxisAlignment:CrossAxisAlignment.start,children:[
+          ListTile(leading:Icon(Icons.assignment_outlined,size:32),
+            title:Text('1. Faça sua vistoria'),
+            subtitle:Text('São três perguntas. Observe apenas de um local seguro.')),
+          ListTile(leading:Icon(Icons.camera_alt_outlined,size:32),
+            title:Text('2. Tire até duas fotos'),
+            subtitle:Text('Fotografe a situação, evitando mostrar pessoas.')),
+          ListTile(leading:Icon(Icons.save_outlined,size:32),
+            title:Text('3. Guarde e envie'),
+            subtitle:Text('Se ficar sem internet, guarde o rascunho e envie ao se conectar.')),
+          ListTile(leading:Icon(Icons.chat_outlined,size:32),
+            title:Text('4. Veja o retorno'),
+            subtitle:Text('O TST avalia o registro e informa as orientações.')),
+        ],
+      )),
+      actions:[FilledButton(onPressed:()=>Navigator.pop(dialog),
+        child:const Text('Entendi'))],
+    ));
+  }
+
   Widget _section(String title,IconData icon,List<CipaMemberItem> items,{
     Widget Function(CipaMemberItem)? actions,String empty='Nenhum registro disponível.',
   })=>Card(child:ExpansionTile(
@@ -364,8 +393,14 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
       .toList(growable:false);
     final otherObservations=view.observations.where(
       (item)=>!_isGuidedInspection(item)).toList(growable:false);
+    final alerts=CipaHomeAlertBuilder.fromView(view,locallyRead:_confirmedReads);
     return Scaffold(
       appBar:AppBar(title:const Text('Minha CIPA'),actions:[
+        IconButton(onPressed:()=>setState(()=>easyMode=!easyMode),
+          tooltip:easyMode?'Sair do modo fácil':'Ativar modo fácil',
+          icon:Icon(easyMode?Icons.text_decrease:Icons.text_increase)),
+        IconButton(onPressed:_showTutorial,tooltip:'Como usar',
+          icon:const Icon(Icons.help_outline)),
         if(widget.onRefresh!=null)IconButton(
           onPressed:busy?null:()=>_submit(widget.onRefresh!),
           tooltip:'Atualizar',icon:const Icon(Icons.refresh)),
@@ -377,6 +412,28 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
         padding:const EdgeInsets.fromLTRB(12,12,12,64),children:[
         CipaMemberAccessHeader(profile:profile,
           companyName:widget.companyName,mandateLabel:widget.mandateLabel),
+        if(alerts.isNotEmpty)Card(child:Padding(
+          padding:const EdgeInsets.all(12),
+          child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+            const Text('Seus avisos',style:TextStyle(
+              fontWeight:FontWeight.w800,fontSize:17)),
+            for(final alert in alerts)ListTile(
+              dense:!easyMode,
+              leading:Icon(alert.kind==CipaHomeAlertKind.inspection?
+                Icons.assignment_outlined:
+                alert.kind==CipaHomeAlertKind.meetingTomorrow?
+                Icons.event_outlined:Icons.mark_chat_unread_outlined),
+              title:Text(alert.message,style:TextStyle(
+                fontSize:easyMode?19:16,fontWeight:FontWeight.w600)),
+              trailing:const Icon(Icons.chevron_right),
+              onTap:()=>_goTo(alert.kind==CipaHomeAlertKind.inspection?
+                _inspectionsSection:
+                alert.kind==CipaHomeAlertKind.meetingTomorrow?
+                _meetingsSection:_observationsSection),
+            ),
+            const Text('Toque no aviso para ver os detalhes.',
+              style:TextStyle(fontSize:13)),
+          ]))),
         Card(child:Padding(padding:const EdgeInsets.all(16),
           child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
             Text('O que você quer fazer hoje?',
@@ -459,7 +516,8 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
                 },icon:const Icon(Icons.help_outline),
                 label:const Text('Preciso de apoio')),
           ]))),
-        _section('Vistorias programadas',Icons.calendar_month_outlined,
+        KeyedSubtree(key:_inspectionsSection,
+          child:_section('Vistorias programadas',Icons.calendar_month_outlined,
           view.scheduledInspections,
           empty:'Nenhuma vistoria programada para você.',
           actions:(item)=>widget.onObserveScheduled==null||
@@ -470,12 +528,13 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
                 initialCategory:item.title.replaceFirst('Vistoria: ',''),
                 scheduleId:item.id),
               icon:const Icon(Icons.play_arrow),
-              label:const Text('Iniciar esta vistoria')))),
+              label:const Text('Iniciar esta vistoria'))))),
         const Padding(padding:EdgeInsets.fromLTRB(16,0,16,10),
           child:Text('Na data programada, use Fazer vistoria. '
             'Evite áreas de risco; o registro será analisado pelo TST.',
             style:TextStyle(fontSize:12))),
-        _section('Minhas vistorias orientadas',
+        KeyedSubtree(key:_observationsSection,
+          child:_section('Minhas vistorias orientadas',
           Icons.fact_check_outlined,inspections,
           empty:'Nenhuma vistoria orientada disponível nesta consulta.',
           actions:(item)=>Wrap(spacing:8,runSpacing:8,children:[
@@ -484,7 +543,7 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
                 icon:const Icon(Icons.photo_outlined),
                 label:const Text('Ver fotos')),
             _feedbackReadAction(item),
-          ])),
+          ]))),
         const Padding(padding:EdgeInsets.fromLTRB(16,0,16,10),
           child:Text('A situação mostrada é a que a equipe registrou. '
             'O envio não confirma correção nem encerra ação.',
