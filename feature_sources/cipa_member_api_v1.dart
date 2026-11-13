@@ -55,6 +55,32 @@ class CipaMemberApi {
     return result;
   }
 
+
+  Future<Uint8List?> loadAvatar() async {
+    if(_token==null)throw StateError('Entre para visualizar o perfil.');
+    final reply=await _call('cipa_member_avatar_get',{'sessionToken':_token});
+    if(reply['hasPhoto']!=true)return null;
+    final encoded=(reply['jpegBase64']??'').toString();
+    if(encoded.length>210000)throw StateError('Foto acima do limite.');
+    final bytes=Uint8List.fromList(base64Decode(encoded));
+    if(bytes.length<8||bytes.length>150000||bytes[0]!=255||
+      bytes[1]!=216||bytes[2]!=255||bytes[bytes.length-2]!=255||
+      bytes.last!=217)throw StateError('Foto inválida.');
+    return bytes;
+  }
+  Future<void> saveAvatar(Uint8List jpeg) async {
+    if(_token==null)throw StateError('Entre para alterar seu perfil.');
+    if(jpeg.length<8||jpeg.length>150000||jpeg[0]!=255||
+      jpeg[1]!=216||jpeg[2]!=255||jpeg[jpeg.length-2]!=255||
+      jpeg.last!=217)throw StateError('Foto inválida.');
+    await _call('cipa_member_avatar_save',{
+      'sessionToken':_token,'jpegBase64':base64Encode(jpeg)});
+  }
+  Future<void> deleteAvatar() async {
+    if(_token==null)throw StateError('Entre para remover sua foto.');
+    await _call('cipa_member_avatar_delete',{'sessionToken':_token});
+  }
+
   Future<List<CipaMuralPost>> mural() async {
     if(_token==null)throw StateError('Entre para visualizar o mural.');
     final result=await _call('cipa_mural_list',{'sessionToken':_token});
