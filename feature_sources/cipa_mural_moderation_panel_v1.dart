@@ -7,7 +7,8 @@ import 'package:flutter/material.dart';
 class CipaMuralModerationPanel extends StatefulWidget{
   const CipaMuralModerationPanel({super.key,
     required this.onLoad,required this.onReview,required this.onCommentReview,
-    required this.onReply,required this.onPhoto});
+    required this.onReply,required this.onPhoto,
+    this.onPhotoAfter,this.onReviewAfter});
   final Future<List<Map<String,dynamic>>> Function() onLoad;
   final Future<void> Function(String postId,String visibility,
     String status,bool confirmed) onReview;
@@ -15,6 +16,8 @@ class CipaMuralModerationPanel extends StatefulWidget{
   final Future<void> Function(String postId,String text,String requestId)
     onReply;
   final Future<Uint8List?> Function(String postId) onPhoto;
+  final Future<Uint8List?> Function(String postId)? onPhotoAfter;
+  final Future<void> Function(String postId,bool approve)? onReviewAfter;
   @override State<CipaMuralModerationPanel> createState()=>
     _CipaMuralModerationPanelState();
 }
@@ -97,6 +100,24 @@ class _CipaMuralModerationPanelState extends State<CipaMuralModerationPanel>{
         child:const Text('Fechar'))],
     ));
   }
+  Future<void> _afterPhoto(String id)async{
+    final fetch=widget.onPhotoAfter;
+    if(fetch==null)return;
+    await showDialog<void>(context:context,builder:(dialog)=>AlertDialog(
+      title:const Text('Foto depois (conferência)'),
+      content:FutureBuilder<Uint8List?>(future:fetch(id),
+        builder:(ctx,snapshot){
+          if(snapshot.connectionState!=ConnectionState.done)
+            return const SizedBox(height:100,
+              child:Center(child:CircularProgressIndicator()));
+          if(snapshot.hasError)return const Text('Foto indisponível.');
+          if(snapshot.data==null)return const Text('Sem foto posterior.');
+          return Image.memory(snapshot.data!,width:380,fit:BoxFit.contain);
+        }),
+      actions:[TextButton(onPressed:()=>Navigator.pop(dialog),
+        child:const Text('Fechar'))],
+    ));
+  }
   @override Widget build(BuildContext context)=>Card(
     child:ExpansionTile(
       leading:const Icon(Icons.fact_check_outlined),
@@ -123,6 +144,26 @@ class _CipaMuralModerationPanelState extends State<CipaMuralModerationPanel>{
             Text((post['detail']??'').toString()),
             Text('Publicação: '+(post['visibility']??'Pendente').toString()+
               ' • Situação: '+(post['status']??'Recebido').toString()),
+            if((post['afterStatus']??'').toString().isNotEmpty)
+              Text('Foto posterior: '+(post['afterStatus']??'').toString()),
+            if(post['hasAfter']==true&&widget.onPhotoAfter!=null)
+              TextButton.icon(
+                onPressed:busy?null:()=>_afterPhoto(
+                  (post['id']??'').toString()),
+                icon:const Icon(Icons.image_outlined),
+                label:const Text('Conferir foto depois')),
+            if(post['afterStatus']=='Pendente'&&
+               widget.onReviewAfter!=null)
+              Wrap(spacing:8,children:[
+                TextButton(onPressed:busy?null:()=>_work(
+                    ()=>widget.onReviewAfter!(
+                      (post['id']??'').toString(),true)),
+                  child:const Text('Aprovar foto depois')),
+                TextButton(onPressed:busy?null:()=>_work(
+                    ()=>widget.onReviewAfter!(
+                      (post['id']??'').toString(),false)),
+                  child:const Text('Não publicar foto depois')),
+              ]),
             Wrap(spacing:6,runSpacing:6,children:[
               if(post['hasPhoto']==true)
                 TextButton.icon(onPressed:busy?null:()=>_photo(
