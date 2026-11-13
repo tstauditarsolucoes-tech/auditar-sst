@@ -50,17 +50,23 @@ class CipaManagerMetricsPanel extends StatelessWidget {
     ));
   }
   Widget _metric(String title,int count) {
-    return SizedBox(width:158,child:Card(
-      child:Padding(padding:const EdgeInsets.all(12),
-        child:Column(
-          crossAxisAlignment:CrossAxisAlignment.start,children:[
-          Text('$count',style:const TextStyle(
-            fontSize:24,fontWeight:FontWeight.w800)),
-          const SizedBox(height:4),
-          Text(title,style:const TextStyle(fontSize:13)),
-        ])),
+    return SizedBox(
+      width:158,
+      child:Card(
+        child:Padding(
+          padding:const EdgeInsets.all(12),
+          child:Column(
+            crossAxisAlignment:CrossAxisAlignment.start,
+            children:[
+              Text('$count',style:const TextStyle(
+                fontSize:24,fontWeight:FontWeight.w800)),
+              const SizedBox(height:4),
+              Text(title,style:const TextStyle(fontSize:13)),
+            ],
+          ),
+        ),
       ),
-    ));
+    );
   }
 
   @override Widget build(BuildContext context) {
