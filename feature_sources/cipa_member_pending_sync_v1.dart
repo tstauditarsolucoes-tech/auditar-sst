@@ -18,6 +18,25 @@ class CipaPendingSyncStatus {
   final int sent,remaining,incomplete,failed;
 }
 
+/// Prévia local para o cipeiro conferir ANTES de tocar no servidor.
+class CipaPendingSyncPlan {
+  const CipaPendingSyncPlan({required this.ready,required this.incomplete,
+    required this.blocked,required this.photoCount});
+  final int ready,incomplete,blocked,photoCount;
+  int get total=>ready+incomplete+blocked;
+  bool get canSend=>ready>0;
+
+  factory CipaPendingSyncPlan.fromEntries(Iterable<CipaStoredDraft> entries) {
+    var ready=0,incomplete=0,blocked=0,photos=0;
+    for(final item in entries){
+      if(!item.canResume){blocked++;continue;}
+      if(!item.complete){incomplete++;continue;}
+      ready++;photos+=item.draft!.photos.length;
+    }
+    return CipaPendingSyncPlan(ready:ready,incomplete:incomplete,
+      blocked:blocked,photoCount:photos);
+  }
+}
 /// Sincronização MANUAL após login online e revalidação do mandato.
 /// Múltiplos rascunhos avulsos têm IDs próprios, sem sobrescrita.
 class CipaMemberPendingSync {
