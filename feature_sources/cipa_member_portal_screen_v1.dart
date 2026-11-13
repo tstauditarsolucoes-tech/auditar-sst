@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../services/cipa_member_portal_policy.dart';
 import '../widgets/cipa_member_access_header.dart';
@@ -13,6 +14,8 @@ class CipaMemberPortalScreen extends StatefulWidget {
     this.onRefresh, this.onLogout, this.onAcknowledgeMeeting,
     this.onReportProgress, this.onRequestSupport, this.onObserve,
     this.onObserveScheduled, this.onAcknowledgeFeedback,
+    this.onObserveWithPhotos,this.onObserveScheduledWithPhotos,
+    this.onViewPhotos,
   });
   final String companyName,mandateLabel;
   final CipaMemberView? view;
@@ -25,6 +28,11 @@ class CipaMemberPortalScreen extends StatefulWidget {
     onObserveScheduled;
   final Future<void> Function(String observationId,String reviewId)?
     onAcknowledgeFeedback;
+  final Future<void> Function(String place,String note,List<Uint8List> photos)?
+    onObserveWithPhotos;
+  final Future<void> Function(String scheduleId,String place,String note,
+    List<Uint8List> photos)? onObserveScheduledWithPhotos;
+  final Future<List<Uint8List>> Function(String observationId)? onViewPhotos;
 
   @override
   State<CipaMemberPortalScreen> createState() => _CipaMemberPortalScreenState();
@@ -153,6 +161,20 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
         memberRole:widget.view!.profile.cipaRole,
         companyName:widget.companyName,
         mandateLabel:widget.mandateLabel,
+        onSendWithPhotos:(widget.onObserveWithPhotos==null&&
+          widget.onObserveScheduledWithPhotos==null)?null:
+          (place,note,photos) async {
+          if(!widget.sessionVerified)throw StateError('Sessão inválida');
+          if(scheduleId!=null){
+            final sender=widget.onObserveScheduledWithPhotos;
+            if(sender==null)throw StateError('Envio bloqueado');
+            await sender(scheduleId,place,note,photos);
+          }else{
+            final sender=widget.onObserveWithPhotos;
+            if(sender==null)throw StateError('Envio bloqueado');
+            await sender(place,note,photos);
+          }
+        },
         onSend:(place,note) async {
           if(!widget.sessionVerified) {
             throw StateError('Sessão não autorizada');
@@ -185,6 +207,33 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
     if(mounted)ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content:Text('Registro enviado para análise. '
         'Acompanhe em Minhas vistorias.')));
+  }
+
+  Future<void> _viewPhotos(CipaMemberItem item) async {
+    final p=widget.view?.profile;
+    if(!widget.sessionVerified||busy||p==null||
+       item.companyId!=p.companyId||item.mandateId!=p.mandateId||
+       item.assignedMemberId!=p.memberId||widget.onViewPhotos==null)return;
+    setState(()=>busy=true);
+    List<Uint8List> images=[];
+    try {
+      images=await widget.onViewPhotos!(item.id);
+    }catch(_){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content:Text('Não foi possível abrir as fotos.')));
+    }finally{if(mounted)setState(()=>busy=false);}
+    if(!mounted||images.isEmpty)return;
+    await showDialog<void>(context:context,builder:(dialog)=>AlertDialog(
+      title:const Text('Fotos desta vistoria'),
+      content:SingleChildScrollView(child:Column(
+        mainAxisSize:MainAxisSize.min,children:[
+          for(final bytes in images)Padding(
+            padding:const EdgeInsets.only(bottom:12),
+            child:Image.memory(bytes,width:320,fit:BoxFit.contain)),
+        ])),
+      actions:[TextButton(onPressed:()=>Navigator.pop(dialog),
+        child:const Text('Fechar'))],
+    ));
   }
 
   Future<void> _acknowledgeFeedback(CipaMemberItem item) async {
@@ -404,7 +453,13 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
         _section('Minhas vistorias orientadas',
           Icons.fact_check_outlined,inspections,
           empty:'Nenhuma vistoria orientada disponível nesta consulta.',
-          actions:_feedbackReadAction),
+          actions:(item)=>Wrap(spacing:8,runSpacing:8,children:[
+            if(widget.onViewPhotos!=null)
+              OutlinedButton.icon(onPressed:busy?null:()=>_viewPhotos(item),
+                icon:const Icon(Icons.photo_outlined),
+                label:const Text('Ver fotos')),
+            _feedbackReadAction(item),
+          ])),
         const Padding(padding:EdgeInsets.fromLTRB(16,0,16,10),
           child:Text('A situação mostrada é a que a equipe registrou. '
             'O envio não confirma correção nem encerra ação.',
