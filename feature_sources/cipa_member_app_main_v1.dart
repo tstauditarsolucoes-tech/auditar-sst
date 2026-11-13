@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -216,6 +217,121 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
       offlineUnlocked=false;lastSync=null;pendingDraftCount=0;
       code.clear();offlinePin.clear();requested=false;message='';error='';
     });
+  }
+
+  Future<void> _loadDraftCount(CipaMemberView current) async {
+    try {
+      final n=await pendingSync.count(current);
+      if(mounted && view?.profile.userId==current.profile.userId &&
+         view?.profile.mandateId==current.profile.mandateId)
+        setState(()=>pendingDraftCount=n);
+    }catch(_){
+      if(mounted)setState(()=>pendingDraftCount=0);
+    }
+  }
+
+  Future<void> _enableOffline() async {
+    final current=view,address=onlineEmail;
+    if(current==null||address==null||!api.hasSession)
+      throw StateError('Entre com seu código por e-mail primeiro.');
+    final pin=TextEditingController(),repeat=TextEditingController();
+    String? chosen;
+    try {
+      chosen=await showDialog<String>(context:context,builder:(dialog)=>
+        StatefulBuilder(builder:(context,update)=>AlertDialog(
+          title:const Text('Ativar uso offline neste aparelho'),
+          content:SingleChildScrollView(child:Column(
+            mainAxisSize:MainAxisSize.min,children:[
+            const Text('Escolha um PIN de seis números. Só este PIN '
+              'abrirá os dados salvos depois de você entrar com '
+              'internet ao menos uma vez. Os dados vencem em 24 horas.'),
+            const SizedBox(height:12),
+            TextField(controller:pin,obscureText:true,
+              keyboardType:TextInputType.number,maxLength:6,
+              onChanged:(_)=>update((){}),
+              decoration:const InputDecoration(labelText:'Meu PIN offline')),
+            TextField(controller:repeat,obscureText:true,
+              keyboardType:TextInputType.number,maxLength:6,
+              onChanged:(_)=>update((){}),
+              decoration:const InputDecoration(labelText:'Repetir PIN')),
+          ])),
+          actions:[
+            TextButton(onPressed:()=>Navigator.pop(dialog),
+              child:const Text('Cancelar')),
+            FilledButton(onPressed:pin.text.length==6&&
+                pin.text==repeat.text?()=>Navigator.pop(dialog,pin.text):null,
+              child:const Text('Ativar offline')),
+          ],
+        )));
+    }finally{
+      pin.dispose();repeat.dispose();
+    }
+    if(chosen==null||!mounted)return;
+    await offlineCache.enroll(address,chosen,current);
+    if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content:Text('Uso offline ativado neste aparelho. '
+        'Guarde seu PIN. Validade da consulta: 24 horas.')));
+  }
+
+  Future<void> _openOffline() async {
+    final address=email.text.trim(),pin=offlinePin.text.trim();
+    if(!CipaMemberOfflineCache.validEmail(address)||
+       !CipaMemberOfflineCache.validPin(pin)){
+      setState(()=>error='Informe o e-mail cadastrado e seu PIN offline '
+        'de seis números.');
+      return;
+    }
+    await _run(()async {
+      final snapshot=await offlineCache.unlock(address,pin);
+      if(!mounted)return;
+      setState((){
+        view=snapshot.view;offlineUnlocked=true;
+        lastSync=snapshot.syncedAt;
+        offlinePin.clear();error='';
+      });
+      await _loadDraftCount(snapshot.view);
+    });
+  }
+
+  Future<void> _closeOffline() async {
+    if(mounted)setState((){
+      view=null;offlineUnlocked=false;pendingDraftCount=0;
+      offlinePin.clear();
+    });
+  }
+
+  Future<void> _sendStoredDraft({
+    String? scheduleId,required String place,required String note,
+    required List<Uint8List> photos,required String requestId,
+  }) async {
+    if(!api.hasSession)throw StateError('Entre novamente com internet');
+    if(scheduleId!=null){
+      await api.observeScheduledDraft(scheduleId,place,note,photos,requestId);
+    }else{
+      await api.observeDraft(place,note,photos,requestId);
+    }
+  }
+
+  Future<void> _syncPending() async {
+    final person=view;
+    if(person==null||!api.hasSession||offlineUnlocked)
+      throw StateError('Entre com internet para enviar registros.');
+    // Conferir mandato de novo antes de tocar nos registros locais.
+    final fresh=await api.dashboard();
+    if(fresh.profile.userId!=person.profile.userId||
+       fresh.profile.companyId!=person.profile.companyId||
+       fresh.profile.mandateId!=person.profile.mandateId||
+       fresh.profile.memberId!=person.profile.memberId)
+      throw StateError('Mandato mudou. Não envie rascunhos antigos.');
+    final report=await pendingSync.sync(fresh,_sendStoredDraft);
+    if(mounted){
+      await _loadDraftCount(fresh);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content:Text('Confirmados pela Central: '+report.sent.toString()+
+          '. Pendentes/incompletos: '+report.remaining.toString()+
+          '. Falhas: '+report.failed.toString()+'.'),
+      ));
+    }
   }
 
   @override
