@@ -2,6 +2,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../services/cipa_member_portal_policy.dart';
 import '../services/cipa_member_home_alerts.dart';
+import '../services/cipa_member_today.dart';
+import '../widgets/cipa_member_today_panel.dart';
 import '../services/cipa_member_engagement.dart';
 import '../widgets/cipa_member_engagement_panel.dart';
 import '../widgets/cipa_member_role_meeting_panel.dart';
@@ -75,6 +77,15 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
   final GlobalKey _observationsSection=GlobalKey();
   final GlobalKey _questionsSection=GlobalKey();
   final GlobalKey _muralSection=GlobalKey();
+
+  void _goToToday(CipaTodayTarget target){
+    switch(target){
+      case CipaTodayTarget.meetings:_goTo(_meetingsSection);break;
+      case CipaTodayTarget.actions:_goTo(_tasksSection);break;
+      case CipaTodayTarget.inspections:_goTo(_inspectionsSection);break;
+      case CipaTodayTarget.answers:_goTo(_observationsSection);break;
+    }
+  }
 
   void _goTo(GlobalKey section) {
     final target=section.currentContext;
@@ -543,6 +554,8 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
           onLoadAvatar:widget.offlineMode?null:widget.onLoadAvatar,
           onSaveAvatar:widget.offlineMode?null:widget.onSaveAvatar,
           onDeleteAvatar:widget.offlineMode?null:widget.onDeleteAvatar),
+        CipaTodayPanel(view:view,offlineMode:widget.offlineMode,
+          onSelect:_goToToday),
         Card(child:Padding(padding:const EdgeInsets.all(12),
           child:Column(
             crossAxisAlignment:CrossAxisAlignment.stretch,children:[
@@ -593,15 +606,23 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
               dense:!easyMode,
               leading:Icon(alert.kind==CipaHomeAlertKind.inspection?
                 Icons.assignment_outlined:
-                alert.kind==CipaHomeAlertKind.meetingTomorrow?
-                Icons.event_outlined:Icons.mark_chat_unread_outlined),
+                (alert.kind==CipaHomeAlertKind.meetingTomorrow||
+                 alert.kind==CipaHomeAlertKind.meetingToday)?
+                Icons.event_outlined:
+                (alert.kind==CipaHomeAlertKind.actionOverdue||
+                 alert.kind==CipaHomeAlertKind.actionDue)?
+                Icons.fact_check_outlined:Icons.mark_chat_unread_outlined),
               title:Text(alert.message,style:TextStyle(
                 fontSize:easyMode?19:16,fontWeight:FontWeight.w600)),
               trailing:const Icon(Icons.chevron_right),
               onTap:()=>_goTo(alert.kind==CipaHomeAlertKind.inspection?
                 _inspectionsSection:
-                alert.kind==CipaHomeAlertKind.meetingTomorrow?
-                _meetingsSection:_observationsSection),
+                (alert.kind==CipaHomeAlertKind.meetingTomorrow||
+                 alert.kind==CipaHomeAlertKind.meetingToday)?
+                _meetingsSection:
+                (alert.kind==CipaHomeAlertKind.actionOverdue||
+                 alert.kind==CipaHomeAlertKind.actionDue)?
+                _tasksSection:_observationsSection),
             ),
             const Text('Toque no aviso para ver os detalhes.',
               style:TextStyle(fontSize:13)),
