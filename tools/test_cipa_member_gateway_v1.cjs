@@ -700,7 +700,7 @@ assert(invoke('cipa_mural_create',postInput).ok);
 assert.strictEqual(invoke('cipa_mural_create',postInput).duplicate,true);
 assert.strictEqual(invoke('cipa_mural_create',{
   ...postInput,detail:'Tentativa de adulteração do ID'
-}).code,'INVALID_INPUT'); // Texto curto rejeitado antes de idempotência.
+}).code,'ID_REUSED'); // Mesmo ID com outra descrição não altera relato.
 const secondMemberRecord={
   mandateId:'mandate-A',workerId:'worker-A2',cipaRole:'Titular',
   representation:'Empregados',
