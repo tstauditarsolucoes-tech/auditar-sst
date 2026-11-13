@@ -19,14 +19,14 @@ class CipaMemberPortalScreen extends StatefulWidget {
     this.onObserveWithPhotos,this.onObserveScheduledWithPhotos,
     this.onViewPhotos,this.onObserveDraft,this.onObserveScheduledDraft,
     this.offlineMode=false,this.pendingDraftCount=0,
-    this.onEnableOffline,this.onSyncPending,this.lastSync,
+    this.onEnableOffline,this.onSyncPending,this.onDraftSaved,this.lastSync,
   });
   final String companyName,mandateLabel;
   final CipaMemberView? view;
   final bool sessionVerified,offlineMode;
   final int pendingDraftCount;
   final DateTime? lastSync;
-  final Future<void> Function()? onEnableOffline,onSyncPending;
+  final Future<void> Function()? onEnableOffline,onSyncPending,onDraftSaved;
   final Future<void> Function()? onRefresh,onLogout;
   final Future<void> Function(String id)? onAcknowledgeMeeting;
   final Future<void> Function(String id,String note)? onReportProgress,onRequestSupport;
@@ -227,6 +227,9 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
         },
       ),
     );
+    if(widget.onDraftSaved!=null){
+      try {await widget.onDraftSaved!();}catch(_){}
+    }
     if(submitted!=true || !mounted)return;
     if(widget.onRefresh!=null) {
       try {
