@@ -105,7 +105,10 @@ void main() {
       sessionVerified:true,view:view(),
     )));
     await tester.scrollUntilVisible(
-      find.text('Como funciona a minha participação'),130);
+      find.text('Como funciona a minha participação'),160);
+    await tester.ensureVisible(
+      find.text('Como funciona a minha participação'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Como funciona a minha participação'));
     await tester.pumpAndSettle();
     expect(find.text('Recebi um aviso de reunião'),findsOneWidget);
