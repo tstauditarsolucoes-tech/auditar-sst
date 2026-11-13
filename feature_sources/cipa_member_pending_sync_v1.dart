@@ -44,7 +44,7 @@ class CipaMemberPendingSync {
 
   Future<List<CipaStoredDraft>> list(CipaMemberView view) =>
     _storage(view,null,null).listForMember(
-      scheduledIds:view.scheduledInspections.map((e)=>e.id).toSet());
+      scheduledIds:_allowedSchedules(view));
 
   Future<int> count(CipaMemberView view) async =>
     (await list(view)).length;
