@@ -28,6 +28,31 @@ function sheet(name,headers=[]){
   if(!sheets.has(name))sheets.set(name,new FakeSheet(name,headers));
   return sheets.get(name);
 }
+const photoFiles=new Map();
+const photoStore={
+  share:'PRIVATE',
+  getId:()=> 'private-cipa-folder',
+  getSharingAccess(){return this.share;},
+  getViewers:()=>[],getEditors:()=>[],
+  createFile(blob){
+    const id=crypto.randomUUID(),bytes=blob.getBytes();
+    const f={
+      id,bytes,trashed:false,
+      getId(){return this.id;},
+      getSharingAccess:()=> 'PRIVATE',
+      getViewers:()=>[],getEditors:()=>[],
+      getParents:()=>{
+        let consumed=false;
+        return {hasNext:()=>!consumed,next:()=>{
+          consumed=true;return photoStore;
+        }};
+      },
+      getBlob(){return {getBytes:()=>Array.from(bytes)};},
+      setTrashed(v){this.trashed=v;},
+    };
+    photoFiles.set(id,f);return f;
+  },
+};
 const props={
   CIPA_MEMBER_V1_ENABLED:'true',
   CIPA_MEMBER_V1_PEPPER:'a-very-long-test-only-secret-do-not-copy-into-production-999999999',
@@ -59,10 +84,26 @@ const scope={
     remove(key){cache.delete(key);},
   };}},
   MailApp:{sendEmail:(to,subject,body)=>mail.push({to,subject,body})},
+  DriveApp:{
+    Access:{PRIVATE:'PRIVATE'},
+    getFolderById:(id)=>{
+      if(id!==photoStore.getId())throw Error('Private folder not found');
+      return photoStore;
+    },
+    getFileById:(id)=>{
+      if(!photoFiles.has(id))throw Error('Private file not found');
+      return photoFiles.get(id);
+    },
+  },
   Utilities:{
     DigestAlgorithm:{SHA_256:'SHA_256'},
     Charset:{UTF_8:'UTF_8'},
     getUuid:()=>crypto.randomUUID(),
+    base64Decode:(x)=>Array.from(Buffer.from(x,'base64')),
+    base64Encode:(x)=>Buffer.from(x).toString('base64'),
+    newBlob:(data,mime,name)=>({
+      getBytes:()=>Array.from(data),getContentType:()=>mime,getName:()=>name,
+    }),
     computeDigest:(alg,input)=>Array.from(
       crypto.createHash('sha256').update(String(input)).digest()),
   },
@@ -105,6 +146,9 @@ vm.runInContext(fs.readFileSync(path.join(
 vm.runInContext(fs.readFileSync(path.join(
   root,'feature_sources/CipaMemberInspectionSchedulesV1.gs'),'utf8'),
   scope,{filename:'CipaMemberInspectionSchedulesV1.gs'});
+vm.runInContext(fs.readFileSync(path.join(
+  root,'feature_sources/CipaMemberPhotosV1.gs'),'utf8'),
+  scope,{filename:'CipaMemberPhotosV1.gs'});
 const invoke=(action,fields={})=>JSON.parse(JSON.stringify(
   scope.cipaMemV1Route_({action,...fields})));
 
@@ -534,6 +578,66 @@ const linked=memberWithReport.scheduledInspections
   .find(x=>x.id===createdInspection.id);
 assert.strictEqual(linked.status,'Registro enviado');
 assert.strictEqual(linked.observationId,scheduleObservation.requestId);
+// Fotos: nunca expor base64/links na listagem pública.
+const jpg=Buffer.from([255,216,255,224,1,2,3,255,217]).toString('base64');
+const photoRequest={
+  sessionToken:login.sessionToken,observationId:scheduleObservation.requestId,
+  jpegBase64:jpg,slot:1,
+};
+assert.strictEqual(invoke('cipa_member_photo_upload',photoRequest).code,
+  'PHOTO_STORE_NOT_CONFIGURED','Falhar fechado sem pasta privada');
+props.CIPA_MEMBER_PHOTO_FOLDER_ID='private-cipa-folder';
+assert.strictEqual(invoke('cipa_member_photo_upload',{
+  ...photoRequest,observationId:'other-company-observation',
+}).code,'ACCESS_DENIED','Sem fotos de outros relatos');
+assert.strictEqual(invoke('cipa_member_photo_upload',{
+  ...photoRequest,jpegBase64:'bm90LWEtanBlZw==',
+}).code,'INVALID_PHOTO','Recusar binário que não seja JPEG');
+assert(invoke('cipa_member_photo_upload',photoRequest).ok);
+assert.strictEqual(invoke('cipa_member_photo_upload',photoRequest).duplicate,true,
+  'Mesmo conteúdo no mesmo slot não duplica');
+assert.strictEqual(invoke('cipa_member_photo_upload',{
+  ...photoRequest, jpegBase64:Buffer.from(
+    [255,216,255,224,4,5,6,255,217]).toString('base64'),
+}).code,'PHOTO_SLOT_USED','Slot preenchido não admite substituição');
+assert(invoke('cipa_member_photo_upload',{
+  ...photoRequest,slot:2,
+}).ok,'Segundo slot permitido');
+assert.strictEqual(invoke('cipa_member_photo_upload',{
+  ...photoRequest,slot:3,
+}).code,'INVALID_PHOTO','Não permitir terceira foto');
+const myPhotos=invoke('cipa_member_photo_list',{
+  sessionToken:login.sessionToken,
+  observationId:scheduleObservation.requestId,
+});
+assert.deepStrictEqual(myPhotos.slots,[1,2]);
+assert(!JSON.stringify(myPhotos).includes('file_id'));
+const photoData=invoke('cipa_member_photo_get',{
+  sessionToken:login.sessionToken,
+  observationId:scheduleObservation.requestId,slot:1,
+});
+assert.strictEqual(photoData.jpegBase64,jpg);
+assert.strictEqual(invoke('cipa_tst_photo_get',{
+  authToken:'valid-tst',companyId:'company-A',mandateId:'mandate-A',
+  observationId:scheduleObservation.requestId,slot:1,
+}).code,'ACCESS_DENIED','TST sem delegação não visualiza fotos');
+assert.strictEqual(invoke('cipa_tst_photo_get',{
+  authToken:'valid-admin',companyId:'company-B',mandateId:'mandate-B',
+  observationId:scheduleObservation.requestId,slot:1,
+}).code,'ACCESS_DENIED','Admin não mistura escopo');
+assert.strictEqual(invoke('cipa_tst_photo_get',{
+  authToken:'valid-admin',companyId:'company-A',mandateId:'mandate-A',
+  observationId:scheduleObservation.requestId,slot:1,
+}).jpegBase64,jpg,'Acesso privilegiado validado por empresa/mandato');
+photoStore.share='ANYONE';
+assert.strictEqual(invoke('cipa_member_photo_get',{
+  sessionToken:login.sessionToken,
+  observationId:scheduleObservation.requestId,slot:1,
+}).ok,false,'Pasta compartilhada deve bloquear leitura');
+photoStore.share='PRIVATE';
+assert(!JSON.stringify(invoke('cipa_member_dashboard',{
+  sessionToken:login.sessionToken,
+})).includes(jpg),'Dados binários não entram em listagens');
 const adminSchedule=invoke('cipa_schedule_list',{
   authToken:'valid-admin',companyId:'company-A',mandateId:'mandate-A',
 });

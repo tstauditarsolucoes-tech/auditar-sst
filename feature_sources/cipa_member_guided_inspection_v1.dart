@@ -1,4 +1,8 @@
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image/image.dart' as image_codec;
+import 'package:image_picker/image_picker.dart';
 
 /// Roteiro educativo de observação visual, sem avaliação normativa automática.
 /// O registro somente é enviado por um callback já autorizado pela sessão CIPA.
@@ -143,12 +147,14 @@ class CipaGuidedInspection {
 
 class CipaGuidedInspectionDialog extends StatefulWidget {
   const CipaGuidedInspectionDialog({
-    super.key,required this.onSend,
+    super.key,required this.onSend,this.onSendWithPhotos,
     this.initialCategory,this.initialPlace,
     this.memberName='',this.companyName='',
     this.memberRole='',this.mandateLabel='',
   });
   final Future<void> Function(String place,String note) onSend;
+  final Future<void> Function(String place,String note,List<Uint8List> photos)?
+    onSendWithPhotos;
   final String? initialCategory,initialPlace;
   final String memberName,companyName,memberRole,mandateLabel;
 
@@ -166,6 +172,8 @@ class _CipaGuidedInspectionDialogState
   int page=0; // 0 identificação, 1..3 perguntas, 4 conferência
   bool sending=false;
   String error='';
+  final List<Uint8List> photos=[];
+  bool takingPhoto=false;
 
   @override void initState() {
     super.initState();
@@ -198,6 +206,43 @@ class _CipaGuidedInspectionDialogState
     }
   }
 
+  Future<void> _takePhoto() async {
+    if(sending||takingPhoto||photos.length>=2||
+       widget.onSendWithPhotos==null)return;
+    setState(() {takingPhoto=true;error='';});
+    XFile? capture;
+    try {
+      capture=await ImagePicker().pickImage(source:ImageSource.camera,
+        maxWidth:1280,maxHeight:1280,imageQuality:75,
+        requestFullMetadata:false);
+      if(capture==null)return;
+      final decoded=image_codec.decodeImage(await capture.readAsBytes());
+      if(decoded==null)throw StateError('Imagem não reconhecida');
+      // Recriar do zero sem metadados EXIF/GPS da câmera.
+      final clean=image_codec.Image(
+        width:decoded.width,height:decoded.height);
+      image_codec.compositeImage(clean,decoded);
+      var output=Uint8List.fromList(
+        image_codec.encodeJpg(clean,quality:70));
+      if(output.length>700000) {
+        final smaller=image_codec.copyResize(clean,width:960);
+        output=Uint8List.fromList(
+          image_codec.encodeJpg(smaller,quality:60));
+      }
+      if(output.length>700000)throw StateError('Fotografia muito grande');
+      if(mounted)setState(()=>photos.add(output));
+    }catch (_) {
+      if(mounted)setState(()=>error='Não foi possível preparar a foto. '
+        'Tente novamente em um local seguro.');
+    }finally{
+      // O arquivo do seletor é temporário e não deve virar arquivo do usuário.
+      if(capture!=null) {
+        try {await File(capture.path).delete();}catch(_){}
+      }
+      if(mounted)setState(()=>takingPhoto=false);
+    }
+  }
+
   Future<void> _send() async {
     if(sending||page!=4||place.text.trim().length<2||
         answers.any((answer)=>answer==null))return;
@@ -206,7 +251,13 @@ class _CipaGuidedInspectionDialogState
       final note=CipaGuidedInspection.summary(
         place:place.text,category:category,
         answers:answers.cast<String>(),observation:observation.text);
-      await widget.onSend(place.text.trim(),note);
+      if(photos.isNotEmpty){
+        final upload=widget.onSendWithPhotos;
+        if(upload==null)throw StateError('Envio de fotos não habilitado');
+        await upload(place.text.trim(),note,List<Uint8List>.from(photos));
+      }else{
+        await widget.onSend(place.text.trim(),note);
+      }
       if(mounted)Navigator.of(context).pop(true);
     } catch (_) {
       if(mounted)setState(()=>error='Envio não confirmado. '
@@ -318,6 +369,29 @@ class _CipaGuidedInspectionDialogState
                   style:const TextStyle(fontWeight:FontWeight.w600)),
                 Text('Resposta: ${answers[i]}'),
                 const SizedBox(height:8),
+              ],
+              if(widget.onSendWithPhotos!=null)...[
+                const SizedBox(height:12),
+                SizedBox(height:54,child:OutlinedButton.icon(
+                  onPressed:takingPhoto||sending||photos.length>=2?
+                    null:_takePhoto,
+                  icon:const Icon(Icons.camera_alt_outlined,size:26),
+                  label:Text(takingPhoto?'Abrindo câmera...':
+                    photos.length>=2?'2 fotos adicionadas':'Tirar foto'),
+                )),
+                Text('Fotos: ${photos.length} de 2. '
+                  'Apenas fotos da situação, sem identificar pessoas.'),
+                if(photos.isNotEmpty)Wrap(spacing:8,runSpacing:8,
+                  children:[
+                    for(var i=0;i<photos.length;i++)
+                      Column(mainAxisSize:MainAxisSize.min,children:[
+                        Image.memory(photos[i],width:110,height:88,
+                          fit:BoxFit.cover),
+                        TextButton(onPressed:sending?null:()=>
+                          setState(()=>photos.removeAt(i)),
+                          child:const Text('Remover')),
+                      ]),
+                  ]),
               ],
               if(answers.contains('Sim'))
                 const Text('Uma ou mais situações precisam de avaliação. '

@@ -58,6 +58,40 @@ class _CipaTstReviewScreenState extends State<CipaTstReviewScreen> {
     return 'tst-'+List<int>.generate(24,(_)=>rnd.nextInt(256))
       .map((n)=>n.toRadixString(16).padLeft(2,'0')).join();
   });
+  Future<void> _viewPhotos(Map<String,dynamic> record) async {
+    if(busy||record['companyId']!=widget.companyId||
+       record['mandateId']!=widget.mandateId)return;
+    final id=(record['id']??'').toString();
+    if(id.isEmpty)return;
+    setState(()=>busy=true);
+    final images=<dynamic>[];
+    try {
+      final listed=await _call('cipa_tst_photo_list',{'observationId':id});
+      if(listed['slots'] is List){
+        for(final slot in (listed['slots'] as List).whereType<int>().take(2)){
+          final photo=await _call('cipa_tst_photo_get',{
+            'observationId':id,'slot':slot,
+          });
+          images.add(base64Decode((photo['jpegBase64']??'').toString()));
+        }
+      }
+    }catch(_){
+      if(mounted)setState(()=>error='Fotos indisponíveis ou acesso revogado.');
+    }finally{if(mounted)setState(()=>busy=false);}
+    if(!mounted)return;
+    await showDialog<void>(context:context,builder:(dialog)=>AlertDialog(
+      title:const Text('Fotos da vistoria'),
+      content:SingleChildScrollView(child:Column(
+        mainAxisSize:MainAxisSize.min,
+        children:images.isEmpty?[const Text('Nenhuma foto disponível.')]:
+          images.map((b)=>Padding(padding:const EdgeInsets.only(bottom:8),
+            child:Image.memory(b,width:380,fit:BoxFit.contain))).toList(),
+      )),
+      actions:[TextButton(onPressed:()=>Navigator.pop(dialog),
+        child:const Text('Fechar'))],
+    ));
+  }
+
   Future<void> _reply(Map<String,dynamic> record) async {
     if(busy||record['companyId']!=widget.companyId||
       record['mandateId']!=widget.mandateId)return;
@@ -119,34 +153,54 @@ class _CipaTstReviewScreenState extends State<CipaTstReviewScreen> {
     }finally{if(mounted)setState(()=>busy=false);}
     if(success&&mounted)await _reload();
   }
-  @override Widget build(BuildContext context)=>Scaffold(
-    appBar:AppBar(title:const Text('Vistorias da CIPA'),actions:[
-      IconButton(onPressed:busy?null:_reload,
-        tooltip:'Atualizar',icon:const Icon(Icons.refresh)),
-    ]),
-    body:SafeArea(child:ListView(
-      padding:const EdgeInsets.all(12),children:[
-        const Text('Relatos para orientação. Não é possível encerrar '
-          'não conformidades nesta tela.'),
-        if(busy)const LinearProgressIndicator(),
-        if(error.isNotEmpty)Text(error),
-        if(!busy&&records.isEmpty)const Text('Nenhum relato disponível.'),
-        for(final record in records.reversed)
-          Card(child:Padding(padding:const EdgeInsets.all(12),
-            child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
-              Text((record['location']??'Setor não informado').toString(),
-                style:Theme.of(context).textTheme.titleMedium),
-              Text((record['detail']??'').toString(),maxLines:7,
-                overflow:TextOverflow.ellipsis),
-              Text('Situação: ${record['status']??'Recebido'}'),
-              if((record['feedback']??'').toString().isNotEmpty)
-                Text('Orientação anterior: ${record['feedback']}'),
-              const SizedBox(height:8),
-              SizedBox(height:50,child:FilledButton.icon(
-                onPressed:busy?null:()=>_reply(record),
-                icon:const Icon(Icons.reply_outlined),
-                label:const Text('Responder ao membro'))),
-            ]))),
-      ])),
-  );
+  Widget _observationCard(Map<String,dynamic> record) {
+    return Card(
+      child:Padding(
+        padding:const EdgeInsets.all(12),
+        child:Column(
+          crossAxisAlignment:CrossAxisAlignment.stretch,
+          children:<Widget>[
+            Text((record['location']??'Setor não informado').toString(),
+              style:Theme.of(context).textTheme.titleMedium),
+            Text((record['detail']??'').toString(),maxLines:7,
+              overflow:TextOverflow.ellipsis),
+            Text('Situação: '+(record['status']??'Recebido').toString()),
+            if((record['feedback']??'').toString().isNotEmpty)
+              Text('Orientação anterior: '+record['feedback'].toString()),
+            const SizedBox(height:8),
+            SizedBox(height:50,child:OutlinedButton.icon(
+              onPressed:busy?null:()=>_viewPhotos(record),
+              icon:const Icon(Icons.photo_outlined),
+              label:const Text('Ver fotos'),
+            )),
+            const SizedBox(height:8),
+            SizedBox(height:50,child:FilledButton.icon(
+              onPressed:busy?null:()=>_reply(record),
+              icon:const Icon(Icons.reply_outlined),
+              label:const Text('Responder ao membro'),
+            )),
+          ],
+        ),
+      ),
+    );
+  }
+  @override Widget build(BuildContext context) {
+    return Scaffold(
+      appBar:AppBar(title:const Text('Vistorias da CIPA'),actions:[
+        IconButton(onPressed:busy?null:_reload,
+          tooltip:'Atualizar',icon:const Icon(Icons.refresh)),
+      ]),
+      body:SafeArea(child:ListView(
+        padding:const EdgeInsets.all(12),
+        children:<Widget>[
+          const Text('Relatos para orientação. Não é possível encerrar '
+            'não conformidades nesta tela.'),
+          if(busy)const LinearProgressIndicator(),
+          if(error.isNotEmpty)Text(error),
+          if(!busy&&records.isEmpty)const Text('Nenhum relato disponível.'),
+          ...records.reversed.map(_observationCard),
+        ],
+      )),
+    );
+  }
 }

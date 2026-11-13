@@ -131,7 +131,10 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
         onReportProgress:api.progress,
         onRequestSupport:api.support,
         onObserve:api.observe,
+        onObserveWithPhotos:api.observeWithPhotos,
         onObserveScheduled:api.observeScheduled,
+        onObserveScheduledWithPhotos:api.observeScheduledWithPhotos,
+        onViewPhotos:api.photosForObservation,
         onAcknowledgeFeedback:api.acknowledgeFeedback,
       );
     }
