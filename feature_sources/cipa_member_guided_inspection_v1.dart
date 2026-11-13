@@ -171,7 +171,7 @@ class CipaGuidedInspectionDialog extends StatefulWidget {
 }
 
 class _CipaGuidedInspectionDialogState
-    extends State<CipaGuidedInspectionDialog> {
+    extends State<CipaGuidedInspectionDialog> with WidgetsBindingObserver {
   final place=TextEditingController();
   final observation=TextEditingController();
   String category=CipaGuidedInspection.questions.keys.first;
@@ -194,6 +194,7 @@ class _CipaGuidedInspectionDialogState
 
   @override void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final proposed=widget.initialCategory;
     if(proposed!=null &&
        (CipaGuidedInspection.questions.containsKey(proposed) ||
@@ -216,11 +217,17 @@ class _CipaGuidedInspectionDialogState
   }
   @override void dispose() {
     _saveTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     place.removeListener(_queueSave);
     observation.removeListener(_queueSave);
     place.dispose();
     observation.dispose();
     super.dispose();
+  }
+
+  @override void didChangeAppLifecycleState(AppLifecycleState state){
+    if(state==AppLifecycleState.paused||state==AppLifecycleState.inactive)
+      _saveNow();
   }
 
   Future<void> _restoreDraft() async {
@@ -337,6 +344,9 @@ class _CipaGuidedInspectionDialogState
     try {
       // Guardar requestId antes de enviar: retries após queda não duplicam.
       await _saveNow();
+      if(widget.draftStore!=null&&
+         saveStatus.startsWith('Não foi possível'))
+        throw StateError('Falha no salvamento protegido');
       final note=CipaGuidedInspection.summary(
         place:place.text,category:category,
         answers:answers.cast<String>(),observation:observation.text);
@@ -526,7 +536,7 @@ class _CipaGuidedInspectionDialogState
             _queueSave();},
           child:const Text('Voltar')),
         if(step<4)FilledButton(
-          onPressed:sending||
+          onPressed:sending||restoring||
             (step==0&&place.text.trim().length<2)||
             (step>=1&&answers[step-1]==null)?null:_next,
           child:Text(step==0?'Começar':step==3?
