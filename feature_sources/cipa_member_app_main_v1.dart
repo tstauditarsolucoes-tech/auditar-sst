@@ -382,6 +382,7 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
         onEnableOffline:offlineUnlocked?null:_enableOffline,
         onSyncPending:offlineUnlocked?null:_syncPending,
         onDraftSaved:()=>_loadDraftCount(person),
+        onLoadPending:()=>pendingSync.list(person),
         onAcknowledgeMeeting:offlineUnlocked?null:api.acknowledge,
         onReportProgress:offlineUnlocked?null:api.progress,
         onRequestSupport:offlineUnlocked?null:api.support,
