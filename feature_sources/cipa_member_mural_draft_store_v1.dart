@@ -85,7 +85,43 @@ class CipaMuralDraftStore {
     if(key.length!=32)throw StateError('Chave local inválida.');
     return key;
   }
+  /// Recupera escrita cifrada que terminou antes da troca atômica.
+  /// Em caso de corrupção, mantém o arquivo e falha fechado.
+  Future<void> _recoverStaged()async{
+    final dir=await _directory();
+    if(!await dir.exists())return;
+    final prefix=await _prefix();
+    final staged=<File>[];
+    await for(final entry in dir.list()){
+      if(entry is File&&entry.uri.pathSegments.last.startsWith(prefix)&&
+         entry.path.endsWith('.enc.next'))staged.add(entry);
+    }
+    if(staged.length>maxDrafts)
+      throw StateError('Muitos rascunhos temporários.');
+    if(staged.isEmpty)return;
+    final key=await _key(false);
+    for(final source in staged){
+      final plain=await CipaDraftCipher.open(
+        await source.readAsString(),key);
+      final draft=CipaMuralDraft.fromJson(plain,now:_clock());
+      final target=await _file(draft.id);
+      if(source.path!=target+'.next')
+        throw StateError('Arquivo temporário não pertence a este usuário.');
+      final existing=File(target);
+      if(await existing.exists()){
+        final previous=CipaMuralDraft.fromJson(
+          await CipaDraftCipher.open(
+            await existing.readAsString(),key),now:_clock());
+        if(!draft.savedAt.isAfter(previous.savedAt)){
+          await source.delete();
+          continue;
+        }
+      }
+      await source.rename(target);
+    }
+  }
   Future<List<File>> _files()async{
+    await _recoverStaged();
     final dir=await _directory();
     if(!await dir.exists())return [];
     final prefix=await _prefix();
