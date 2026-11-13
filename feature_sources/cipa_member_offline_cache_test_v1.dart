@@ -59,4 +59,43 @@ void main(){
       expect(await cache.isEnabled('joana@example.test'),false);
     }finally{await dir.delete(recursive:true);}
   });
+  test('Cache com mais de 24 horas não abre sem atualizar online',()async{
+    final dir=await Directory.systemTemp.createTemp('cipa-expiry-');
+    var now=DateTime.utc(2026,11,13,12);
+    try {
+      final cache=CipaMemberOfflineCache(
+        vault:MemoryVault(),directory:()async=>dir,clock:()=>now);
+      await cache.enroll('joana@example.test','314159',testView());
+      now=now.add(const Duration(hours:24,minutes:1));
+      await expectLater(cache.unlock('joana@example.test','314159'),
+        throwsStateError);
+      await cache.updateFromServer('joana@example.test',testView());
+      expect((await cache.unlock('joana@example.test','314159'))
+        .view.myActions.length,1);
+    }finally{await dir.delete(recursive:true);}
+  });
+
+  test('PIN incorreto bloqueia consulta offline após cinco tentativas',()async{
+    final dir=await Directory.systemTemp.createTemp('cipa-pin-');
+    try {
+      final cache=CipaMemberOfflineCache(
+        vault:MemoryVault(),directory:()async=>dir);
+      await cache.enroll('joana@example.test','314159',testView());
+      for(var attempt=0;attempt<5;attempt++){
+        await expectLater(cache.unlock('joana@example.test','000000'),
+          throwsStateError);
+      }
+      await expectLater(cache.unlock('joana@example.test','314159'),
+        throwsStateError);
+    }finally{await dir.delete(recursive:true);}
+  });
+
+  test('Conteúdo de outra empresa é recusado antes da consulta',(){
+    final data=CipaOfflineSnapshotCodec.encode(CipaOfflineSnapshot(
+      view:testView(),syncedAt:DateTime.now().toUtc()));
+    final items=data['items'] as List;
+    (items.first as Map<String,dynamic>)['companyId']='outra-empresa';
+    expect(()=>CipaOfflineSnapshotCodec.decode(data),throwsStateError);
+  });
+
 }
