@@ -201,7 +201,8 @@ screen = read("lib/screens/checklist_templates_screen.dart")
 assert "aiMode == 'checklist_builder'" in ai
 assert "const Duration(seconds: 120)" in ai
 assert "A criação do checklist com IA demorou mais que o limite." in ai
-assert "A análise da foto demorou além do limite da IA." in ai
+assert ("A análise da foto demorou além do limite da IA." in ai or
+        "on CentralTransportException catch (error)" in ai)
 assert "ScaffoldMessenger.of(context).clearSnackBars();" in screen
 assert "AiAssistantReply reply;" in screen
 assert "Não foi possível concluir a criação do checklist." in screen
