@@ -27,7 +27,8 @@ yaml=yaml.replace(anchor,anchor+"  http: ^1.3.0\n"
     "  image: ^4.3.0\n"
     "  cryptography: ^2.7.0\n"
     "  flutter_secure_storage: ^11.2.0\n"
-    "  path_provider: ^2.1.6\n",1)
+    "  path_provider: ^2.1.6\n"
+    "  flutter_tts: ^4.2.3\n",1)
 pubspec.write_text(yaml,encoding="utf-8")
 
 pairs={
@@ -37,6 +38,8 @@ pairs={
       "lib/services/cipa_member_identity.dart",
     "feature_sources/cipa_member_portal_policy_v1.dart":
       "lib/services/cipa_member_portal_policy.dart",
+    "feature_sources/cipa_member_home_alerts_v1.dart":
+      "lib/services/cipa_member_home_alerts.dart",
     "feature_sources/cipa_member_api_v1.dart":
       "lib/services/cipa_member_api.dart",
     "feature_sources/cipa_member_draft_store_v1.dart":
