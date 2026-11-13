@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 import 'cipa_member_identity.dart';
@@ -161,17 +162,28 @@ class CipaMemberApi {
   });
 
   Future<void> send(String kind,String target,String note,
-      {String place=''}) async {
+      {String place='',List<Uint8List> photos=const []}) async {
     if(_token==null)throw StateError('Entre novamente.');
     if(!['acknowledge','progress','support','observation'].contains(kind))
       throw StateError('Operação não permitida.');
+    if(photos.length>2||photos.any((p)=>p.length>700000))
+      throw StateError('Máximo duas fotos comprimidas por vistoria.');
     final clean=note.trim();
     if(clean.length<8||clean.length>1200)
       throw StateError('Descrição obrigatória de 8 a 1200 caracteres.');
     final key=kind+'|'+target+'|'+place.trim()+'|'+clean;
+    final eventId=_id(key);
     await _call('cipa_member_event',{
       'sessionToken':_token,'kind':kind,'targetId':target,
-      'detail':clean,'location':place.trim(),'requestId':_id(key)});
+      'detail':clean,'location':place.trim(),'requestId':eventId});
+    for(var i=0;i<photos.length;i++){
+      final bytes=photos[i];
+      await _call('cipa_member_photo_upload',{
+        'sessionToken':_token,'observationId':eventId,
+        'slot':i+1,'jpegBase64':base64Encode(bytes),
+      });
+    }
+    // Preservar requestId caso o upload falhe, para retry idempotente.
     _pendingIds.remove(key);
   }
   Future<void> acknowledge(String meeting)=>
@@ -183,11 +195,38 @@ class CipaMemberApi {
     send('support',action,text);
   Future<void> observe(String place,String text)=>
     send('observation','',text,place:place);
+  Future<void> observeWithPhotos(String place,String text,
+      List<Uint8List> photos)=>
+    send('observation','',text,place:place,photos:photos);
+
   /// Associação obrigatória no servidor ao agendamento pessoal vigente.
   Future<void> observeScheduled(String scheduleId,String place,String text) async {
     if(!scheduleId.startsWith('cipa-inspection-'))
       throw StateError('Agendamento não identificado.');
     await send('observation',scheduleId,text,place:place);
+  }
+
+  Future<void> observeScheduledWithPhotos(String scheduleId,String place,
+      String text,List<Uint8List> photos) async {
+    if(!scheduleId.startsWith('cipa-inspection-'))
+      throw StateError('Agendamento não identificado.');
+    await send('observation',scheduleId,text,place:place,photos:photos);
+  }
+
+  Future<List<Uint8List>> photosForObservation(String observationId) async {
+    if(_token==null)throw StateError('Entre novamente.');
+    final found=await _call('cipa_member_photo_list',{
+      'sessionToken':_token,'observationId':observationId});
+    final slots=found['slots'];
+    if(slots is! List)return const [];
+    final images=<Uint8List>[];
+    for(final slot in slots.whereType<int>().take(2)){
+      final image=await _call('cipa_member_photo_get',{
+        'sessionToken':_token,'observationId':observationId,'slot':slot});
+      final payload=(image['jpegBase64']??'').toString();
+      images.add(base64Decode(payload));
+    }
+    return images;
   }
 
   Future<void> acknowledgeFeedback(String observationId,
