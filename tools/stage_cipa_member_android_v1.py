@@ -80,6 +80,10 @@ pairs={
       "test/cipa_member_engagement_test.dart",
     "feature_sources/cipa_member_engagement_panel_test_v1.dart":
       "test/cipa_member_engagement_panel_test.dart",
+    "feature_sources/cipa_member_role_meetings_test_v1.dart":
+      "test/cipa_member_role_meetings_test.dart",
+    "feature_sources/cipa_member_role_meeting_panel_test_v1.dart":
+      "test/cipa_member_role_meeting_panel_test.dart",
 }
 for source,target in pairs.items():
     path=app/target
