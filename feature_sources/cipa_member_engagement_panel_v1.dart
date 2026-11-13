@@ -134,50 +134,8 @@ class _CipaMemberEngagementPanelState
       ));
       return;
     }
-    final input=TextEditingController();
-    var topic=CipaMemberEngagement.questionTopics.first;
-    MapEntry<String,String>? chosen;
-    try {
-      chosen=await showDialog<MapEntry<String,String>>(
-        context:context,builder:(dialog)=>StatefulBuilder(
-          builder:(ctx,update)=>AlertDialog(
-            title:const Text('Pergunte ao TST'),
-            content:SizedBox(width:430,child:SingleChildScrollView(
-              child:Column(mainAxisSize:MainAxisSize.min,children:[
-                const Text('A dúvida será enviada como relato para '
-                  'análise da equipe SST; não é chat em tempo real. '
-                  'Evite informar nomes e dados de saúde.'),
-                const SizedBox(height:12),
-                DropdownButtonFormField<String>(
-                  initialValue:topic,
-                  isExpanded:true,
-                  decoration:const InputDecoration(labelText:'Assunto'),
-                  items:[for(final value in
-                    CipaMemberEngagement.questionTopics)
-                      DropdownMenuItem(value:value,child:Text(value,
-                        overflow:TextOverflow.ellipsis))],
-                  onChanged:(value){if(value!=null)update(()=>topic=value);},
-                ),
-                const SizedBox(height:12),
-                TextField(controller:input,maxLength:950,maxLines:4,
-                  onChanged:(_)=>update((){}),
-                  decoration:const InputDecoration(
-                    labelText:'Escreva sua dúvida',
-                    hintText:'O que você precisa saber?',
-                    border:OutlineInputBorder())),
-                const Text('Em perigo imediato, comunique a chefia/local '
-                  'responsável sem aguardar resposta no aplicativo.',
-                  style:TextStyle(fontSize:12)),
-              ]))),
-            actions:[
-              TextButton(onPressed:()=>Navigator.pop(dialog),
-                child:const Text('Cancelar')),
-              FilledButton(onPressed:input.text.trim().length<8?null:()=>
-                Navigator.pop(dialog,MapEntry(topic,input.text.trim())),
-                child:const Text('Enviar dúvida')),
-            ],
-          )));
-    } finally {input.dispose();}
+    final chosen=await showDialog<MapEntry<String,String>>(
+      context:context,builder:(_)=>const _CipaAskTstDialog());
     if(chosen==null||!mounted)return;
     setState(()=>_sending=true);
     try {
@@ -249,4 +207,53 @@ class _CipaMemberEngagementPanelState
             style:TextStyle(fontSize:13))),
       ])));
   }
+}
+
+/// O TextEditingController vive até o diálogo sair da árvore, evitando
+/// o descarte prematuro durante a animação de fechamento do Navigator.
+class _CipaAskTstDialog extends StatefulWidget {
+  const _CipaAskTstDialog();
+  @override State<_CipaAskTstDialog> createState()=>_CipaAskTstDialogState();
+}
+
+class _CipaAskTstDialogState extends State<_CipaAskTstDialog> {
+  final input=TextEditingController();
+  String topic=CipaMemberEngagement.questionTopics.first;
+  @override void dispose(){input.dispose();super.dispose();}
+
+  @override Widget build(BuildContext context)=>AlertDialog(
+    title:const Text('Pergunte ao TST'),
+    content:SizedBox(width:430,child:SingleChildScrollView(
+      child:Column(mainAxisSize:MainAxisSize.min,children:[
+        const Text('A dúvida será enviada como relato para '
+          'análise da equipe SST; não é chat em tempo real. '
+          'Evite informar nomes e dados de saúde.'),
+        const SizedBox(height:12),
+        DropdownButtonFormField<String>(
+          initialValue:topic,isExpanded:true,
+          decoration:const InputDecoration(labelText:'Assunto'),
+          items:[for(final value in CipaMemberEngagement.questionTopics)
+            DropdownMenuItem(value:value,child:Text(value,
+              overflow:TextOverflow.ellipsis))],
+          onChanged:(value){if(value!=null)setState(()=>topic=value);},
+        ),
+        const SizedBox(height:12),
+        TextField(controller:input,maxLength:950,maxLines:4,
+          onChanged:(_)=>setState((){}),
+          decoration:const InputDecoration(
+            labelText:'Escreva sua dúvida',
+            hintText:'O que você precisa saber?',
+            border:OutlineInputBorder())),
+        const Text('Em perigo imediato, comunique a chefia/local '
+          'responsável sem aguardar resposta no aplicativo.',
+          style:TextStyle(fontSize:12)),
+      ]))),
+    actions:[
+      TextButton(onPressed:()=>Navigator.pop(context),
+        child:const Text('Cancelar')),
+      FilledButton(onPressed:input.text.trim().length<8?null:()=>
+        Navigator.pop(context,MapEntry(topic,input.text.trim())),
+        child:const Text('Enviar dúvida')),
+    ],
+  );
 }
