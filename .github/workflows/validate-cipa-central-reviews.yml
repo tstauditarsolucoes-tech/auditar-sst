@@ -11,6 +11,7 @@ on:
       - feature/cipa-rascunho-criptografado-20261113
       - feature/cipa-avisos-modo-facil-20261113
       - feature/cipa-painel-gerencial-20261113
+      - feature/cipa-app-consulta-offline-opcional-20261113
     paths:
       - 'feature_sources/CipaMemberGatewayV1.gs'
       - 'feature_sources/CipaMemberPhotosV1.gs'
@@ -18,6 +19,9 @@ on:
       - 'feature_sources/cipa_manager_metrics_panel_v1.dart'
       - 'feature_sources/cipa_manager_metrics_panel_test_v1.dart'
       - 'feature_sources/cipa_member_draft_store_v1.dart'
+      - 'feature_sources/cipa_member_offline_cache_v1.dart'
+      - 'feature_sources/cipa_member_offline_cache_test_v1.dart'
+      - 'feature_sources/cipa_member_pending_sync_v1.dart'
       - 'feature_sources/cipa_member_draft_store_test_v1.dart'
       - 'feature_sources/cipa_member_draft_widget_test_v1.dart'
       - 'feature_sources/cipa_member_home_alerts_v1.dart'
@@ -175,4 +179,4 @@ jobs:
           flutter pub get
           dart format lib test
           flutter analyze --no-fatal-infos --no-fatal-warnings lib test
-          flutter test --reporter expanded test/cipa_member_portal_screen_test.dart test/cipa_member_api_test.dart test/cipa_member_draft_store_test.dart
+          flutter test --reporter expanded test/cipa_member_portal_screen_test.dart test/cipa_member_api_test.dart test/cipa_member_draft_store_test.dart test/cipa_member_offline_cache_test.dart
