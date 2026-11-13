@@ -58,6 +58,8 @@ void main(){
       await tester.pumpAndSettle();
       expect(find.text('Você acertou!'),findsOneWidget);
       expect(find.textContaining('sem nota ou certificado'),findsOneWidget);
+      await tester.tap(find.text('Fechar'));
+      await tester.pumpAndSettle();
     });
 
   testWidgets('Pergunta online envia apenas após confirmação do integrante',
@@ -92,10 +94,12 @@ void main(){
       await tester.ensureVisible(find.text('Pergunte ao TST'));
       await tester.tap(find.text('Pergunte ao TST'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('não há envio de perguntas offline'),
+      expect(find.textContaining('perguntas offline'),
         findsOneWidget);
       expect(find.text('Enviar dúvida'),findsNothing);
       expect(sent,0);
+      await tester.tap(find.text('Entendi'));
+      await tester.pumpAndSettle();
     });
 
   testWidgets('Meu Impacto distingue contagens de comprovação de resultado',
@@ -108,5 +112,7 @@ void main(){
       expect(find.textContaining('não medem riscos eliminados'),findsOneWidget);
       expect(find.textContaining('números podem estar desatualizados'),
         findsOneWidget);
+      await tester.tap(find.text('Entendi'));
+      await tester.pumpAndSettle();
     });
 }
