@@ -235,6 +235,23 @@ class _CipaTstReviewScreenState extends State<CipaTstReviewScreen> {
   }
 
 
+
+  Future<Uint8List?> _muralAfterPhoto(String id) async{
+    final data=await _call('cipa_mural_after_staff_photo',{'postId':id});
+    if(data['hasPhoto']!=true)return null;
+    final encoded=(data['jpegBase64']??'').toString();
+    if(encoded.length>340000)throw StateError('Foto muito grande.');
+    final bytes=Uint8List.fromList(base64Decode(encoded));
+    if(bytes.length<8||bytes.length>250000)
+      throw StateError('Foto inválida.');
+    return bytes;
+  }
+  Future<void> _muralAfterReview(String id,bool approve)async{
+    await _call('cipa_mural_after_moderate',{
+      'postId':id,'visibility':approve?'Aprovado':'Não publicado',
+    });
+  }
+
   Future<List<Map<String,dynamic>>> _minutesStaffList() async{
     final reply=await _call('cipa_minutes_staff_list');
     final data=reply['minutes'];
@@ -266,7 +283,9 @@ class _CipaTstReviewScreenState extends State<CipaTstReviewScreen> {
           CipaMuralModerationPanel(
             onLoad:_muralList,onReview:_muralReview,
             onCommentReview:_muralReviewComment,
-            onReply:_muralReply,onPhoto:_muralPhoto),
+            onReply:_muralReply,onPhoto:_muralPhoto,
+            onPhotoAfter:_muralAfterPhoto,
+            onReviewAfter:_muralAfterReview),
           CipaManagerMetricsPanel(companyId:widget.companyId,
             mandateId:widget.mandateId,serverData:metrics),
           if(!busy&&records.isEmpty)const Text('Nenhum relato disponível.'),
