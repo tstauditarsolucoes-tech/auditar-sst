@@ -276,6 +276,39 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
         b.toRadixString(16).padLeft(2,'0')).join();
     });
 
+  Future<void> _viewPhotos(Map<String,dynamic> event) async {
+    if(!AuthService.isAdmin||busy||
+       event['companyId']!=widget.companyId||
+       event['mandateId']!=widget.mandateId||
+       event['kind']!='observation')return;
+    final id=(event['id']??'').toString();
+    if(id.isEmpty)return;
+    final images=<dynamic>[];
+    await _perform(()async {
+      final info=await _call('cipa_tst_photo_list',{'observationId':id});
+      if(info['slots'] is List){
+        for(final slot in (info['slots'] as List).whereType<int>().take(2)){
+          final pic=await _call('cipa_tst_photo_get',{
+            'observationId':id,'slot':slot,
+          });
+          images.add(base64Decode((pic['jpegBase64']??'').toString()));
+        }
+      }
+    });
+    if(!mounted||error.isNotEmpty)return;
+    await showDialog<void>(context:context,builder:(dialog)=>AlertDialog(
+      title:const Text('Fotos do relato'),
+      content:SingleChildScrollView(child:Column(
+        mainAxisSize:MainAxisSize.min,
+        children:images.isEmpty?[const Text('Nenhuma foto disponível.')]:
+          images.map((b)=>Padding(padding:const EdgeInsets.only(bottom:8),
+            child:Image.memory(b,width:380,fit:BoxFit.contain))).toList(),
+      )),
+      actions:[TextButton(onPressed:()=>Navigator.pop(dialog),
+        child:const Text('Fechar'))],
+    ));
+  }
+
   Future<void> _reviewObservation(Map<String,dynamic> event) async {
     if(busy||!AuthService.isAdmin)return;
     final id=(event['id']??'').toString();
@@ -500,9 +533,13 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
                   if((event['feedback']??'').toString().isNotEmpty)
                     'Orientação: ${event['feedback']}',
                 ].where((s)=>s.isNotEmpty).join('\n')),
-                trailing:isObservation?TextButton(
-                  onPressed:busy?null:()=>_reviewObservation(event),
-                  child:const Text('Orientar')):null,
+                trailing:isObservation?Wrap(
+                  spacing:4,children:[
+                    TextButton(onPressed:busy?null:()=>_viewPhotos(event),
+                      child:const Text('Ver fotos')),
+                    TextButton(onPressed:busy?null:()=>_reviewObservation(event),
+                      child:const Text('Orientar')),
+                  ]):null,
               );
             }).toList(),
           )),
