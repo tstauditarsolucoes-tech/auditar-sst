@@ -30,11 +30,14 @@ class CipaMemberPortalScreen extends StatefulWidget {
     this.onLoadPending,this.lastSync,
     this.onLoadMural,this.onCreateMural,this.onCommentMural,this.onPhotoMural,
     this.onLoadAvatar,this.onSaveAvatar,this.onDeleteAvatar,
+    this.onSendMinutes,this.onListMinutes,
   });
   final Future<List<CipaMuralPost>> Function()? onLoadMural;
   final Future<void> Function(String place,String detail,Uint8List? photo)? onCreateMural;
   final Future<void> Function(String id,String text)? onCommentMural;
   final Future<Uint8List?> Function(String id)? onPhotoMural;
+  final Future<void> Function(String meetingId,String content)? onSendMinutes;
+  final Future<List<Map<String,dynamic>>> Function()? onListMinutes;
   final Future<Uint8List?> Function()? onLoadAvatar;
   final Future<void> Function(Uint8List jpeg)? onSaveAvatar;
   final Future<void> Function()? onDeleteAvatar;
@@ -677,7 +680,9 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
             onLoad:widget.onLoadMural,onCreate:widget.onCreateMural,
             onComment:widget.onCommentMural,onPhoto:widget.onPhotoMural,
           )),
-        CipaMeetingRoleCoachPanel(profile:profile),
+        CipaMeetingRoleCoachPanel(profile:profile,
+          meetings:view.meetings,onSendMinutes:widget.onSendMinutes,
+          onListMinutes:widget.onListMinutes),
         CipaMemberEngagementPanel(
           view:view,offlineMode:widget.offlineMode,
           onStartMission:(widget.offlineMode||widget.onObserve!=null)?
