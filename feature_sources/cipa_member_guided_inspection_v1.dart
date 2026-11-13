@@ -152,7 +152,8 @@ class CipaGuidedInspection {
 class CipaGuidedInspectionDialog extends StatefulWidget {
   const CipaGuidedInspectionDialog({
     super.key,required this.onSend,this.onSendWithPhotos,
-    this.onSubmitDraft,this.draftStore,this.offlineDraftMode=false,
+    this.onSubmitDraft,this.draftStore,this.draftStoreFactory,
+    this.initialRequestId,this.offlineDraftMode=false,
     this.initialCategory,this.initialPlace,
     this.memberName='',this.companyName='',
     this.memberRole='',this.mandateLabel='',
@@ -163,6 +164,8 @@ class CipaGuidedInspectionDialog extends StatefulWidget {
   final Future<void> Function(String place,String note,List<Uint8List> photos,
     String requestId)? onSubmitDraft;
   final CipaMemberDraftStore? draftStore;
+  final CipaMemberDraftStore Function(String requestId)? draftStoreFactory;
+  final String? initialRequestId;
   final bool offlineDraftMode;
   final String? initialCategory,initialPlace;
   final String memberName,companyName,memberRole,mandateLabel;
@@ -187,6 +190,7 @@ class _CipaGuidedInspectionDialogState
   bool restoring=false;
   String saveStatus='';
   Timer? _saveTimer;
+  CipaMemberDraftStore? _activeDraftStore;
   Future<void> _writeQueue=Future<void>.value();
   String requestId=_newRequestId();
   static String _newRequestId(){
@@ -197,6 +201,8 @@ class _CipaGuidedInspectionDialogState
 
   @override void initState() {
     super.initState();
+    if(widget.initialRequestId!=null){
+      if(!RegExp(r'^[A-Za-z0-9_-]{16,120}
     WidgetsBinding.instance.addObserver(this);
     final proposed=widget.initialCategory;
     if(proposed!=null &&
@@ -209,7 +215,7 @@ class _CipaGuidedInspectionDialogState
     _resetAnswers();
     place.addListener(_queueSave);
     observation.addListener(_queueSave);
-    if(widget.draftStore!=null){
+    if(_activeDraftStore!=null){
       restoring=true;
       _restoreDraft();
     }
@@ -236,7 +242,7 @@ class _CipaGuidedInspectionDialogState
 
   Future<void> _restoreDraft() async {
     try {
-      final saved=await widget.draftStore!.load();
+      final saved=await _activeDraftStore!.load();
       if(!mounted)return;
       if(saved!=null&&(
         CipaGuidedInspection.questions.containsKey(saved.category)||
@@ -260,12 +266,12 @@ class _CipaGuidedInspectionDialogState
     }
   }
   void _queueSave(){
-    if(restoring||widget.draftStore==null)return;
+    if(restoring||_activeDraftStore==null)return;
     _saveTimer?.cancel();
     _saveTimer=Timer(const Duration(milliseconds:250),_saveNow);
   }
   Future<void> _saveNow() async {
-    final store=widget.draftStore;
+    final store=_activeDraftStore;
     if(store==null||restoring)return;
     _saveTimer?.cancel();
     final snapshot=CipaInspectionDraft(
@@ -286,7 +292,7 @@ class _CipaGuidedInspectionDialogState
     }
   }
   Future<void> _exit() async {
-    if(widget.draftStore!=null){
+    if(_activeDraftStore!=null){
       await _saveNow();
       if(saveStatus.startsWith('Não foi possível'))return;
     }
@@ -363,7 +369,7 @@ class _CipaGuidedInspectionDialogState
     try {
       // Guardar requestId antes de enviar: retries após queda não duplicam.
       await _saveNow();
-      if(widget.draftStore!=null&&
+      if(_activeDraftStore!=null&&
          saveStatus.startsWith('Não foi possível'))
         throw StateError('Falha no salvamento protegido');
       final note=CipaGuidedInspection.summary(
@@ -380,8 +386,8 @@ class _CipaGuidedInspectionDialogState
         await widget.onSend(place.text.trim(),note);
       }
       _saveTimer?.cancel();
-      if(widget.draftStore!=null){
-        try{await widget.draftStore!.clear();}catch(_){}
+      if(_activeDraftStore!=null){
+        try{await _activeDraftStore!.clear();}catch(_){}
       }
       if(mounted)Navigator.of(context).pop(true);
     } catch (_) {
@@ -549,7 +555,7 @@ class _CipaGuidedInspectionDialogState
                 'Não inclua nomes nem dados de saúde.',
                 style:const TextStyle(fontSize:12)),
             ],
-            if(widget.draftStore!=null)
+            if(_activeDraftStore!=null)
               Text(restoring?'Recuperando rascunho protegido...':saveStatus,
                 style:const TextStyle(fontSize:12)),
             if(error.isNotEmpty)
@@ -560,7 +566,396 @@ class _CipaGuidedInspectionDialogState
       actions:[
         TextButton(
           onPressed:sending?null:_exit,
-          child:Text(widget.draftStore==null?'Cancelar':'Guardar e sair')),
+          child:Text(_activeDraftStore==null?'Cancelar':'Guardar e sair')),
+        if(step>0)OutlinedButton(
+          onPressed:sending?null:(){setState(()=>page=page-1);
+            _queueSave();},
+          child:const Text('Voltar')),
+        if(step<4)FilledButton(
+          onPressed:sending||restoring||
+            (step==0&&place.text.trim().length<2)||
+            (step>=1&&answers[step-1]==null)?null:_next,
+          child:Text(step==0?'Começar':step==3?
+            'Conferir respostas':'Próxima')),
+        if(step==4&&!widget.offlineDraftMode)FilledButton.icon(
+          onPressed:sending||answers.any((a)=>a==null)?null:_send,
+          icon:const Icon(Icons.send_outlined),
+          label:Text(sending?'Enviando...':'Enviar para análise')),
+      ],
+    );
+  }
+}
+).hasMatch(
+        widget.initialRequestId!))
+        throw StateError('Identificação de rascunho inválida');
+      requestId=widget.initialRequestId!;
+    }
+    _activeDraftStore=widget.draftStore??
+      widget.draftStoreFactory?.call(requestId);
+    WidgetsBinding.instance.addObserver(this);
+    final proposed=widget.initialCategory;
+    if(proposed!=null &&
+       (CipaGuidedInspection.questions.containsKey(proposed) ||
+        CipaGuidedInspection.sectorQuestions.containsKey(proposed))) {
+      category=proposed;
+    }
+    final initial=widget.initialPlace?.trim()??'';
+    if(initial.length>=2&&initial.length<=120)place.text=initial;
+    _resetAnswers();
+    place.addListener(_queueSave);
+    observation.addListener(_queueSave);
+    if(_activeDraftStore!=null){
+      restoring=true;
+      _restoreDraft();
+    }
+  }
+  void _resetAnswers() {
+    answers=List<String?>.filled(
+      CipaGuidedInspection.questionsFor(category).length,null);
+  }
+  @override void dispose() {
+    _saveTimer?.cancel();
+    _reader?.stop();
+    WidgetsBinding.instance.removeObserver(this);
+    place.removeListener(_queueSave);
+    observation.removeListener(_queueSave);
+    place.dispose();
+    observation.dispose();
+    super.dispose();
+  }
+
+  @override void didChangeAppLifecycleState(AppLifecycleState state){
+    if(state==AppLifecycleState.paused||state==AppLifecycleState.inactive)
+      _saveNow();
+  }
+
+  Future<void> _restoreDraft() async {
+    try {
+      final saved=await _activeDraftStore!.load();
+      if(!mounted)return;
+      if(saved!=null&&(
+        CipaGuidedInspection.questions.containsKey(saved.category)||
+        CipaGuidedInspection.sectorQuestions.containsKey(saved.category))){
+        setState((){
+          requestId=saved.requestId;
+          category=saved.category;
+          place.text=saved.place;
+          observation.text=saved.observation;
+          answers=List<String?>.from(saved.answers);
+          photos..clear()..addAll(saved.photos);
+          saveStatus='Rascunho protegido recuperado';
+        });
+      }
+    }catch(_){
+      if(mounted)setState(()=>error='O rascunho protegido não pôde ser aberto. '
+        'Nenhum dado de outra pessoa será exibido.');
+    }finally{
+      restoring=false;
+      if(mounted)setState((){});
+    }
+  }
+  void _queueSave(){
+    if(restoring||_activeDraftStore==null)return;
+    _saveTimer?.cancel();
+    _saveTimer=Timer(const Duration(milliseconds:250),_saveNow);
+  }
+  Future<void> _saveNow() async {
+    final store=_activeDraftStore;
+    if(store==null||restoring)return;
+    _saveTimer?.cancel();
+    final snapshot=CipaInspectionDraft(
+      requestId:requestId,category:category,place:place.text,
+      answers:List<String?>.from(answers),
+      observation:observation.text,
+      photos:List<Uint8List>.from(photos),
+      savedAt:DateTime.now().toUtc());
+    _writeQueue=_writeQueue.then((_)=>store.save(snapshot));
+    try {
+      await _writeQueue;
+      if(mounted)setState(()=>saveStatus='Rascunho protegido salvo');
+    }catch(_){
+      // A falha não pode ser tratada como salvamento bem sucedido.
+      if(mounted)setState(()=>saveStatus='Não foi possível salvar. '
+        'Use Guardar e sair para tentar novamente.');
+      _writeQueue=Future<void>.value();
+    }
+  }
+  Future<void> _exit() async {
+    if(_activeDraftStore!=null){
+      await _saveNow();
+      if(saveStatus.startsWith('Não foi possível'))return;
+    }
+    if(mounted)Navigator.pop(context,false);
+  }
+
+  void _next() {
+    if(sending)return;
+    if(page==0&&place.text.trim().length>=2) {
+      setState(()=>page=1);
+      _queueSave();
+    } else if(page>=1&&page<=3&&answers[page-1]!=null) {
+      setState(()=>page=page+1);
+      _queueSave();
+    }
+  }
+
+  Future<void> _readQuestion() async {
+    if(sending||page<1||page>3)return;
+    final text=CipaGuidedInspection.questionsFor(category)[page-1];
+    try {
+      final reader=_reader??=FlutterTts();
+      await reader.setLanguage('pt-BR');
+      await reader.setSpeechRate(0.45);
+      await reader.stop();
+      await reader.speak(text);
+    }catch(_){
+      if(mounted)setState(()=>error='Leitura em voz alta indisponível '
+        'neste aparelho. Continue lendo a pergunta na tela.');
+    }
+  }
+
+  Future<void> _takePhoto() async {
+    if(sending||takingPhoto||photos.length>=2||
+       (widget.onSendWithPhotos==null&&!widget.offlineDraftMode))return;
+    setState(() {takingPhoto=true;error='';});
+    XFile? capture;
+    try {
+      capture=await ImagePicker().pickImage(source:ImageSource.camera,
+        maxWidth:1280,maxHeight:1280,imageQuality:75,
+        requestFullMetadata:false);
+      if(capture==null)return;
+      final decoded=image_codec.decodeImage(await capture.readAsBytes());
+      if(decoded==null)throw StateError('Imagem não reconhecida');
+      // Recriar do zero sem metadados EXIF/GPS da câmera.
+      final clean=image_codec.Image(
+        width:decoded.width,height:decoded.height);
+      image_codec.compositeImage(clean,decoded);
+      var output=Uint8List.fromList(
+        image_codec.encodeJpg(clean,quality:70));
+      if(output.length>700000) {
+        final smaller=image_codec.copyResize(clean,width:960);
+        output=Uint8List.fromList(
+          image_codec.encodeJpg(smaller,quality:60));
+      }
+      if(output.length>700000)throw StateError('Fotografia muito grande');
+      if(mounted){setState(()=>photos.add(output));_queueSave();}
+    }catch (_) {
+      if(mounted)setState(()=>error='Não foi possível preparar a foto. '
+        'Tente novamente em um local seguro.');
+    }finally{
+      // O arquivo do seletor é temporário e não deve virar arquivo do usuário.
+      if(capture!=null) {
+        try {await File(capture.path).delete();}catch(_){}
+      }
+      if(mounted)setState(()=>takingPhoto=false);
+    }
+  }
+
+  Future<void> _send() async {
+    if(widget.offlineDraftMode||sending||page!=4||place.text.trim().length<2||
+        answers.any((answer)=>answer==null))return;
+    setState(() {sending=true;error='';});
+    try {
+      // Guardar requestId antes de enviar: retries após queda não duplicam.
+      await _saveNow();
+      if(_activeDraftStore!=null&&
+         saveStatus.startsWith('Não foi possível'))
+        throw StateError('Falha no salvamento protegido');
+      final note=CipaGuidedInspection.summary(
+        place:place.text,category:category,
+        answers:answers.cast<String>(),observation:observation.text);
+      if(widget.onSubmitDraft!=null){
+        await widget.onSubmitDraft!(place.text.trim(),note,
+          List<Uint8List>.from(photos),requestId);
+      }else if(photos.isNotEmpty){
+        final upload=widget.onSendWithPhotos;
+        if(upload==null)throw StateError('Envio de fotos não habilitado');
+        await upload(place.text.trim(),note,List<Uint8List>.from(photos));
+      }else{
+        await widget.onSend(place.text.trim(),note);
+      }
+      _saveTimer?.cancel();
+      if(_activeDraftStore!=null){
+        try{await _activeDraftStore!.clear();}catch(_){}
+      }
+      if(mounted)Navigator.of(context).pop(true);
+    } catch (_) {
+      if(mounted)setState(()=>error='Envio não confirmado. '
+        'Confira a conexão e consulte o histórico antes de tentar novamente.');
+    } finally {
+      if(mounted)setState(()=>sending=false);
+    }
+  }
+
+  @override Widget build(BuildContext context) {
+    final questions=CipaGuidedInspection.questionsFor(category);
+    final step=page;
+    final answered=answers.where((a)=>a!=null).length;
+    return AlertDialog(
+      title:const Text('Minha Vistoria CIPA'),
+      content:SizedBox(width:460,child:SingleChildScrollView(
+        child:Column(
+          mainAxisSize:MainAxisSize.min,
+          crossAxisAlignment:CrossAxisAlignment.stretch,
+          children:[
+            if(step==0)...[
+              const Text('Primeiro, confira onde vai observar. '
+                'Seu cadastro já vem da sessão individual.'),
+              const SizedBox(height:10),
+              if(widget.memberName.isNotEmpty)
+                Text('Integrante: ${widget.memberName}',
+                  style:const TextStyle(fontWeight:FontWeight.w600)),
+              if(widget.memberRole.isNotEmpty)
+                Text('Função na CIPA: ${widget.memberRole}'),
+              if(widget.companyName.isNotEmpty)
+                Text('Empresa: ${widget.companyName}'),
+              if(widget.mandateLabel.isNotEmpty)
+                Text('Mandato: ${widget.mandateLabel}'),
+              const SizedBox(height:12),
+              TextField(controller:place,maxLength:120,
+                onChanged:(_)=>setState((){}),
+                decoration:const InputDecoration(
+                  labelText:'Setor ou local observado',
+                  hintText:'Ex.: Produção — corredor',
+                  border:OutlineInputBorder())),
+              DropdownButtonFormField<String>(
+                isExpanded:true,
+                value:category,
+                decoration:const InputDecoration(
+                  labelText:'Escolha o setor ou tema',
+                  border:OutlineInputBorder()),
+                items:[
+                  for(final name in <String>[
+                    ...CipaGuidedInspection.questions.keys,
+                    ...CipaGuidedInspection.sectorQuestions.keys,
+                  ]) DropdownMenuItem(
+                    value:name,
+                    child:Text(name,overflow:TextOverflow.ellipsis)),
+                ],
+                onChanged:sending?null:(next) {
+                  if(next==null)return;
+                  setState((){category=next;_resetAnswers();});
+                  _queueSave();
+                }),
+              const SizedBox(height:12),
+              const Text('Serão apenas 3 perguntas, uma por vez. '
+                'Observe somente de um local seguro. Não se aproxime '
+                'de máquinas, fornos, instalações elétricas ou bordas.'),
+            ],
+            if(step>=1&&step<=3)...[
+              Row(children:[
+                Expanded(child:Text('Pergunta $step de 3',
+                  style:const TextStyle(fontWeight:FontWeight.w700))),
+                IconButton(
+                  constraints:const BoxConstraints.tightFor(width:34,height:34),
+                  padding:EdgeInsets.zero,
+                  tooltip:'Ouvir pergunta',
+                  onPressed:sending?null:_readQuestion,
+                  icon:const Icon(Icons.volume_up_outlined,size:25)),
+              ]),
+              const SizedBox(height:10),
+              LinearProgressIndicator(value:answered/3),
+              const SizedBox(height:20),
+              Text(questions[step-1],style:const TextStyle(
+                fontWeight:FontWeight.w700,fontSize:20)),
+              const SizedBox(height:14),
+              for(final answer in const [
+                'Sim','Não','Não sei/não verifiquei',
+              ]) Card(
+                margin:const EdgeInsets.only(bottom:8),
+                child:RadioListTile<String>(
+                  key:ValueKey('answer-${step-1}-$answer'),
+                  contentPadding:const EdgeInsets.symmetric(
+                    horizontal:12,vertical:7),
+                  title:Text(answer,style:const TextStyle(fontSize:16)),
+                  value:answer,groupValue:answers[step-1],
+                  onChanged:sending?null:(next){
+                    setState(()=>answers[step-1]=next);
+                    _queueSave();
+                  },
+                )),
+              const SizedBox(height:12),
+              ExpansionTile(
+                tilePadding:EdgeInsets.zero,
+                title:const Text('O que observar com segurança?'),
+                children:[
+                  Padding(padding:const EdgeInsets.all(12),
+                    child:Text(CipaGuidedInspection.help[category] ??
+                      'Observe apenas de um lugar seguro.')),
+                ],
+              ),
+              if(answers[step-1]=='Sim')
+                const Text('Se perceber perigo imediato, afaste-se '
+                  'e avise o responsável. Não tente corrigir.'),
+            ],
+            if(step==4)...[
+              const Text('Confira suas respostas',
+                style:TextStyle(fontWeight:FontWeight.w700,fontSize:18)),
+              const SizedBox(height:8),
+              Text('Local: ${place.text.trim()}'),
+              Text('Tema: $category'),
+              const Divider(),
+              for(var i=0;i<questions.length;i++)...[
+                Text(questions[i],
+                  style:const TextStyle(fontWeight:FontWeight.w600)),
+                Text('Resposta: ${answers[i]}'),
+                const SizedBox(height:8),
+              ],
+              if(widget.onSendWithPhotos!=null||widget.offlineDraftMode)...[
+                const SizedBox(height:12),
+                SizedBox(height:54,child:OutlinedButton.icon(
+                  onPressed:takingPhoto||sending||photos.length>=2?
+                    null:_takePhoto,
+                  icon:const Icon(Icons.camera_alt_outlined,size:26),
+                  label:Text(takingPhoto?'Abrindo câmera...':
+                    photos.length>=2?'2 fotos adicionadas':'Tirar foto'),
+                )),
+                Text('Fotos: ${photos.length} de 2. '
+                  'Apenas fotos da situação, sem identificar pessoas.'),
+                if(photos.isNotEmpty)Wrap(spacing:8,runSpacing:8,
+                  children:[
+                    for(var i=0;i<photos.length;i++)
+                      Column(mainAxisSize:MainAxisSize.min,children:[
+                        Image.memory(photos[i],width:110,height:88,
+                          fit:BoxFit.cover),
+                        TextButton(onPressed:sending?null:(){
+                          setState(()=>photos.removeAt(i));
+                          _queueSave();
+                        },
+                          child:const Text('Remover')),
+                      ]),
+                  ]),
+              ],
+              if(answers.contains('Sim'))
+                const Text('Uma ou mais situações precisam de avaliação. '
+                  'Não se aproxime ou tente corrigir por conta própria.',
+                  style:TextStyle(fontWeight:FontWeight.w600)),
+              const SizedBox(height:8),
+              TextField(controller:observation,maxLength:250,maxLines:3,
+                decoration:const InputDecoration(
+                  labelText:'Quer acrescentar algo? (opcional)',
+                  border:OutlineInputBorder())),
+              Text(widget.offlineDraftMode?
+                'Sem internet: suas respostas e fotos ficam guardadas '
+                'somente neste aparelho. Use Guardar e sair. '
+                'O envio será feito quando entrar com internet.':
+                'A equipe técnica receberá o relato. As respostas não '
+                'comprovam conformidade e não encerram ações. '
+                'Não inclua nomes nem dados de saúde.',
+                style:const TextStyle(fontSize:12)),
+            ],
+            if(_activeDraftStore!=null)
+              Text(restoring?'Recuperando rascunho protegido...':saveStatus,
+                style:const TextStyle(fontSize:12)),
+            if(error.isNotEmpty)
+              Text(error,style:TextStyle(
+                color:Theme.of(context).colorScheme.error)),
+          ],
+        ))),
+      actions:[
+        TextButton(
+          onPressed:sending?null:_exit,
+          child:Text(_activeDraftStore==null?'Cancelar':'Guardar e sair')),
         if(step>0)OutlinedButton(
           onPressed:sending?null:(){setState(()=>page=page-1);
             _queueSave();},
