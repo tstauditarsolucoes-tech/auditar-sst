@@ -180,4 +180,4 @@ jobs:
           flutter pub get
           dart format lib test
           flutter analyze --no-fatal-infos --no-fatal-warnings lib test
-          flutter test --reporter expanded test/cipa_member_portal_screen_test.dart test/cipa_member_api_test.dart test/cipa_member_draft_store_test.dart test/cipa_member_offline_cache_test.dart
+          flutter test --reporter expanded test/cipa_member_portal_screen_test.dart test/cipa_member_api_test.dart test/cipa_member_draft_store_test.dart test/cipa_member_offline_cache_test.dart test/cipa_member_pending_sync_test.dart
