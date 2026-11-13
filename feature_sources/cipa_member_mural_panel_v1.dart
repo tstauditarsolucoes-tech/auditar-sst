@@ -7,13 +7,15 @@ import '../services/cipa_member_mural_model.dart';
 class CipaMuralPanel extends StatefulWidget{
   const CipaMuralPanel({super.key,this.offline=false,
     this.onLoad,this.onCreate,this.onComment,this.onPhoto,
-    this.onSubmitAfter,this.onPhotoAfter});
+    this.onSubmitAfter,this.onPhotoAfter,this.onSaveDraft});
   final bool offline;
   final Future<List<CipaMuralPost>> Function()? onLoad;
   final Future<void> Function(String place,String detail,Uint8List? photo)?
     onCreate;
   final Future<void> Function(String id,String text)? onComment;
   final Future<Uint8List?> Function(String id)? onPhoto;
+  final Future<void> Function(String place,String detail,
+    Uint8List? photo)? onSaveDraft;
   final Future<void> Function(String id,Uint8List jpeg)? onSubmitAfter;
   final Future<Uint8List?> Function(String id)? onPhotoAfter;
   @override State<CipaMuralPanel> createState()=>_CipaMuralPanelState();
@@ -98,6 +100,25 @@ class _CipaMuralPanelState extends State<CipaMuralPanel>{
       actions:[TextButton(onPressed:()=>Navigator.pop(dialog),
         child:const Text('Fechar'))],
     ));
+  }
+
+
+  Future<void> _saveLocally() async{
+    if(widget.onSaveDraft==null||sending)return;
+    final draft=await showDialog<_MuralDraft>(context:context,
+      builder:(_)=>const _MuralCreateDialog());
+    if(draft==null||!mounted)return;
+    setState(()=>sending=true);
+    try{
+      await widget.onSaveDraft!(draft.place,draft.detail,draft.photo);
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content:Text('Rascunho do mural salvo '
+          'de forma protegida neste celular. Ainda não foi enviado.')));
+    }catch(_){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content:Text('Não foi possível salvar o '
+          'rascunho protegido. Confira o espaço e tente novamente.')));
+    }finally{if(mounted)setState(()=>sending=false);}
   }
 
   Future<void> _submitAfter(CipaMuralPost post)async{
@@ -186,10 +207,19 @@ class _CipaMuralPanelState extends State<CipaMuralPanel>{
         style:TextStyle(fontSize:12)),
       const SizedBox(height:12),
       if(widget.offline)...[
-        const Text('Mural indisponível offline. Entre com internet para '
-          'proteger a privacidade das publicações.',
+        const Text('As publicações dos colegas não ficam salvas offline. '
+          'Você pode preencher um rascunho privado e enviar depois.',
           style:TextStyle(fontWeight:FontWeight.w700)),
+        if(widget.onSaveDraft!=null)
+          FilledButton.icon(onPressed:sending?null:_saveLocally,
+            icon:const Icon(Icons.save_outlined),
+            label:const Text('Salvar ocorrência no celular')),
       ]else...[
+        if(widget.onSaveDraft!=null)
+          OutlinedButton.icon(onPressed:sending?null:_saveLocally,
+            icon:const Icon(Icons.save_outlined),
+            label:const Text('Salvar rascunho no celular')),
+        const SizedBox(height:8),
         SizedBox(height:54,child:FilledButton.icon(
           onPressed:sending||loading||widget.onCreate==null?null:_create,
           icon:const Icon(Icons.add_a_photo_outlined,size:24),
