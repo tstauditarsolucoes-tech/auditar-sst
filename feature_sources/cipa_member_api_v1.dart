@@ -56,6 +56,30 @@ class CipaMemberApi {
   }
 
 
+
+  Future<void> submitMinutes(String meetingId,String content) async {
+    if(_token==null)throw StateError('Entre para enviar sua minuta.');
+    if(!RegExp(r'^[A-Za-z0-9_-]{3,150}$').hasMatch(meetingId)||
+      content.length<130||content.length>5000||
+      !content.startsWith('RASCUNHO EDUCATIVO'))
+      throw StateError('Minuta inválida ou sem vínculo de reunião.');
+    final key='minuta|'+meetingId+'|'+content;
+    await _call('cipa_minutes_submit',{
+      'sessionToken':_token,'meetingId':meetingId,
+      'content':content,'requestId':_id(key),
+    });
+    _pendingIds.remove(key);
+  }
+
+  Future<List<Map<String,dynamic>>> myMinutes() async {
+    if(_token==null)throw StateError('Entre para consultar suas minutas.');
+    final reply=await _call('cipa_minutes_list',{'sessionToken':_token});
+    final items=reply['minutes'];
+    if(items is! List)return const [];
+    return items.whereType<Map>()
+      .map((r)=>Map<String,dynamic>.from(r)).take(50).toList();
+  }
+
   Future<Uint8List?> loadAvatar() async {
     if(_token==null)throw StateError('Entre para visualizar o perfil.');
     final reply=await _call('cipa_member_avatar_get',{'sessionToken':_token});
