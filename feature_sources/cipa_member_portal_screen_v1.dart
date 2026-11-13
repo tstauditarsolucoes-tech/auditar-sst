@@ -253,6 +253,53 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
         'Acompanhe em Minhas vistorias.')));
   }
 
+  Future<void> _showPending() async {
+    if(busy||widget.onLoadPending==null)return;
+    try {
+      final entries=await widget.onLoadPending!();
+      if(!mounted)return;
+      final selected=await showDialog<CipaStoredDraft>(
+        context:context,builder:(dialog)=>AlertDialog(
+          title:const Text('Vistorias salvas no celular'),
+          content:SizedBox(width:460,height:400,child:ListView(
+            children:[
+              const Text('Os registros abaixo ainda não comprovam envio. '
+                'Escolha um rascunho para continuar ou entre com internet '
+                'e toque em Enviar vistorias salvas.'),
+              const SizedBox(height:12),
+              for(final item in entries)Card(child:ListTile(
+                leading:Icon(item.warning.isNotEmpty?
+                  Icons.error_outline:item.complete?
+                    Icons.task_alt_outlined:Icons.edit_note_outlined),
+                title:Text(item.displayPlace),
+                subtitle:Text(item.warning.isNotEmpty?item.warning:
+                  item.complete?'Pronta para enviar':
+                    'Incompleta: continuar preenchimento'),
+                trailing:item.canResume?
+                  const Icon(Icons.chevron_right):null,
+                onTap:item.canResume?
+                  ()=>Navigator.pop(dialog,item):null,
+              )),
+            ],
+          )),
+          actions:[TextButton(onPressed:()=>Navigator.pop(dialog),
+            child:const Text('Fechar'))],
+        ),
+      );
+      if(selected!=null&&mounted&&selected.canResume){
+        await _guidedInspection(
+          scheduleId:selected.scheduleId,
+          existingDraftId:selected.draftId,
+          legacyFree:selected.isLegacyFree,
+          initialCategory:selected.draft?.category,
+          initialPlace:selected.draft?.place,
+        );
+      }
+    }catch(_){
+      if(mounted)setState(()=>error='Não foi possível consultar os '
+        'rascunhos protegidos. Seus dados não foram apagados.');
+    }
+  }
   Future<void> _viewPhotos(CipaMemberItem item) async {
     final p=widget.view?.profile;
     if(!widget.sessionVerified||busy||p==null||
@@ -455,6 +502,12 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
                   onPressed:busy?null:()=>_submit(widget.onEnableOffline!),
                   icon:const Icon(Icons.offline_bolt_outlined),
                   label:const Text('Ativar acesso offline com PIN')),
+              if(widget.onLoadPending!=null&&
+                 widget.pendingDraftCount>0)
+                OutlinedButton.icon(
+                  onPressed:busy?null:_showPending,
+                  icon:const Icon(Icons.folder_open_outlined),
+                  label:const Text('Ver rascunhos no celular')),
               if(widget.onSyncPending!=null&&!widget.offlineMode&&
                  widget.pendingDraftCount>0)
                 FilledButton.icon(
