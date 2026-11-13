@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../services/apps_script_http.dart';
 import '../services/auth_service.dart';
 import '../services/web_service_config.dart';
+import '../widgets/cipa_manager_metrics_panel.dart';
 
 /// Apenas consultar observações e responder: controle real fica no servidor.
 class CipaTstReviewScreen extends StatefulWidget {
@@ -17,6 +18,7 @@ class _CipaTstReviewScreenState extends State<CipaTstReviewScreen> {
   bool busy=false;
   String error='';
   List<Map<String,dynamic>> records=[];
+  Map<String,dynamic>? metrics;
   final Map<String,String> retryIds={};
   @override void initState(){super.initState();_reload();}
   Future<Map<String,dynamic>> _call(String action,
@@ -42,10 +44,20 @@ class _CipaTstReviewScreenState extends State<CipaTstReviewScreen> {
     try {
       final data=await _call('cipa_tst_review_inbox');
       final items=data['events'];
-      if(mounted)setState(()=>records=items is List?
-        items.whereType<Map>().map((e)=>Map<String,dynamic>.from(e))
-          .where((e)=>e['companyId']==widget.companyId&&
-            e['mandateId']==widget.mandateId).toList():[]);
+      Map<String,dynamic>? checkedMetrics;
+      try {
+        final report=await _call('cipa_tst_metrics');
+        final scope=report['scope'];
+        if(scope is Map&&scope['companyId']==widget.companyId&&
+           scope['mandateId']==widget.mandateId)checkedMetrics=report;
+      }catch (_) {/* Não inferir contagens se a API indisponível. */}
+      if(mounted)setState((){
+        metrics=checkedMetrics;
+        records=items is List?
+          items.whereType<Map>().map((e)=>Map<String,dynamic>.from(e))
+            .where((e)=>e['companyId']==widget.companyId&&
+              e['mandateId']==widget.mandateId).toList():[];
+      });
     }catch (_) {
       if(mounted)setState(() {
         records=[];
@@ -197,6 +209,8 @@ class _CipaTstReviewScreenState extends State<CipaTstReviewScreen> {
             'não conformidades nesta tela.'),
           if(busy)const LinearProgressIndicator(),
           if(error.isNotEmpty)Text(error),
+          CipaManagerMetricsPanel(companyId:widget.companyId,
+            mandateId:widget.mandateId,serverData:metrics),
           if(!busy&&records.isEmpty)const Text('Nenhum relato disponível.'),
           ...records.reversed.map(_observationCard),
         ],

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../services/apps_script_http.dart';
 import '../services/auth_service.dart';
 import '../services/web_service_config.dart';
+import '../widgets/cipa_manager_metrics_panel.dart';
 
 class CipaAdminMemberOption {
   const CipaAdminMemberOption({
@@ -53,6 +54,7 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
   bool busy=false;
   String error='',notice='';
   List<Map<String,dynamic>> accounts=[],inbox=[],notices=[],schedules=[];
+  Map<String,dynamic>? metrics;
   DateTime? scheduleDue;
   String scheduleSector='Organização e circulação';
   final Map<String,String> _scheduleRequestIds={};
@@ -109,8 +111,16 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
       final pending=await _call('cipa_member_admin_inbox');
       final publication=await _call('cipa_member_admin_publications');
       final calendar=await _call('cipa_schedule_list');
+      Map<String,dynamic>? checkedMetrics;
+      try {
+        final data=await _call('cipa_tst_metrics');
+        final scope=data['scope'];
+        if(scope is Map&&scope['companyId']==widget.companyId&&
+          scope['mandateId']==widget.mandateId)checkedMetrics=data;
+      }catch (_) {/* Painel indisponível não bloqueia agenda e vistorias. */}
       if(!mounted)return;
       setState((){
+        metrics=checkedMetrics;
         accounts=(saved['accounts'] is List?
           (saved['accounts'] as List).whereType<Map>()
             .map((m)=>Map<String,dynamic>.from(m)).toList():
@@ -493,6 +503,8 @@ class _CipaMemberAdminScreenState extends State<CipaMemberAdminScreen> {
                     child:const Text('Cancelar')),
                 ),
             ]))),
+          CipaManagerMetricsPanel(companyId:widget.companyId,
+            mandateId:widget.mandateId,serverData:metrics),
           Card(child:Padding(padding:const EdgeInsets.all(12),
             child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,
               children:[

@@ -15,6 +15,9 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('Central de Vistorias e Relatos (1)'),200,
       scrollable:find.byType(Scrollable).first);
+    await tester.ensureVisible(
+      find.text('Central de Vistorias e Relatos (1)'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Central de Vistorias e Relatos (1)'));
     await tester.pumpAndSettle();
     final replyButton=find.widgetWithText(TextButton,'Orientar');
