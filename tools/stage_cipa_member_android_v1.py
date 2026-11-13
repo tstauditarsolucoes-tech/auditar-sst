@@ -66,6 +66,8 @@ pairs={
       "test/cipa_member_pending_sync_test.dart",
     "feature_sources/cipa_member_multi_draft_test_v1.dart":
       "test/cipa_member_multi_draft_test.dart",
+    "feature_sources/cipa_member_recovery_test_v1.dart":
+      "test/cipa_member_recovery_test.dart",
 }
 for source,target in pairs.items():
     path=app/target
