@@ -20,6 +20,7 @@ Data: 13/11/2026. Status: **homologação experimental**, PR #61. Mantém a vers
 - Sair da conta **apaga cache e rascunhos daquele vínculo**; se houver pendências, a tela deve advertir antes. Fechar a consulta offline não apaga os arquivos, mas exige PIN no próximo acesso.
 - Anexos de fotografias permanecem no armazenamento privado definido para as fotos da CIPA. Uma imagem só entra no servidor após confirmação de autorização e vínculo.
 - O upload é **manual**, não uma sincronização em background; notificações push e uso offline de biblioteca técnica completa continuam fora desta etapa.
+- A primeira versão permite **um rascunho de vistoria avulsa por integrante** e um rascunho por agendamento. Múltiplas vistorias avulsas simultâneas e exportação para recuperação deverão ser ampliadas antes de um piloto extensivo.
 - Pendências associadas a agendamentos removidos/cancelados ou mandatos trocados exigem revisão técnica de retenção e descarte, não migração automática para nova empresa.
 - A homologação deve incluir **duas empresas**, troca/revogação de membro, rede totalmente offline, rede intermitente com apenas uma foto entregue, aparelho reiniciado, celular compartilhado, tentativas erradas de PIN, expiração das 24h, LGPD, backups e critérios de retenção.
 
