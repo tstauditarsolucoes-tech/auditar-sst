@@ -435,6 +435,10 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
           offlineUnlocked?null:api.observeScheduledDraft,
         onViewPhotos:offlineUnlocked?null:api.photosForObservation,
         onAcknowledgeFeedback:offlineUnlocked?null:api.acknowledgeFeedback,
+        onLoadMural:offlineUnlocked?null:api.mural,
+        onCreateMural:offlineUnlocked?null:api.muralCreate,
+        onCommentMural:offlineUnlocked?null:api.muralComment,
+        onPhotoMural:offlineUnlocked?null:api.muralPhoto,
       );
     }
     return Scaffold(
