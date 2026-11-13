@@ -9,12 +9,15 @@ on:
       - feature/cipa-vinculo-agendamento-registro-20261113
       - feature/cipa-fotos-privadas-20261113
       - feature/cipa-rascunho-criptografado-20261113
+      - feature/cipa-avisos-modo-facil-20261113
     paths:
       - 'feature_sources/CipaMemberGatewayV1.gs'
       - 'feature_sources/CipaMemberPhotosV1.gs'
       - 'feature_sources/cipa_member_draft_store_v1.dart'
       - 'feature_sources/cipa_member_draft_store_test_v1.dart'
       - 'feature_sources/cipa_member_draft_widget_test_v1.dart'
+      - 'feature_sources/cipa_member_home_alerts_v1.dart'
+      - 'feature_sources/cipa_member_home_alerts_test_v1.dart'
       - 'feature_sources/CipaMemberReviewsV1.gs'
       - 'feature_sources/CipaMemberFeedbackReadV1.gs'
       - 'feature_sources/cipa_member_guided_inspection_v1.dart'
@@ -129,6 +132,8 @@ jobs:
           mkdir -p /tmp/cipa_member_ui_fixture/lib/services /tmp/cipa_member_ui_fixture/lib/screens /tmp/cipa_member_ui_fixture/lib/widgets
           cp feature_sources/cipa_member_identity_v1.dart /tmp/cipa_member_ui_fixture/lib/services/cipa_member_identity.dart
           cp feature_sources/cipa_member_portal_policy_v1.dart /tmp/cipa_member_ui_fixture/lib/services/cipa_member_portal_policy.dart
+          cp feature_sources/cipa_member_home_alerts_v1.dart /tmp/cipa_member_ui_fixture/lib/services/cipa_member_home_alerts.dart
+          cp feature_sources/cipa_member_home_alerts_test_v1.dart /tmp/cipa_member_ui_fixture/test/cipa_member_home_alerts_test.dart
           cp feature_sources/cipa_member_access_header_v1.dart /tmp/cipa_member_ui_fixture/lib/widgets/cipa_member_access_header.dart
           cp feature_sources/cipa_member_guided_inspection_v1.dart /tmp/cipa_member_ui_fixture/lib/widgets/cipa_member_guided_inspection.dart
           cp feature_sources/cipa_member_draft_store_v1.dart /tmp/cipa_member_ui_fixture/lib/services/cipa_member_draft_store.dart
@@ -139,10 +144,10 @@ jobs:
           cp feature_sources/cipa_member_draft_widget_test_v1.dart /tmp/cipa_member_ui_fixture/test/cipa_member_draft_widget_test.dart
           rm /tmp/cipa_member_ui_fixture/test/widget_test.dart
           cd /tmp/cipa_member_ui_fixture
-          flutter pub add image_picker image cryptography flutter_secure_storage path_provider
+          flutter pub add image_picker image cryptography flutter_secure_storage path_provider flutter_tts
           dart format lib test
           flutter analyze --no-fatal-infos --no-fatal-warnings lib test
-          flutter test --reporter expanded test/cipa_member_portal_screen_test.dart test/cipa_member_portal_simple_test.dart test/cipa_member_guided_inspection_test.dart test/cipa_member_draft_widget_test.dart
+          flutter test --reporter expanded test/cipa_member_portal_screen_test.dart test/cipa_member_portal_simple_test.dart test/cipa_member_guided_inspection_test.dart test/cipa_member_draft_widget_test.dart test/cipa_member_home_alerts_test.dart
 
   flutter-member-app:
     runs-on: ubuntu-latest

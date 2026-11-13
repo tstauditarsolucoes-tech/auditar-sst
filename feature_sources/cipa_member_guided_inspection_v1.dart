@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as image_codec;
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import '../services/cipa_member_draft_store.dart';
 
 /// Roteiro educativo de observação visual, sem avaliação normativa automática.
@@ -181,6 +182,7 @@ class _CipaGuidedInspectionDialogState
   String error='';
   final List<Uint8List> photos=[];
   bool takingPhoto=false;
+  FlutterTts? _reader;
   bool restoring=false;
   String saveStatus='';
   Timer? _saveTimer;
@@ -217,6 +219,7 @@ class _CipaGuidedInspectionDialogState
   }
   @override void dispose() {
     _saveTimer?.cancel();
+    _reader?.stop();
     WidgetsBinding.instance.removeObserver(this);
     place.removeListener(_queueSave);
     observation.removeListener(_queueSave);
@@ -297,6 +300,21 @@ class _CipaGuidedInspectionDialogState
     } else if(page>=1&&page<=3&&answers[page-1]!=null) {
       setState(()=>page=page+1);
       _queueSave();
+    }
+  }
+
+  Future<void> _readQuestion() async {
+    if(sending||page<1||page>3)return;
+    final text=CipaGuidedInspection.questionsFor(category)[page-1];
+    try {
+      final reader=_reader??=FlutterTts();
+      await reader.setLanguage('pt-BR');
+      await reader.setSpeechRate(0.45);
+      await reader.stop();
+      await reader.speak(text);
+    }catch(_){
+      if(mounted)setState(()=>error='Leitura em voz alta indisponível '
+        'neste aparelho. Continue lendo a pergunta na tela.');
     }
   }
 
@@ -429,8 +447,16 @@ class _CipaGuidedInspectionDialogState
                 'de máquinas, fornos, instalações elétricas ou bordas.'),
             ],
             if(step>=1&&step<=3)...[
-              Text('Pergunta $step de 3',
-                style:const TextStyle(fontWeight:FontWeight.w700)),
+              Row(children:[
+                Expanded(child:Text('Pergunta $step de 3',
+                  style:const TextStyle(fontWeight:FontWeight.w700))),
+                IconButton(
+                  constraints:const BoxConstraints.tightFor(width:34,height:34),
+                  padding:EdgeInsets.zero,
+                  tooltip:'Ouvir pergunta',
+                  onPressed:sending?null:_readQuestion,
+                  icon:const Icon(Icons.volume_up_outlined,size:25)),
+              ]),
               const SizedBox(height:10),
               LinearProgressIndicator(value:answered/3),
               const SizedBox(height:20),
