@@ -2,6 +2,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../services/cipa_member_portal_policy.dart';
 import '../services/cipa_member_home_alerts.dart';
+import '../services/cipa_member_engagement.dart';
+import '../widgets/cipa_member_engagement_panel.dart';
 import '../services/cipa_member_draft_store.dart';
 import '../widgets/cipa_member_access_header.dart';
 import '../widgets/cipa_member_guided_inspection.dart';
@@ -59,6 +61,7 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
   final GlobalKey _tasksSection=GlobalKey();
   final GlobalKey _inspectionsSection=GlobalKey();
   final GlobalKey _observationsSection=GlobalKey();
+  final GlobalKey _questionsSection=GlobalKey();
 
   void _goTo(GlobalKey section) {
     final target=section.currentContext;
@@ -170,6 +173,19 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
     final p=place.text.trim(),v=text.text.trim();
     place.dispose();text.dispose();
     if(save==true&&mounted)await _submit(()=>widget.onObserve!(p,v));
+  }
+
+  Future<void> _sendTstQuestion(String topic,String detail) async {
+    final send=widget.onObserve;
+    if(!widget.sessionVerified||widget.offlineMode||send==null)
+      throw StateError('Dúvidas só podem ser enviadas com internet.');
+    final note=CipaMemberEngagement.questionText(topic,detail);
+    await send(CipaMemberEngagement.questionPlace,note);
+    // A resposta do servidor confirma o relato. Uma falha de atualização
+    // não deve informar erro de envio nem gerar uma dúvida duplicada.
+    if(widget.onRefresh!=null){
+      try{await widget.onRefresh!();}catch(_){/* Confirmado antes. */}
+    }
   }
 
   static bool _isGuidedInspection(CipaMemberItem item) =>
@@ -486,8 +502,11 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
     final profile=view.profile;
     final inspections=view.observations.where(_isGuidedInspection)
       .toList(growable:false);
+    final questions=view.observations.where(
+      CipaMemberEngagement.isQuestion).toList(growable:false);
     final otherObservations=view.observations.where(
-      (item)=>!_isGuidedInspection(item)).toList(growable:false);
+      (item)=>!_isGuidedInspection(item)&&
+        !CipaMemberEngagement.isQuestion(item)).toList(growable:false);
     final alerts=CipaHomeAlertBuilder.fromView(view,locallyRead:_confirmedReads);
     return Scaffold(
       appBar:AppBar(title:const Text('Minha CIPA'),actions:[
@@ -608,6 +627,14 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
               'A equipe de SST confere os relatos e as ações.',
               style:TextStyle(fontSize:14)),
           ]))),
+        CipaMemberEngagementPanel(
+          view:view,offlineMode:widget.offlineMode,
+          onStartMission:(widget.offlineMode||widget.onObserve!=null)?
+            (category)=>_guidedInspection(initialCategory:category):null,
+          onAskTst:!widget.offlineMode&&widget.onObserve!=null?
+            _sendTstQuestion:null,
+          onSeeQuestions:()=>_goTo(_questionsSection),
+        ),
         if(busy)const LinearProgressIndicator(),
         if(error.isNotEmpty)Padding(
           padding:const EdgeInsets.all(12),
@@ -685,6 +712,11 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
           child:Text('A situação mostrada é a que a equipe registrou. '
             'O envio não confirma correção nem encerra ação.',
             style:TextStyle(fontSize:12))),
+        KeyedSubtree(key:_questionsSection,
+          child:_section('Minhas dúvidas ao TST',
+            Icons.question_answer_outlined,questions,
+            empty:'Nenhuma dúvida registrada nesta consulta.',
+            actions:_feedbackReadAction)),
         Card(child:ExpansionTile(
           initiallyExpanded:false,
           leading:const Icon(Icons.more_horiz,size:28),
