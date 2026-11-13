@@ -96,8 +96,8 @@ elif "A criação do checklist com IA demorou mais que o limite." not in ai:
     # de transporte. Inserir a exceção apenas no tratamento do timeout, em
     # vez de depender do texto anterior da resposta.
     transport_catch = re.compile(
-        r"(on CentralTransportException catch\\s*\\(error\\)\\s*\\{\\s*"
-        r"final message\\s*=\\s*error\\.message\\.toLowerCase\\(\\);)",
+        r"(on CentralTransportException catch\s*\(error\)\s*\{\s*"
+        r"final message\s*=\s*error\.message\.toLowerCase\(\);)",
         re.S,
     )
     guard = """\n        // O criador não salva nada após timeout; não confundir com foto.
