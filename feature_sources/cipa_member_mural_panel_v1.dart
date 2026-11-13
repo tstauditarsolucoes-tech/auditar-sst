@@ -147,7 +147,8 @@ class _CipaMuralPanelState extends State<CipaMuralPanel>{
                 Text(post.place,style:const TextStyle(fontSize:13)),
               ])),
             if(post.visibility!='Aprovado')
-              const Chip(label:Text('Aguardando moderação'))
+              Chip(label:Text(post.visibility=='Pendente'?
+                'Aguardando moderação':'Não publicado'))
             else Chip(label:Text(post.status)),
           ]),
           const SizedBox(height:7),
