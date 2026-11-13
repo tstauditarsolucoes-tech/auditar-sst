@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:cryptography/cryptography.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'screens/cipa_member_portal_screen.dart';
 import 'services/cipa_member_api.dart';
@@ -93,6 +96,42 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
       });
     });
   }
+  Future<void> _showWelcomeOnce(CipaMemberView person) async {
+    try {
+      final p=person.profile;
+      final identifier=[p.userId,p.companyId,p.mandateId,p.memberId].join('|');
+      final hash=await Sha256().hash(utf8.encode(identifier));
+      final key='cipa_guide_v1_'+base64UrlEncode(hash.bytes).replaceAll('=','');
+      const secure=FlutterSecureStorage();
+      if(await secure.read(key:key)=='seen'||!mounted||!api.hasSession)return;
+      await secure.write(key:key,value:'seen');
+      if(!mounted||!api.hasSession)return;
+      await showDialog<void>(context:context,builder:(dialog)=>AlertDialog(
+        title:const Text('Bem-vindo à Minha CIPA'),
+        content:const SingleChildScrollView(child:Column(
+          mainAxisSize:MainAxisSize.min,children:[
+            ListTile(leading:Icon(Icons.assignment_outlined,size:32),
+              title:Text('Fazer vistoria'),
+              subtitle:Text('Responda três perguntas, sem se aproximar do perigo.')),
+            ListTile(leading:Icon(Icons.camera_alt_outlined,size:32),
+              title:Text('Tirar foto'),
+              subtitle:Text('Você pode adicionar até duas fotos da situação.')),
+            ListTile(leading:Icon(Icons.save_outlined,size:32),
+              title:Text('Guardar e sair'),
+              subtitle:Text('Se estiver sem internet, seu rascunho fica protegido.')),
+            ListTile(leading:Icon(Icons.chat_bubble_outline,size:32),
+              title:Text('Ver resposta do técnico'),
+              subtitle:Text('O TST analisa e orienta; você não precisa validar o risco.')),
+          ],
+        )),
+        actions:[FilledButton(onPressed:()=>Navigator.pop(dialog),
+          child:const Text('Entendi'))],
+      ));
+    }catch (_) {
+      // Ausência de cofre seguro não pode impedir o login autorizado.
+    }
+  }
+
   Future<void> _verify() async {
     if(!RegExp(r'^\d{8}$').hasMatch(code.text.trim())) {
       setState(()=>error='Informe os 8 dígitos recebidos.');
@@ -101,7 +140,10 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
     await _run(() async {
       await api.verifyCode(email.text,code.text);
       final current=await api.dashboard();
-      if(mounted)setState((){view=current;code.clear();});
+      if(mounted){
+        setState((){view=current;code.clear();});
+        await _showWelcomeOnce(current);
+      }
     });
   }
   Future<void> _refresh() async {
