@@ -19,7 +19,8 @@ class CipaMemberPortalScreen extends StatefulWidget {
     this.onObserveWithPhotos,this.onObserveScheduledWithPhotos,
     this.onViewPhotos,this.onObserveDraft,this.onObserveScheduledDraft,
     this.offlineMode=false,this.pendingDraftCount=0,
-    this.onEnableOffline,this.onSyncPending,this.onDraftSaved,this.lastSync,
+    this.onEnableOffline,this.onSyncPending,this.onDraftSaved,
+    this.onLoadPending,this.lastSync,
   });
   final String companyName,mandateLabel;
   final CipaMemberView? view;
@@ -27,6 +28,7 @@ class CipaMemberPortalScreen extends StatefulWidget {
   final int pendingDraftCount;
   final DateTime? lastSync;
   final Future<void> Function()? onEnableOffline,onSyncPending,onDraftSaved;
+  final Future<List<CipaStoredDraft>> Function()? onLoadPending;
   final Future<void> Function()? onRefresh,onLogout;
   final Future<void> Function(String id)? onAcknowledgeMeeting;
   final Future<void> Function(String id,String note)? onReportProgress,onRequestSupport;
@@ -162,24 +164,28 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
     item.description.contains('VISTORIA ORIENTADA DA CIPA');
 
   Future<void> _guidedInspection({String? initialCategory,
-      String? initialPlace,String? scheduleId}) async {
+      String? initialPlace,String? scheduleId,String? existingDraftId,
+      bool legacyFree=false}) async {
     if(!widget.sessionVerified || busy ||
       (!widget.offlineMode && (scheduleId==null?widget.onObserve==null:
         widget.onObserveScheduled==null)))return;
     final profile=widget.view!.profile;
     final canPersist=widget.offlineMode||(scheduleId==null?
       widget.onObserveDraft!=null:widget.onObserveScheduledDraft!=null);
-    final store=canPersist?CipaMemberDraftStore(
+    CipaMemberDraftStore makeStore(String id)=>CipaMemberDraftStore(
       accountId:profile.userId,companyId:profile.companyId,
       mandateId:profile.mandateId,memberId:profile.memberId,
-      scheduleId:scheduleId):null;
+      scheduleId:scheduleId,
+      draftId:scheduleId==null&&!legacyFree?id:null);
     final submitted=await showDialog<bool>(
       context:context,
       barrierDismissible:false,
       builder:(_)=>CipaGuidedInspectionDialog(
         initialCategory:initialCategory,initialPlace:initialPlace,
-        draftStore:store,offlineDraftMode:widget.offlineMode,
-        onSubmitDraft:store==null||widget.offlineMode?null:
+        draftStoreFactory:canPersist?makeStore:null,
+        initialRequestId:existingDraftId,
+        offlineDraftMode:widget.offlineMode,
+        onSubmitDraft:!canPersist||widget.offlineMode?null:
           (place,note,photos,requestId) async {
           if(!widget.sessionVerified)throw StateError('Sessão inválida');
           if(scheduleId==null){
