@@ -37,15 +37,21 @@ s=s.replace(needle,"""final specificIds = OfflineSstDeepCatalog.matches(query)
     final specific = _expanded.where((item) => specificIds.contains(item.id)).toList();
     """+needle,1)
 s=pattern(s,r'final results\s*=\s*<OfflineInlineSuggestion>\[\s*\]\s*;',
- 'final results = <OfflineInlineSuggestion>[...specific];')
+ 'final results = <OfflineInlineSuggestion>[];')
+# O achado confirmado e o modelo revisado pelo TST devem preceder
+# sugestões genéricas do catálogo; sem inventar falha mais específica.
 s=pattern(s,r'results\.sort\(\(a,\s*b\)\s*\{',
- """results.sort((a,b) {
-        final detailed = (specificIds.contains(b.id) ? 1 : 0)
-          .compareTo(specificIds.contains(a.id) ? 1 : 0);
-        if (detailed != 0) return detailed;""")
+ "results.sort((a,b) {")
+anchor='final unique = <String, OfflineInlineSuggestion>{};'
+assert s.count(anchor)==1
+s=s.replace(anchor,
+  "results.addAll(specific.where((candidate) => "
+  "!results.any((known) => known.id == candidate.id)));\n"
+  "      "+anchor,1)
 needle='if (OfflineReasoning.explicitSafeOrUncertain(query)) return const [];'
 assert s.count(needle)==1
-s=s.replace(needle,"if (specific.isNotEmpty) return specific.take(limit).toList();\n    "+needle,1)
+s=s.replace(needle,needle+
+  "\n    if (specific.isNotEmpty) return specific.take(limit).toList();",1)
 s=pattern(s,r'if\s*\(_clearlyCompliant\(normalized\)\)\s*return const \[\];',
  """if (_clearlyCompliant(normalized)) return const [];
     if (RegExp(r'^nr\s*-?\s*\d{1,2}$').hasMatch(normalized)) return const [];""")
