@@ -174,7 +174,9 @@ class CipaMemberApi {
       throw StateError('Descrição obrigatória de 8 a 1200 caracteres.');
     final key=kind+'|'+target+'|'+place.trim()+'|'+clean;
     if(durableRequestId!=null&&
-       !RegExp(r'^[A-Za-z0-9_-]{16,120}
+       !RegExp(r'^[A-Za-z0-9_-]{16,120}$').hasMatch(durableRequestId))
+      throw StateError('Identificação do rascunho inválida.');
+    final eventId=durableRequestId??_id(key);
     await _call('cipa_member_event',{
       'sessionToken':_token,'kind':kind,'targetId':target,
       'detail':clean,'location':place.trim(),'requestId':eventId});
@@ -226,88 +228,6 @@ class CipaMemberApi {
       throw StateError('Agendamento não identificado.');
     await send('observation',scheduleId,text,place:place,photos:photos,
       durableRequestId:requestId);
-  }
-
-  Future<List<Uint8List>> photosForObservation(String observationId) async {
-    if(_token==null)throw StateError('Entre novamente.');
-    final found=await _call('cipa_member_photo_list',{
-      'sessionToken':_token,'observationId':observationId});
-    final slots=found['slots'];
-    if(slots is! List)return const [];
-    final images=<Uint8List>[];
-    for(final slot in slots.whereType<int>().take(2)){
-      final image=await _call('cipa_member_photo_get',{
-        'sessionToken':_token,'observationId':observationId,'slot':slot});
-      final payload=(image['jpegBase64']??'').toString();
-      images.add(base64Decode(payload));
-    }
-    return images;
-  }
-
-  Future<void> acknowledgeFeedback(String observationId,
-      String reviewId) async {
-    if(_token==null)throw StateError('Entre novamente.');
-    if(observationId.isEmpty||reviewId.isEmpty)
-      throw StateError('Orientação não identificada.');
-    final key='feedback|$observationId|$reviewId';
-    await _call('cipa_member_ack_feedback',{
-      'sessionToken':_token,'observationId':observationId,
-      'reviewId':reviewId,'requestId':_id(key),
-    });
-    _pendingIds.remove(key);
-  }
-
-  Future<void> logout() async {
-    final token=_token;
-    _token=null;_pendingIds.clear();
-    if(token!=null){
-      try {await _call('cipa_member_logout',{'sessionToken':token});}
-      catch (_) {/* Descarta a sessão local mesmo sem resposta da rede. */}
-    }
-  }
-  void dispose(){_token=null;_pendingIds.clear();_client.close();}
-}
-).hasMatch(durableRequestId))
-      throw StateError('Identificação do rascunho inválida.');
-    final eventId=durableRequestId??_id(key);
-    await _call('cipa_member_event',{
-      'sessionToken':_token,'kind':kind,'targetId':target,
-      'detail':clean,'location':place.trim(),'requestId':eventId});
-    for(var i=0;i<photos.length;i++){
-      final bytes=photos[i];
-      await _call('cipa_member_photo_upload',{
-        'sessionToken':_token,'observationId':eventId,
-        'slot':i+1,'jpegBase64':base64Encode(bytes),
-      });
-    }
-    // Preservar requestId caso o upload falhe, para retry idempotente.
-    _pendingIds.remove(key);
-  }
-  Future<void> acknowledge(String meeting)=>
-    send('acknowledge',meeting,
-      'Ciência da convocação registrada; não é presença.');
-  Future<void> progress(String action,String text)=>
-    send('progress',action,text);
-  Future<void> support(String action,String text)=>
-    send('support',action,text);
-  Future<void> observe(String place,String text)=>
-    send('observation','',text,place:place);
-  Future<void> observeWithPhotos(String place,String text,
-      List<Uint8List> photos)=>
-    send('observation','',text,place:place,photos:photos);
-
-  /// Associação obrigatória no servidor ao agendamento pessoal vigente.
-  Future<void> observeScheduled(String scheduleId,String place,String text) async {
-    if(!scheduleId.startsWith('cipa-inspection-'))
-      throw StateError('Agendamento não identificado.');
-    await send('observation',scheduleId,text,place:place);
-  }
-
-  Future<void> observeScheduledWithPhotos(String scheduleId,String place,
-      String text,List<Uint8List> photos) async {
-    if(!scheduleId.startsWith('cipa-inspection-'))
-      throw StateError('Agendamento não identificado.');
-    await send('observation',scheduleId,text,place:place,photos:photos);
   }
 
   Future<List<Uint8List>> photosForObservation(String observationId) async {
