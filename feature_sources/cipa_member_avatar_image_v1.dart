@@ -18,10 +18,16 @@ class CipaAvatarImage {
        decoded.width>10000||decoded.height>10000)
       throw StateError('Dimensões da imagem não permitidas.');
     final oriented=img.bakeOrientation(decoded);
-    final resized=oriented.width<=maxSize&&oriented.height<=maxSize?
-      oriented:img.copyResize(oriented,
-        width:oriented.width>=oriented.height?maxSize:null,
-        height:oriented.height>oriented.width?maxSize:null);
+    // Corte central quadrado para caber no perfil, sem EXIF ou metadados.
+    final side=oriented.width<oriented.height?
+      oriented.width:oriented.height;
+    final cropped=img.copyCrop(oriented,
+      x:(oriented.width-side)~/2,y:(oriented.height-side)~/2,
+      width:side,height:side);
+    final clean=img.Image(width:side,height:side,numChannels:3);
+    img.compositeImage(clean,cropped);
+    final resized=side>maxSize?
+      img.copyResize(clean,width:maxSize,height:maxSize):clean;
     // O resultado é menor, suficiente para avatar e nunca uma foto de vistoria.
     for(final quality in [75,65,55,45]){
       final jpeg=Uint8List.fromList(img.encodeJpg(resized,quality:quality));
