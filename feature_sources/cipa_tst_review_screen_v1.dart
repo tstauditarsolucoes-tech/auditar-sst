@@ -153,39 +153,54 @@ class _CipaTstReviewScreenState extends State<CipaTstReviewScreen> {
     }finally{if(mounted)setState(()=>busy=false);}
     if(success&&mounted)await _reload();
   }
-  @override Widget build(BuildContext context)=>Scaffold(
-    appBar:AppBar(title:const Text('Vistorias da CIPA'),actions:[
-      IconButton(onPressed:busy?null:_reload,
-        tooltip:'Atualizar',icon:const Icon(Icons.refresh)),
-    ]),
-    body:SafeArea(child:ListView(
-      padding:const EdgeInsets.all(12),children:[
-        const Text('Relatos para orientação. Não é possível encerrar '
-          'não conformidades nesta tela.'),
-        if(busy)const LinearProgressIndicator(),
-        if(error.isNotEmpty)Text(error),
-        if(!busy&&records.isEmpty)const Text('Nenhum relato disponível.'),
-        for(final record in records.reversed)
-          Card(child:Padding(padding:const EdgeInsets.all(12),
-            child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
-              Text((record['location']??'Setor não informado').toString(),
-                style:Theme.of(context).textTheme.titleMedium),
-              Text((record['detail']??'').toString(),maxLines:7,
-                overflow:TextOverflow.ellipsis),
-              Text('Situação: ${record['status']??'Recebido'}'),
-              if((record['feedback']??'').toString().isNotEmpty)
-                Text('Orientação anterior: ${record['feedback']}'),
-              const SizedBox(height:8),
-              SizedBox(height:50,child:OutlinedButton.icon(
-                onPressed:busy?null:()=>_viewPhotos(record),
-                icon:const Icon(Icons.photo_outlined),
-                label:const Text('Ver fotos'))),
-              const SizedBox(height:8),
-              SizedBox(height:50,child:FilledButton.icon(
-                onPressed:busy?null:()=>_reply(record),
-                icon:const Icon(Icons.reply_outlined),
-                label:const Text('Responder ao membro'))),
-            ]))),
-      ])),
-  );
+  Widget _observationCard(Map<String,dynamic> record) {
+    return Card(
+      child:Padding(
+        padding:const EdgeInsets.all(12),
+        child:Column(
+          crossAxisAlignment:CrossAxisAlignment.stretch,
+          children:<Widget>[
+            Text((record['location']??'Setor não informado').toString(),
+              style:Theme.of(context).textTheme.titleMedium),
+            Text((record['detail']??'').toString(),maxLines:7,
+              overflow:TextOverflow.ellipsis),
+            Text('Situação: '+(record['status']??'Recebido').toString()),
+            if((record['feedback']??'').toString().isNotEmpty)
+              Text('Orientação anterior: '+record['feedback'].toString()),
+            const SizedBox(height:8),
+            SizedBox(height:50,child:OutlinedButton.icon(
+              onPressed:busy?null:()=>_viewPhotos(record),
+              icon:const Icon(Icons.photo_outlined),
+              label:const Text('Ver fotos'),
+            )),
+            const SizedBox(height:8),
+            SizedBox(height:50,child:FilledButton.icon(
+              onPressed:busy?null:()=>_reply(record),
+              icon:const Icon(Icons.reply_outlined),
+              label:const Text('Responder ao membro'),
+            )),
+          ],
+        ),
+      ),
+    );
+  }
+  @override Widget build(BuildContext context) {
+    return Scaffold(
+      appBar:AppBar(title:const Text('Vistorias da CIPA'),actions:[
+        IconButton(onPressed:busy?null:_reload,
+          tooltip:'Atualizar',icon:const Icon(Icons.refresh)),
+      ]),
+      body:SafeArea(child:ListView(
+        padding:const EdgeInsets.all(12),
+        children:<Widget>[
+          const Text('Relatos para orientação. Não é possível encerrar '
+            'não conformidades nesta tela.'),
+          if(busy)const LinearProgressIndicator(),
+          if(error.isNotEmpty)Text(error),
+          if(!busy&&records.isEmpty)const Text('Nenhum relato disponível.'),
+          ...records.reversed.map(_observationCard),
+        ],
+      )),
+    );
+  }
 }
