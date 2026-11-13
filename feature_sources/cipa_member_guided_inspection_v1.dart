@@ -447,19 +447,21 @@ class _CipaGuidedInspectionDialogState
                 'de máquinas, fornos, instalações elétricas ou bordas.'),
             ],
             if(step>=1&&step<=3)...[
-              Text('Pergunta $step de 3',
-                style:const TextStyle(fontWeight:FontWeight.w700)),
+              Row(children:[
+                Expanded(child:Text('Pergunta $step de 3',
+                  style:const TextStyle(fontWeight:FontWeight.w700))),
+                IconButton(
+                  constraints:const BoxConstraints.tightFor(width:34,height:34),
+                  padding:EdgeInsets.zero,
+                  tooltip:'Ouvir pergunta',
+                  onPressed:sending?null:_readQuestion,
+                  icon:const Icon(Icons.volume_up_outlined,size:25)),
+              ]),
               const SizedBox(height:10),
               LinearProgressIndicator(value:answered/3),
               const SizedBox(height:20),
               Text(questions[step-1],style:const TextStyle(
                 fontWeight:FontWeight.w700,fontSize:20)),
-              const SizedBox(height:10),
-              SizedBox(height:52,child:OutlinedButton.icon(
-                onPressed:sending?null:_readQuestion,
-                icon:const Icon(Icons.volume_up_outlined),
-                label:const Text('Ouvir pergunta'),
-              )),
               const SizedBox(height:14),
               for(final answer in const [
                 'Sim','Não','Não sei/não verifiquei',
