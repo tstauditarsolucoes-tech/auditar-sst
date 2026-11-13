@@ -29,8 +29,12 @@ void main(){
     expect(await (files.single as File).readAsString(),
       isNot(contains('Pátio industrial')));
     expect(await store('member-A','mandate-B').count(),0);
-    expect(()async=>store('member-A','mandate-A',
+    await expectLater(store('member-A','mandate-A',
       now:DateTime(2026,11,22)).list(),throwsStateError);
+    final staged=(files.single as File);
+    await staged.rename(staged.path+'.next');
+    expect(await a.count(),1,'Recupera arquivo cifrado interrompido');
+    expect((await a.list()).single.id,id);
     await a.delete(id);
     expect(await a.count(),0);
     await a.clearAll();
