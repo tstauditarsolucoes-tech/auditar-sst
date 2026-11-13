@@ -26,6 +26,7 @@ modules={
     "CipaTstReviewAccessV1.gs":"CipaTstReviewAccessV1.gs",
     "CipaMemberInspectionSchedulesV1.gs":"CipaMemberInspectionSchedulesV1.gs",
     "CipaMemberFeedbackReadV1.gs":"CipaMemberFeedbackReadV1.gs",
+    "CipaMemberPhotosV1.gs":"CipaMemberPhotosV1.gs",
 }
 targets={backend/name for name in modules}
 gateway=backend/"CipaMemberGatewayV1.gs"
