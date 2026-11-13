@@ -57,6 +57,33 @@ class CipaMemberApi {
 
 
 
+
+  Future<void> submitAfterPhoto(String postId,Uint8List jpeg) async {
+    if(_token==null)throw StateError('Entre para registrar a foto posterior.');
+    if(!RegExp(r'^[A-Za-z0-9_-]{16,120}$').hasMatch(postId)||
+       !CipaMuralCodec.validPhoto(jpeg))
+      throw StateError('Imagem posterior inválida.');
+    await _call('cipa_mural_after_upload',{
+      'sessionToken':_token,'postId':postId,
+      'jpegBase64':base64Encode(jpeg),
+    });
+  }
+  Future<Uint8List?> afterPhoto(String postId) async {
+    if(_token==null)throw StateError('Entre para consultar a foto posterior.');
+    if(!RegExp(r'^[A-Za-z0-9_-]{16,120}$').hasMatch(postId))
+      throw StateError('Ocorrência não identificada.');
+    final reply=await _call('cipa_mural_after_photo',{
+      'sessionToken':_token,'postId':postId,
+    });
+    if(reply['hasPhoto']!=true)return null;
+    final encoded=(reply['jpegBase64']??'').toString();
+    if(encoded.length>340000)throw StateError('Imagem acima do limite.');
+    final bytes=Uint8List.fromList(base64Decode(encoded));
+    if(!CipaMuralCodec.validPhoto(bytes))
+      throw StateError('Imagem posterior inválida.');
+    return bytes;
+  }
+
   Future<void> submitMinutes(String meetingId,String content) async {
     if(_token==null)throw StateError('Entre para enviar sua minuta.');
     if(!RegExp(r'^[A-Za-z0-9_-]{3,150}$').hasMatch(meetingId)||
