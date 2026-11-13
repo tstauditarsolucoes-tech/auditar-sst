@@ -176,6 +176,57 @@ class CipaMemberDraftStore {
     return draft;
   }
 
+  /// Lista arquivos cifrados do integrante. Preserva rascunhos órfãos ou
+  /// corrompidos como avisos; nunca os envia ou exclui automaticamente.
+  Future<List<CipaStoredDraft>> listForMember({
+    Set<String> scheduledIds=const <String>{},
+  }) async {
+    final directory=await _directory();
+    if(!await directory.exists())return const [];
+    final prefix=await _prefix();
+    final allowed=<String,String>{};
+    for(final id in scheduledIds){
+      allowed['${prefix}_${await _hash(id)}.enc']=id;
+    }
+    final legacyName='${prefix}_${await _hash('vistoria_livre')}.enc';
+    final records=<CipaStoredDraft>[];
+    await for(final entity in directory.list(followLinks:false)){
+      if(entity is! File)continue;
+      final name=entity.uri.pathSegments.last;
+      if(!name.startsWith('${prefix}_')||!name.endsWith('.enc'))continue;
+      try {
+        final plain=await CipaDraftCipher.open(
+          await entity.readAsString(),await _key(create:false));
+        final draft=CipaInspectionDraft.fromJson(plain);
+        if(draft==null){
+          records.add(const CipaStoredDraft(
+            warning:'Rascunho vencido ou não recuperável'));
+          continue;
+        }
+        final freeName=
+          '${prefix}_${await _hash('vistoria_livre_${draft.requestId}')}.enc';
+        if(name==freeName){
+          records.add(CipaStoredDraft(draft:draft,draftId:draft.requestId));
+        }else if(name==legacyName){
+          records.add(CipaStoredDraft(draft:draft,isLegacyFree:true));
+        }else if(allowed.containsKey(name)){
+          records.add(CipaStoredDraft(draft:draft,scheduleId:allowed[name]));
+        }else{
+          records.add(CipaStoredDraft(draft:draft,
+            warning:'Agendamento indisponível. Procure o TST.'));
+        }
+      }catch(_){
+        records.add(const CipaStoredDraft(
+          warning:'Arquivo protegido não pôde ser aberto'));
+      }
+      if(records.length>100){
+        throw StateError('Muitos arquivos locais; solicite suporte.');
+      }
+    }
+    records.sort((a,b)=>(b.draft?.savedAt??DateTime(1970)).compareTo(
+      a.draft?.savedAt??DateTime(1970)));
+    return records;
+  }
   Future<void> clear() async {
     final file=File(await _filePath());
     if(await file.exists())await file.delete();
