@@ -26,13 +26,18 @@ class CipaMemberPortalScreen extends StatefulWidget {
     this.onObserveWithPhotos,this.onObserveScheduledWithPhotos,
     this.onViewPhotos,this.onObserveDraft,this.onObserveScheduledDraft,
     this.offlineMode=false,this.pendingDraftCount=0,
+    this.muralDraftCount=0,
     this.onEnableOffline,this.onSyncPending,this.onDraftSaved,
     this.onLoadPending,this.lastSync,
     this.onLoadMural,this.onCreateMural,this.onCommentMural,this.onPhotoMural,
     this.onSubmitAfter,this.onPhotoAfter,
+    this.onSaveMuralDraft,this.onSyncMuralDrafts,
     this.onLoadAvatar,this.onSaveAvatar,this.onDeleteAvatar,
     this.onSendMinutes,this.onListMinutes,
   });
+  final Future<void> Function(String place,String detail,
+    Uint8List? photo)? onSaveMuralDraft;
+  final Future<void> Function()? onSyncMuralDrafts;
   final Future<void> Function(String id,Uint8List jpeg)? onSubmitAfter;
   final Future<Uint8List?> Function(String id)? onPhotoAfter;
   final Future<List<CipaMuralPost>> Function()? onLoadMural;
@@ -47,7 +52,7 @@ class CipaMemberPortalScreen extends StatefulWidget {
   final String companyName,mandateLabel;
   final CipaMemberView? view;
   final bool sessionVerified,offlineMode;
-  final int pendingDraftCount;
+  final int pendingDraftCount,muralDraftCount;
   final DateTime? lastSync;
   final Future<void> Function()? onEnableOffline,onSyncPending,onDraftSaved;
   final Future<List<CipaStoredDraft>> Function()? onLoadPending;
@@ -580,6 +585,18 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
                 const Text('Você pode consultar informações salvas e '
                   'preencher vistorias. Para enviar, entre com internet. '
                   'As informações podem ter mudado na Central.'),
+              if(widget.muralDraftCount>0)
+                Text('Rascunhos do mural protegidos no celular: '+
+                  widget.muralDraftCount.toString()),
+              if(widget.muralDraftCount<0)
+                const Text('Não foi possível conferir os rascunhos '
+                  'protegidos do mural. Não apague os dados.'),
+              if(widget.onSyncMuralDrafts!=null&&
+                 widget.muralDraftCount>0&&!widget.offlineMode)
+                FilledButton.icon(
+                  onPressed:busy?null:()=>_submit(widget.onSyncMuralDrafts!),
+                  icon:const Icon(Icons.cloud_upload_outlined),
+                  label:const Text('Enviar rascunhos do mural')),
               if(widget.pendingDraftCount>0)
                 Text('Rascunhos no aparelho: '+
                   widget.pendingDraftCount.toString()+
@@ -684,6 +701,7 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
             onComment:widget.onCommentMural,onPhoto:widget.onPhotoMural,
             onSubmitAfter:widget.onSubmitAfter,
             onPhotoAfter:widget.onPhotoAfter,
+            onSaveDraft:widget.onSaveMuralDraft,
           )),
         CipaMeetingRoleCoachPanel(profile:profile,
           meetings:view.meetings,onSendMinutes:widget.onSendMinutes,
