@@ -418,6 +418,41 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
         padding:const EdgeInsets.fromLTRB(12,12,12,64),children:[
         CipaMemberAccessHeader(profile:profile,
           companyName:widget.companyName,mandateLabel:widget.mandateLabel),
+        Card(child:Padding(padding:const EdgeInsets.all(12),
+          child:Column(
+            crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+              Row(children:[
+                Icon(widget.offlineMode?Icons.wifi_off:Icons.cloud_done_outlined),
+                const SizedBox(width:8),
+                Expanded(child:Text(widget.offlineMode?
+                  'Offline: informações protegidas neste aparelho':
+                  'Conectado à Central da CIPA',
+                  style:const TextStyle(fontWeight:FontWeight.w700))),
+              ]),
+              if(widget.lastSync!=null)
+                Text('Última atualização: '+
+                  widget.lastSync!.toLocal().toString().substring(0,16)),
+              if(widget.offlineMode)
+                const Text('Você pode consultar informações salvas e '
+                  'preencher vistorias. Para enviar, entre com internet. '
+                  'As informações podem ter mudado na Central.'),
+              if(widget.pendingDraftCount>0)
+                Text('Rascunhos no aparelho: '+
+                  widget.pendingDraftCount.toString()+
+                  '. Ainda não foram confirmados pela Central.'),
+              if(widget.onEnableOffline!=null&&!widget.offlineMode)
+                OutlinedButton.icon(
+                  onPressed:busy?null:()=>_submit(widget.onEnableOffline!),
+                  icon:const Icon(Icons.offline_bolt_outlined),
+                  label:const Text('Ativar acesso offline com PIN')),
+              if(widget.onSyncPending!=null&&!widget.offlineMode&&
+                 widget.pendingDraftCount>0)
+                FilledButton.icon(
+                  onPressed:busy?null:()=>_submit(widget.onSyncPending!),
+                  icon:const Icon(Icons.sync),
+                  label:const Text('Enviar vistorias salvas')),
+            ],
+          ))),
         if(alerts.isNotEmpty)Card(child:Padding(
           padding:const EdgeInsets.all(12),
           child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
