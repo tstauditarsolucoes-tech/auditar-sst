@@ -14,6 +14,7 @@ on:
       - 'feature_sources/CipaMemberReviewsV1.gs'
       - 'feature_sources/CipaMemberFeedbackReadV1.gs'
       - 'feature_sources/cipa_member_guided_inspection_v1.dart'
+      - 'tools/stage_cipa_member_android_v1.py'
       - 'feature_sources/cipa_member_guided_inspection_test_v1.dart'
       - 'feature_sources/cipa_member_app_main_v1.dart'
       - 'tools/stage_cipa_member_android_v1.py'
@@ -132,6 +133,7 @@ jobs:
           cp feature_sources/cipa_member_guided_inspection_test_v1.dart /tmp/cipa_member_ui_fixture/test/cipa_member_guided_inspection_test.dart
           rm /tmp/cipa_member_ui_fixture/test/widget_test.dart
           cd /tmp/cipa_member_ui_fixture
+          flutter pub add image_picker image
           dart format lib test
           flutter analyze --no-fatal-infos --no-fatal-warnings lib test
           flutter test --reporter expanded test/cipa_member_portal_screen_test.dart test/cipa_member_portal_simple_test.dart test/cipa_member_guided_inspection_test.dart
