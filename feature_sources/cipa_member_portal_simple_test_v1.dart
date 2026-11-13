@@ -267,6 +267,10 @@ void main() {
     expect(find.text('Vistorias salvas no celular'),findsOneWidget);
     expect(find.text('Moinho de cavaco'),findsOneWidget);
     expect(find.text('Incompleta: continuar preenchimento'),findsOneWidget);
+    // ListView do diálogo cria os cartões sob demanda; rolar para o segundo.
+    await tester.scrollUntilVisible(find.text('Agendamento indisponível'),
+      120,scrollable:find.byType(Scrollable).last);
+    await tester.pumpAndSettle();
     expect(find.text('Agendamento indisponível'),findsOneWidget);
     await tester.tap(find.text('Fechar'));
     await tester.pumpAndSettle();

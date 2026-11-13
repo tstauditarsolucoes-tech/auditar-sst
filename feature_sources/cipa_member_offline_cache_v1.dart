@@ -229,6 +229,8 @@ class CipaMemberOfflineCache {
       '${base64Encode(salt)}:${base64Encode(hash)}');
     await _vault.write(await _key(email,'scope'),await _scope(verified));
     await _vault.write(await _key(email,'fails'),'0');
+    await _vault.write(await _key(email,'lastClock'),
+      _clock().toUtc().toIso8601String());
   }
 
   /// Atualiza automaticamente SOMENTE com resposta online válida do servidor.
@@ -247,6 +249,9 @@ class CipaMemberOfflineCache {
     final tmp=File('$path.next');
     await tmp.writeAsString(encrypted,flush:true);
     await tmp.rename(path);
+    // Consulta online válida reancora o marcador temporal local.
+    await _vault.write(await _key(email,'lastClock'),
+      _clock().toUtc().toIso8601String());
   }
 
   Future<CipaOfflineSnapshot> unlock(String email,String pin) async {
@@ -273,19 +278,26 @@ class CipaMemberOfflineCache {
       await file.readAsString(),await _getKey(email));
     final snapshot=CipaOfflineSnapshotCodec.decode(plain);
     final now=_clock().toUtc();
+    final previous=DateTime.tryParse(
+      await _vault.read(await _key(email,'lastClock'))??'');
+    if(previous!=null&&
+       now.isBefore(previous.toUtc().subtract(const Duration(minutes:5))))
+      throw StateError('Relógio do aparelho alterado. Conecte-se para validar.');
     if(snapshot.syncedAt.isAfter(now.add(const Duration(minutes:5)))||
        now.difference(snapshot.syncedAt)>validity)
       throw StateError('Dados offline vencidos. Conecte-se para atualizar.');
     if(await _scope(snapshot.view)!=
        await _vault.read(await _key(email,'scope')))
       throw StateError('Conta/mandato do cache não confere.');
+    await _vault.write(await _key(email,'lastClock'),
+      now.toIso8601String());
     await _vault.write(failName,'0');
     return snapshot;
   }
 
   Future<void> clear(String email) async {
     if(!validEmail(email))return;
-    for(final suffix in ['aes','pin','scope','fails']){
+    for(final suffix in ['aes','pin','scope','fails','lastClock']){
       await _vault.delete(await _key(email,suffix));
     }
     final path=await _path(email);

@@ -39,7 +39,9 @@ class CipaInspectionDraft {
        topic.isEmpty||topic.length>80||place.length>120||
        note.length>250||saved==null||answers is! List||
        answers.length!=3||images is! List||images.length>2)return null;
-    if(DateTime.now().difference(saved.toUtc()).inDays>7)return null;
+    final age=DateTime.now().toUtc().difference(saved.toUtc());
+    if(age>const Duration(days:7)||
+       age< const Duration(minutes:-5))return null;
     const choices=['Sim','Não','Não sei/não verifiquei'];
     if(answers.any((v)=>v!=null&&!choices.contains(v)))return null;
     final photos=<Uint8List>[];
@@ -167,6 +169,19 @@ class CipaMemberDraftStore {
 
   Future<CipaInspectionDraft?> load() async {
     final file=File(await _filePath());
+    // Em queda entre gravar .next e renomear, nunca perder o novo relato.
+    if(!await file.exists()){
+      final staged=File('${file.path}.next');
+      if(await staged.exists()){
+        final plain=await CipaDraftCipher.open(
+          await staged.readAsString(),await _key(create:false));
+        final recovered=CipaInspectionDraft.fromJson(plain);
+        if(recovered==null||(draftId!=null&&
+           recovered.requestId!=draftId))
+          throw StateError('Rascunho temporário inválido');
+        await staged.rename(file.path);
+      }
+    }
     if(!await file.exists())return null;
     final decoded=await CipaDraftCipher.open(
       await file.readAsString(),await _key(create:false));
@@ -192,11 +207,33 @@ class CipaMemberDraftStore {
     final records=<CipaStoredDraft>[];
     await for(final entity in directory.list(followLinks:false)){
       if(entity is! File)continue;
-      final name=entity.uri.pathSegments.last;
-      if(!name.startsWith('${prefix}_')||!name.endsWith('.enc'))continue;
+      var currentFile=entity;
+      var name=entity.uri.pathSegments.last;
+      if(!name.startsWith('${prefix}_'))continue;
+      if(name.endsWith('.enc.next')){
+        final finalFile=File(entity.path.substring(0,entity.path.length-5));
+        if(await finalFile.exists())continue;
+        // Apenas o arquivo cifrado autenticado pode ser recuperado.
+        try{
+          final raw=await CipaDraftCipher.open(
+            await entity.readAsString(),await _key(create:false));
+          if(CipaInspectionDraft.fromJson(raw)==null){
+            records.add(const CipaStoredDraft(
+              warning:'Rascunho temporário inválido; procure suporte'));
+            continue;
+          }
+          currentFile=await entity.rename(finalFile.path);
+          name=currentFile.uri.pathSegments.last;
+        }catch(_){
+          records.add(const CipaStoredDraft(
+            warning:'Salvamento interrompido; procure suporte'));
+          continue;
+        }
+      }
+      if(!name.endsWith('.enc'))continue;
       try {
         final plain=await CipaDraftCipher.open(
-          await entity.readAsString(),await _key(create:false));
+          await currentFile.readAsString(),await _key(create:false));
         final draft=CipaInspectionDraft.fromJson(plain);
         if(draft==null){
           records.add(const CipaStoredDraft(

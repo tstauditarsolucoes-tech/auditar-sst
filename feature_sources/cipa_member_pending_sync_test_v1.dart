@@ -47,6 +47,30 @@ CipaInspectionDraft sampleDraft(String id,{bool complete=true})=>
     savedAt:DateTime.now().toUtc());
 
 void main(){
+  test('Prévia separa prontos, incompletos, bloqueados e fotos',(){
+    final first=sampleDraft('mobile-prepare-aaaaaaaaaaaaaaaa');
+    final second=sampleDraft('mobile-prepare-bbbbbbbbbbbbbbbb',
+      complete:false);
+    final plan=CipaPendingSyncPlan.fromEntries([
+      CipaStoredDraft(draft:first,draftId:first.requestId),
+      CipaStoredDraft(draft:second,draftId:second.requestId),
+      const CipaStoredDraft(warning:'Agendamento cancelado'),
+    ]);
+    expect(plan.total,3);
+    expect(plan.ready,1);
+    expect(plan.incomplete,1);
+    expect(plan.blocked,1);
+    expect(plan.photoCount,1);
+    expect(plan.canSend,true);
+  });
+
+  test('Prévia somente com pendências não habilita envio',(){
+    final plan=CipaPendingSyncPlan.fromEntries([
+      const CipaStoredDraft(warning:'Arquivo ilegível'),
+    ]);
+    expect(plan.canSend,false);
+  });
+
   test('Várias vistorias avulsas e uma programada enviam IDs distintos',()async{
     final root=MemoryDraft();
     final a='mobile-free-aaaaaaaaaaaaaaaa';
