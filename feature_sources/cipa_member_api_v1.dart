@@ -215,6 +215,19 @@ class CipaMemberApi {
     await send('observation',scheduleId,text,place:place,photos:photos);
   }
 
+  Future<void> observeDraft(String place,String text,
+      List<Uint8List> photos,String requestId)=>
+    send('observation','',text,place:place,photos:photos,
+      durableRequestId:requestId);
+
+  Future<void> observeScheduledDraft(String scheduleId,String place,
+      String text,List<Uint8List> photos,String requestId) async {
+    if(!scheduleId.startsWith('cipa-inspection-'))
+      throw StateError('Agendamento não identificado.');
+    await send('observation',scheduleId,text,place:place,photos:photos,
+      durableRequestId:requestId);
+  }
+
   Future<List<Uint8List>> photosForObservation(String observationId) async {
     if(_token==null)throw StateError('Entre novamente.');
     final found=await _call('cipa_member_photo_list',{
