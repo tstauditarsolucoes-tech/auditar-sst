@@ -202,6 +202,23 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
   }
 
   Future<void> _logout() async {
+    if(pendingDraftCount>0 && mounted){
+      final confirmed=await showDialog<bool>(context:context,
+        builder:(dialog)=>AlertDialog(
+          title:const Text('Sair e apagar dados locais?'),
+          content:Text('Existem '+pendingDraftCount.toString()+
+            ' rascunhos ainda no aparelho. Sair da conta apaga '
+            'esses rascunhos e o acesso offline. Para manter, '
+            'toque em Voltar.'),
+          actions:[
+            TextButton(onPressed:()=>Navigator.pop(dialog,false),
+              child:const Text('Voltar')),
+            FilledButton(onPressed:()=>Navigator.pop(dialog,true),
+              child:const Text('Sair e apagar')),
+          ],
+        ));
+      if(confirmed!=true)return;
+    }
     final current=view??lastOnlineView;
     final address=onlineEmail;
     if(current!=null){
@@ -267,7 +284,14 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
       pin.dispose();repeat.dispose();
     }
     if(chosen==null||!mounted)return;
-    await offlineCache.enroll(address,chosen,current);
+    // Ativação só com autorização ainda válida neste instante.
+    final fresh=await api.dashboard();
+    if(fresh.profile.userId!=current.profile.userId||
+       fresh.profile.companyId!=current.profile.companyId||
+       fresh.profile.mandateId!=current.profile.mandateId||
+       fresh.profile.memberId!=current.profile.memberId)
+      throw StateError('Vínculo mudou; entre novamente.');
+    await offlineCache.enroll(address,chosen,fresh);
     if(mounted)ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content:Text('Uso offline ativado neste aparelho. '
         'Guarde seu PIN. Validade da consulta: 24 horas.')));
