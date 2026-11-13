@@ -90,6 +90,22 @@ class CipaDraftCipher {
 
 /// Key no armazenamento seguro do SO; somente ciphertext vai para arquivo.
 /// Isolado por usuário + empresa + mandato + membro, inclusive no mesmo celular.
+/// Resumo de um rascunho local, sem chave nem foto em texto claro.
+class CipaStoredDraft {
+  const CipaStoredDraft({
+    this.draft,this.scheduleId,this.draftId,this.isLegacyFree=false,
+    this.warning='',
+  });
+  final CipaInspectionDraft? draft;
+  final String? scheduleId,draftId;
+  final bool isLegacyFree;
+  final String warning;
+  bool get canResume=>draft!=null&&warning.isEmpty;
+  bool get complete=>draft!=null&&draft!.place.trim().length>=2 &&
+    draft!.answers.length==3&&draft!.answers.every((v)=>v!=null);
+  String get displayPlace=>draft?.place.trim().isNotEmpty==true?
+    draft!.place.trim():'Local não informado';
+}
 class CipaMemberDraftStore {
   CipaMemberDraftStore({
     required this.accountId,required this.companyId,
