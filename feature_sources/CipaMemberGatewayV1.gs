@@ -27,11 +27,24 @@ function cipaMemV1Route_(request) {
     'cipa_member_ack_feedback',
     'cipa_member_photo_upload','cipa_member_photo_list',
     'cipa_member_photo_get','cipa_tst_photo_list','cipa_tst_photo_get',
-    'cipa_tst_metrics'];
+    'cipa_tst_metrics',
+    'cipa_mural_create','cipa_mural_list','cipa_mural_comment',
+    'cipa_mural_photo','cipa_mural_moderator_list',
+    'cipa_mural_moderate','cipa_mural_moderate_comment',
+    'cipa_mural_reply','cipa_mural_moderator_photo'];
   if(known.indexOf(action)<0)return null;
   if(PropertiesService.getScriptProperties().getProperty('CIPA_MEMBER_V1_ENABLED')!=='true')
     return {ok:false,code:'FEATURE_DISABLED',message:'Acesso de membros ainda não habilitado.'};
   try {
+    if(action==='cipa_mural_create')return cipaMuralCreate_(request);
+    if(action==='cipa_mural_list')return cipaMuralMemberList_(request);
+    if(action==='cipa_mural_comment')return cipaMuralMemberComment_(request);
+    if(action==='cipa_mural_photo')return cipaMuralPhoto_(request,false);
+    if(action==='cipa_mural_moderator_list')return cipaMuralModeratorList_(request);
+    if(action==='cipa_mural_moderate')return cipaMuralModerate_(request);
+    if(action==='cipa_mural_moderate_comment')return cipaMuralModerateComment_(request);
+    if(action==='cipa_mural_reply')return cipaMuralModeratorReply_(request);
+    if(action==='cipa_mural_moderator_photo')return cipaMuralPhoto_(request,true);
     if(action==='cipa_member_begin')return cipaMemV1Begin_(request);
     if(action==='cipa_member_verify')return cipaMemV1Verify_(request);
     if(action==='cipa_member_dashboard')return cipaMemV1Dashboard_(request);
