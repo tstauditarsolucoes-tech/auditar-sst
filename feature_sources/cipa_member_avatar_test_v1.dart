@@ -38,7 +38,7 @@ void main(){
     expect(find.text('Tirar foto'),findsOneWidget);
     expect(find.text('Escolher foto'),findsOneWidget);
     expect(find.text('Remover foto'),findsOneWidget);
-    expect(find.textContaining('não comprova presença'),findsOneWidget);
+    expect(find.textContaining('nem comprova presença'),findsOneWidget);
     await tester.tap(find.text('Remover foto'));
     await tester.pumpAndSettle();
     expect(deleted,0);
