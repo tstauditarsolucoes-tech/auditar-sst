@@ -58,6 +58,40 @@ class _CipaTstReviewScreenState extends State<CipaTstReviewScreen> {
     return 'tst-'+List<int>.generate(24,(_)=>rnd.nextInt(256))
       .map((n)=>n.toRadixString(16).padLeft(2,'0')).join();
   });
+  Future<void> _viewPhotos(Map<String,dynamic> record) async {
+    if(busy||record['companyId']!=widget.companyId||
+       record['mandateId']!=widget.mandateId)return;
+    final id=(record['id']??'').toString();
+    if(id.isEmpty)return;
+    setState(()=>busy=true);
+    final images=<dynamic>[];
+    try {
+      final listed=await _call('cipa_tst_photo_list',{'observationId':id});
+      if(listed['slots'] is List){
+        for(final slot in (listed['slots'] as List).whereType<int>().take(2)){
+          final photo=await _call('cipa_tst_photo_get',{
+            'observationId':id,'slot':slot,
+          });
+          images.add(base64Decode((photo['jpegBase64']??'').toString()));
+        }
+      }
+    }catch(_){
+      if(mounted)setState(()=>error='Fotos indisponíveis ou acesso revogado.');
+    }finally{if(mounted)setState(()=>busy=false);}
+    if(!mounted)return;
+    await showDialog<void>(context:context,builder:(dialog)=>AlertDialog(
+      title:const Text('Fotos da vistoria'),
+      content:SingleChildScrollView(child:Column(
+        mainAxisSize:MainAxisSize.min,
+        children:images.isEmpty?[const Text('Nenhuma foto disponível.')]:
+          images.map((b)=>Padding(padding:const EdgeInsets.only(bottom:8),
+            child:Image.memory(b,width:380,fit:BoxFit.contain))).toList(),
+      )),
+      actions:[TextButton(onPressed:()=>Navigator.pop(dialog),
+        child:const Text('Fechar'))],
+    ));
+  }
+
   Future<void> _reply(Map<String,dynamic> record) async {
     if(busy||record['companyId']!=widget.companyId||
       record['mandateId']!=widget.mandateId)return;
@@ -141,6 +175,11 @@ class _CipaTstReviewScreenState extends State<CipaTstReviewScreen> {
               Text('Situação: ${record['status']??'Recebido'}'),
               if((record['feedback']??'').toString().isNotEmpty)
                 Text('Orientação anterior: ${record['feedback']}'),
+              const SizedBox(height:8),
+              SizedBox(height:50,child:OutlinedButton.icon(
+                onPressed:busy?null:()=>_viewPhotos(record),
+                icon:const Icon(Icons.photo_outlined),
+                label:const Text('Ver fotos')),
               const SizedBox(height:8),
               SizedBox(height:50,child:FilledButton.icon(
                 onPressed:busy?null:()=>_reply(record),
