@@ -36,6 +36,12 @@ function cipaMemV1ScheduleCurrent_(cid,mid,memberId){
     }).slice(0,100);
 }
 function cipaMemV1ScheduleMember_(account){
+  // O registro de realização é sempre um relato, nunca uma validação técnica.
+  var linked=Object.create(null);
+  cipaMemV1Events_(account).forEach(function(e){
+    if(e.kind==='observation'&&e.targetId&&!linked[e.targetId])
+      linked[e.targetId]=e.id;
+  });
   return cipaMemV1ScheduleCurrent_(
     account.companyId,account.mandateId,account.memberId)
     .map(function(r){return {
@@ -43,7 +49,8 @@ function cipaMemV1ScheduleMember_(account){
       title:'Vistoria: '+r.sector,
       description:'Setor: '+r.sector+
         (r.note?' • Orientação: '+r.note:''),
-      status:'Programada',dueDate:r.dueDate,
+      status:linked[r.id]?'Registro enviado':'Programada',
+      observationId:linked[r.id]||'',dueDate:r.dueDate,
       companyId:r.companyId,mandateId:r.mandateId,
       assignedMemberId:r.memberId,visibleToAllMembers:false,
     };});
@@ -126,5 +133,24 @@ function cipaMemV1ScheduleAdminList_(request){
   var cid=String(request.companyId||'').trim();
   var mid=String(request.mandateId||'').trim();
   if(!cid||!mid)return {ok:false,code:'INVALID_INPUT'};
-  return {ok:true,items:cipaMemV1ScheduleCurrent_(cid,mid,'')};
+  var items=cipaMemV1ScheduleCurrent_(cid,mid,'');
+  var sheet=cipaMemV1Sheet_(CIPA_MEM_V1_EVENTS,
+    ['request_id','created_at','account_id','company_id','mandate_id',
+     'member_id','kind','target_id','location','detail']);
+  var linked=Object.create(null);
+  if(sheet.getLastRow()>1){
+    sheet.getRange(2,1,sheet.getLastRow()-1,10).getValues()
+      .forEach(function(r){
+        if(String(r[3])===cid&&String(r[4])===mid&&
+           String(r[6])==='observation'&&String(r[7])){
+          var key=String(r[5])+':'+String(r[7]);
+          if(!linked[key])linked[key]=String(r[0]);
+        }
+      });
+  }
+  return {ok:true,items:items.map(function(item){
+    var found=linked[item.memberId+':'+item.id];
+    return Object.assign({},item,{status:found?'Registro enviado':'Programada',
+      observationId:found||''});
+  })};
 }

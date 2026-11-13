@@ -189,7 +189,8 @@ void main() {
       ]);
     await tester.pumpWidget(MaterialApp(home:CipaMemberPortalScreen(
       companyName:'Empresa A',mandateLabel:'2026',
-      view:permitted,sessionVerified:true,onObserve:(_,__)async{})));
+      view:permitted,sessionVerified:true,onObserve:(_,__)async{},
+      onObserveScheduled:(_,__,___)async{})));
     final startButton=find.widgetWithText(OutlinedButton,'Iniciar esta vistoria');
     await tester.scrollUntilVisible(startButton,180);
     await tester.drag(find.byType(ListView).first,const Offset(0,-170));
@@ -201,8 +202,15 @@ void main() {
     expect(find.text('Integrante: Joana Souza'),findsOneWidget);
     expect(find.text('Empresa: Empresa A'),findsOneWidget);
     final place=tester.widget<TextField>(find.byType(TextField).first);
-    expect(place.controller?.text,'Cerâmica');
-    await tester.tap(find.text('Começar'));
+    expect(place.controller?.text,'',
+      reason:'Local real não pode ser confundido com tema do roteiro');
+    await tester.enterText(find.byType(TextField).first,'Área de produção');
+    await tester.pumpAndSettle();
+    final begin=find.widgetWithText(FilledButton,'Começar');
+    expect(tester.widget<FilledButton>(begin).onPressed,isNotNull);
+    await tester.ensureVisible(begin);
+    await tester.pumpAndSettle();
+    await tester.tap(begin);
     await tester.pumpAndSettle();
     expect(find.text('Há correia ou parte móvel acessível sem proteção visível?'),
       findsOneWidget);

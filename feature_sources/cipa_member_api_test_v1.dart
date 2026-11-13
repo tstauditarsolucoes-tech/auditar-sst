@@ -107,6 +107,33 @@ void main(){
     api.dispose();
   });
 
+  test('Vistoria agendada envia ID próprio para conferência no servidor',() async {
+    Map<String,dynamic>? posted;
+    final client=MockClient((http.Request req) async {
+      final input=jsonDecode(req.body) as Map<String,dynamic>;
+      if(input['action']=='cipa_member_verify')return http.Response(
+        jsonEncode({'ok':true,'sessionToken':'z'*90}),200);
+      if(input['action']=='cipa_member_event'){
+        posted=input;
+        return http.Response('{"ok":true}',200);
+      }
+      return http.Response('{"ok":false}',200);
+    });
+    final api=CipaMemberApi(endpoint:server,client:client);
+    await api.verifyCode('ana@example.test','12345678');
+    await api.observeScheduled('cipa-inspection-test-1',
+      'Área de produção','Vistoria orientada preenchida com atenção.');
+    expect(posted?['kind'],'observation');
+    expect(posted?['targetId'],'cipa-inspection-test-1');
+    expect(posted?['location'],'Área de produção');
+    expect(posted?['sessionToken'],'z'*90);
+    expect((posted?['requestId'] as String).length,greaterThan(16));
+    await expectLater(api.observeScheduled('outro-tipo',
+      'Área de produção','Vistoria orientada preenchida com atenção.'),
+      throwsStateError);
+    api.dispose();
+  });
+
   test('Sessão revogada apaga acesso pessoal',() async {
     var revoked=0;
     final client=MockClient((http.Request req) async {

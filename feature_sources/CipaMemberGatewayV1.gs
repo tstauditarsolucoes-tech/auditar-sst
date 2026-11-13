@@ -514,6 +514,11 @@ function cipaMemV1Event_(request) {
     return {ok:false,code:'ACCESS_DENIED'};
   var data=cipaMemV1RecordsAllowed_(session);
   if(kind==='observation'&&location.length<2)return {ok:false,code:'INVALID_INPUT'};
+  // O agendamento só pode ser associado pelo integrante da mesma empresa e mandato.
+  if(kind==='observation'&&targetId&&
+     !cipaMemV1ScheduleCurrent_(a.companyId,a.mandateId,a.memberId)
+       .some(function(r){return r.id===targetId;}))
+    return {ok:false,code:'ACCESS_DENIED'};
   if(kind==='progress'||kind==='support'){
     if(!data.actions.some(function(r){return r.id===targetId&&
       r.status!=='Resolvida'&&r.status!=='Concluída';}))
@@ -526,15 +531,31 @@ function cipaMemV1Event_(request) {
   lock.waitLock(20000);
   try {
     // A revogação durante a preparação também precisa bloquear a gravação.
-    if(!cipaMemV1Authorize_(request.sessionToken))
+    var freshSession=cipaMemV1Authorize_(request.sessionToken);
+    if(!freshSession||freshSession.verified.account.id!==a.id)
       return {ok:false,code:'SESSION_INVALID'};
+    // Revalidar agenda sob o mesmo lock da gravação: cancelamento e revogação.
+    if(kind==='observation'&&targetId&&
+       !cipaMemV1ScheduleCurrent_(a.companyId,a.mandateId,a.memberId)
+         .some(function(r){return r.id===targetId;}))
+      return {ok:false,code:'ACCESS_DENIED'};
     var sheet=cipaMemV1Sheet_(CIPA_MEM_V1_EVENTS,
       ['request_id','created_at','account_id','company_id','mandate_id',
        'member_id','kind','target_id','location','detail']);
     if(sheet.getLastRow()>1){
-      var ids=sheet.getRange(2,1,sheet.getLastRow()-1,1).getValues();
-      if(ids.some(function(r){return String(r[0])===requestId;}))
-        return {ok:true,duplicate:true};
+      var rows=sheet.getRange(2,1,sheet.getLastRow()-1,10).getValues();
+      var repeated=rows.find(function(r){return String(r[0])===requestId;});
+      if(repeated)return String(repeated[2])===a.id&&
+        String(repeated[3])===a.companyId&&String(repeated[4])===a.mandateId&&
+        String(repeated[5])===a.memberId&&String(repeated[6])===kind&&
+        String(repeated[7])===targetId&&String(repeated[8])===location&&
+        String(repeated[9])===detail?
+          {ok:true,duplicate:true}:{ok:false,code:'ID_REUSED'};
+      if(kind==='observation'&&targetId&&rows.some(function(r){
+        return String(r[3])===a.companyId&&String(r[4])===a.mandateId&&
+          String(r[5])===a.memberId&&String(r[6])==='observation'&&
+          String(r[7])===targetId;
+      }))return {ok:false,code:'ALREADY_SUBMITTED'};
     }
     sheet.appendRow([requestId,new Date().toISOString(),a.id,
       a.companyId,a.mandateId,a.memberId,kind,targetId,location,detail]);

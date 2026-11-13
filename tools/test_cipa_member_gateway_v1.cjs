@@ -509,6 +509,37 @@ assert(scheduledDashboard.scheduledInspections.some(x=>
 assert(scheduledDashboard.scheduledInspections.every(x=>
   x.companyId==='company-A'&&x.mandateId==='mandate-A'&&
   x.assignedMemberId==='member-A'));
+const scheduleObservation={
+  sessionToken:login.sessionToken,kind:'observation',
+  targetId:createdInspection.id,location:'Área industrial',
+  detail:'Observação visual feita no local permitido para circulação.',
+  requestId:'scheduled-report-request-12345678901',
+};
+assert.strictEqual(invoke('cipa_member_event',{
+  ...scheduleObservation,targetId:'cipa-inspection-outra-empresa',
+}).code,'ACCESS_DENIED','Não aceitar agenda de outro vínculo');
+assert(invoke('cipa_member_event',scheduleObservation).ok);
+assert.strictEqual(invoke('cipa_member_event',scheduleObservation).duplicate,true,
+  'Retry do mesmo envio precisa ser idempotente');
+assert.strictEqual(invoke('cipa_member_event',{
+  ...scheduleObservation,detail:'Descrição adulterada e diferente.',
+}).code,'ID_REUSED','RequestId repetido não troca o conteúdo');
+assert.strictEqual(invoke('cipa_member_event',{
+  ...scheduleObservation,requestId:'scheduled-report-request-12345678902',
+}).code,'ALREADY_SUBMITTED','Um agendamento não recebe dois relatos');
+const memberWithReport=invoke('cipa_member_dashboard',{
+  sessionToken:login.sessionToken,
+});
+const linked=memberWithReport.scheduledInspections
+  .find(x=>x.id===createdInspection.id);
+assert.strictEqual(linked.status,'Registro enviado');
+assert.strictEqual(linked.observationId,scheduleObservation.requestId);
+const adminSchedule=invoke('cipa_schedule_list',{
+  authToken:'valid-admin',companyId:'company-A',mandateId:'mandate-A',
+});
+assert.strictEqual(adminSchedule.items
+  .find(x=>x.id===createdInspection.id).observationId,
+  scheduleObservation.requestId,'Central enxerga vínculo sem concluir ação');
 assert.strictEqual(invoke('cipa_schedule_list',{
   authToken:login.sessionToken,companyId:'company-A',
   mandateId:'mandate-A',

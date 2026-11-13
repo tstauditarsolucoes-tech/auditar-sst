@@ -6,6 +6,7 @@ on:
       - feature/cipa-tst-permissoes-vistorias-20261111
       - feature/cipa-vistorias-programadas-20261111
       - feature/cipa-ux-guiada-ciencia-orientacao-20261111
+      - feature/cipa-vinculo-agendamento-registro-20261113
     paths:
       - 'feature_sources/CipaMemberGatewayV1.gs'
       - 'feature_sources/CipaMemberReviewsV1.gs'
