@@ -730,6 +730,19 @@ assert.strictEqual(invoke('cipa_mural_moderator_list',{
 assert.strictEqual(invoke('cipa_mural_moderator_list',{
   authToken:'valid-admin',companyId:'company-B',mandateId:'mandate-B'
 }).posts.length,0,'Nenhum mural de outra empresa');
+assert.strictEqual(invoke('cipa_mural_moderator_list',{
+  authToken:'valid-tst',companyId:'company-A',mandateId:'mandate-A',
+}).code,'ACCESS_DENIED','TST sem delegação não modera mural');
+assert(invoke('cipa_tst_review_grant',{
+  authToken:'valid-admin',userId:'tst-A',companyId:'company-A',
+  mandateId:'mandate-A',operation:'grant',
+}).ok,'Administrador delega somente este mandato');
+assert(invoke('cipa_mural_moderator_list',{
+  authToken:'valid-tst',companyId:'company-A',mandateId:'mandate-A',
+}).ok,'TST delegado pode consultar a fila');
+assert.strictEqual(invoke('cipa_mural_moderator_list',{
+  authToken:'valid-tst',companyId:'company-B',mandateId:'mandate-B',
+}).code,'ACCESS_DENIED','Delegação não abre outra empresa');
 const modList=invoke('cipa_mural_moderator_list',{
   authToken:'valid-admin',companyId:'company-A',mandateId:'mandate-A'
 });
