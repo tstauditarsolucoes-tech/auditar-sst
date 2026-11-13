@@ -406,6 +406,15 @@ class OfflineReportInlineSuggestionService {
       String query, String title, String description) {
     final candidate = '$title $description';
     if (_clearlyCompliant(query)) return true;
+    // Não recomendar ajuste/vedação quando a única situação informada
+    // é AUSÊNCIA de uso do respirador. São falhas diferentes na NR-06.
+    if (RegExp(r'\b(nao utilizado|nao usa|sem respirador|sem mascara)\b')
+            .hasMatch(query) &&
+        RegExp(r'\b(sem ajuste|ajuste inadequado|vedacao|mal ajustad[oa])\b')
+            .hasMatch(title) &&
+        !RegExp(r'\b(nao utilizado|sem uso)\b').hasMatch(title)) {
+      return true;
+    }
     if (RegExp(r'\bsem protecao\b').hasMatch(query) &&
         RegExp(r'\bcom protecao\b').hasMatch(candidate)) return true;
     if (RegExp(r'\b(nao funcionou|inoperante|nao funciona)\b').hasMatch(query) &&
