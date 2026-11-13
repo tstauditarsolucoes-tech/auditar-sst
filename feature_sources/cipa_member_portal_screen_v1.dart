@@ -271,6 +271,9 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
     try {
       final entries=await widget.onLoadPending!();
       if(!mounted)return;
+      final ready=entries.where((e)=>e.canResume&&e.complete).length;
+      final incomplete=entries.where((e)=>e.canResume&&!e.complete).length;
+      final blocked=entries.where((e)=>!e.canResume).length;
       final selected=await showDialog<CipaStoredDraft>(
         context:context,builder:(dialog)=>AlertDialog(
           title:const Text('Vistorias salvas no celular'),
@@ -279,15 +282,32 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
               const Text('Os registros abaixo ainda não comprovam envio. '
                 'Escolha um rascunho para continuar ou entre com internet '
                 'e toque em Enviar vistorias salvas.'),
+              const SizedBox(height:10),
+              Text('Prontas: $ready  •  Incompletas: $incomplete  '
+                '•  Precisam de apoio: $blocked',
+                style:const TextStyle(fontWeight:FontWeight.w700)),
               const SizedBox(height:12),
               for(final item in entries)Card(child:ListTile(
                 leading:Icon(item.warning.isNotEmpty?
                   Icons.error_outline:item.complete?
                     Icons.task_alt_outlined:Icons.edit_note_outlined),
                 title:Text(item.displayPlace),
-                subtitle:Text(item.warning.isNotEmpty?item.warning:
-                  item.complete?'Pronta para enviar':
-                    'Incompleta: continuar preenchimento'),
+                subtitle:Column(
+                  crossAxisAlignment:CrossAxisAlignment.start,children:[
+                    Text(item.warning.isNotEmpty?item.warning:
+                      item.complete?'Pronta para enviar':
+                        'Incompleta: continuar preenchimento'),
+                    if(item.draft!=null)
+                      Text('${item.draft!.answers.where((a)=>a!=null).length} '
+                        'de 3 perguntas • ${item.draft!.photos.length} '
+                        'foto(s) salva(s)'),
+                    if(item.draft!=null)
+                      Text('Salva em ${item.draft!.savedAt.toLocal().day}/'
+                        '${item.draft!.savedAt.toLocal().month} '
+                        'às ${item.draft!.savedAt.toLocal().hour.toString().padLeft(2,'0')}:'
+                        '${item.draft!.savedAt.toLocal().minute.toString().padLeft(2,'0')}',
+                        style:const TextStyle(fontSize:12)),
+                  ]),
                 trailing:item.canResume?
                   const Icon(Icons.chevron_right):null,
                 onTap:item.canResume?
