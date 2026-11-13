@@ -430,7 +430,7 @@ class _CipaMemberPortalScreenState extends State<CipaMemberPortalScreen> {
                 const SizedBox(width:8),
                 Expanded(child:Text(widget.offlineMode?
                   'Offline: informações protegidas neste aparelho':
-                  'Conectado à Central da CIPA',
+                  'Última consulta confirmada pela Central',
                   style:const TextStyle(fontWeight:FontWeight.w700))),
               ]),
               if(widget.lastSync!=null)
