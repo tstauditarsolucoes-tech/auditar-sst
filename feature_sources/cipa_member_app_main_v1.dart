@@ -340,19 +340,27 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
     if(person!=null) {
       return CipaMemberPortalScreen(
         companyName:person.companyLabel,mandateLabel:person.mandateLabel,
-        view:person,sessionVerified:api.hasSession,
-        onRefresh:_refresh,onLogout:_logout,
-        onAcknowledgeMeeting:api.acknowledge,
-        onReportProgress:api.progress,
-        onRequestSupport:api.support,
-        onObserve:api.observe,
-        onObserveWithPhotos:api.observeWithPhotos,
-        onObserveDraft:api.observeDraft,
-        onObserveScheduled:api.observeScheduled,
-        onObserveScheduledWithPhotos:api.observeScheduledWithPhotos,
-        onObserveScheduledDraft:api.observeScheduledDraft,
-        onViewPhotos:api.photosForObservation,
-        onAcknowledgeFeedback:api.acknowledgeFeedback,
+        view:person,sessionVerified:api.hasSession||offlineUnlocked,
+        offlineMode:offlineUnlocked,pendingDraftCount:pendingDraftCount,
+        lastSync:lastSync,
+        onRefresh:offlineUnlocked?null:_refresh,
+        onLogout:offlineUnlocked?_closeOffline:_logout,
+        onEnableOffline:offlineUnlocked?null:_enableOffline,
+        onSyncPending:offlineUnlocked?null:_syncPending,
+        onDraftSaved:()=>_loadDraftCount(person),
+        onAcknowledgeMeeting:offlineUnlocked?null:api.acknowledge,
+        onReportProgress:offlineUnlocked?null:api.progress,
+        onRequestSupport:offlineUnlocked?null:api.support,
+        onObserve:offlineUnlocked?null:api.observe,
+        onObserveWithPhotos:offlineUnlocked?null:api.observeWithPhotos,
+        onObserveDraft:offlineUnlocked?null:api.observeDraft,
+        onObserveScheduled:offlineUnlocked?null:api.observeScheduled,
+        onObserveScheduledWithPhotos:
+          offlineUnlocked?null:api.observeScheduledWithPhotos,
+        onObserveScheduledDraft:
+          offlineUnlocked?null:api.observeScheduledDraft,
+        onViewPhotos:offlineUnlocked?null:api.photosForObservation,
+        onAcknowledgeFeedback:offlineUnlocked?null:api.acknowledgeFeedback,
       );
     }
     return Scaffold(
@@ -421,9 +429,28 @@ class _CipaMemberEntryScreenState extends State<CipaMemberEntryScreen>
                       requested=false;code.clear();message='';error='';
                     }),child:const Text('Trocar e-mail')),
                   const SizedBox(height:10),
-                  const Text('Este acesso não utiliza o login '
-                    'de técnico/administrador e não tem sincronização '
-                    'completa nem acesso offline.',
+                  if(!requested)...[
+                    const Divider(height:28),
+                    const Text('Sem internet?',
+                      style:TextStyle(fontWeight:FontWeight.w700,fontSize:18)),
+                    const Text('Se já ativou o modo offline neste aparelho, '
+                      'use o seu e-mail e PIN de seis números.'),
+                    const SizedBox(height:10),
+                    TextField(controller:offlinePin,obscureText:true,
+                      enabled:!busy,maxLength:6,
+                      keyboardType:TextInputType.number,
+                      decoration:const InputDecoration(
+                        labelText:'Meu PIN offline',
+                        prefixIcon:Icon(Icons.offline_bolt_outlined))),
+                    OutlinedButton.icon(
+                      onPressed:busy?null:_openOffline,
+                      icon:const Icon(Icons.lock_open_outlined),
+                      label:const Text('Abrir dados salvos offline')),
+                  ],
+                  const SizedBox(height:10),
+                  const Text('Aplicativo exclusivo dos integrantes: '
+                    'sem login de técnico ou sincronização geral da base '
+                    'do Auditar SST. O primeiro acesso exige internet.',
                     textAlign:TextAlign.center,
                     style:TextStyle(fontSize:12)),
                 ],
