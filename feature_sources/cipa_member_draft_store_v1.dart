@@ -110,13 +110,19 @@ class CipaMemberDraftStore {
   CipaMemberDraftStore({
     required this.accountId,required this.companyId,
     required this.mandateId,required this.memberId,
-    this.scheduleId,
+    this.scheduleId,this.draftId,
     FlutterSecureStorage? secure,
-  }):_secure=secure??const FlutterSecureStorage();
+    Future<Directory> Function()? directory,
+    Future<List<int>> Function(bool create)? keyProvider,
+  }):_secure=secure??const FlutterSecureStorage(),
+     _directory=directory??getApplicationSupportDirectory,
+     _keyProvider=keyProvider;
 
   final String accountId,companyId,mandateId,memberId;
-  final String? scheduleId;
+  final String? scheduleId,draftId;
   final FlutterSecureStorage _secure;
+  final Future<Directory> Function() _directory;
+  final Future<List<int>> Function(bool create)? _keyProvider;
 
   Future<String> _hash(String value) async {
     final result=await Sha256().hash(utf8.encode(value));
@@ -126,12 +132,14 @@ class CipaMemberDraftStore {
     [accountId,companyId,mandateId,memberId].join('|'));
   Future<String> _prefix() async=>'cipa_draft_${await _personHash()}';
   Future<String> _filePath() async {
-    final directory=await getApplicationSupportDirectory();
+    final directory=await _directory();
     final prefix=await _prefix();
-    final task=await _hash(scheduleId??'vistoria_livre');
+    final task=await _hash(scheduleId??(
+      draftId==null?'vistoria_livre':'vistoria_livre_$draftId'));
     return '${directory.path}/${prefix}_${task}.enc';
   }
   Future<List<int>> _key({required bool create}) async {
+    if(_keyProvider!=null)return _keyProvider(create);
     final keyName='cipa_draft_key_${await _personHash()}';
     String? value=await _secure.read(key:keyName);
     if(value==null){
@@ -146,6 +154,8 @@ class CipaMemberDraftStore {
   }
 
   Future<void> save(CipaInspectionDraft draft) async {
+    if(draftId!=null&&(draft.requestId!=draftId||scheduleId!=null))
+      throw StateError('Vistoria local incompatível');
     final encoded=await CipaDraftCipher.seal(draft.toJson(),
       await _key(create:true));
     final path=await _filePath();
@@ -160,7 +170,10 @@ class CipaMemberDraftStore {
     if(!await file.exists())return null;
     final decoded=await CipaDraftCipher.open(
       await file.readAsString(),await _key(create:false));
-    return CipaInspectionDraft.fromJson(decoded);
+    final draft=CipaInspectionDraft.fromJson(decoded);
+    if(draftId!=null&&draft?.requestId!=draftId)
+      throw StateError('Rascunho fora do registro original');
+    return draft;
   }
 
   Future<void> clear() async {
@@ -170,7 +183,11 @@ class CipaMemberDraftStore {
 
   /// Revogação/saída intencional remove todos os rascunhos deste vínculo.
   Future<void> clearAllForMember() async {
-    final directory=await getApplicationSupportDirectory();
+    final directory=await _directory();
+    if(!await directory.exists()){
+      await _secure.delete(key:'cipa_draft_key_${await _personHash()}');
+      return;
+    }
     final prefix=await _prefix();
     await for(final entity in directory.list()){
       if(entity is File&&entity.uri.pathSegments.last.startsWith(prefix+'_'))
