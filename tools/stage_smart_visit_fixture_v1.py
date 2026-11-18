@@ -120,7 +120,7 @@ anchor="\ndependencies:\n"
 if pubtext.count(anchor)!=1:
     raise RuntimeError("Fixture Flutter sem seção de dependências")
 pub.write_text(pubtext.replace(anchor,
-    "dependencies:\n  image_picker: ^1.1.2\n  path_provider: ^2.1.5\n",1),
+    "\ndependencies:\n  image_picker: ^1.1.2\n  path_provider: ^2.1.5\n",1),
     encoding="utf-8")
 widget=app/"test/widget_test.dart"
 if widget.exists():widget.unlink()
