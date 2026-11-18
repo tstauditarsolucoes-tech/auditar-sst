@@ -20,6 +20,8 @@ chooser = app / "lib/screens/visit_type_chooser_screen.dart"
 metrics = app / "lib/services/unified_visit_metrics.dart"
 briefing = app / "lib/screens/smart_visit_briefing_screen.dart"
 intelligence = app / "lib/services/visit_intelligence.dart"
+nc_history = app / "lib/services/nc_followup.dart"
+nc_screen = app / "lib/screens/nc_followup_screen.dart"
 pub = app / "pubspec.yaml"
 
 protected_names = (
@@ -44,6 +46,8 @@ assert home.exists() and quick.exists() and not chooser.exists()
 assert not metrics.exists(), "Métrica unificada já instalada; inspecione a versão"
 assert not briefing.exists() and not intelligence.exists(), (
     "Visita inteligente já existe; inspecione a versão")
+assert not nc_history.exists() and not nc_screen.exists(), (
+    "Acompanhamento de NC já instalado; não sobrescrever")
 assert pub.is_file(), "pubspec.yaml não encontrado"
 # Comprovar a versão antes de tocar em qualquer arquivo da aplicação.
 old_pub = pub.read_text(encoding="utf-8")
@@ -202,13 +206,16 @@ assert "SmartVisitBriefingScreen" in (
 assert "Visita Inteligente" in (
     repo/"feature_sources/smart_visit_briefing_screen_v1.dart").read_text(
         encoding="utf-8")
+assert "NcFollowupListScreen" in (
+    repo/"feature_sources/smart_visit_briefing_screen_v1.dart").read_text(
+        encoding="utf-8")
 new_pub = old_pub.replace(old_ver, "version: 3.29.201+343", 1)
 for name, digest in protected.items():
     if hashlib.sha256((app/name).read_bytes()).hexdigest() != digest:
         raise RuntimeError(f"Arquivo protegido alterado durante preflight: {name}")
 
 # Se ocorrer falha durante a instalação, restaurar arquivos de entrada
-# e remover apenas os quatro arquivos novos gerados por este patch.
+# e remover apenas os arquivos novos gerados por este patch.
 originals = {
     quick: quick.read_bytes(),
     home: home.read_bytes(),
@@ -219,6 +226,8 @@ new_files = (
     ("feature_sources/android_unified_visit_metrics_v1.dart", metrics),
     ("feature_sources/smart_visit_briefing_screen_v1.dart", briefing),
     ("feature_sources/visit_intelligence_v1.dart", intelligence),
+    ("feature_sources/nc_followup_v1.dart", nc_history),
+    ("feature_sources/nc_followup_screen_v1.dart", nc_screen),
 )
 attempted = []
 try:

@@ -59,6 +59,8 @@ def exercise(version: str, label: str) -> None:
             screens / "smart_visit_briefing_screen.dart",
             app / "lib/services/unified_visit_metrics.dart",
             app / "lib/services/visit_intelligence.dart",
+            screens / "nc_followup_screen.dart",
+            app / "lib/services/nc_followup.dart",
         ):
             assert not path.exists(), f"{label}: instalação parcial: {path}"
 
