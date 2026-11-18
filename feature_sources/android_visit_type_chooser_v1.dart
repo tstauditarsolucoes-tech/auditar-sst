@@ -53,14 +53,6 @@ class AuditarVisitTypeChooserScreen extends StatelessWidget {
           onTap:()=>Navigator.of(context).push(
             MaterialPageRoute(builder:(_)=>
               SmartVisitBriefingScreen(company:initialCompany!)))),
-        if(initialCompany!=null) _option(context,
-          icon:Icons.rule_outlined,
-          title:'Conferir NC antes de registrar outra',
-          subtitle:'Evite repetir uma pendência já cadastrada. '
-            'Sugestões locais, com confirmação do técnico.',
-          onTap:()=>Navigator.of(context).push(
-            MaterialPageRoute(builder:(_)=>
-              NcDuplicateReviewScreen(company:initialCompany!)))),
         const SizedBox(height:8),
         _option(context,
           icon:Icons.fact_check_outlined,
@@ -72,11 +64,14 @@ class AuditarVisitTypeChooserScreen extends StatelessWidget {
         _option(context,
           icon:Icons.add_a_photo_outlined,
           title:'Ronda Expressa',
-          subtitle:'Fotos, descrição e análise técnica em campo.',
-          onTap:()=>_launch(context,
-            initialCompany==null
-              ? const QuickVisitScreen(onlyRound:true)
-              : ExpressRoundScreen(company:initialCompany!))),
+          subtitle:initialCompany==null
+            ? 'Escolha a empresa para fotografar e registrar situações.'
+            : 'Primeiro confira NCs existentes, depois inicie a nova ronda.',
+          onTap:initialCompany==null
+            ? ()=>_launch(context,const QuickVisitScreen(onlyRound:true))
+            : ()=>Navigator.of(context).push(
+                MaterialPageRoute<void>(builder:(_)=>
+                  NcDuplicateReviewScreen(company:initialCompany!)))),
         _option(context,
           icon:Icons.bolt_outlined,
           title:'Vistoria rápida / avulsa',
