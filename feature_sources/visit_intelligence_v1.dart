@@ -85,6 +85,9 @@ class VisitIntelligence {
     final roundIds=<String>{};
     final open=<VisitBriefingItem>[];
     final roundsByKey=<String,Set<String>>{};
+    // A tela limita a descrição a 180 caracteres, mas a detecção deve
+    // comparar o texto completo para evitar falsos positivos/negativos.
+    final fullFingerprintsById=<String,String>{};
     var scanned=0;
 
     for(final record in records) {
@@ -118,16 +121,15 @@ class VisitIntelligence {
       final fingerprint=_normalized(sector)+'|'+_normalized(description);
       // Sem setor e descrição não há base suficiente para recorrência.
       if(sector.isNotEmpty&&description.length>=8){
+        fullFingerprintsById[id]=fingerprint;
         (roundsByKey[fingerprint]??=<String>{}).add(roundId);
       }
     }
 
     final candidates=<VisitBriefingItem>[];
     for(final item in open) {
-      final sector=item.sector=='Setor não informado'?'':item.sector;
-      final fingerprint=_normalized(sector)+'|'+_normalized(item.description);
-      final repeated=sector.isNotEmpty&&
-        item.description!='Situação registrada sem descrição disponível'&&
+      final fingerprint=fullFingerprintsById[item.id];
+      final repeated=fingerprint!=null&&
         (roundsByKey[fingerprint]?.length??0)>=2;
       candidates.add(VisitBriefingItem(
         id:item.id,sector:item.sector,description:item.description,

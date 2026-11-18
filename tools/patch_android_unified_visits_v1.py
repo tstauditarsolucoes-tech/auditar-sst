@@ -44,6 +44,12 @@ assert home.exists() and quick.exists() and not chooser.exists()
 assert not metrics.exists(), "Métrica unificada já instalada; inspecione a versão"
 assert not briefing.exists() and not intelligence.exists(), (
     "Visita inteligente já existe; inspecione a versão")
+assert pub.is_file(), "pubspec.yaml não encontrado"
+# Comprovar a versão antes de tocar em qualquer arquivo da aplicação.
+old_pub = pub.read_text(encoding="utf-8")
+old_ver = "version: 3.29.200+342"
+if old_pub.count(old_ver) != 1:
+    raise RuntimeError("Versão Android inesperada; nenhum arquivo alterado")
 
 def one(src, old, new, why):
     count = src.count(old)
@@ -51,12 +57,7 @@ def one(src, old, new, why):
         raise RuntimeError(f"{why}: âncora encontrada {count} vez(es)")
     return src.replace(old, new, 1)
 
-# Keep all existing screens/forms; this is a new selector only.
-shutil.copyfile(repo/"feature_sources/android_visit_type_chooser_v1.dart", chooser)
-shutil.copyfile(repo/"feature_sources/android_unified_visit_metrics_v1.dart", metrics)
-shutil.copyfile(repo/"feature_sources/smart_visit_briefing_screen_v1.dart", briefing)
-shutil.copyfile(repo/"feature_sources/visit_intelligence_v1.dart", intelligence)
-
+# Preparar alterações em memória. Nenhuma cópia ocorre durante o preflight.
 # Quick Visit already performs safe company filtering. Reuse it for Ronda,
 # keeping one entry point after company selection and all existing controls.
 s = quick.read_text(encoding="utf-8")
@@ -96,7 +97,7 @@ new_actions = """          if (widget.onlyRound)
               AuditarVisitTypeChooserScreen(initialCompany: c),
             ),"""
 s = one(s, old_actions, new_actions, "opcoes da visita por empresa")
-quick.write_text(s, encoding="utf-8", newline="\n")
+quick_updated = s
 
 # Home: the same screen loads locally saved Ronda findings independently.
 s = home.read_text(encoding="utf-8")
@@ -190,19 +191,51 @@ body = body[:main.start("extra")] + (
     "\n          const SizedBox(height: 18),\n          "
 ) + body[main.end("extra"):]
 s = s[:begin] + body + s[finish:]
-home.write_text(s, encoding="utf-8", newline="\n")
+home_updated = s
 
-old = pub.read_text(encoding="utf-8")
-old_ver="version: 3.29.200+342"
-if old.count(old_ver)!=1:
-    raise RuntimeError("Versão Android inesperada; não gerar APK")
-pub.write_text(old.replace(old_ver,"version: 3.29.201+343",1),
-               encoding="utf-8", newline="\n")
-for name,digest in protected.items():
-    assert hashlib.sha256((app/name).read_bytes()).hexdigest()==digest, name
+# Verificações finais antes de qualquer escrita (inclusive a versão).
+assert "UnifiedVisitMetrics.calculate" in home_updated
+assert "AuditarVisitTypeChooserScreen" in quick_updated
+assert "SmartVisitBriefingScreen" in (
+    repo/"feature_sources/android_visit_type_chooser_v1.dart").read_text(
+        encoding="utf-8")
+assert "Visita Inteligente" in (
+    repo/"feature_sources/smart_visit_briefing_screen_v1.dart").read_text(
+        encoding="utf-8")
+new_pub = old_pub.replace(old_ver, "version: 3.29.201+343", 1)
+for name, digest in protected.items():
+    if hashlib.sha256((app/name).read_bytes()).hexdigest() != digest:
+        raise RuntimeError(f"Arquivo protegido alterado durante preflight: {name}")
 
-assert "UnifiedVisitMetrics.calculate" in home.read_text()
-assert "SmartVisitBriefingScreen" in chooser.read_text()
-assert "Visita Inteligente" in briefing.read_text()
-assert "AuditarVisitTypeChooserScreen" in quick.read_text()
+# Se ocorrer falha durante a instalação, restaurar arquivos de entrada
+# e remover apenas os quatro arquivos novos gerados por este patch.
+originals = {
+    quick: quick.read_bytes(),
+    home: home.read_bytes(),
+    pub: pub.read_bytes(),
+}
+new_files = (
+    ("feature_sources/android_visit_type_chooser_v1.dart", chooser),
+    ("feature_sources/android_unified_visit_metrics_v1.dart", metrics),
+    ("feature_sources/smart_visit_briefing_screen_v1.dart", briefing),
+    ("feature_sources/visit_intelligence_v1.dart", intelligence),
+)
+attempted = []
+try:
+    for source, target in new_files:
+        attempted.append(target)
+        shutil.copyfile(repo/source, target)
+    quick.write_text(quick_updated, encoding="utf-8", newline="\n")
+    home.write_text(home_updated, encoding="utf-8", newline="\n")
+    pub.write_text(new_pub, encoding="utf-8", newline="\n")
+    for name, digest in protected.items():
+        if hashlib.sha256((app/name).read_bytes()).hexdigest() != digest:
+            raise RuntimeError(f"Arquivo protegido mudou: {name}")
+except BaseException:
+    for original_path, original_content in originals.items():
+        original_path.write_bytes(original_content)
+    for generated_path in attempted:
+        generated_path.unlink(missing_ok=True)
+    raise
+
 print("ANDROID_UNIFIED_VISITS_READY: UI+read-only metrics; core unchanged")
