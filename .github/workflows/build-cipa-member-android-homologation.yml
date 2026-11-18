@@ -6,6 +6,8 @@ on:
       - feature/minha-cipa-homologacao-integrada-20261118
     paths:
       - 'feature_sources/cipa_member_app_main_v1.dart'
+      - 'feature_sources/cipa_member_demo_main_v1.dart'
+      - 'feature_sources/cipa_member_demo_widget_test_v1.dart'
       - 'feature_sources/cipa_member_*'
       - 'feature_sources/cipa_*'
       - 'feature_sources/Cipa*.gs'
@@ -60,9 +62,23 @@ jobs:
           cd /tmp/auditar_cipa_membro
           flutter build apk --debug --dart-define=AUDITAR_MEMBER_ENDPOINT=
           test -f build/app/outputs/flutter-apk/app-debug.apk
-      - name: Publicar somente o APK de teste sem Central habilitada
+          cp build/app/outputs/flutter-apk/app-debug.apk /tmp/minha-cipa-sem-login.apk
+      - name: Compilar APK DEMO independente com empresa fictícia
+        run: |
+          set -euo pipefail
+          cd /tmp/auditar_cipa_membro
+          flutter build apk --debug --target=lib/demo_main.dart --dart-define=AUDITAR_MEMBER_ENDPOINT=
+          test -f build/app/outputs/flutter-apk/app-debug.apk
+          cp build/app/outputs/flutter-apk/app-debug.apk /tmp/minha-cipa-demo.apk
+      - name: Publicar APK de teste sem Central habilitada
         uses: actions/upload-artifact@v4
         with:
           name: Minha-CIPA-Android-Homologacao-Sem-Login
-          path: /tmp/auditar_cipa_membro/build/app/outputs/flutter-apk/app-debug.apk
+          path: /tmp/minha-cipa-sem-login.apk
+          retention-days: 7
+      - name: Publicar DEMO fictícia sem conexão e sem autenticação real
+        uses: actions/upload-artifact@v4
+        with:
+          name: Minha-CIPA-Android-Demo-Ficticia
+          path: /tmp/minha-cipa-demo.apk
           retention-days: 7
