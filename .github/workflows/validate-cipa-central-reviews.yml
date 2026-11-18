@@ -98,6 +98,7 @@ on:
       - feature/cipa-central-vistorias-devolutivas-20261111
       - feature/cipa-tst-permissoes-vistorias-20261111
       - feature/cipa-vistorias-programadas-20261111
+      - feature/minha-cipa-seis-melhorias-integradas-20261113
   workflow_dispatch:
 permissions:
   contents: read
