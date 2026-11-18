@@ -71,7 +71,8 @@ def one(src, old, new, why):
 s = quick.read_text(encoding="utf-8")
 s = one(s, "import 'express_round_screen.dart';",
         "import 'express_round_screen.dart';\n"
-        "import 'visit_type_chooser_screen.dart';", "import seletor")
+        "import 'visit_type_chooser_screen.dart';\n"
+        "import 'nc_duplicate_review_screen.dart';", "import seletor")
 s = one(s, "    this.onSelected,\n  });",
         "    this.onSelected,\n    this.onlyRound = false,\n  });",
         "modo Ronda apos escolha")
@@ -92,10 +93,10 @@ old_actions = """          _action(
           ),"""
 new_actions = """          if (widget.onlyRound)
             _action(
-              'Iniciar Ronda Expressa',
-              'Empresa selecionada. Abra a coleta de fotos e registros.',
+              'Conferir NCs e iniciar Ronda',
+              'Evite duplicidade antes de fotografar e registrar.',
               Icons.add_a_photo_outlined,
-              ExpressRoundScreen(company: c),
+              NcDuplicateReviewScreen(company: c),
             ),
           if (!widget.onlyRound)
             _action(
@@ -204,6 +205,7 @@ home_updated = s
 # Verificações finais antes de qualquer escrita (inclusive a versão).
 assert "UnifiedVisitMetrics.calculate" in home_updated
 assert "AuditarVisitTypeChooserScreen" in quick_updated
+assert "NcDuplicateReviewScreen(company: c)" in quick_updated
 assert "SmartVisitBriefingScreen" in (
     repo/"feature_sources/android_visit_type_chooser_v1.dart").read_text(
         encoding="utf-8")
