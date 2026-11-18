@@ -78,6 +78,8 @@ pairs={
       "lib/widgets/cipa_member_role_meeting_panel.dart",
     "feature_sources/cipa_member_portal_screen_test_v1.dart":
       "test/cipa_member_portal_screen_test.dart",
+    "feature_sources/cipa_member_demo_widget_test_v1.dart":
+      "test/cipa_member_demo_widget_test.dart",
     "feature_sources/cipa_member_api_test_v1.dart":
       "test/cipa_member_api_test.dart",
     "feature_sources/cipa_member_draft_store_test_v1.dart":
