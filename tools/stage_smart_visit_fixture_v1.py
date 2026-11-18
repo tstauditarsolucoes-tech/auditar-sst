@@ -18,6 +18,10 @@ sources={
     "lib/screens/visit_type_chooser_screen.dart",
   "feature_sources/visit_intelligence_v1.dart":
     "lib/services/visit_intelligence.dart",
+  "feature_sources/nc_followup_v1.dart":
+    "lib/services/nc_followup.dart",
+  "feature_sources/nc_followup_screen_v1.dart":
+    "lib/screens/nc_followup_screen.dart",
 }
 for origin,destination in sources.items():
     shutil.copyfile(repo/origin,app/destination)
@@ -37,8 +41,17 @@ class FakeRecord {
 class AppDatabase {
   AppDatabase._();
   static final instance=AppDatabase._();
+  static String activeUserId='tst-1';
   bool fail=false;
   List<FakeRecord> records=[];
+  List<Map<String,dynamic>> ncRows=[];
+  final Map<String,String> settings={};
+  Future<List<Map<String,dynamic>>> getNonConformityRows({
+    bool includeClosed=true}) async =>ncRows;
+  Future<String> getSetting(String key) async=>settings[key]??'';
+  Future<void> setSetting(String key,String value)async{
+    settings[key]=value;
+  }
   Future<List<FakeRecord>> getSstRecords({String? type}) async {
     if(type!='OBSERVACAO_SEGURANCA') {
       throw StateError('Tipo de registro inesperado');
@@ -46,6 +59,11 @@ class AppDatabase {
     if(fail)throw StateError('Leitura local indisponível');
     return records;
   }
+}
+""",encoding="utf-8")
+(lib/"services"/"auth_service.dart").write_text("""
+class AuthService {
+  static bool canAccessCompany(String companyId)=>companyId=='empresa-A';
 }
 """,encoding="utf-8")
 (lib/"screens"/"express_round_screen.dart").write_text("""
@@ -92,6 +110,18 @@ shutil.copyfile(
   repo/"feature_sources/smart_visit_briefing_widget_test_v1.dart",
   app/"test/smart_visit_briefing_widget_test.dart",
 )
+shutil.copyfile(
+  repo/"feature_sources/nc_followup_widget_test_v1.dart",
+  app/"test/nc_followup_widget_test.dart",
+)
+pub=app/"pubspec.yaml"
+pubtext=pub.read_text(encoding="utf-8")
+anchor="dependencies:\n"
+if pubtext.count(anchor)!=1:
+    raise RuntimeError("Fixture Flutter sem seção de dependências")
+pub.write_text(pubtext.replace(anchor,
+    "dependencies:\n  image_picker: ^1.1.2\n  path_provider: ^2.1.5\n",1),
+    encoding="utf-8")
 widget=app/"test/widget_test.dart"
 if widget.exists():widget.unlink()
 print("SMART_VISIT_FIXTURE_READY")
