@@ -34,6 +34,8 @@ pubspec.write_text(yaml,encoding="utf-8")
 pairs={
     "feature_sources/cipa_member_app_main_v1.dart":
       "lib/main.dart",
+    "feature_sources/cipa_member_demo_main_v1.dart":
+      "lib/demo_main.dart",
     "feature_sources/cipa_member_identity_v1.dart":
       "lib/services/cipa_member_identity.dart",
     "feature_sources/cipa_member_role_meetings_v1.dart":
