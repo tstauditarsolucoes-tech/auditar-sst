@@ -77,6 +77,23 @@ void main() {
   check(missing.recurrenceCandidates==0,
     'sem setor/descrição não classificar como recorrente');
 
+  // Descrições longas são resumidas só na tela. A comparação de
+  // recorrências precisa considerar todo o texto original.
+  final longPrefix=List.filled(190,'P').join();
+  final longCases=VisitIntelligence.fromLocalRondas(
+    companyId:'empresa-A',records:[
+      row('l1','empresa-A','long-r1','Não conformidade',
+        description:'${longPrefix} mesmo desfecho'),
+      row('l2','empresa-A','long-r2','Não conformidade',
+        description:'${longPrefix} mesmo desfecho'),
+      row('l3','empresa-A','long-r3','Não conformidade',
+        description:'${longPrefix} desfecho diferente'),
+    ]);
+  check(longCases.recurrenceCandidates==2,
+    'texto igual além de 180 caracteres deve repetir; sufixo distinto não');
+  check(longCases.items.every((x)=>x.description.length<=180),
+    'limite de exibição não deve ampliar descrição');
+
   final limited=VisitIntelligence.fromLocalRondas(
     companyId:'empresa-A',records:data,maxVisible:2);
   check(limited.openObservations==4&&limited.items.length==2,
