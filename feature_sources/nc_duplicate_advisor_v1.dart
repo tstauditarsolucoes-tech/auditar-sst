@@ -80,10 +80,10 @@ class NcDuplicateAdvisor {
     for(final row in existingOpenNcs) {
       final cid=first(row,['company_id','companyId','empresa_id']);
       final id=first(row,['id','nc_id','ncId']);
-      if(cid!=companyId.trim()||id.isEmpty||!seen.add(id))continue;
+      if(cid!=companyId.trim()||id.isEmpty)continue;
       final status=first(row,['correctionStatus','treatmentStatus',
           'correction_status','treatment_status','status']);
-      if(closed(status))continue;
+      if(closed(status)||!seen.add(id))continue;
       final problem=first(row,['description','title','descricao']);
       final existingSector=first(row,['sector','sector_name','setor']);
       final normalizedSector=normalize(existingSector);
