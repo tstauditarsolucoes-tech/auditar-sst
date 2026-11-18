@@ -45,7 +45,7 @@ def exercise(version: str, label: str) -> None:
         pub = app / "pubspec.yaml"
         quick.write_text(QUICK, encoding="utf-8")
         home.write_text(HOME, encoding="utf-8")
-        pub.write_text(f"name: auditar_sst\\nversion: {version}\\n", encoding="utf-8")
+        pub.write_text(f"name: auditar_sst\nversion: {version}\n", encoding="utf-8")
         original = {path: path.read_bytes() for path in (quick, home, pub)}
         result = subprocess.run(
             [sys.executable, str(PATCH), str(app)],
