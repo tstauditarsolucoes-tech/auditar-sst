@@ -116,7 +116,7 @@ shutil.copyfile(
 )
 pub=app/"pubspec.yaml"
 pubtext=pub.read_text(encoding="utf-8")
-anchor="dependencies:\n"
+anchor="\ndependencies:\n"
 if pubtext.count(anchor)!=1:
     raise RuntimeError("Fixture Flutter sem seção de dependências")
 pub.write_text(pubtext.replace(anchor,
