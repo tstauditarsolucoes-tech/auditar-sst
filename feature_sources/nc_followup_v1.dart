@@ -55,11 +55,11 @@ class NcFollowupLedger {
   final Future<String> Function(String key) read;
   final Future<void> Function(String key, String value) write;
 
-  static String key(String companyId, String ncId) {
-    if (companyId.trim().isEmpty || ncId.trim().isEmpty) {
+  static String key(String companyId, String ncId, String userId) {
+    if (companyId.trim().isEmpty || ncId.trim().isEmpty || userId.trim().isEmpty) {
       throw ArgumentError('Empresa e NC obrigatórias.');
     }
-    return 'auditar_nc_followup_v1_' +
+    return 'auditar_nc_followup_v1_' + Uri.encodeComponent(userId) + '_' +
         Uri.encodeComponent(companyId) + '_' + Uri.encodeComponent(ncId);
   }
 
@@ -67,12 +67,13 @@ class NcFollowupLedger {
       DateTime.now().microsecondsSinceEpoch.toRadixString(36) + '-' +
       Random.secure().nextInt(0x7fffffff).toRadixString(36);
 
-  Future<List<NcFollowupEvent>> list(String companyId, String ncId) async {
-    final raw = await read(key(companyId, ncId));
+  Future<List<NcFollowupEvent>> list(String companyId, String ncId, String userId) async {
+    final raw = await read(key(companyId, ncId, userId));
     if (raw.trim().isEmpty) return const [];
     final json = jsonDecode(raw);
     if (json is! Map || json['version'] != 1 ||
         json['companyId'] != companyId || json['ncId'] != ncId ||
+        json['userId'] != userId ||
         json['events'] is! List) {
       throw const FormatException('Histórico local inválido.');
     }
@@ -82,7 +83,9 @@ class NcFollowupLedger {
       if (item is! Map) throw const FormatException('Evento inválido.');
       final event = NcFollowupEvent.fromJson(Map<String,dynamic>.from(item),
           companyId: companyId, ncId: ncId);
-      if (!seen.add(event.id)) throw const FormatException('IDs repetidos.');
+      if (event.authorId != userId || !seen.add(event.id)) {
+        throw const FormatException('Evento de outro usuário ou duplicado.');
+      }
       result.add(event);
     }
     return List.unmodifiable(result);
@@ -96,7 +99,7 @@ class NcFollowupLedger {
         event.note.trim().length < 8 || event.note.length > 1000) {
       throw ArgumentError('Revise os dados do acompanhamento.');
     }
-    final rows = await list(event.companyId, event.ncId);
+    final rows = await list(event.companyId, event.ncId, event.authorId);
     for (final old in rows) {
       if (old.id == event.id) {
         if (jsonEncode(old.toJson()) != jsonEncode(event.toJson())) {
@@ -109,8 +112,9 @@ class NcFollowupLedger {
       throw StateError('Limite de registros locais atingido.');
     }
     final updated = [...rows, event];
-    await write(key(event.companyId, event.ncId), jsonEncode({
+    await write(key(event.companyId, event.ncId, event.authorId), jsonEncode({
       'version': 1, 'companyId': event.companyId, 'ncId': event.ncId,
+      'userId': event.authorId,
       'events': updated.map((e) => e.toJson()).toList(),
     }));
     return List.unmodifiable(updated);
