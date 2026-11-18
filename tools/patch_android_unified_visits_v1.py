@@ -22,6 +22,8 @@ briefing = app / "lib/screens/smart_visit_briefing_screen.dart"
 intelligence = app / "lib/services/visit_intelligence.dart"
 nc_history = app / "lib/services/nc_followup.dart"
 nc_screen = app / "lib/screens/nc_followup_screen.dart"
+advisor = app / "lib/services/nc_duplicate_advisor.dart"
+review_screen = app / "lib/screens/nc_duplicate_review_screen.dart"
 pub = app / "pubspec.yaml"
 
 protected_names = (
@@ -48,6 +50,8 @@ assert not briefing.exists() and not intelligence.exists(), (
     "Visita inteligente já existe; inspecione a versão")
 assert not nc_history.exists() and not nc_screen.exists(), (
     "Acompanhamento de NC já instalado; não sobrescrever")
+assert not advisor.exists() and not review_screen.exists(), (
+    "Aviso de NC semelhante já instalado; não sobrescrever")
 assert pub.is_file(), "pubspec.yaml não encontrado"
 # Comprovar a versão antes de tocar em qualquer arquivo da aplicação.
 old_pub = pub.read_text(encoding="utf-8")
@@ -67,7 +71,8 @@ def one(src, old, new, why):
 s = quick.read_text(encoding="utf-8")
 s = one(s, "import 'express_round_screen.dart';",
         "import 'express_round_screen.dart';\n"
-        "import 'visit_type_chooser_screen.dart';", "import seletor")
+        "import 'visit_type_chooser_screen.dart';\n"
+        "import 'nc_duplicate_review_screen.dart';", "import seletor")
 s = one(s, "    this.onSelected,\n  });",
         "    this.onSelected,\n    this.onlyRound = false,\n  });",
         "modo Ronda apos escolha")
@@ -88,10 +93,10 @@ old_actions = """          _action(
           ),"""
 new_actions = """          if (widget.onlyRound)
             _action(
-              'Iniciar Ronda Expressa',
-              'Empresa selecionada. Abra a coleta de fotos e registros.',
+              'Conferir NCs e iniciar Ronda',
+              'Evite duplicidade antes de fotografar e registrar.',
               Icons.add_a_photo_outlined,
-              ExpressRoundScreen(company: c),
+              NcDuplicateReviewScreen(company: c),
             ),
           if (!widget.onlyRound)
             _action(
@@ -200,6 +205,7 @@ home_updated = s
 # Verificações finais antes de qualquer escrita (inclusive a versão).
 assert "UnifiedVisitMetrics.calculate" in home_updated
 assert "AuditarVisitTypeChooserScreen" in quick_updated
+assert "NcDuplicateReviewScreen(company: c)" in quick_updated
 assert "SmartVisitBriefingScreen" in (
     repo/"feature_sources/android_visit_type_chooser_v1.dart").read_text(
         encoding="utf-8")
@@ -207,6 +213,9 @@ assert "Visita Inteligente" in (
     repo/"feature_sources/smart_visit_briefing_screen_v1.dart").read_text(
         encoding="utf-8")
 assert "NcFollowupListScreen" in (
+    repo/"feature_sources/smart_visit_briefing_screen_v1.dart").read_text(
+        encoding="utf-8")
+assert "NcDuplicateReviewScreen" in (
     repo/"feature_sources/smart_visit_briefing_screen_v1.dart").read_text(
         encoding="utf-8")
 new_pub = old_pub.replace(old_ver, "version: 3.29.201+343", 1)
@@ -228,6 +237,8 @@ new_files = (
     ("feature_sources/visit_intelligence_v1.dart", intelligence),
     ("feature_sources/nc_followup_v1.dart", nc_history),
     ("feature_sources/nc_followup_screen_v1.dart", nc_screen),
+    ("feature_sources/nc_duplicate_advisor_v1.dart", advisor),
+    ("feature_sources/nc_duplicate_review_screen_v1.dart", review_screen),
 )
 attempted = []
 try:

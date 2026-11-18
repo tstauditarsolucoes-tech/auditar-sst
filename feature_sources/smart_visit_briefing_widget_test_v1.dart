@@ -35,6 +35,13 @@ void main() {
       home:AuditarVisitTypeChooserScreen(initialCompany:mine),
     ));
     expect(find.text('Preparar Visita Inteligente'),findsOneWidget);
+    expect(find.text('Ronda Expressa'),findsOneWidget);
+    await tester.ensureVisible(find.text('Ronda Expressa'));
+    await tester.tap(find.text('Ronda Expressa'));
+    await tester.pumpAndSettle();
+    expect(find.text('Evitar NC duplicada'),findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Preparar Visita Inteligente'));
     await tester.pumpAndSettle();
     expect(find.text('Visita Inteligente'),findsOneWidget);

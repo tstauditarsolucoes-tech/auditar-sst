@@ -5,6 +5,7 @@ import '../services/visit_intelligence.dart';
 import 'express_round_screen.dart';
 import 'new_inspection_screen.dart';
 import 'nc_followup_screen.dart';
+import 'nc_duplicate_review_screen.dart';
 
 /// Preparação de visita: consulta somente registros locais já salvos.
 /// Não inicia sincronização, não muda NC e não substitui histórico completo.
@@ -148,6 +149,12 @@ class _SmartVisitBriefingScreenState extends State<SmartVisitBriefingScreen> {
               initialCompany:widget.company,fieldMode:true)),
             icon:const Icon(Icons.fact_check_outlined),
             label:const Text('Fazer checklist completo'),
+          ),
+          const SizedBox(height:10),
+          FilledButton.icon(
+            onPressed:()=>_open(NcDuplicateReviewScreen(company:widget.company)),
+            icon:const Icon(Icons.rule_outlined),
+            label:const Text('Conferir NC antes de registrar outra'),
           ),
           const SizedBox(height:10),
           OutlinedButton.icon(

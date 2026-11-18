@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../models.dart';
 import 'new_inspection_screen.dart';
-import 'express_round_screen.dart';
 import 'quick_visit_screen.dart';
 import 'field_quick_screen.dart';
 import 'smart_visit_briefing_screen.dart';
+import 'nc_duplicate_review_screen.dart';
 
 /// Apenas um ponto de entrada. Os três formulários originais não são alterados.
 class AuditarVisitTypeChooserScreen extends StatelessWidget {
@@ -63,11 +63,14 @@ class AuditarVisitTypeChooserScreen extends StatelessWidget {
         _option(context,
           icon:Icons.add_a_photo_outlined,
           title:'Ronda Expressa',
-          subtitle:'Fotos, descrição e análise técnica em campo.',
-          onTap:()=>_launch(context,
-            initialCompany==null
-              ? const QuickVisitScreen(onlyRound:true)
-              : ExpressRoundScreen(company:initialCompany!))),
+          subtitle:initialCompany==null
+            ? 'Escolha a empresa para fotografar e registrar situações.'
+            : 'Primeiro confira NCs existentes, depois inicie a nova ronda.',
+          onTap:initialCompany==null
+            ? ()=>_launch(context,const QuickVisitScreen(onlyRound:true))
+            : ()=>Navigator.of(context).push(
+                MaterialPageRoute<void>(builder:(_)=>
+                  NcDuplicateReviewScreen(company:initialCompany!)))),
         _option(context,
           icon:Icons.bolt_outlined,
           title:'Vistoria rápida / avulsa',

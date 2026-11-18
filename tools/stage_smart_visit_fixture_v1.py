@@ -22,6 +22,10 @@ sources={
     "lib/services/nc_followup.dart",
   "feature_sources/nc_followup_screen_v1.dart":
     "lib/screens/nc_followup_screen.dart",
+  "feature_sources/nc_duplicate_advisor_v1.dart":
+    "lib/services/nc_duplicate_advisor.dart",
+  "feature_sources/nc_duplicate_review_screen_v1.dart":
+    "lib/screens/nc_duplicate_review_screen.dart",
 }
 for origin,destination in sources.items():
     shutil.copyfile(repo/origin,app/destination)
@@ -113,6 +117,10 @@ shutil.copyfile(
 shutil.copyfile(
   repo/"feature_sources/nc_followup_widget_test_v1.dart",
   app/"test/nc_followup_widget_test.dart",
+)
+shutil.copyfile(
+  repo/"feature_sources/nc_duplicate_review_widget_test_v1.dart",
+  app/"test/nc_duplicate_review_widget_test.dart",
 )
 pub=app/"pubspec.yaml"
 pubtext=pub.read_text(encoding="utf-8")
