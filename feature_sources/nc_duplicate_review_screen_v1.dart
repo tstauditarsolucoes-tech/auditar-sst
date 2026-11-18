@@ -120,7 +120,9 @@ class _NcDuplicateReviewState extends State<NcDuplicateReviewScreen> {
           ]);
         }
         final rows=snapshot.data!;
-        return ListView(padding:const EdgeInsets.all(16),children:[
+        return SingleChildScrollView(
+          padding:const EdgeInsets.all(16),
+          child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
           Text(widget.company.name,
             style:Theme.of(context).textTheme.titleLarge),
           const SizedBox(height:9),
@@ -201,7 +203,7 @@ class _NcDuplicateReviewState extends State<NcDuplicateReviewScreen> {
             'automaticamente a correção. Nenhum registro é '
             'mesclado ou encerrado.',
             style:TextStyle(fontSize:13)),
-        ]);
+        ]));
       },
     )),
   );
