@@ -3,8 +3,12 @@ on:
   push:
     branches:
       - feature/android-cipa-member-portal-v1-20261105
+      - feature/minha-cipa-homologacao-integrada-20261118
     paths:
       - 'feature_sources/cipa_member_app_main_v1.dart'
+      - 'feature_sources/cipa_member_*'
+      - 'feature_sources/cipa_*'
+      - 'feature_sources/Cipa*.gs'
       - 'feature_sources/cipa_member_api_v1.dart'
       - 'feature_sources/cipa_member_api_test_v1.dart'
       - 'feature_sources/cipa_member_portal_*'
@@ -35,6 +39,8 @@ jobs:
           set -euo pipefail
           python3 -m py_compile tools/stage_cipa_member_android_v1.py tools/test_stage_cipa_member_android_v1.py
           python3 tools/test_stage_cipa_member_android_v1.py
+          # Não alterar o app dos técnicos nem incluir credenciais operacionais.
+          test ! -f /tmp/auditar_cipa_membro/lib/services/device_sync_service.dart || exit 2
           flutter create --platforms=android --project-name auditar_cipa_membro --org br.com.auditar /tmp/auditar_cipa_membro
           python3 tools/stage_cipa_member_android_v1.py /tmp/auditar_cipa_membro
       - name: Formatar, analisar e executar testes Flutter sem tocar no app de técnicos
