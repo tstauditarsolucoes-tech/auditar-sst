@@ -124,28 +124,27 @@ class _NcFollowupDetailState extends State<NcFollowupDetailScreen> {
   }
 
   Future<String?> ask(String title,String hint)async{
-    final controller=TextEditingController();
     final form=GlobalKey<FormState>();
-    try{
-      return await showDialog<String>(context:context,builder:(ctx)=>AlertDialog(
-        title:Text(title),
-        content:Form(key:form,child:TextFormField(
-          controller:controller,maxLength:1000,minLines:2,maxLines:5,
-          decoration:InputDecoration(labelText:'Observação',hintText:hint),
-          validator:(v)=>(v??'').trim().length<8?
-            'Descreva a situação (mínimo 8 caracteres).':null,
-        )),
-        actions:[
-          TextButton(onPressed:()=>Navigator.pop(ctx),
-            child:const Text('Cancelar')),
-          FilledButton(onPressed:(){
-            if(form.currentState!.validate()){
-              Navigator.pop(ctx,controller.text.trim());
-            }
-          },child:const Text('Salvar')),
-        ],
-      ));
-    }finally{controller.dispose();}
+    String description='';
+    return showDialog<String>(context:context,builder:(ctx)=>AlertDialog(
+      title:Text(title),
+      content:Form(key:form,child:TextFormField(
+        maxLength:1000,minLines:2,maxLines:5,
+        decoration:InputDecoration(labelText:'Observação',hintText:hint),
+        onChanged:(value)=>description=value,
+        validator:(v)=>(v??'').trim().length<8?
+          'Descreva a situação (mínimo 8 caracteres).':null,
+      )),
+      actions:[
+        TextButton(onPressed:()=>Navigator.pop(ctx),
+          child:const Text('Cancelar')),
+        FilledButton(onPressed:(){
+          if(form.currentState!.validate()){
+            Navigator.pop(ctx,description.trim());
+          }
+        },child:const Text('Salvar')),
+      ],
+    ));
   }
 
   Future<bool> save(NcFollowupKind kind,String note,{String? photo})async{
