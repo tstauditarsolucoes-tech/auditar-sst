@@ -17,6 +17,9 @@ on:
       - 'tools/stage_cipa_member_android_v1.py'
       - 'tools/test_stage_cipa_member_android_v1.py'
       - '.github/workflows/build-cipa-member-android-homologation.yml'
+  pull_request:
+    branches:
+      - feature/minha-cipa-seis-melhorias-integradas-20261113
   workflow_dispatch:
 permissions:
   contents: read
