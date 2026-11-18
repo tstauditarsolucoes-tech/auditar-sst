@@ -1,8 +1,11 @@
 # Pré-conferência de NC semelhante — homologação Android (18/11/2026)
 
 ## O que foi acrescentado
-Uma tela de conferência opcional, acessível pelo Modo Visita Inteligente
-após selecionar empresa: **Conferir NC antes de registrar outra**.
+Uma tela de conferência disponível no Modo Visita Inteligente
+e no botão **Ronda Expressa** depois da seleção da empresa.
+No atalho de Ronda da tela inicial, a cópia de homologação também
+direciona para esta conferência depois que a empresa é escolhida.
+O formulário original da Ronda permanece intacto.
 
 O técnico informa descrição e setor; o app compara o texto apenas com
 as NCs abertas disponíveis **localmente** para a empresa selecionada.
