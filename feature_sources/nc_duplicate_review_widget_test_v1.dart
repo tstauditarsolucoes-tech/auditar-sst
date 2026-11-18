@@ -58,20 +58,15 @@ void main() {
       'Guarda corpo inexistente');
     await tester.tap(find.text('Conferir NCs semelhantes'));
     await tester.pumpAndSettle();
-    // Em telas pequenas o resultado fica abaixo dos campos; role até ele.
-    await tester.scrollUntilVisible(
-      find.textContaining('Nenhuma correspondência identificada'),
-      140,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.textContaining('Nenhuma correspondência identificada'),
-      findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.textContaining('NÃO confirma'),
-      140,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.textContaining('NÃO confirma'),findsOneWidget);
+    // Mesmo fora da área visível, resultado e ressalva devem existir
+    // na árvore de acessibilidade; SingleChildScrollView não os descarta.
+    final noMatch=find.textContaining('Nenhuma correspondência identificada');
+    final caveat=find.textContaining('NÃO confirma');
+    expect(noMatch,findsOneWidget);
+    expect(caveat,findsOneWidget);
+    await tester.ensureVisible(noMatch);
+    await tester.pumpAndSettle();
+    expect(noMatch,findsOneWidget);
   });
 
   testWidgets('Criar outra Ronda exige confirmação do técnico', (tester)async{
