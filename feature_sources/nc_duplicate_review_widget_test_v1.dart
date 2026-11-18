@@ -56,6 +56,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField).first,
       'Guarda corpo inexistente');
+    // Ao abrir o teclado no Android, o botão pode ficar abaixo do campo.
+    await tester.testTextInput.hide();
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Conferir NCs semelhantes'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Conferir NCs semelhantes'));
     await tester.pumpAndSettle();
     // Mesmo fora da área visível, resultado e ressalva devem existir
