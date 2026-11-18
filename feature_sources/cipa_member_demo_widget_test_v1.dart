@@ -14,6 +14,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.textContaining('Maria Exemplo'),findsWidgets);
       expect(find.textContaining('Empresa Fictícia'),findsWidgets);
-      expect(find.text('DEMO'),findsWidgets);
+      expect(find.byType(Banner),findsOneWidget);
+      expect(tester.widget<Banner>(find.byType(Banner)).message,'DEMO');
     });
 }
