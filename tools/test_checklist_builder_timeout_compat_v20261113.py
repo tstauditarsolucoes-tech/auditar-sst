@@ -71,11 +71,11 @@ for case in ("classic","transport","fallback"):
     ai=root/"lib/services/ai_assistant_service.dart"
     ai.parent.mkdir(parents=True,exist_ok=True)
     body=(
-      "  } on CentralTransportException catch (error) {\n" if case != "fallback" else
-      "  } on Exception catch (transportError) {\n"
-      ("    final message = error.message.toLowerCase();\n" if case != "fallback" else
-       "    final message = transportError.toString().toLowerCase();\n")
-      "    if (message.contains('não respondeu a tempo') ||\n"
+      ("  } on CentralTransportException catch (error) {\n" if case != "fallback" else
+       "  } on Exception catch (transportError) {\n")
+      + ("    final message = error.message.toLowerCase();\n" if case != "fallback" else
+         "    final message = transportError.toString().toLowerCase();\n")
+      + "    if (message.contains('não respondeu a tempo') ||\n"
       "        message.contains('timeoutexception')) {\n"
       + (old_reply if case=="classic" else
         "      return const AiAssistantReply(success: false,\n"
