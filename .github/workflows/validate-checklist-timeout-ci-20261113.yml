@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feature/auditar-sst-estabilizacao-ci-20261113
+      - feature/auditar-sst-timeout-ci-compat-20261119
     paths:
       - 'tools/patch_checklist_builder_reliability_v329200_v330128.py'
       - 'tools/test_checklist_builder_timeout_compat_v20261113.py'
@@ -16,7 +17,7 @@ jobs:
     timeout-minutes: 6
     steps:
       - uses: actions/checkout@v4
-      - name: Validar duas variantes sem alterar serviços
+      - name: Validar tres variantes sem alterar serviços
         run: |
           set -euo pipefail
           python3 -m py_compile tools/patch_checklist_builder_reliability_v329200_v330128.py tools/test_checklist_builder_timeout_compat_v20261113.py
