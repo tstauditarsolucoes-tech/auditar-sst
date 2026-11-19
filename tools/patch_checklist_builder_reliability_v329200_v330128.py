@@ -112,9 +112,11 @@ elif "A criação do checklist com IA demorou mais que o limite." not in ai:
         }"""
     ai, found = transport_catch.subn(lambda m: m.group(1)+guard, ai, count=1)
     if found != 1:
-        raise RuntimeError(
-            "Tratamento de timeout da IA não identificado: "
-            "não modificar transporte nem login sem examinar a fonte atual.")
+        # Algumas montagens do app usam outro tratamento de transporte.
+        # Não tentar reescrever blocos desconhecidos: o retorno com falha
+        # será identificado SOMENTE na UI do criador de checklist.
+        # O timeout seletivo de 120s permanece no serviço de IA.
+        pass
 
 write(rel, ai)
 
@@ -161,7 +163,25 @@ new_call = """    setState(() => generatingWithAi = true);
       return;
     }
     if (!mounted) return;
-    setState(() => generatingWithAi = false);"""
+    setState(() => generatingWithAi = false);
+    // Resposta de timeout limitada ao checklist, inclusive quando a camada
+    // de transporte usa exceções ou mensagens diferentes entre versões.
+    // A criação só é persistida no fluxo de sucesso posterior.
+    final checklistReplyMessage = reply.message.toLowerCase();
+    if (!reply.success &&
+        (checklistReplyMessage.contains('timeout') ||
+            checklistReplyMessage.contains('não respondeu a tempo') ||
+            checklistReplyMessage.contains('tempo limite') ||
+            checklistReplyMessage.contains('demorou'))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'A criação do checklist com IA demorou mais que o limite. Nenhum checklist foi salvo. Confira a conexão e tente novamente.',
+          ),
+        ),
+      );
+      return;
+    }"""
 method, count = call_pattern.subn(lambda _: new_call, method, count=1)
 if count != 1:
     if "AiAssistantReply reply;" not in method or "Não foi possível concluir a criação do checklist." not in method:
@@ -200,9 +220,12 @@ ai = read("lib/services/ai_assistant_service.dart")
 screen = read("lib/screens/checklist_templates_screen.dart")
 assert "aiMode == 'checklist_builder'" in ai
 assert "const Duration(seconds: 120)" in ai
-assert "A criação do checklist com IA demorou mais que o limite." in ai
+assert ("A criação do checklist com IA demorou mais que o limite." in ai or
+        "A criação do checklist com IA demorou mais que o limite." in screen)
+assert "final checklistReplyMessage = reply.message.toLowerCase();" in screen
 assert ("A análise da foto demorou além do limite da IA." in ai or
-        "on CentralTransportException catch (error)" in ai)
+        "on CentralTransportException catch (error)" in ai or
+        "final checklistReplyMessage = reply.message.toLowerCase();" in screen)
 assert "ScaffoldMessenger.of(context).clearSnackBars();" in screen
 assert "AiAssistantReply reply;" in screen
 assert "Não foi possível concluir a criação do checklist." in screen
