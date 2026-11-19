@@ -9,6 +9,7 @@ import hashlib
 import re
 import shutil
 import sys
+from home_visit_routing_20261119 import reroute_home_new_inspections
 
 if len(sys.argv) != 2:
     raise SystemExit("Uso: patch_android_unified_visits_v1.py <APP_DIR>")
@@ -161,11 +162,9 @@ s = s[:start] + refresh + s[end:]
 
 # Only reroute existing Home new-inspection buttons. The actual checklist,
 # Ronda and avulsa implementations remain byte-for-byte unchanged.
-needle = "() => _open(const NewInspectionScreen())"
-count = s.count(needle)
-if count < 1 or count > 4:
-    raise RuntimeError(f"Rotas de nova vistoria inesperadas: {count}")
-s = s.replace(needle, "() => _open(const AuditarVisitTypeChooserScreen())")
+# Aceitar a formatação Dart atual, inclusive onPressed em várias linhas.
+# Só modificar CTAs com tutorialId new_inspection; nada de substituição global.
+s, changed_routes = reroute_home_new_inspections(s)
 
 # Remove *only* the two redundant main CTA cards between the current green
 # button and Acesso rápido. Do not hide reports, progress or pending queues.

@@ -1,0 +1,36 @@
+name: Auditar SST | validar rotas da Home (sem publicar)
+
+on:
+  push:
+    branches:
+      - feature/auditar-sst-rotas-vistoria-regressao-20261119
+    paths:
+      - tools/home_visit_routing_20261119.py
+      - tools/test_home_visit_routing_20261119.py
+      - tools/patch_android_unified_visits_v1.py
+      - .github/workflows/validate-sst-home-route-regression-20261119.yml
+  pull_request:
+    branches:
+      - feature/auditar-sst-timeout-ci-compat-20261119
+    paths:
+      - tools/home_visit_routing_20261119.py
+      - tools/test_home_visit_routing_20261119.py
+      - tools/patch_android_unified_visits_v1.py
+      - .github/workflows/validate-sst-home-route-regression-20261119.yml
+
+permissions:
+  contents: read
+
+jobs:
+  test-home-routing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verificar sintaxe e cinco cenario de compatibilidade
+        run: |
+          python3 -m py_compile tools/home_visit_routing_20261119.py tools/test_home_visit_routing_20261119.py tools/patch_android_unified_visits_v1.py
+          python3 tools/test_home_visit_routing_20261119.py
