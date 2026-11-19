@@ -155,14 +155,14 @@ specific_guard = (
   "specificIds.contains(item.id)),"
 )
 s=pattern(s,
-  r'\\.\\.\\._expanded,\\s*\\.\\.\\.await _learnedSuggestions\\(\\),',
+  r'\.\.\._expanded,\s*\.\.\.await _learnedSuggestions\(\),',
   lambda m: specific_guard+"\n      ...await _learnedSuggestions(),")
 # O helper de testes deve aplicar a mesma regra de elegibilidade da busca real.
 s=pattern(s,
-  r'static List<OfflineInlineSuggestion> rankForTesting\\(String query\\)\\s*\\{\\s*final normalized = _normalize\\(query\\);',
+  r'static List<OfflineInlineSuggestion> rankForTesting\(String query\)\s*\{\s*final normalized = _normalize\(query\);',
   lambda m:m.group(0)+"\n    final matchingDeepIds = OfflineSstDeepCatalog.matches(query)\n        .map((item) => item['id']).toSet();")
 s=pattern(s,
-  r'final ranked = <OfflineInlineSuggestion>\\[\\.\\.\\._fallback,\\s*\\.\\.\\._expanded\\]',
+  r'final ranked = <OfflineInlineSuggestion>\[\.\.\._fallback,\s*\.\.\._expanded\]',
   lambda m:"final ranked = <OfflineInlineSuggestion>[..._fallback,\n        ..._expanded.where((item) => !item.id.startsWith('deep-') ||\n            matchingDeepIds.contains(item.id))]")
 # Formato e guardas do patch são validados em testes Flutter posteriores.
 widget.write_text(s,encoding='utf8',newline='\n')
