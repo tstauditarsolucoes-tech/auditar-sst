@@ -2091,6 +2091,8 @@ jobs:
           Pop-Location
           # Isolar apenas fixtures de homologacao; nao alterar SQLite/HTTPS de producao.
           python tools/patch_homologation_flutter_test_fixtures_v20261113.py "$env:APP_DIR"
+          python tools/patch_ci_https_fixture_20261119.py "$env:APP_DIR"
+          if ($LASTEXITCODE -ne 0) { throw 'Fixture HTTPS local invalida' }
           if ($LASTEXITCODE -ne 0) { throw 'Fixtures SQLite/PDF de homologacao invalidas' }
           Push-Location "$env:APP_DIR"
           dart format test/ronda_load_50_test.dart test/ronda_report_models_test.dart test/device_sync_roundtrip_test.dart
