@@ -1639,6 +1639,7 @@ jobs:
           flutter analyze --no-fatal-infos --no-fatal-warnings
           cd "$GITHUB_WORKSPACE"
           python3 tools/patch_homologation_flutter_test_fixtures_v20261113.py "$APP_DIR"
+          python3 tools/patch_ci_https_fixture_20261119.py "$APP_DIR"
           cd "$APP_DIR"
           dart format test/ronda_load_50_test.dart test/ronda_report_models_test.dart test/device_sync_roundtrip_test.dart
           flutter test
