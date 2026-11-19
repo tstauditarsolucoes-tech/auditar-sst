@@ -59,7 +59,7 @@ screen="""class ChecklistTemplatesScreen {
 }
 """
 
-for case in ("classic","transport"):
+for case in ("classic","transport","fallback"):
   with tempfile.TemporaryDirectory(prefix="auditar_timeout_") as temp:
     root=Path(temp)
     for name in protected:
@@ -71,9 +71,11 @@ for case in ("classic","transport"):
     ai=root/"lib/services/ai_assistant_service.dart"
     ai.parent.mkdir(parents=True,exist_ok=True)
     body=(
-      "  } on CentralTransportException catch (error) {\n"
-      "    final message = error.message.toLowerCase();\n"
-      "    if (message.contains('não respondeu a tempo') ||\n"
+      ("  } on CentralTransportException catch (error) {\n" if case != "fallback" else
+       "  } on Exception catch (transportError) {\n")
+      + ("    final message = error.message.toLowerCase();\n" if case != "fallback" else
+         "    final message = transportError.toString().toLowerCase();\n")
+      + "    if (message.contains('não respondeu a tempo') ||\n"
       "        message.contains('timeoutexception')) {\n"
       + (old_reply if case=="classic" else
         "      return const AiAssistantReply(success: false,\n"
@@ -96,7 +98,10 @@ for case in ("classic","transport"):
           capture_output=True,text=True)
       assert result.returncode==0,(case,pass_id,result.stdout,result.stderr)
     final_ai=ai.read_text(encoding="utf-8")
-    assert final_ai.count("A criação do checklist com IA demorou mais que o limite.")==1,case
+    screen_source=templates.read_text(encoding="utf-8")
+    assert "A criação do checklist com IA demorou mais que o limite." in (final_ai+screen_source),case
+    assert screen_source.count("final checklistReplyMessage = reply.message.toLowerCase();")==1,case
+    assert "insertChecklistTemplate(template)" in screen_source,case
     assert final_ai.count("aiMode == 'checklist_builder'")>=1,case
     assert "const Duration(seconds: 120)" in final_ai,case
     assert all(hashlib.sha256((root/k).read_bytes()).hexdigest()==v

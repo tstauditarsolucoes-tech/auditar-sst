@@ -15,10 +15,10 @@ assert start >= 0 and end > start, "AI _send method not found"
 send = ai[start:end]
 assert "aiMode == 'checklist_builder'" in send
 assert "const Duration(seconds: 120)" in send
-assert "A criação do checklist com IA demorou mais que o limite." in send
-assert "Nenhum checklist foi salvo." in send
-assert ("A análise da foto demorou além do limite da IA." in send or
-        "on CentralTransportException catch (error)" in send)
+assert ("A criação do checklist com IA demorou mais que o limite." in send or
+        "A criação do checklist com IA demorou mais que o limite." in screen)
+assert ("Nenhum checklist foi salvo." in send or
+        "Nenhum checklist foi salvo." in screen)
 
 start = screen.find("  Future<void> _createChecklistWithAi() async {")
 end = screen.find("  Future<void> _addTemplate() async {", start)
@@ -29,6 +29,9 @@ assert "AiAssistantReply reply;" in method
 assert "try {" in method and "catch (_)" in method
 assert "setState(() => generatingWithAi = false);" in method
 assert "Não foi possível concluir a criação do checklist." in method
+assert "final checklistReplyMessage = reply.message.toLowerCase();" in method
+assert "if (!reply.success &&" in method
+assert "Nenhum checklist foi salvo." in method
 assert "Salvar checklist" in method
 assert "insertChecklistTemplate(template)" in method
 
