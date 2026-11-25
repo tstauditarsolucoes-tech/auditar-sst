@@ -1,0 +1,88 @@
+name: Auditar SST - homologação Flutter APR AR PT PET e assinaturas
+
+on:
+  push:
+    branches:
+      - feature/auditar-sst-homologacao-flutter-isolamento-20261125
+    paths:
+      - 'feature_sources/sst_*'
+      - 'tools/stage_sst_risk_docs_fixture_v1.py'
+      - 'tools/patch_sst_report_center_v1.py'
+      - 'tools/test_sst_*'
+      - '.github/workflows/test-sst-risk-docs-flutter.yml'
+  pull_request:
+    branches:
+      - feature/auditar-sst-assinatura-formularios-20261125
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificação de sintaxe e pré-condições
+        run: |
+          set -euo pipefail
+          python3 -m py_compile \
+            tools/patch_sst_report_center_v1.py \
+            tools/stage_sst_risk_docs_fixture_v1.py \
+            tools/test_sst_apr_pt_ar_v1.py \
+            tools/test_sst_pet_nr33_v1.py \
+            tools/test_sst_activity_guide_v1.py \
+            tools/test_sst_document_signatures_v1.py
+          python3 tools/test_sst_apr_pt_ar_v1.py
+          python3 tools/test_sst_pet_nr33_v1.py
+          python3 tools/test_sst_activity_guide_v1.py
+          python3 tools/test_sst_document_signatures_v1.py
+
+  flutter-fixture:
+    needs: static-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Montar app Flutter isolado (sem banco real nem Apps Script)
+        run: |
+          set -euo pipefail
+          flutter create --platforms=android --project-name auditar_sst \
+            /tmp/auditar_risk_docs_homologacao
+          python3 tools/stage_sst_risk_docs_fixture_v1.py \
+            /tmp/auditar_risk_docs_homologacao
+      - name: Instalar dependências do Flutter
+        working-directory: /tmp/auditar_risk_docs_homologacao
+        run: flutter pub get
+      - name: Verificar formatação Dart sem alterar fontes
+        working-directory: /tmp/auditar_risk_docs_homologacao
+        run: |
+          dart format --output=none --set-exit-if-changed \
+            lib/services/sst_scope_key.dart \
+            lib/services/sst_risk_documents_models.dart \
+            lib/services/sst_pet_nr33_models.dart \
+            lib/services/sst_activity_guide_models.dart \
+            lib/services/sst_document_signature_models.dart
+      - name: Análise de erros de compilação em serviços, PDFs e telas
+        working-directory: /tmp/auditar_risk_docs_homologacao
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Testes reais dos modelos e segregação
+        working-directory: /tmp/auditar_risk_docs_homologacao
+        run: |
+          flutter test --reporter expanded \
+            test/sst_scope_key_test.dart \
+            test/sst_risk_documents_test.dart \
+            test/sst_pet_nr33_test.dart \
+            test/sst_activity_guide_test.dart \
+            test/sst_document_signature_test.dart
+      - name: Compilar APK de homologação sem assinar/distribuir
+        working-directory: /tmp/auditar_risk_docs_homologacao
+        run: |
+          flutter build apk --debug --no-pub
+      - name: Confirmar análise/testes isolados
+        run: echo 'APENAS FIXTURE: não publicar nem instalar o APK.'
