@@ -663,6 +663,31 @@ class _SstPetNr33ScreenState extends State<SstPetNr33Screen> {
             for (final item in PetTemplate.checks)
               _check(item),
             const SizedBox(height: 10),
+            if (d.criticalAlerts.isNotEmpty)
+              Card(child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(children: [
+                      Icon(Icons.report_problem_outlined, color: Colors.red),
+                      SizedBox(width: 8),
+                      Expanded(child: Text(
+                        'ATENÇÃO: CONDIÇÕES CRÍTICAS A CONFERIR',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      )),
+                    ]),
+                    const SizedBox(height: 6),
+                    for (final alert in d.criticalAlerts.take(12))
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 3),
+                        child: Text('• ' + alert),
+                      ),
+                    const Text('A geração de uma minuta não é '
+                      'autorização de entrada no espaço confinado.'),
+                  ],
+                ),
+              )),
             if (d.pending.isNotEmpty)
               Card(child: Padding(
                 padding: const EdgeInsets.all(12),
