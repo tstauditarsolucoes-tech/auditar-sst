@@ -58,7 +58,8 @@ class _SstDocumentSignaturePanelState
         oldWidget.documentId != widget.documentId ||
         oldWidget.userId != widget.userId ||
         oldWidget.documentKind != widget.documentKind ||
-        oldWidget.companyId != widget.companyId) {
+        oldWidget.companyId != widget.companyId ||
+        (!oldWidget.enabled && widget.enabled)) {
       marks = const [];
       error = null;
       _load();
@@ -187,7 +188,7 @@ class _SstDocumentSignaturePanelState
           userId != widget.userId ||
           companyId != widget.companyId ||
           kind != widget.documentKind ||
-          controller.isEmpty) return;
+          !controller.isNotEmpty) return;
 
       final png = await controller.toPngBytes();
       if (png == null || png.length < 100 || png.length > 170000) {
