@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'sst_risk_documents_models.dart';
@@ -9,6 +10,19 @@ class SstRiskDocumentPdf {
 
   static const navy = PdfColor(0.08, 0.21, 0.34);
   static const pale = PdfColor(0.94, 0.97, 0.96);
+
+  static Future<pw.MemoryImage?> _logo() async {
+    try {
+      final asset = await rootBundle.load('assets/branding/auditar_logo.jpg');
+      if (asset.lengthInBytes > 0 && asset.lengthInBytes < 2500000) {
+        return pw.MemoryImage(asset.buffer.asUint8List());
+      }
+    } catch (_) {
+      // Sem logo, o PDF mantém identificação textual da Auditar.
+    }
+    return null;
+  }
+
 
   static pw.Widget line(String label, String value) => pw.Padding(
     padding: const pw.EdgeInsets.only(bottom: 5),
@@ -37,8 +51,11 @@ class SstRiskDocumentPdf {
     if (draft.companyId != companyId || !draft.canExportDraft) {
       throw StateError('Documento incompleto ou empresa divergente.');
     }
+    final logo = await _logo();
     final pdf = pw.Document(compress: true);
     final widgets = <pw.Widget>[
+      if (logo != null) pw.Image(logo,
+        width: 140, height: 58, fit: pw.BoxFit.contain),
       pw.Text('AUDITAR SOLUÇÕES | SST',
           style: pw.TextStyle(color: navy, fontSize: 13,
               fontWeight: pw.FontWeight.bold)),
