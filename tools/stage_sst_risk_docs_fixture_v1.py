@@ -6,6 +6,7 @@ substitui banco, autenticação e modelos da empresa por STUBS. Não há
 conexão com servidor, banco de clientes, telefone ou apps instalados.
 """
 from pathlib import Path
+import tempfile
 import sys
 
 if len(sys.argv) != 2:
@@ -18,7 +19,8 @@ if not pubspec.is_file() or "name: auditar_sst" not in pubspec.read_text():
     raise SystemExit("Projeto Flutter de teste inválido")
 if not (app / "lib").is_dir() or not (app / "test").is_dir():
     raise SystemExit("Estrutura Flutter de teste incompleta")
-if "/tmp/" not in str(app) and not str(app).startswith("/tmp"):
+temp_root = Path(tempfile.gettempdir()).resolve()
+if temp_root not in app.parents:
     raise SystemExit("Somente diretórios temporários são permitidos")
 
 raw = pubspec.read_text(encoding="utf-8")
