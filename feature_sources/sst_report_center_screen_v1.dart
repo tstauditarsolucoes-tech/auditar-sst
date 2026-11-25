@@ -21,6 +21,7 @@ import 'new_inspection_screen.dart';
 import 'sst_report_center_history_screen.dart';
 import 'sst_accident_investigation_guide.dart';
 import 'sst_accident_photo_ai.dart';
+import 'sst_risk_documents_screen.dart';
 
 /// Entrada única, vinculada à empresa atual, sem criar base de dados paralela.
 class SstReportCenterScreen extends StatelessWidget {
@@ -91,6 +92,23 @@ class SstReportCenterScreen extends StatelessWidget {
                 MaterialPageRoute<void>(builder:(_)=>
                   SstFieldReportScreen(company:company,model:model))):null,
             )),
+          const Padding(
+            padding:EdgeInsets.only(top:16,bottom:8),
+            child:Text('APR, PT e AR — Documentos operacionais',
+              style:TextStyle(fontWeight:FontWeight.w700,fontSize:16)),
+          ),
+          Card(child:ListTile(
+            leading:const Icon(Icons.assignment_outlined,size:28),
+            title:const Text('APR, PT e AR guiados',
+              style:TextStyle(fontWeight:FontWeight.w700)),
+            subtitle:const Text('Análise de riscos e minuta de permissão '
+                'de trabalho, com histórico local e PDF para revisão.'),
+            trailing:const Icon(Icons.chevron_right),
+            enabled:allowed,
+            onTap:allowed?()=>Navigator.of(context).push(
+              MaterialPageRoute<void>(builder:(_)=>
+                SstRiskDocsHomeScreen(company:company))):null,
+          )),
           Card(child:ListTile(
             leading:const Icon(Icons.assessment_outlined,size:28),
             title:const Text('Relatório gerencial mensal',
