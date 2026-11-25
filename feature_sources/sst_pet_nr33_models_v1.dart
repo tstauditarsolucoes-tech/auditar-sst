@@ -114,6 +114,54 @@ class PetTemplate {
   }
 }
 
+/// Leitura informada pelo técnico; não atesta condições seguras.
+class SstPetAtmosphereReading {
+  const SstPetAtmosphereReading({
+    required this.id, required this.dateTime, required this.point,
+    required this.oxygen, required this.lel, required this.toxic,
+    required this.detector, required this.measuredBy,
+  });
+  final String id, dateTime, point, oxygen, lel, toxic, detector, measuredBy;
+
+  static bool _percent(String raw) {
+    final n = double.tryParse(raw.trim().replaceAll(',', '.'));
+    return n != null && n.isFinite && n >= 0 && n <= 100;
+  }
+
+  bool get complete => id.isNotEmpty && dateTime.trim().isNotEmpty &&
+      point.trim().isNotEmpty && detector.trim().isNotEmpty &&
+      measuredBy.trim().isNotEmpty && toxic.trim().isNotEmpty &&
+      _percent(oxygen) && _percent(lel);
+
+  Map<String, dynamic> toJson() => {
+    'id': id, 'dateTime': dateTime, 'point': point,
+    'oxygen': oxygen, 'lel': lel, 'toxic': toxic,
+    'detector': detector, 'measuredBy': measuredBy,
+  };
+
+  factory SstPetAtmosphereReading.fromJson(Map<String, dynamic> json) {
+    String field(String key, {int max = 250}) {
+      final raw = (json[key] ?? '').toString().trim();
+      return raw.length > max ? raw.substring(0, max) : raw;
+    }
+    final value = SstPetAtmosphereReading(
+      id: field('id', max: 80),
+      dateTime: field('dateTime'),
+      point: field('point'),
+      oxygen: field('oxygen', max: 25),
+      lel: field('lel', max: 25),
+      toxic: field('toxic', max: 500),
+      detector: field('detector'),
+      measuredBy: field('measuredBy'),
+    );
+    if (!RegExp(r'^[a-z0-9-]{8,80}$').hasMatch(value.id) ||
+        !value.complete) {
+      throw const FormatException('Leitura atmosférica inválida');
+    }
+    return value;
+  }
+}
+
 class SstPetDraft {
   const SstPetDraft({
     required this.id,
@@ -122,11 +170,32 @@ class SstPetDraft {
     this.values = const <String, String>{},
     this.checks = const <String, PetCheckStatus>{},
     this.checkNotes = const <String, String>{},
+    this.readings = const <SstPetAtmosphereReading>[],
   });
   final String id, companyId, userId;
   final Map<String, String> values;
   final Map<String, PetCheckStatus> checks;
   final Map<String, String> checkNotes;
+  final List<SstPetAtmosphereReading> readings;
+
+  SstPetDraft withReading(SstPetAtmosphereReading reading) {
+    if (!reading.complete || readings.length >= 30 ||
+        readings.any((r) => r.id == reading.id)) {
+      throw StateError('Leitura inválida, repetida ou limite excedido');
+    }
+    return SstPetDraft(
+      id: id, companyId: companyId, userId: userId,
+      values: values, checks: checks, checkNotes: checkNotes,
+      readings: List.unmodifiable([...readings, reading]),
+    );
+  }
+
+  SstPetDraft withoutReading(String targetId) => SstPetDraft(
+    id: id, companyId: companyId, userId: userId,
+    values: values, checks: checks, checkNotes: checkNotes,
+    readings: List.unmodifiable(
+      readings.where((item) => item.id != targetId)),
+  );
 
   String value(String key) => values[key] ?? '';
   PetCheckStatus status(String key) =>
@@ -140,7 +209,7 @@ class SstPetDraft {
     return SstPetDraft(
       id: id, companyId: companyId, userId: userId,
       values: {...values, key: data.trim()},
-      checks: checks, checkNotes: checkNotes,
+      checks: checks, checkNotes: checkNotes, readings: readings,
     );
   }
 
@@ -153,6 +222,7 @@ class SstPetDraft {
       id: id, companyId: companyId, userId: userId,
       values: values, checks: {...checks, key: result},
       checkNotes: {...checkNotes, if (note != null) key: note.trim()},
+      readings: readings,
     );
   }
 
@@ -173,6 +243,8 @@ class SstPetDraft {
         'Justificar: ' + check.label,
     if (!_measurementValid(value('oxygen'))) 'Leitura de O₂ inválida/ausente',
     if (!_measurementValid(value('lel'))) 'Leitura de %LIE inválida/ausente',
+    for (final reading in readings)
+      if (!reading.complete) 'Leitura complementar inválida',
   ];
 
   /// É só a conclusão do rascunho para PDF. Não é liberação para entrada.
@@ -188,6 +260,7 @@ class SstPetDraft {
     'values': values,
     'checks': checks.map((key, value) => MapEntry(key, value.name)),
     'checkNotes': checkNotes,
+    'readings': readings.map((r) => r.toJson()).toList(),
   };
 
   factory SstPetDraft.fromJson(Map<String, dynamic> json, {
@@ -210,6 +283,21 @@ class SstPetDraft {
     final values = <String, String>{};
     final statuses = <String, PetCheckStatus>{};
     final notes = <String, String>{};
+    final readings = <SstPetAtmosphereReading>[];
+    final rawReadings = json['readings'] ?? const <dynamic>[];
+    if (rawReadings is! List || rawReadings.length > 30) {
+      throw const FormatException('Histórico de leituras inválido');
+    }
+    final seenIds = <String>{};
+    for (final raw in rawReadings) {
+      if (raw is! Map) throw const FormatException('Leitura inválida');
+      final reading = SstPetAtmosphereReading.fromJson(
+        Map<String, dynamic>.from(raw));
+      if (!seenIds.add(reading.id)) {
+        throw const FormatException('Leitura duplicada');
+      }
+      readings.add(reading);
+    }
     for (final field in PetTemplate.fields) {
       final v = (inputValues[field.key] ?? '').toString();
       values[field.key] = v.length > 2600 ? v.substring(0, 2600) : v;
@@ -227,6 +315,7 @@ class SstPetDraft {
       id: id, companyId: expectedCompany, userId: expectedUser,
       values: Map.unmodifiable(values), checks: Map.unmodifiable(statuses),
       checkNotes: Map.unmodifiable(notes),
+      readings: List.unmodifiable(readings),
     );
   }
 }
