@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import 'sst_scope_key.dart';
 
 /// PET da NR-33: apenas rascunho auxiliar. NUNCA autoriza entrada.
 enum PetCheckStatus { notChecked, reportedYes, reportedNo, notApplicable }
@@ -341,8 +342,7 @@ class SstPetStore {
   final Future<void> Function(String, String) write;
 
   static String _prefix(String user, String company) =>
-      'pet_nr33_draft_v1_' + Uri.encodeComponent(user) + '_' +
-      Uri.encodeComponent(company);
+      sstScopedKey('pet_nr33_draft_v2', [user, company]);
 
   static String draftKey(String user, String company) =>
       _prefix(user, company) + '_active';
