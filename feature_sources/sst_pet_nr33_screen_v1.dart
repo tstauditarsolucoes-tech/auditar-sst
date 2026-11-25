@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 
@@ -7,6 +9,8 @@ import '../services/auth_service.dart';
 import '../services/sst_pet_nr33_models.dart';
 import '../services/sst_pet_nr33_pdf.dart';
 import '../services/sst_activity_guide_models.dart';
+import '../services/sst_document_signature_models.dart';
+import 'sst_document_signature_panel.dart';
 
 /// Assistente de PET NR-33: somente MINUTAS e conferências, sem permitir entrada.
 class SstPetNr33Screen extends StatefulWidget {
@@ -22,6 +26,11 @@ class SstPetNr33Screen extends StatefulWidget {
 
 class _SstPetNr33ScreenState extends State<SstPetNr33Screen> {
   final SstPetStore store = SstPetStore(
+    read: AppDatabase.instance.getSetting,
+    write: AppDatabase.instance.setSetting,
+  );
+  final SstHandwrittenSignatureStore signatureStore =
+      SstHandwrittenSignatureStore(
     read: AppDatabase.instance.getSetting,
     write: AppDatabase.instance.setSetting,
   );
@@ -398,11 +407,20 @@ class _SstPetNr33ScreenState extends State<SstPetNr33Screen> {
       if (!authorized || saveFailed) {
         throw StateError('Verifique o salvamento local');
       }
+      final signatures = await signatureStore.validForDocument(
+        user: ownerUser!,
+        company: widget.company.id,
+        kind: 'pet_nr33',
+        id: source.id,
+        snapshot: jsonEncode(source.toJson()),
+      );
+      if (!mounted || !authorized) return;
       final bytes = await SstPetNr33Pdf.generate(
         companyName: widget.company.name,
         companyId: widget.company.id,
         userId: ownerUser!,
         draft: source,
+        signatures: signatures,
       );
       if (!mounted || !authorized) return;
       await Printing.layoutPdf(onLayout: (_) => bytes,
@@ -704,6 +722,23 @@ class _SstPetNr33ScreenState extends State<SstPetNr33Screen> {
                   ],
                 ),
               )),
+            SstDocumentSignaturePanel(
+              key: ValueKey('pet-sign-' + d.id),
+              companyId: widget.company.id,
+              userId: ownerUser!,
+              documentKind: 'pet_nr33',
+              documentId: d.id,
+              snapshot: jsonEncode(d.toJson()),
+              roles: const {
+                'supervisor_ack': 'Supervisor de entrada — ciência',
+                'attendant_ack': 'Vigia — ciência',
+              },
+              enabled: canEdit && d.readyForReviewPdf,
+            ),
+            const Text('Estas rubricas desenhadas NÃO são certificadas '
+              'nem representam a assinatura válida de uma PET emitida. '
+              'O app não libera entrada no espaço confinado.',
+              style: TextStyle(fontSize: 12)),
             FilledButton.icon(
               onPressed: canEdit && d.readyForReviewPdf
                   ? () => _export(d) : null,
