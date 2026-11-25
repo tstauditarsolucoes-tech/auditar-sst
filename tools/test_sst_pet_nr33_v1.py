@@ -27,8 +27,8 @@ assert "if (!_measurementValid(value('oxygen')))" in model
 assert "if (!_measurementValid(value('lel')))" in model
 assert "double.tryParse" in model and "replaceAll(',', '.')" in model
 assert "readyForReviewPdf" in model
-assert "Uri.encodeComponent(user)" in model
-assert "Uri.encodeComponent(company)" in model
+assert "sstScopedKey(" in model
+assert "sstScopedKey(" in model
 assert "json['userId'] != expectedUser" in model
 assert "json['companyId'] != expectedCompany" in model
 assert "Já arquivada" in model
