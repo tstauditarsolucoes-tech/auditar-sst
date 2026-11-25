@@ -95,6 +95,45 @@ void main() {
       isNot(SstPetStore.draftKey('u1','b')));
   });
 
+  test('registros atmosféricos informados: sem liberação', () {
+    const reading = SstPetAtmosphereReading(
+      id: 'read-00001', dateTime: '2026-11-25 10:00',
+      point: 'Boca de visita', oxygen: '20,9', lel: '0',
+      toxic: 'H2S 0 ppm (valor informado)',
+      detector: 'Detector 101, teste a conferir',
+      measuredBy: 'Técnico de medição',
+    );
+    expect(reading.complete, isTrue);
+    final saved = prepared().withReading(reading);
+    expect(saved.readings.length, 1);
+    expect(saved.readyForReviewPdf, isTrue);
+    final loaded = SstPetDraft.fromJson(saved.toJson(),
+        expectedCompany: 'ceramica-a', expectedUser: 'tst-a');
+    expect(loaded.readings.single.oxygen, '20,9');
+    expect(loaded.readings.single.toxic, contains('ppm'));
+    expect(loaded.withoutReading(reading.id).readings, isEmpty);
+  });
+
+  test('leitura inválida não entra no histórico', () {
+    const invalid = SstPetAtmosphereReading(
+      id: 'read-00002', dateTime: '2026-11-25 10:00',
+      point: 'Entrada', oxygen: 'inexistente', lel: '0',
+      toxic: 'Não informado', detector: 'D-1', measuredBy: 'TST',
+    );
+    expect(invalid.complete, isFalse);
+    expect(() => prepared().withReading(invalid), throwsStateError);
+  });
+
+  test('rejeitar duplicação de ID de leitura', () {
+    const a = SstPetAtmosphereReading(
+      id: 'read-00003', dateTime: '2026-11-25 10:00',
+      point: 'P1', oxygen: '20,9', lel: '0',
+      toxic: 'Gás A 0 ppm', detector: 'D-1', measuredBy: 'TST',
+    );
+    final draft = prepared().withReading(a);
+    expect(() => draft.withReading(a), throwsStateError);
+  });
+
   test('arquivo de minuta é imutável, por empresa e usuário', () async {
     final data = <String, String>{};
     final store = SstPetStore(
