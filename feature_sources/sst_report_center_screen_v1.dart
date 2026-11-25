@@ -99,10 +99,10 @@ class SstReportCenterScreen extends StatelessWidget {
           ),
           Card(child:ListTile(
             leading:const Icon(Icons.assignment_outlined,size:28),
-            title:const Text('APR, PT e AR guiados',
+            title:const Text('APR, PT, AR e PET guiados',
               style:TextStyle(fontWeight:FontWeight.w700)),
-            subtitle:const Text('Análise de riscos e minuta de permissão '
-                'de trabalho, com histórico local e PDF para revisão.'),
+            subtitle:const Text('APR, análise de risco, PT e PET NR-33 para '
+                'espaço confinado, com minutas PDF para revisão.'),
             trailing:const Icon(Icons.chevron_right),
             enabled:allowed,
             onTap:allowed?()=>Navigator.of(context).push(

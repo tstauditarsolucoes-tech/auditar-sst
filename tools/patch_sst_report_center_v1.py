@@ -48,6 +48,14 @@ files={
         app/"lib/screens/sst_risk_documents_screen.dart",
     "feature_sources/sst_risk_documents_test_v1.dart":
         app/"test/sst_risk_documents_test.dart",
+    "feature_sources/sst_pet_nr33_models_v1.dart":
+        app/"lib/services/sst_pet_nr33_models.dart",
+    "feature_sources/sst_pet_nr33_pdf_v1.dart":
+        app/"lib/services/sst_pet_nr33_pdf.dart",
+    "feature_sources/sst_pet_nr33_screen_v1.dart":
+        app/"lib/screens/sst_pet_nr33_screen.dart",
+    "feature_sources/sst_pet_nr33_test_v1.dart":
+        app/"test/sst_pet_nr33_test.dart",
     "feature_sources/sst_report_center_models_test_v1.dart":
         app/"test/sst_report_center_models_test.dart",
 }

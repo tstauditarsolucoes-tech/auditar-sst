@@ -6,15 +6,16 @@ import '../models.dart';
 import '../services/auth_service.dart';
 import '../services/sst_risk_documents_models.dart';
 import '../services/sst_risk_documents_pdf.dart';
+import 'sst_pet_nr33_screen.dart';
 
-/// Três documentos práticos na empresa atual. Nunca aprova PT automaticamente.
+/// APR, PT, AR e PET NR-33 na empresa atual, sem autorizar trabalho.
 class SstRiskDocsHomeScreen extends StatelessWidget {
   const SstRiskDocsHomeScreen({super.key, required this.company});
   final Company company;
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('APR, PT e AR')),
+    appBar: AppBar(title: const Text('APR, PT, AR e PET')),
     body: SafeArea(child: ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -37,6 +38,18 @@ class SstRiskDocsHomeScreen extends StatelessWidget {
               MaterialPageRoute<void>(builder: (_) =>
                 SstRiskDocEditorScreen(company: company, kind: kind))),
           )),
+        Card(child: ListTile(
+          leading: const Icon(Icons.warning_amber_outlined),
+          title: const Text('PET - Permissão de Entrada e Trabalho',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          subtitle: const Text('Espaço confinado NR-33: equipe, medições, '
+              'vigia, controles e plano de resgate; somente minuta.'),
+          trailing: const Icon(Icons.chevron_right),
+          enabled: AuthService.canAccessCompany(company.id),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) =>
+              SstPetNr33Screen(company: company))),
+        )),
         const SizedBox(height: 10),
         const Text('APR e AR são registros de análise. PT é uma '
             'autorização de trabalho que exige procedimento, '

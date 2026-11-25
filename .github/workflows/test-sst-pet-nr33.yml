@@ -1,0 +1,31 @@
+name: Auditar SST - PET NR33 preflight
+on:
+  push:
+    branches:
+      - feature/auditar-sst-pet-nr33-rascunho-20261125
+    paths:
+      - 'feature_sources/sst_pet_nr33_models_v1.dart'
+      - 'feature_sources/sst_pet_nr33_pdf_v1.dart'
+      - 'feature_sources/sst_pet_nr33_screen_v1.dart'
+      - 'feature_sources/sst_pet_nr33_test_v1.dart'
+      - 'feature_sources/sst_risk_documents_screen_v1.dart'
+      - 'feature_sources/sst_report_center_screen_v1.dart'
+      - 'tools/test_sst_pet_nr33_v1.py'
+      - 'tools/test_sst_apr_pt_ar_v1.py'
+      - 'tools/patch_sst_report_center_v1.py'
+      - '.github/workflows/test-sst-pet-nr33.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static_preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar APR PT AR e PET isoladas sem dados reais
+        run: |
+          python3 tools/test_sst_apr_pt_ar_v1.py
+          python3 tools/test_sst_pet_nr33_v1.py
