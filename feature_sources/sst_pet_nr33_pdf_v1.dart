@@ -88,6 +88,23 @@ class SstPetNr33Pdf {
             draft.note(item.key)));
       }
     }
+    if (draft.readings.isNotEmpty) {
+      contents.add(heading('Leituras atmosféricas complementares - INFORMADAS'));
+      for (final reading in draft.readings) {
+        contents.add(textLine('Data/hora e ponto',
+            reading.dateTime + ' / ' + reading.point));
+        contents.add(textLine('O₂ (% vol.)', reading.oxygen));
+        contents.add(textLine('Inflamáveis (% LIE)', reading.lel));
+        contents.add(textLine('Tóxicos (valor e unidade)', reading.toxic));
+        contents.add(textLine('Detector e testes', reading.detector));
+        contents.add(textLine('Responsável pela medição', reading.measuredBy));
+        contents.add(pw.Text(
+          'Leitura apenas informada, NÃO validada pelo aplicativo. '
+          'Não comprova atmosfera segura ou monitoramento contínuo.',
+          style: const pw.TextStyle(fontSize: 8),
+        ));
+      }
+    }
     contents.add(heading('Limites, assinaturas e encerramento'));
     contents.add(pw.Text(
       'Supervisor de entrada: assinatura NÃO COLETADA neste módulo.\n'
