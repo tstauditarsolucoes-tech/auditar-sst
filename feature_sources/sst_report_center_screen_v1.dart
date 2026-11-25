@@ -21,7 +21,6 @@ import 'new_inspection_screen.dart';
 import 'sst_report_center_history_screen.dart';
 import 'sst_accident_investigation_guide.dart';
 import 'sst_accident_photo_ai.dart';
-import '../services/sst_risk_documents_models.dart';
 import 'sst_risk_documents_screen.dart';
 
 /// Entrada única, vinculada à empresa atual, sem criar base de dados paralela.
