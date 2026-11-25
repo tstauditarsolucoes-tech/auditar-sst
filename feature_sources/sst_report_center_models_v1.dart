@@ -95,8 +95,8 @@ class SstFieldTemplates {
     ),
     SstFieldTemplate(
       kind:SstFieldReportKind.incident,
-      title:"Investigação de acidente/incidente",
-      subtitle:"Fatos, fontes, fatores contribuintes e medidas preventivas.",
+      title:"Investigação guiada de acidente/incidente",
+      subtitle:"Assistente em seis etapas, coleta de evidências e PDF revisado.",
       reference:"NR-01 (referência temática)",
       questions:<SstFieldQuestion>[
         SstFieldQuestion("incident-01","Identificação","Local, data e atividade no momento","Registrar dados confirmados de local, data, atividade e condição operacional."),
@@ -105,9 +105,9 @@ class SstFieldTemplates {
         SstFieldQuestion("incident-04","Condições","Condições do ambiente ou equipamento","Descrever condições efetivamente observadas no local ou nos registros."),
         SstFieldQuestion("incident-05","Organização","Procedimento e orientação disponíveis","Conferir documentos, instruções e recursos efetivamente disponibilizados."),
         SstFieldQuestion("incident-06","Medidas imediatas","Providências adotadas após o evento","Registrar ações já executadas com fonte e data, sem presumir execução."),
-        SstFieldQuestion("incident-07","Fatores","Hipóteses e fatores contribuintes","Separar hipóteses de fatores apurados; evitar atribuição automática de culpa."),
-        SstFieldQuestion("incident-08","Prevenção","Medidas preventivas propostas","Indicar ação, responsável proposto e evidências necessárias para acompanhamento."),
-        SstFieldQuestion("incident-09","Acompanhamento","Status das medidas e evidências","Conferir retorno, registros e necessidade de validação posterior."),
+        SstFieldQuestion("incident-07","Fatores","Hipóteses, fatores e cinco porquês","Pergunte por que ocorreu, quais barreiras falharam e se havia fatores técnicos e organizacionais. Confirme cada etapa com evidências, sem atribuir culpa automaticamente."),
+        SstFieldQuestion("incident-08","Prevenção","Plano de ação proposto","Priorizar medidas coletivas; informar ação, responsável, prazo e evidência para comprovar execução."),
+        SstFieldQuestion("incident-09","Acompanhamento","Verificação da eficácia","Conferir evidências de execução, responsável pela validação e revisão de medidas e do PGR quando aplicável."),
       ],
     ),
   ];
