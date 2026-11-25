@@ -62,6 +62,10 @@ files={
         app/"lib/screens/sst_activity_guide_screen.dart",
     "feature_sources/sst_activity_guide_test_v1.dart":
         app/"test/sst_activity_guide_test.dart",
+    "feature_sources/sst_scope_key_v1.dart":
+        app/"lib/services/sst_scope_key.dart",
+    "feature_sources/sst_scope_key_test_v1.dart":
+        app/"test/sst_scope_key_test.dart",
     "feature_sources/sst_document_signature_models_v1.dart":
         app/"lib/services/sst_document_signature_models.dart",
     "feature_sources/sst_document_signature_panel_v1.dart":
