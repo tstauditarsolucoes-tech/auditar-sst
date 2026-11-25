@@ -6,11 +6,15 @@ import '../models.dart';
 import '../services/auth_service.dart';
 import '../services/sst_pet_nr33_models.dart';
 import '../services/sst_pet_nr33_pdf.dart';
+import '../services/sst_activity_guide_models.dart';
 
 /// Assistente de PET NR-33: somente MINUTAS e conferências, sem permitir entrada.
 class SstPetNr33Screen extends StatefulWidget {
-  const SstPetNr33Screen({super.key, required this.company});
+  const SstPetNr33Screen({
+    super.key, required this.company, this.initialPlan,
+  });
   final Company company;
+  final SstActivityPlan? initialPlan;
 
   @override
   State<SstPetNr33Screen> createState() => _SstPetNr33ScreenState();
@@ -18,6 +22,10 @@ class SstPetNr33Screen extends StatefulWidget {
 
 class _SstPetNr33ScreenState extends State<SstPetNr33Screen> {
   final SstPetStore store = SstPetStore(
+    read: AppDatabase.instance.getSetting,
+    write: AppDatabase.instance.setSetting,
+  );
+  final SstActivityPlanStore activityStore = SstActivityPlanStore(
     read: AppDatabase.instance.getSetting,
     write: AppDatabase.instance.setSetting,
   );
@@ -61,6 +69,11 @@ class _SstPetNr33ScreenState extends State<SstPetNr33Screen> {
         error = null;
         loading = false;
       });
+      if (widget.initialPlan != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _importPlan(incoming: widget.initialPlan);
+        });
+      }
     } catch (_) {
       if (mounted) setState(() {
         loading = false;
@@ -115,6 +128,66 @@ class _SstPetNr33ScreenState extends State<SstPetNr33Screen> {
     } finally {
       if (mounted) setState(() => pendingCount--);
     }
+  }
+
+  /// Importa APENAS identificação, nunca dados críticos da PET:
+  /// não copiar atmosfera, vigia, supervisor, resgate ou autorização.
+  Future<void> _importPlan({SstActivityPlan? incoming}) async {
+    if (!canEdit || draft == null) return;
+    final uid = ownerUser!;
+    SstActivityPlan? plan = incoming;
+    if (plan == null) {
+      try {
+        plan = await activityStore.load(uid, widget.company.id);
+      } catch (_) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Atividade não pôde ser carregada.')));
+        return;
+      }
+    }
+    if (!mounted || !canEdit || plan == null || !plan.valid ||
+        plan.userId != uid || plan.companyId != widget.company.id) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nenhuma atividade disponível '
+            'para esta conta e empresa.')));
+      return;
+    }
+    final selected = plan;
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: const Text('Reaproveitar local e atividade na PET?'),
+        content: Text('Atividade: ' + selected.activity +
+          '\nLocal: ' + selected.sector +
+          '\n\nSomente esses dois campos vazios serão preenchidos. '
+          'Vigia, supervisor, medição de gases, equipe, resgate, '
+          'controles e horário de entrada continuarão pendentes. '
+          'Isto NÃO emite ou autoriza a PET.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialog, false),
+            child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(dialog, true),
+            child: const Text('Importar identificação')),
+        ],
+      ),
+    );
+    if (accepted != true || !mounted || !canEdit ||
+        uid != AppDatabase.activeUserId.toString()) return;
+    final current = draft!;
+    var next = current;
+    if (current.value('activity').isEmpty) {
+      next = next.withValue('activity', selected.activity);
+    }
+    if (current.value('location').isEmpty) {
+      next = next.withValue('location', selected.sector);
+    }
+    if (identical(next, current)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Atividade e local já preenchidos. '
+            'Nenhum dado foi sobrescrito.')));
+      return;
+    }
+    _update(next);
   }
 
   Future<String?> _textDialog({
@@ -394,6 +467,11 @@ class _SstPetNr33ScreenState extends State<SstPetNr33Screen> {
               ),
             )),
             const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: canEdit ? () => _importPlan() : null,
+              icon: const Icon(Icons.file_copy_outlined),
+              label: const Text('Reaproveitar só local e atividade'),
+            ),
             Text('Campos essenciais: ' +
                 d.completedRequired.toString() + '/' +
                 d.requiredTotal.toString()),
