@@ -23,8 +23,8 @@ for code in ("altura", "confinado", "maquinas", "soldagem",
     assert f"code: '{code}'" in guide_model, code
 assert "class SstActivityPlan" in guide_model
 assert "SstActivityPlanStore" in guide_model
-assert "Uri.encodeComponent(user)" in guide_model
-assert "Uri.encodeComponent(company)" in guide_model
+assert "sstScopedKey(" in guide_model
+assert "sstScopedKey(" in guide_model
 assert "json['userId'] != expectedUser" in guide_model
 assert "json['companyId'] != expectedCompany" in guide_model
 assert "class SstActivityGuideScreen" in guide_ui
