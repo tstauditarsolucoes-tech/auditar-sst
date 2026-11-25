@@ -34,6 +34,8 @@ files={
         app/"test/sst_report_center_history_test.dart",
     "feature_sources/sst_report_center_screen_v1.dart":
         app/"lib/screens/sst_report_center_screen.dart",
+    "feature_sources/sst_accident_investigation_guide_v1.dart":
+        app/"lib/screens/sst_accident_investigation_guide.dart",
     "feature_sources/sst_report_center_models_test_v1.dart":
         app/"test/sst_report_center_models_test.dart",
 }
