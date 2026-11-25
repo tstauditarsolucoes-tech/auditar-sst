@@ -62,6 +62,8 @@ sources = {
         "test/sst_document_signature_test.dart",
     "sst_scope_key_test_v1.dart":
         "test/sst_scope_key_test.dart",
+    "sst_risk_docs_widget_smoke_test_v1.dart":
+        "test/sst_risk_docs_widget_smoke_test.dart",
 }
 for filename, relative in sources.items():
     source = repo / "feature_sources" / filename
