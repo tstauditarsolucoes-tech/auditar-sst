@@ -26,7 +26,7 @@ void main() {
 
   test('texto de resposta malformada e limitado, nunca vira fato', () {
     final s = SstAccidentPhotoAiSuggestion.fromResult({
-      'description': 'x' * 3000,
+      'description': List<String>.filled(3000, 'x').join(),
       'possibleConsequence': 123,
       'recommendation': null,
     });
