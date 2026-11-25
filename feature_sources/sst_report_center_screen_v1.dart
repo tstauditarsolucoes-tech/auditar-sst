@@ -20,6 +20,7 @@ import 'express_round_screen.dart';
 import 'new_inspection_screen.dart';
 import 'sst_report_center_history_screen.dart';
 import 'sst_accident_investigation_guide.dart';
+import 'sst_accident_photo_ai.dart';
 
 /// Entrada única, vinculada à empresa atual, sem criar base de dados paralela.
 class SstReportCenterScreen extends StatelessWidget {
@@ -509,6 +510,52 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
     }
   }
 
+  /// Rascunho visual: nenhuma sugestao da IA vira fato ou conclusao
+  /// sem revisao e classificacao manual do tecnico.
+  Future<void> _reviewVisualAiSuggestion(String questionId,
+      String proposed) async {
+    if (!isIncident || !canEdit || saveFailed ||
+        !const {'incident-03', 'incident-04', 'incident-08'}
+            .contains(questionId)) return;
+    final before = draft.answer(questionId);
+    final isAction = questionId == 'incident-08';
+    final originalText =
+        isAction ? before.recommendation : before.observation;
+    final limit = isAction ? 1200 : 1800;
+    final text = originalText.isEmpty
+        ? proposed
+        : originalText + '\n\n' + proposed;
+    if (text.length > limit) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('O campo já tem muito texto. Abra o registro '
+            'e revise manualmente, sem sobrescrever as evidências.'),
+      ));
+      return;
+    }
+    final result = await _textDialog(
+      'Revisão obrigatória da sugestão da IA',
+      'Edite o que não foi confirmado. Salva como NÃO APURADO '
+          'até você marcar o item manualmente.',
+      text,
+      max: limit,
+      min: 8,
+    );
+    if (result == null || !mounted || !canEdit || saveFailed ||
+        !identical(draft.answer(questionId), before)) return;
+    final next = isAction
+        ? before.copyWith(
+            recommendation: result, status: SstFieldStatus.notChecked)
+        : before.copyWith(
+            observation: result, status: SstFieldStatus.notChecked);
+    _update(draft.update(questionId, next));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Sugestão salva como rascunho NÃO APURADO. '
+            'Confira as evidências antes de marcar como apurado.'),
+      ));
+    }
+  }
+
   Future<void> _export()async{
     if(exporting||archiving||!authorized)return;
     setState(()=>exporting=true);
@@ -753,6 +800,28 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
             if(isIncident)
               SstAccidentInvestigationGuide(
                 onOpenQuestion:_jumpToIncidentQuestion,
+              ),
+            if(isIncident)
+              SstAccidentPhotoAiPanel(
+                company:widget.company,
+                location:draft.location,
+                activity:draft.asset,
+                photoPaths:[
+                  ...draft.answer('incident-03').photoPaths,
+                  ...draft.answer('incident-04').photoPaths,
+                ],
+                enabled:canEdit&&!saveFailed&&!exporting,
+                onAttachGallery:(){
+                  _addPhoto(widget.model.questions.firstWhere(
+                    (q)=>q.id=='incident-03'),ImageSource.gallery);
+                },
+                onAttachCamera:(){
+                  _addPhoto(widget.model.questions.firstWhere(
+                    (q)=>q.id=='incident-03'),ImageSource.camera);
+                },
+                onReviewSuggestion:(questionId,text){
+                  _reviewVisualAiSuggestion(questionId,text);
+                },
               ),
             for(final question in widget.model.questions)
               _questionCard(question),
