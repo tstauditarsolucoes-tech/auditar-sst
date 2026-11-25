@@ -510,6 +510,25 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
     }
   }
 
+  /// Escolhe o primeiro campo de fotos com vaga, preservando o limite
+  /// de dois anexos por item do formulário existente.
+  Future<void> _attachAccidentPhoto(ImageSource source) async {
+    if (!isIncident || !canEdit || saveFailed || exporting) return;
+    for (final id in const ['incident-03', 'incident-04']) {
+      if (draft.answer(id).photoPaths.length < 2) {
+        await _addPhoto(
+          widget.model.questions.firstWhere((q) => q.id == id), source);
+        return;
+      }
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Os quatro espaços para fotos estão ocupados. '
+            'Confira os anexos ou remova um vínculo para acrescentar outro.'),
+      ));
+    }
+  }
+
   /// Rascunho visual: nenhuma sugestao da IA vira fato ou conclusao
   /// sem revisao e classificacao manual do tecnico.
   Future<void> _reviewVisualAiSuggestion(String questionId,
@@ -518,6 +537,15 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
         !const {'incident-03', 'incident-04', 'incident-08'}
             .contains(questionId)) return;
     final before = draft.answer(questionId);
+    // Nunca rebaixar um item já apurado nem sobrescrever texto validado.
+    // Para acrescentar algo a um item validado, usar o editor manual.
+    if (before.status != SstFieldStatus.notChecked) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Esse item já foi apurado. Abra o campo e '
+            'revise manualmente; a IA não pode alterar a validação.'),
+      ));
+      return;
+    }
     final isAction = questionId == 'incident-08';
     final originalText =
         isAction ? before.recommendation : before.observation;
@@ -810,14 +838,14 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
                   ...draft.answer('incident-03').photoPaths,
                   ...draft.answer('incident-04').photoPaths,
                 ],
+                evidencePhotoCount:
+                    draft.answer('incident-03').photoPaths.length,
                 enabled:canEdit&&!saveFailed&&!exporting,
                 onAttachGallery:(){
-                  _addPhoto(widget.model.questions.firstWhere(
-                    (q)=>q.id=='incident-03'),ImageSource.gallery);
+                  _attachAccidentPhoto(ImageSource.gallery);
                 },
                 onAttachCamera:(){
-                  _addPhoto(widget.model.questions.firstWhere(
-                    (q)=>q.id=='incident-03'),ImageSource.camera);
+                  _attachAccidentPhoto(ImageSource.camera);
                 },
                 onReviewSuggestion:(questionId,text){
                   _reviewVisualAiSuggestion(questionId,text);

@@ -40,6 +40,33 @@ class SstAccidentPhotoAiSuggestion {
 
   bool get hasVisual => visual.trim().isNotEmpty;
 
+  /// Perguntas de conferência, geradas por regras simples sobre o texto da IA.
+  /// NÃO são reconhecimento adicional, causa confirmada ou novo envio remoto.
+  List<String> get verificationQuestions {
+    final plain = (visual + ' ' + possibleRisk).toLowerCase();
+    final questions = <String>[
+      'A condição aparece na foto, mas foi confirmada presencialmente?',
+      'A imagem representa o local antes, durante ou depois do acidente?',
+      'Há relato, procedimento ou documento que confirme o contexto?',
+    ];
+    if (RegExp(r'máquina|maquina|esteira|rolete|prensa|engrenagem')
+        .hasMatch(plain)) {
+      questions.add('O equipamento possuía proteções instaladas e '
+          'procedimento de operação/manutenção na data do evento?');
+    }
+    if (RegExp(r'escada|andaime|altura|guarda.corpo|abertura')
+        .hasMatch(plain)) {
+      questions.add('Como estavam as proteções contra queda, '
+          'o acesso e a estabilidade na data do evento?');
+    }
+    if (RegExp(r'piso|água|agua|óleo|oleo|vazamento')
+        .hasMatch(plain)) {
+      questions.add('Existe registro de limpeza, vazamento, '
+          'manutenção ou sinalização anterior ao evento?');
+    }
+    return List.unmodifiable(questions);
+  }
+
   String forEvidence(int photoCount) =>
       'Rascunho de leitura visual por IA - NAO CONFIRMADO. '
       'Quantidade de fotos analisadas: ' + photoCount.toString() +
@@ -68,6 +95,7 @@ class SstAccidentPhotoAiPanel extends StatefulWidget {
     required this.location,
     required this.activity,
     required this.photoPaths,
+    required this.evidencePhotoCount,
     required this.enabled,
     required this.onAttachGallery,
     required this.onAttachCamera,
@@ -78,6 +106,7 @@ class SstAccidentPhotoAiPanel extends StatefulWidget {
   final String location;
   final String activity;
   final List<String> photoPaths;
+  final int evidencePhotoCount;
   final bool enabled;
   final VoidCallback onAttachGallery;
   final VoidCallback onAttachCamera;
@@ -95,10 +124,38 @@ class _SstAccidentPhotoAiPanelState extends State<SstAccidentPhotoAiPanel> {
   SstAccidentPhotoAiSuggestion? suggestion;
   int photoCount = 0;
   int generation = 0;
+  final Set<String> _selectedPaths = <String>{};
+  late String _boundUserId = AppDatabase.activeUserId.toString();
 
+  /// Nenhuma foto é pré-selecionada para envio: escolha explícita do TST.
   List<String> get selectedPhotos =>
-      widget.photoPaths.where((p) => p.trim().isNotEmpty).toSet().take(2)
+      widget.photoPaths.where((p) => p.trim().isNotEmpty &&
+          _selectedPaths.contains(p)).toSet().take(2)
           .toList(growable: false);
+
+  void _togglePhoto(String path, bool choose) {
+    if (!authorized || busy) return;
+    if (choose && !_selectedPaths.contains(path) &&
+        _selectedPaths.length >= 2) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Selecione no máximo duas fotos por análise.'),
+      ));
+      return;
+    }
+    setState(() {
+      if (choose) {
+        _selectedPaths.add(path);
+      } else {
+        _selectedPaths.remove(path);
+      }
+      // Seleção nova sempre invalida consentimento e análise anteriores.
+      generation++;
+      privacyAccepted = false;
+      suggestion = null;
+      photoCount = 0;
+      error = null;
+    });
+  }
 
   static String _identity(List<String> paths) => paths.join('|');
 
@@ -106,7 +163,11 @@ class _SstAccidentPhotoAiPanelState extends State<SstAccidentPhotoAiPanel> {
   void didUpdateWidget(covariant SstAccidentPhotoAiPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (_identity(widget.photoPaths) != _identity(oldWidget.photoPaths) ||
-        widget.company.id != oldWidget.company.id) {
+        widget.company.id != oldWidget.company.id ||
+        widget.evidencePhotoCount != oldWidget.evidencePhotoCount ||
+        _boundUserId != AppDatabase.activeUserId.toString()) {
+      _boundUserId = AppDatabase.activeUserId.toString();
+      _selectedPaths.clear();
       generation++;
       privacyAccepted = false;
       suggestion = null;
@@ -117,7 +178,9 @@ class _SstAccidentPhotoAiPanelState extends State<SstAccidentPhotoAiPanel> {
   }
 
   bool get authorized =>
-      widget.enabled && AuthService.canAccessCompany(widget.company.id);
+      widget.enabled &&
+      _boundUserId == AppDatabase.activeUserId.toString() &&
+      AuthService.canAccessCompany(widget.company.id);
 
   Future<void> _analyze() async {
     final photos = selectedPhotos;
@@ -126,6 +189,7 @@ class _SstAccidentPhotoAiPanelState extends State<SstAccidentPhotoAiPanel> {
     final account = AppDatabase.activeUserId.toString();
     final companyId = widget.company.id;
     final inputSignature = _identity(widget.photoPaths);
+    final selectedSignature = _identity(photos);
     final accepted = await showDialog<bool>(
       context: context,
       builder: (dialog) => AlertDialog(
@@ -152,6 +216,7 @@ class _SstAccidentPhotoAiPanelState extends State<SstAccidentPhotoAiPanel> {
     );
     if (accepted != true || !mounted || !authorized ||
         _identity(widget.photoPaths) != inputSignature ||
+        _identity(selectedPhotos) != selectedSignature ||
         account != AppDatabase.activeUserId.toString()) return;
 
     final currentGeneration = ++generation;
@@ -194,7 +259,8 @@ class _SstAccidentPhotoAiPanelState extends State<SstAccidentPhotoAiPanel> {
           account != AppDatabase.activeUserId.toString() ||
           companyId != widget.company.id ||
           currentGeneration != generation ||
-          _identity(widget.photoPaths) != inputSignature) return;
+          _identity(widget.photoPaths) != inputSignature ||
+          _identity(selectedPhotos) != selectedSignature) return;
 
       if (!reply.success) {
         setState(() {
@@ -284,32 +350,46 @@ class _SstAccidentPhotoAiPanelState extends State<SstAccidentPhotoAiPanel> {
               ],
             ),
             const SizedBox(height: 8),
-            if (photos.isEmpty)
+            const Text(
+              'Fotos úteis: 1) visão geral da área; 2) detalhe da '
+              'proteção/equipamento; 3) acesso e entorno. Fotografe '
+              'somente em condição segura, sem alterar a cena.',
+              style: TextStyle(fontSize: 12),
+            ),
+            const SizedBox(height: 8),
+            if (widget.photoPaths.isEmpty)
               const Text('Nenhuma foto anexada. Inclua ao menos uma.'),
-            if (widget.photoPaths.toSet().length > 2)
-              const Text('A IA analisará somente as duas primeiras fotos.'),
-            if (photos.isNotEmpty)
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final path in photos)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: Image.file(
-                        File(path),
-                        width: 130,
-                        height: 95,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
-                            const SizedBox(
-                              width: 130, height: 95,
-                              child: Center(child: Text('Foto indisponível')),
-                            ),
-                      ),
-                    ),
-                ],
+            if (widget.photoPaths.isNotEmpty) ...[
+              Text(
+                'Escolha quais fotos enviar à IA: ' +
+                    photos.length.toString() + ' de 2 selecionadas.',
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
+              for (var index = 0; index < widget.photoPaths.length; index++)
+                CheckboxListTile(
+                  key: ValueKey('accident-photo-' + index.toString()),
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: Text(index < widget.evidencePhotoCount
+                      ? 'Evidências - foto ' + (index + 1).toString()
+                      : 'Condições - foto ' +
+                          (index - widget.evidencePhotoCount + 1).toString()),
+                  subtitle: const Text(
+                    'Seleção individual para envio ao serviço de IA',
+                  ),
+                  secondary: Image.file(
+                    File(widget.photoPaths[index]),
+                    width: 72, height: 60, fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) =>
+                        const Icon(Icons.broken_image_outlined),
+                  ),
+                  value: _selectedPaths.contains(widget.photoPaths[index]),
+                  onChanged: authorized && !busy ? (value) =>
+                      _togglePhoto(widget.photoPaths[index], value == true) : null,
+                ),
+            ],
+            if (widget.photoPaths.isNotEmpty && photos.isEmpty)
+              const Text('Selecione uma ou duas fotos para prosseguir.'),
             const SizedBox(height: 8),
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
@@ -320,7 +400,7 @@ class _SstAccidentPhotoAiPanelState extends State<SstAccidentPhotoAiPanel> {
                 'ou documentos pessoais nas imagens que serão enviadas.',
               ),
               value: privacyAccepted,
-              onChanged: authorized && !busy
+              onChanged: authorized && !busy && photos.isNotEmpty
                   ? (v) => setState(() => privacyAccepted = v == true)
                   : null,
             ),
@@ -363,11 +443,21 @@ class _SstAccidentPhotoAiPanelState extends State<SstAccidentPhotoAiPanel> {
                 Text(result.proposedAction),
               ],
               const SizedBox(height: 10),
+              const Text('Perguntas para conferir em campo',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               const Text(
-                'O que confirmar? A proteção estava instalada? '
-                'A situação era anterior ao evento? Quais documentos, '
-                'depoimentos e registros sustentam a hipótese? '
-                'Uma foto não comprova causa raiz.',
+                'Roteiro orientativo escolhido por palavras da resposta; '
+                'não representa nova identificação automática.',
+                style: TextStyle(fontSize: 12),
+              ),
+              for (final question in result.verificationQuestions)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Text('• ' + question),
+                ),
+              const Text(
+                'Não conclua causa raiz, culpa ou nexo somente pelas fotos.',
+                style: TextStyle(fontSize: 12),
               ),
               const SizedBox(height: 10),
               OutlinedButton(
