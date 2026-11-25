@@ -1,5 +1,8 @@
 name: Auditar SST - Assistente APR AR PT PET (preflight)
 on:
+  pull_request:
+    branches:
+      - feature/auditar-sst-pet-nr33-rascunho-20261125
   push:
     branches:
       - feature/auditar-sst-fluxo-guiado-apr-pet-20261125
