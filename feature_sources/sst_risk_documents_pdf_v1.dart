@@ -1,8 +1,10 @@
 import 'dart:typed_data';
+import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'sst_risk_documents_models.dart';
+import 'sst_document_signature_models.dart';
 
 /// PDFs sao SEMPRE minutas, jamais permissao emitida ou liberacao de trabalho.
 class SstRiskDocumentPdf {
@@ -47,9 +49,14 @@ class SstRiskDocumentPdf {
     required String companyName,
     required String companyId,
     required SstRiskDocDraft draft,
+    List<SstHandwrittenMark> signatures = const [],
   }) async {
     if (draft.companyId != companyId || !draft.canExportDraft) {
       throw StateError('Documento incompleto ou empresa divergente.');
+    }
+    final snapshot = jsonEncode(draft.toJson());
+    if (signatures.any((m) => !m.isCurrent(snapshot))) {
+      throw StateError('Assinatura desatualizada: assine a nova versão');
     }
     final logo = await _logo();
     final pdf = pw.Document(compress: true);
@@ -93,8 +100,9 @@ class SstRiskDocumentPdf {
         line('Responsável a consultar para autorização', draft.authorizer),
         line('Referência à AR/APR existente', draft.referenceAr),
         pw.Text(
-          'A pessoa indicada NÃO assinou, aprovou nem liberou '
-          'a execução por meio deste arquivo. Uma PT verdadeira '
+          'A pessoa indicada como autorizadora NÃO APROVOU a PT '
+          'por meio deste módulo. Eventuais rubricas de ciência '
+          'não constituem autorização. Uma PT válida '
           'exige checagem presencial, autorização válida, '
           'vigência aplicável, comunicação à equipe e encerramento '
           'conforme procedimento e norma pertinente.',
@@ -122,6 +130,27 @@ class SstRiskDocumentPdf {
         style: const pw.TextStyle(fontSize: 8),
       ));
     }
+    widgets.add(section('Assinaturas manuscritas de CIÊNCIA — não certificadas'));
+    if (signatures.isEmpty) {
+      widgets.add(line('Rubricas nesta versão', 'Não registradas'));
+    }
+    for (final mark in signatures) {
+      widgets.add(line('Função de ciência', mark.roleLabel));
+      widgets.add(line('Nome declarado', mark.declaredName));
+      widgets.add(line('Cargo/função informada', mark.declaredFunction));
+      widgets.add(line('Registrada em UTC', mark.signedAt));
+      widgets.add(pw.Image(
+        pw.MemoryImage(base64Decode(mark.pngBase64)),
+        width: 190, height: 67, fit: pw.BoxFit.contain,
+      ));
+    }
+    widgets.add(pw.Text(
+      'Rubricas desenhadas na tela NÃO representam assinatura '
+      'digital certificada, validação de identidade nem '
+      'autorização de execução. Documento continua MINUTA.',
+      style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold,
+        color: PdfColors.red800),
+    ));
     widgets.add(section('Conferência antes da formalização'));
     widgets.add(pw.Text(
       'Verificar presencialmente a atividade, os controles, '
