@@ -53,18 +53,22 @@ class SstRiskDocItem {
   const SstRiskDocItem({
     required this.id, this.step = '', this.hazard = '', this.consequence = '',
     this.controls = '', this.owner = '', this.probability = 3,
-    this.severity = 3,
+    this.severity = 3, this.presetUnreviewed = false,
   });
   final String id, step, hazard, consequence, controls, owner;
   final int probability, severity;
+  /// Sugestões importadas não podem desbloquear PDF sem revisão.
+  final bool presetUnreviewed;
   int get illustrativeScore => probability * severity;
   bool get complete =>
+      !presetUnreviewed &&
       step.isNotEmpty && hazard.isNotEmpty && consequence.isNotEmpty &&
       controls.isNotEmpty && owner.isNotEmpty;
 
   SstRiskDocItem copyWith({
     String? step, String? hazard, String? consequence, String? controls,
     String? owner, int? probability, int? severity,
+    bool? presetUnreviewed,
   }) => SstRiskDocItem(
     id: id,
     step: step ?? this.step, hazard: hazard ?? this.hazard,
@@ -72,12 +76,14 @@ class SstRiskDocItem {
     controls: controls ?? this.controls, owner: owner ?? this.owner,
     probability: probability ?? this.probability,
     severity: severity ?? this.severity,
+    presetUnreviewed: presetUnreviewed ?? this.presetUnreviewed,
   );
 
   Map<String, dynamic> toJson() => {
     'id': id, 'step': step, 'hazard': hazard,
     'consequence': consequence, 'controls': controls, 'owner': owner,
     'probability': probability, 'severity': severity,
+    'presetUnreviewed': presetUnreviewed,
   };
 
   factory SstRiskDocItem.fromJson(Map<String, dynamic> json) {
@@ -92,6 +98,7 @@ class SstRiskDocItem {
       controls: _limit(json['controls']), owner: _limit(json['owner'], 180),
       probability: _rating(json['probability']),
       severity: _rating(json['severity']),
+      presetUnreviewed: json['presetUnreviewed'] == true,
     );
   }
 }
