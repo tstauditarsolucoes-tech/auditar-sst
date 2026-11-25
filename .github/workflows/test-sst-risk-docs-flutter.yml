@@ -59,15 +59,9 @@ jobs:
       - name: Instalar dependências do Flutter
         working-directory: /tmp/auditar_risk_docs_homologacao
         run: flutter pub get
-      - name: Verificar formatação Dart sem alterar fontes
+      - name: Formatar somente cópias temporárias para análise
         working-directory: /tmp/auditar_risk_docs_homologacao
-        run: |
-          dart format --output=none --set-exit-if-changed \
-            lib/services/sst_scope_key.dart \
-            lib/services/sst_risk_documents_models.dart \
-            lib/services/sst_pet_nr33_models.dart \
-            lib/services/sst_activity_guide_models.dart \
-            lib/services/sst_document_signature_models.dart
+        run: dart format lib test
       - name: Análise de erros de compilação em serviços, PDFs e telas
         working-directory: /tmp/auditar_risk_docs_homologacao
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
