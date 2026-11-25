@@ -40,6 +40,33 @@ class SstAccidentPhotoAiSuggestion {
 
   bool get hasVisual => visual.trim().isNotEmpty;
 
+  /// Perguntas de conferência, geradas por regras simples sobre o texto da IA.
+  /// NÃO são reconhecimento adicional, causa confirmada ou novo envio remoto.
+  List<String> get verificationQuestions {
+    final plain = (visual + ' ' + possibleRisk).toLowerCase();
+    final questions = <String>[
+      'A condição aparece na foto, mas foi confirmada presencialmente?',
+      'A imagem representa o local antes, durante ou depois do acidente?',
+      'Há relato, procedimento ou documento que confirme o contexto?',
+    ];
+    if (RegExp(r'máquina|maquina|esteira|rolete|prensa|engrenagem')
+        .hasMatch(plain)) {
+      questions.add('O equipamento possuía proteções instaladas e '
+          'procedimento de operação/manutenção na data do evento?');
+    }
+    if (RegExp(r'escada|andaime|altura|guarda.corpo|abertura')
+        .hasMatch(plain)) {
+      questions.add('Como estavam as proteções contra queda, '
+          'o acesso e a estabilidade na data do evento?');
+    }
+    if (RegExp(r'piso|água|agua|óleo|oleo|vazamento')
+        .hasMatch(plain)) {
+      questions.add('Existe registro de limpeza, vazamento, '
+          'manutenção ou sinalização anterior ao evento?');
+    }
+    return List.unmodifiable(questions);
+  }
+
   String forEvidence(int photoCount) =>
       'Rascunho de leitura visual por IA - NAO CONFIRMADO. '
       'Quantidade de fotos analisadas: ' + photoCount.toString() +
@@ -411,11 +438,21 @@ class _SstAccidentPhotoAiPanelState extends State<SstAccidentPhotoAiPanel> {
                 Text(result.proposedAction),
               ],
               const SizedBox(height: 10),
+              const Text('Perguntas para conferir em campo',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               const Text(
-                'O que confirmar? A proteção estava instalada? '
-                'A situação era anterior ao evento? Quais documentos, '
-                'depoimentos e registros sustentam a hipótese? '
-                'Uma foto não comprova causa raiz.',
+                'Roteiro orientativo escolhido por palavras da resposta; '
+                'não representa nova identificação automática.',
+                style: TextStyle(fontSize: 12),
+              ),
+              for (final question in result.verificationQuestions)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Text('• ' + question),
+                ),
+              const Text(
+                'Não conclua causa raiz, culpa ou nexo somente pelas fotos.',
+                style: TextStyle(fontSize: 12),
               ),
               const SizedBox(height: 10),
               OutlinedButton(
