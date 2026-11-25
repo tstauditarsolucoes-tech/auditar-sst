@@ -80,4 +80,5 @@ jobs:
         run: |
           flutter build apk --debug --no-pub
       - name: Confirmar análise/testes isolados
-        run: echo 'APENAS FIXTURE: não publicar nem instalar o APK.'
+        run: |
+          echo 'APENAS FIXTURE: não publicar nem instalar o APK.'
