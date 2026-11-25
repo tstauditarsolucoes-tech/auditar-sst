@@ -1,10 +1,12 @@
 import 'dart:typed_data';
+import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import 'sst_pet_nr33_models.dart';
+import 'sst_document_signature_models.dart';
 
 /// Impressao offline de MINUTA para conferencia; nunca uma PET emitida.
 /// A NR-33 exige assinaturas efetivas de supervisor e vigia, procedimento
@@ -51,10 +53,15 @@ class SstPetNr33Pdf {
     required String companyId,
     required String userId,
     required SstPetDraft draft,
+    List<SstHandwrittenMark> signatures = const [],
   }) async {
     if (draft.companyId != companyId || draft.userId != userId ||
         !draft.readyForReviewPdf) {
       throw StateError('Minuta PET incompleta ou fora desta empresa/conta');
+    }
+    final snapshot = jsonEncode(draft.toJson());
+    if (signatures.any((m) => !m.isCurrent(snapshot))) {
+      throw StateError('Assinatura desatualizada: revisar nova versão');
     }
     final logo = await _logo();
     final doc = pw.Document(compress: true);
@@ -122,14 +129,30 @@ class SstPetNr33Pdf {
         ));
       }
     }
+    contents.add(heading('Rubricas manuscritas de CIÊNCIA — NÃO certificadas'));
+    if (signatures.isEmpty) {
+      contents.add(textLine('Rubricas desta versão', 'Não registradas'));
+    }
+    for (final mark in signatures) {
+      contents.add(textLine('Papel de ciência', mark.roleLabel));
+      contents.add(textLine('Nome declarado', mark.declaredName));
+      contents.add(textLine('Função declarada', mark.declaredFunction));
+      contents.add(textLine('Horário registrado em UTC', mark.signedAt));
+      contents.add(pw.Image(
+        pw.MemoryImage(base64Decode(mark.pngBase64)),
+        width: 190, height: 67, fit: pw.BoxFit.contain,
+      ));
+    }
     contents.add(heading('Limites, assinaturas e encerramento'));
     contents.add(pw.Text(
-      'Supervisor de entrada: assinatura NÃO COLETADA neste módulo.\n'
-      'Vigia: assinatura NÃO COLETADA neste módulo.\n'
+      'Assinatura digital certificada do supervisor: NÃO IMPLEMENTADA.\n'
+      'Assinatura digital certificada do vigia: NÃO IMPLEMENTADA.\n'
       'Data/hora reais de emissão e encerramento: NÃO VERIFICADAS.\n'
-      'O formato digital válido da PET exige requisitos próprios da NR-33, '
-      'inclusive certificação de assinatura e acesso pelo vigia durante '
-      'a execução. Esta minuta não supre tais requisitos.',
+      'As rubricas acima são apenas registros manuais de ciência '
+      'da minuta. NÃO constituem emissão de PET, aprovação ou '
+      'autorização de entrada. A NR-33 exige certificação de '
+      'assinatura e acesso permanente pelo vigia em PET digital. '
+      'Esta minuta não satisfaz tais requisitos.',
       style: const pw.TextStyle(fontSize: 9),
     ));
     contents.add(pw.SizedBox(height: 8));

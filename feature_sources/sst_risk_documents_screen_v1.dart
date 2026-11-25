@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 
@@ -7,6 +9,8 @@ import '../services/auth_service.dart';
 import '../services/sst_risk_documents_models.dart';
 import '../services/sst_risk_documents_pdf.dart';
 import '../services/sst_activity_guide_models.dart';
+import '../services/sst_document_signature_models.dart';
+import 'sst_document_signature_panel.dart';
 import 'sst_activity_guide_screen.dart';
 import 'sst_pet_nr33_screen.dart';
 
@@ -90,6 +94,11 @@ class SstRiskDocEditorScreen extends StatefulWidget {
 
 class _SstRiskDocEditorScreenState extends State<SstRiskDocEditorScreen> {
   final SstRiskDocStore store = SstRiskDocStore(
+    read: AppDatabase.instance.getSetting,
+    write: AppDatabase.instance.setSetting,
+  );
+  final SstHandwrittenSignatureStore signatureStore =
+      SstHandwrittenSignatureStore(
     read: AppDatabase.instance.getSetting,
     write: AppDatabase.instance.setSetting,
   );
@@ -473,10 +482,19 @@ class _SstRiskDocEditorScreenState extends State<SstRiskDocEditorScreen> {
     try {
       await pending;
       if (!authorized || saveError) throw StateError('Rascunho não salvo');
+      final signatures = await signatureStore.validForDocument(
+        user: userId!,
+        company: widget.company.id,
+        kind: 'risk_' + widget.kind.name,
+        id: value.id,
+        snapshot: jsonEncode(value.toJson()),
+      );
+      if (!mounted || !authorized) return;
       final pdf = await SstRiskDocumentPdf.generate(
         companyName: widget.company.name,
         companyId: widget.company.id,
         draft: value,
+        signatures: signatures,
       );
       if (!mounted || !authorized) return;
       await Printing.layoutPdf(
@@ -698,6 +716,25 @@ class _SstRiskDocEditorScreenState extends State<SstRiskDocEditorScreen> {
               ),
             )),
             const SizedBox(height: 10),
+            SstDocumentSignaturePanel(
+              key: ValueKey('risk-sign-' + value.id),
+              companyId: widget.company.id,
+              userId: userId!,
+              documentKind: 'risk_' + widget.kind.name,
+              documentId: value.id,
+              snapshot: jsonEncode(value.toJson()),
+              roles: widget.kind == SstRiskDocKind.pt
+                  ? const {
+                      'author': 'Elaborador — ciência e revisão',
+                      'reviewer': 'Responsável pela conferência — ciência',
+                    }
+                  : const {
+                      'author': 'Elaborador — ciência e revisão',
+                      'reviewer': 'Responsável pela revisão técnica — ciência',
+                    },
+              enabled: canEdit && pendingCount == 0 &&
+                  value.canExportDraft,
+            ),
             FilledButton.icon(
               onPressed: canEdit && pendingCount == 0 &&
                   value.canExportDraft ? () => _export(value) : null,

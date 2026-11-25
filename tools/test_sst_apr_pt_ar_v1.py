@@ -33,7 +33,7 @@ assert "await store.archive(" in screen
 assert "await Printing.layoutPdf(" in screen
 assert "Não foi possível gerar a minuta PDF" in screen
 assert "A PT não libera trabalho" in screen
-assert "A pessoa indicada NÃO assinou" in pdf
+assert "A pessoa indicada como autorizadora NÃO APROVOU a PT" in pdf
 assert "MINUTA PARA CONFERÊNCIA TÉCNICA" in pdf
 assert "NÃO AUTORIZA INÍCIO" in pdf
 assert "SstRiskDocumentPdf.generate(" in screen

@@ -1,0 +1,33 @@
+name: Auditar SST - rubricas de ciência em APR AR PT PET
+on:
+  push:
+    branches:
+      - feature/auditar-sst-assinatura-formularios-20261125
+    paths:
+      - 'feature_sources/sst_document_signature_*'
+      - 'feature_sources/sst_risk_documents_*'
+      - 'feature_sources/sst_pet_nr33_*'
+      - 'tools/patch_sst_report_center_v1.py'
+      - 'tools/test_sst_document_signatures_v1.py'
+      - 'tools/test_sst_apr_pt_ar_v1.py'
+      - '.github/workflows/test-sst-document-signatures.yml'
+  pull_request:
+    branches:
+      - feature/auditar-sst-fluxo-guiado-apr-pet-20261125
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static_preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar assinatura visual sem aprovacao legal
+        run: |
+          python3 tools/test_sst_document_signatures_v1.py
+          python3 tools/test_sst_activity_guide_v1.py
+          python3 tools/test_sst_pet_nr33_v1.py
+          python3 tools/test_sst_apr_pt_ar_v1.py

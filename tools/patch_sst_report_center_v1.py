@@ -62,6 +62,12 @@ files={
         app/"lib/screens/sst_activity_guide_screen.dart",
     "feature_sources/sst_activity_guide_test_v1.dart":
         app/"test/sst_activity_guide_test.dart",
+    "feature_sources/sst_document_signature_models_v1.dart":
+        app/"lib/services/sst_document_signature_models.dart",
+    "feature_sources/sst_document_signature_panel_v1.dart":
+        app/"lib/screens/sst_document_signature_panel.dart",
+    "feature_sources/sst_document_signature_test_v1.dart":
+        app/"test/sst_document_signature_test.dart",
     "feature_sources/sst_report_center_models_test_v1.dart":
         app/"test/sst_report_center_models_test.dart",
 }
