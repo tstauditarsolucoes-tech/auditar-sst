@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Instala a Central de Relatórios SST (6 entradas) sem substituir relatórios atuais.
+"""Instala a Central de Relatórios SST (incluindo APR, PT, AR) sem substituir relatórios atuais.
 
 É necessário executar APÓS os patches gerenciais e da biblioteca técnica.
 Modifica SOMENTE atalho da empresa e parâmetro inicial do relatório gerencial,
@@ -40,6 +40,14 @@ files={
         app/"lib/screens/sst_accident_photo_ai.dart",
     "feature_sources/sst_accident_photo_ai_test_v1.dart":
         app/"test/sst_accident_photo_ai_test.dart",
+    "feature_sources/sst_risk_documents_models_v1.dart":
+        app/"lib/services/sst_risk_documents_models.dart",
+    "feature_sources/sst_risk_documents_pdf_v1.dart":
+        app/"lib/services/sst_risk_documents_pdf.dart",
+    "feature_sources/sst_risk_documents_screen_v1.dart":
+        app/"lib/screens/sst_risk_documents_screen.dart",
+    "feature_sources/sst_risk_documents_test_v1.dart":
+        app/"test/sst_risk_documents_test.dart",
     "feature_sources/sst_report_center_models_test_v1.dart":
         app/"test/sst_report_center_models_test.dart",
 }
