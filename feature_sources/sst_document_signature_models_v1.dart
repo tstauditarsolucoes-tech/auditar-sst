@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'sst_scope_key.dart';
 
 /// Assinatura desenhada na tela: registro de ciência, NÃO assinatura digital
 /// certificada, identidade verificada nem autorização de PT ou PET.
@@ -72,9 +73,7 @@ class SstHandwrittenSignatureStore {
   final Future<void> Function(String, String) write;
 
   static String key(String user, String company, String kind, String id) =>
-      'sst_hand_sign_v1_' + Uri.encodeComponent(user) + '_' +
-      Uri.encodeComponent(company) + '_' + Uri.encodeComponent(kind) + '_' +
-      Uri.encodeComponent(id);
+      sstScopedKey('sst_hand_sign_v2', [user, company, kind, id]);
 
   Future<List<SstHandwrittenMark>> load({
     required String user,
