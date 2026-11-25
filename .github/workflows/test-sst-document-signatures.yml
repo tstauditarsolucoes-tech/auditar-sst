@@ -9,6 +9,7 @@ on:
       - 'feature_sources/sst_pet_nr33_*'
       - 'tools/patch_sst_report_center_v1.py'
       - 'tools/test_sst_document_signatures_v1.py'
+      - 'tools/test_sst_apr_pt_ar_v1.py'
       - '.github/workflows/test-sst-document-signatures.yml'
   pull_request:
     branches:
