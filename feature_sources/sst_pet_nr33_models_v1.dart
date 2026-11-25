@@ -247,6 +247,20 @@ class SstPetDraft {
       if (!reading.complete) 'Leitura complementar inválida',
   ];
 
+  /// Destaca falhas e ausências prioritárias, sem declarar aprovação.
+  List<String> get criticalAlerts => [
+    for (final check in PetTemplate.checks)
+      if (status(check.key) == PetCheckStatus.reportedNo)
+        'Controle não atendido: ' + check.label,
+    for (final key in const ['supervisor', 'attendant', 'entrants',
+        'rescuePlan', 'monitoring'])
+      if (value(key).trim().isEmpty)
+        'Campo essencial pendente: ' + (PetTemplate.field(key)?.label ?? key),
+    if (!_measurementValid(value('oxygen')) ||
+        !_measurementValid(value('lel')))
+      'Leituras atmosféricas iniciais não conferidas',
+  ];
+
   /// É só a conclusão do rascunho para PDF. Não é liberação para entrada.
   bool get readyForReviewPdf => pending.isEmpty;
 
