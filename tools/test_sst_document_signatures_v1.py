@@ -18,10 +18,10 @@ assert "class SstHandwrittenMark" in model
 assert "class SstHandwrittenSignatureStore" in model
 assert "bool isCurrent(String snapshot)" in model
 assert "documentSnapshot == snapshot" in model
-assert "Uri.encodeComponent(user)" in model
-assert "Uri.encodeComponent(company)" in model
-assert "Uri.encodeComponent(kind)" in model
-assert "Uri.encodeComponent(id)" in model
+assert "sstScopedKey(" in model
+assert "sstScopedKey(" in model
+assert "sstScopedKey(" in model
+assert "sstScopedKey(" in model
 assert "allowedRoles.contains(mark.roleCode)" in model
 assert "validForDocument" in model
 assert "m.isCurrent(snapshot)" in model or "mark.isCurrent(snapshot)" in model
