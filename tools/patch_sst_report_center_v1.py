@@ -56,6 +56,12 @@ files={
         app/"lib/screens/sst_pet_nr33_screen.dart",
     "feature_sources/sst_pet_nr33_test_v1.dart":
         app/"test/sst_pet_nr33_test.dart",
+    "feature_sources/sst_activity_guide_models_v1.dart":
+        app/"lib/services/sst_activity_guide_models.dart",
+    "feature_sources/sst_activity_guide_screen_v1.dart":
+        app/"lib/screens/sst_activity_guide_screen.dart",
+    "feature_sources/sst_activity_guide_test_v1.dart":
+        app/"test/sst_activity_guide_test.dart",
     "feature_sources/sst_report_center_models_test_v1.dart":
         app/"test/sst_report_center_models_test.dart",
 }

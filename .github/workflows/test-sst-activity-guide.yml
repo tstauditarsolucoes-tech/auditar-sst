@@ -1,0 +1,32 @@
+name: Auditar SST - Assistente APR AR PT PET (preflight)
+on:
+  pull_request:
+    branches:
+      - feature/auditar-sst-pet-nr33-rascunho-20261125
+  push:
+    branches:
+      - feature/auditar-sst-fluxo-guiado-apr-pet-20261125
+    paths:
+      - 'feature_sources/sst_activity_guide_*'
+      - 'feature_sources/sst_risk_documents_*'
+      - 'feature_sources/sst_pet_nr33_*'
+      - 'tools/patch_sst_report_center_v1.py'
+      - 'tools/test_sst_activity_guide_v1.py'
+      - '.github/workflows/test-sst-activity-guide.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar modulos anteriores sem arquivos de producao
+        run: |
+          python3 tools/test_sst_apr_pt_ar_v1.py
+          python3 tools/test_sst_pet_nr33_v1.py
+      - name: Verificar assistente, modelos, reuso e criticos
+        run: python3 tools/test_sst_activity_guide_v1.py

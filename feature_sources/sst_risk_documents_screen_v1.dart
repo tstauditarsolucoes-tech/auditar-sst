@@ -6,6 +6,8 @@ import '../models.dart';
 import '../services/auth_service.dart';
 import '../services/sst_risk_documents_models.dart';
 import '../services/sst_risk_documents_pdf.dart';
+import '../services/sst_activity_guide_models.dart';
+import 'sst_activity_guide_screen.dart';
 import 'sst_pet_nr33_screen.dart';
 
 /// APR, PT, AR e PET NR-33 na empresa atual, sem autorizar trabalho.
@@ -24,6 +26,18 @@ class SstRiskDocsHomeScreen extends StatelessWidget {
         const Text('Escolha o tipo de documento. Salve o rascunho '
             'por empresa e usuário e gere um PDF marcado como minuta. '
             'A PT não libera trabalho pelo simples preenchimento.'),
+        Card(child: ListTile(
+          leading: const Icon(Icons.auto_awesome_outlined),
+          title: const Text('Assistente passo a passo',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          subtitle: const Text('Escolha uma atividade, consulte os perigos '
+              'e reaproveite os dados em APR, AR, PT ou PET.'),
+          trailing: const Icon(Icons.chevron_right),
+          enabled: AuthService.canAccessCompany(company.id),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) =>
+              SstActivityGuideScreen(company: company))),
+        )),
         const SizedBox(height: 10),
         for (final kind in SstRiskDocKind.values)
           Card(child: ListTile(
@@ -65,15 +79,21 @@ class SstRiskDocsHomeScreen extends StatelessWidget {
 class SstRiskDocEditorScreen extends StatefulWidget {
   const SstRiskDocEditorScreen({
     super.key, required this.company, required this.kind,
+    this.initialPlan,
   });
   final Company company;
   final SstRiskDocKind kind;
+  final SstActivityPlan? initialPlan;
   @override
   State<SstRiskDocEditorScreen> createState() => _SstRiskDocEditorScreenState();
 }
 
 class _SstRiskDocEditorScreenState extends State<SstRiskDocEditorScreen> {
   final SstRiskDocStore store = SstRiskDocStore(
+    read: AppDatabase.instance.getSetting,
+    write: AppDatabase.instance.setSetting,
+  );
+  final SstActivityPlanStore activityStore = SstActivityPlanStore(
     read: AppDatabase.instance.getSetting,
     write: AppDatabase.instance.setSetting,
   );
@@ -116,6 +136,11 @@ class _SstRiskDocEditorScreenState extends State<SstRiskDocEditorScreen> {
         error = null;
         loading = false;
       });
+      if (widget.initialPlan != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _importPlan(incoming: widget.initialPlan);
+        });
+      }
     } catch (_) {
       if (mounted) setState(() {
         loading = false;
@@ -149,6 +174,84 @@ class _SstRiskDocEditorScreenState extends State<SstRiskDocEditorScreen> {
     }).whenComplete(() {
       if (mounted) setState(() => pendingCount--);
     });
+  }
+
+  /// Reaproveitar identificação e sugestões não verificadas somente
+  /// depois de confirmação humana. Nunca copiar PT aprovada ou controles.
+  Future<void> _importPlan({SstActivityPlan? incoming}) async {
+    if (!canEdit || pendingCount > 0 || draft == null) return;
+    final uid = userId!;
+    SstActivityPlan? plan = incoming;
+    if (plan == null) {
+      try {
+        plan = await activityStore.load(uid, widget.company.id);
+      } catch (_) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Atividade compartilhada não pôde '
+              'ser carregada. Nenhum dado foi substituído.')));
+        return;
+      }
+    }
+    if (!mounted || !canEdit ||
+        plan == null || !plan.valid ||
+        plan.userId != uid || plan.companyId != widget.company.id) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não há atividade salva '
+            'para esta empresa e conta.')));
+      return;
+    }
+    final selected = plan;
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: const Text('Importar dados da atividade?'),
+        content: Text(
+          'Atividade: ' + selected.activity +
+          '\nLocal: ' + selected.sector +
+          '\n\nSomente campos vazios serão preenchidos. '
+          'Se este documento ainda não tiver etapas, serão adicionadas '
+          'sugestões educativas marcadas COMO NÃO CONFERIDAS. '
+          'É necessário abrir cada etapa, verificar as informações '
+          'e indicar o responsável antes de gerar uma minuta PDF. '
+          'Nenhuma PT será autorizada.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialog, false),
+            child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(dialog, true),
+            child: const Text('Importar para revisar')),
+        ],
+      ),
+    );
+    if (yes != true || !mounted || !canEdit ||
+        uid != AppDatabase.activeUserId.toString()) return;
+    final current = draft!;
+    final imported = <SstRiskDocItem>[];
+    if (current.items.isEmpty) {
+      for (final hint in selected.template.hints) {
+        imported.add(SstRiskDocItem(
+          id: SstRiskDocStore.newId(),
+          step: hint.step, hazard: hint.hazard,
+          consequence: hint.consequence,
+          controls: hint.controlToVerify,
+          owner: '',
+          presetUnreviewed: true,
+        ));
+      }
+    }
+    if (current.activity.isNotEmpty && current.sector.isNotEmpty &&
+        current.items.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Os campos já estão preenchidos. '
+            'Nada foi sobrescrito.')));
+      return;
+    }
+    _update(current.copyWith(
+      activity: current.activity.isEmpty
+          ? selected.activity : current.activity,
+      sector: current.sector.isEmpty ? selected.sector : current.sector,
+      items: current.items.isEmpty ? imported : current.items,
+    ));
   }
 
   String _fieldValue(String field) {
@@ -310,6 +413,7 @@ class _SstRiskDocEditorScreenState extends State<SstRiskDocEditorScreen> {
                     controls: controls.text.trim(),
                     owner: owner.text.trim(),
                     probability: prob, severity: sev,
+                    presetUnreviewed: false,
                   ),
                 ),
                 child: const Text('Salvar etapa'),
@@ -510,6 +614,15 @@ class _SstRiskDocEditorScreenState extends State<SstRiskDocEditorScreen> {
                 children: [
                   Text('1. Identificação',
                     style: Theme.of(context).textTheme.titleMedium),
+                  OutlinedButton.icon(
+                    onPressed: canEdit && pendingCount == 0
+                        ? () => _importPlan() : null,
+                    icon: const Icon(Icons.file_copy_outlined),
+                    label: const Text('Reaproveitar atividade salva'),
+                  ),
+                  const Text('Só completa campos vazios. Sugestões '
+                    'de perigos exigem revisão de cada etapa.',
+                    style: TextStyle(fontSize: 12)),
                   _field('Atividade / tarefa', 'activity'),
                   _field('Local / setor', 'sector'),
                   _field('Data do registro', 'date'),
@@ -550,7 +663,11 @@ class _SstRiskDocEditorScreenState extends State<SstRiskDocEditorScreen> {
                     Card(child: ListTile(
                       title: Text((i + 1).toString() + '. ' +
                           value.items[i].step),
-                      subtitle: Text('Perigo: ' + value.items[i].hazard +
+                      subtitle: Text(
+                        (value.items[i].presetUnreviewed
+                          ? 'SUGESTÃO NÃO CONFERIDA — abra e revise\n'
+                          : '') +
+                        'Perigo: ' + value.items[i].hazard +
                         '\nControle: ' + value.items[i].controls +
                         '\nResponsável: ' + value.items[i].owner +
                         '\nP x S ilustrativo: ' +
