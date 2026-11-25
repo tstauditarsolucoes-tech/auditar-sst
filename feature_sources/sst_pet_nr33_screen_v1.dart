@@ -261,6 +261,118 @@ class _SstPetNr33ScreenState extends State<SstPetNr33Screen> {
     _update(before.withValue(field.key, result));
   }
 
+  /// Leituras são digitadas manualmente, com unidade e fonte explícitas.
+  /// Nenhuma faixa numérica deve ser convertida em "entrada liberada".
+  Future<void> _addAtmosphereReading() async {
+    if (!canEdit || draft == null || draft!.readings.length >= 30) return;
+    final before = draft!;
+    final inputs = <String, TextEditingController>{
+      'dateTime': TextEditingController(),
+      'point': TextEditingController(),
+      'oxygen': TextEditingController(),
+      'lel': TextEditingController(),
+      'toxic': TextEditingController(),
+      'detector': TextEditingController(),
+      'measuredBy': TextEditingController(),
+    };
+    final labels = <String, String>{
+      'dateTime': 'Data e hora reais da leitura',
+      'point': 'Ponto/local da medição',
+      'oxygen': 'O₂ medido (% vol.)',
+      'lel': 'Inflamáveis (% LIE) medido',
+      'toxic': 'Agentes tóxicos medidos (valor e unidade)',
+      'detector': 'Detector, identificação e testes realizados',
+      'measuredBy': 'Nome e função de quem mediu',
+    };
+    SstPetAtmosphereReading? create() {
+      final value = SstPetAtmosphereReading(
+        id: SstPetStore.newId(),
+        dateTime: inputs['dateTime']!.text.trim(),
+        point: inputs['point']!.text.trim(),
+        oxygen: inputs['oxygen']!.text.trim(),
+        lel: inputs['lel']!.text.trim(),
+        toxic: inputs['toxic']!.text.trim(),
+        detector: inputs['detector']!.text.trim(),
+        measuredBy: inputs['measuredBy']!.text.trim(),
+      );
+      return value.complete ? value : null;
+    }
+    final reading = await showDialog<SstPetAtmosphereReading>(
+      context: context,
+      builder: (dialog) => StatefulBuilder(
+        builder: (dialog, refresh) => AlertDialog(
+          title: const Text('Registrar leitura atmosférica'),
+          content: SizedBox(width: 540,
+            child: SingleChildScrollView(child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Transcreva valores realmente medidos, '
+                    'com hora e responsável. O app NÃO interpreta '
+                    'limites de segurança nem autoriza entrada.'),
+                const SizedBox(height: 8),
+                for (final key in labels.keys)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: TextField(
+                      controller: inputs[key],
+                      maxLines: 1,
+                      maxLength: key == 'toxic' ? 500 : 250,
+                      keyboardType: (key == 'oxygen' || key == 'lel')
+                          ? const TextInputType.numberWithOptions(decimal: true)
+                          : TextInputType.text,
+                      decoration: InputDecoration(
+                        labelText: labels[key],
+                        border: const OutlineInputBorder(),
+                      ),
+                      onChanged: (_) => refresh(() {}),
+                    ),
+                  ),
+              ],
+            )),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialog),
+              child: const Text('Cancelar')),
+            FilledButton(
+              onPressed: create() == null ? null :
+                () => Navigator.pop(dialog, create()),
+              child: const Text('Registrar leitura informada'),
+            ),
+          ],
+        ),
+      ),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final controller in inputs.values) {
+        controller.dispose();
+      }
+    });
+    if (reading == null || !mounted || !canEdit ||
+        !identical(draft, before)) return;
+    _update(before.withReading(reading));
+  }
+
+  Future<void> _removeAtmosphereReading(String id) async {
+    if (!canEdit) return;
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: const Text('Retirar esta leitura da minuta?'),
+        content: const Text('O registro será retirado somente do '
+            'rascunho ativo. Não altera versões já arquivadas.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialog, false),
+            child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(dialog, true),
+            child: const Text('Retirar leitura')),
+        ],
+      ),
+    );
+    if (accepted == true && mounted && canEdit) {
+      _update(draft!.withoutReading(id));
+    }
+  }
+
   Future<void> _editCheckNote(PetCheck check) async {
     if (!canEdit) return;
     final before = draft!;
@@ -500,9 +612,10 @@ class _SstPetNr33ScreenState extends State<SstPetNr33Screen> {
                 children: [
                   for (final field in PetTemplate.fields)
                     if (field.group == group) _field(field),
-                  if (group.startsWith('5.')) const Padding(
-                    padding: EdgeInsets.all(10),
-                    child: Text(
+                  if (group.startsWith('5.')) ...[
+                    const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: Text(
                       'Apenas transcreva leituras reais do detector '
                       'com data/hora, instrumento e responsável. '
                       'Não presuma O₂ seguro por estar em uma faixa: '
@@ -511,7 +624,34 @@ class _SstPetNr33ScreenState extends State<SstPetNr33Screen> {
                       'tóxicos efetivamente avaliados e mantenha '
                       'monitoramento contínuo durante a entrada.',
                       style: TextStyle(fontSize: 12)),
-                  ),
+                    ),
+                    const Divider(),
+                    const Text('Leituras atmosféricas complementares',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text('Histórico manual; NÃO é um monitor '
+                        'eletrônico contínuo nem libera a entrada.'),
+                    for (final reading in d.readings)
+                      ListTile(
+                        title: Text(reading.dateTime + ' · ' + reading.point),
+                        subtitle: Text('O₂: ' + reading.oxygen +
+                          '% | Inflamáveis: ' + reading.lel +
+                          '% LIE\nTóxicos: ' + reading.toxic +
+                          '\nDetector: ' + reading.detector +
+                          ' · Mediu: ' + reading.measuredBy),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.remove_circle_outline),
+                          tooltip: 'Retirar leitura do rascunho',
+                          onPressed: canEdit ?
+                            () => _removeAtmosphereReading(reading.id) : null,
+                        ),
+                      ),
+                    OutlinedButton.icon(
+                      onPressed: canEdit && d.readings.length < 30
+                          ? _addAtmosphereReading : null,
+                      icon: const Icon(Icons.add_chart_outlined),
+                      label: const Text('Registrar outra leitura'),
+                    ),
+                  ],
                 ],
               )),
             const SizedBox(height: 12),
