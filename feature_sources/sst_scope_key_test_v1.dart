@@ -29,7 +29,7 @@ void main() {
         throwsArgumentError);
     expect(() => sstScopedKey('test_scope', ['u', '']),
         throwsArgumentError);
-    expect(() => sstScopedKey('test_scope', ['u' * 600]),
+    expect(() => sstScopedKey('test_scope', [List.filled(600, 'u').join()]),
         throwsArgumentError);
   });
 
