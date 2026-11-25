@@ -1,0 +1,27 @@
+name: SST Investigacao fotos IA - preflight sem producao
+on:
+  push:
+    branches:
+      - feature/auditar-sst-investigacao-fotos-ia-20261125
+    paths:
+      - 'feature_sources/sst_accident_photo_ai_v1.dart'
+      - 'feature_sources/sst_accident_photo_ai_test_v1.dart'
+      - 'feature_sources/sst_report_center_screen_v1.dart'
+      - 'tools/patch_sst_report_center_v1.py'
+      - 'tools/test_sst_accident_photo_ai_v1.py'
+      - '.github/workflows/test-sst-accident-photo-ai.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar privacidade e integracao sem fotos reais
+        run: |
+          python3 tools/test_sst_accident_investigation_guide_v1.py
+          python3 tools/test_sst_accident_photo_ai_v1.py
