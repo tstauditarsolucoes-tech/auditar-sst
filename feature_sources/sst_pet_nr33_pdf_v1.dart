@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/services.dart' show rootBundle;
 
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -13,6 +14,19 @@ class SstPetNr33Pdf {
 
   static const navy = PdfColor(0.08, 0.21, 0.35);
   static const pale = PdfColor(0.94, 0.97, 0.96);
+
+  static Future<pw.MemoryImage?> _logo() async {
+    try {
+      final asset = await rootBundle.load('assets/branding/auditar_logo.jpg');
+      if (asset.lengthInBytes > 0 && asset.lengthInBytes < 2500000) {
+        return pw.MemoryImage(asset.buffer.asUint8List());
+      }
+    } catch (_) {
+      // Sem logo, o PDF mantém identificação textual da Auditar.
+    }
+    return null;
+  }
+
 
   static pw.Widget heading(String label) => pw.Container(
     margin: const pw.EdgeInsets.only(top: 11, bottom: 6),
@@ -42,8 +56,11 @@ class SstPetNr33Pdf {
         !draft.readyForReviewPdf) {
       throw StateError('Minuta PET incompleta ou fora desta empresa/conta');
     }
+    final logo = await _logo();
     final doc = pw.Document(compress: true);
     final contents = <pw.Widget>[
+      if (logo != null) pw.Image(logo,
+        width: 140, height: 58, fit: pw.BoxFit.contain),
       pw.Text('AUDITAR SOLUÇÕES | SST', style: pw.TextStyle(
         color: navy, fontSize: 12, fontWeight: pw.FontWeight.bold)),
       pw.SizedBox(height: 6),
