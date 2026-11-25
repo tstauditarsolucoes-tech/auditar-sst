@@ -125,6 +125,7 @@ class _SstAccidentPhotoAiPanelState extends State<SstAccidentPhotoAiPanel> {
   int photoCount = 0;
   int generation = 0;
   final Set<String> _selectedPaths = <String>{};
+  late String _boundUserId = AppDatabase.activeUserId.toString();
 
   /// Nenhuma foto é pré-selecionada para envio: escolha explícita do TST.
   List<String> get selectedPhotos =>
@@ -163,7 +164,9 @@ class _SstAccidentPhotoAiPanelState extends State<SstAccidentPhotoAiPanel> {
     super.didUpdateWidget(oldWidget);
     if (_identity(widget.photoPaths) != _identity(oldWidget.photoPaths) ||
         widget.company.id != oldWidget.company.id ||
-        widget.evidencePhotoCount != oldWidget.evidencePhotoCount) {
+        widget.evidencePhotoCount != oldWidget.evidencePhotoCount ||
+        _boundUserId != AppDatabase.activeUserId.toString()) {
+      _boundUserId = AppDatabase.activeUserId.toString();
       _selectedPaths.clear();
       generation++;
       privacyAccepted = false;
@@ -175,7 +178,9 @@ class _SstAccidentPhotoAiPanelState extends State<SstAccidentPhotoAiPanel> {
   }
 
   bool get authorized =>
-      widget.enabled && AuthService.canAccessCompany(widget.company.id);
+      widget.enabled &&
+      _boundUserId == AppDatabase.activeUserId.toString() &&
+      AuthService.canAccessCompany(widget.company.id);
 
   Future<void> _analyze() async {
     final photos = selectedPhotos;
