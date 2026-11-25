@@ -90,36 +90,19 @@ class SstRiskDocumentPdf {
     ];
     for (var i = 0; i < draft.items.length; i++) {
       final row = draft.items[i];
-      widgets.add(pw.Container(
-        padding: const pw.EdgeInsets.all(9),
-        margin: const pw.EdgeInsets.only(bottom: 9),
-        decoration: pw.BoxDecoration(
-          border: pw.Border.all(color: PdfColors.grey400),
-        ),
-        child: pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text('ETAPA ' + (i + 1).toString(),
-                style: pw.TextStyle(fontSize: 10, color: navy,
-                    fontWeight: pw.FontWeight.bold)),
-            pw.SizedBox(height: 5),
-            line('Etapa / atividade', row.step),
-            line('Perigo', row.hazard),
-            line('Possível consequência', row.consequence),
-            line('Controles informados', row.controls),
-            line('Responsável proposto', row.owner),
-            line('Probabilidade x severidade (escala ilustrativa 1-5)',
-                row.probability.toString() + ' x ' +
-                row.severity.toString() + ' = ' +
-                row.illustrativeScore.toString()),
-            pw.Text(
-              'Pontuação apenas orientativa. Método, critério, '
-              'aceitabilidade e riscos residuais exigem validação '
-              'pela organização; não há liberação automática.',
-              style: const pw.TextStyle(fontSize: 8),
-            ),
-          ],
-        ),
+      widgets.add(section('ETAPA ' + (i + 1).toString()));
+      widgets.add(line('Etapa / atividade', row.step));
+      widgets.add(line('Perigo', row.hazard));
+      widgets.add(line('Possível consequência', row.consequence));
+      widgets.add(line('Controles informados', row.controls));
+      widgets.add(line('Responsável proposto', row.owner));
+      widgets.add(line('Probabilidade x severidade (escala ilustrativa 1-5)',
+          row.probability.toString() + ' x ' +
+          row.severity.toString() + ' = ' + row.illustrativeScore.toString()));
+      widgets.add(pw.Text(
+        'Pontuação apenas orientativa. Método, critério, aceitabilidade '
+        'e riscos residuais exigem validação; não libera trabalho.',
+        style: const pw.TextStyle(fontSize: 8),
       ));
     }
     widgets.add(section('Conferência antes da formalização'));
