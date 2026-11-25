@@ -378,6 +378,22 @@ class _SstRiskDocEditorScreenState extends State<SstRiskDocEditorScreen> {
   Future<void> _archive() async {
     if (!canEdit || pendingCount > 0 || draft == null ||
         !draft!.canExportDraft) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: const Text('Arquivar e começar outro rascunho?'),
+        content: const Text('A versão atual será preservada no histórico '
+            'desta conta e empresa. O formulário será reiniciado. '
+            'Nenhuma PT é aprovada por esta operação.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialog, false),
+            child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(dialog, true),
+            child: const Text('Arquivar minuta')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted || !canEdit) return;
     setState(() => archiving = true);
     try {
       await pending;
@@ -398,6 +414,27 @@ class _SstRiskDocEditorScreenState extends State<SstRiskDocEditorScreen> {
       });
     } finally {
       if (mounted) setState(() => archiving = false);
+    }
+  }
+
+  Future<void> _retrySave() async {
+    if (!authorized || pendingCount > 0 || archiving || exporting ||
+        draft == null) return;
+    final snapshot = draft!;
+    final uid = userId!;
+    setState(() { error = null; pendingCount++; });
+    try {
+      await store.save(uid, widget.company.id, snapshot);
+      if (!mounted || !authorized) return;
+      setState(() { saveError = false; error = null; });
+    } catch (_) {
+      if (mounted) setState(() {
+        saveError = true;
+        error = 'Persistiu a falha no salvamento. '
+            'Não saia antes de recuperar seu rascunho.';
+      });
+    } finally {
+      if (mounted) setState(() { pendingCount--; });
     }
   }
 
@@ -447,6 +484,13 @@ class _SstRiskDocEditorScreenState extends State<SstRiskDocEditorScreen> {
                 style: TextStyle(color: Theme.of(context).colorScheme.error)),
             ),
             if (pendingCount > 0) const LinearProgressIndicator(),
+            if (saveError)
+              FilledButton.icon(
+                onPressed: authorized && pendingCount == 0
+                    ? _retrySave : null,
+                icon: const Icon(Icons.save_outlined),
+                label: const Text('Tentar salvar novamente'),
+              ),
             Card(child: Padding(
               padding: const EdgeInsets.all(14),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start,
