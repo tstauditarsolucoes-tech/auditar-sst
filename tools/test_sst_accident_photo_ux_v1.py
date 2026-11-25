@@ -16,6 +16,8 @@ assert "privacyAccepted = false" in panel
 assert "generation++;" in panel
 assert "_identity(selectedPhotos) != selectedSignature" in panel
 assert "_selectedPaths.clear();" in panel, "Limpar seleção na mudança de empresa/fotos"
+assert "_boundUserId != AppDatabase.activeUserId.toString()" in panel
+assert "_boundUserId == AppDatabase.activeUserId.toString()" in panel
 assert "evidencePhotoCount" in panel and "evidencePhotoCount:" in screen
 assert "Seleção individual para envio" in panel
 assert "Confirmar envio" in panel and "accepted != true" in panel
