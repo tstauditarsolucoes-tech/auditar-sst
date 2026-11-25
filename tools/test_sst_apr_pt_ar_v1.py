@@ -25,7 +25,7 @@ assert "Uri.encodeComponent(company)" in models
 assert "draft.kind" in models
 assert "Documento já arquivado; não sobrescrever" in models
 assert "SstRiskDocsHomeScreen(company:company)" in central
-assert "APR, PT e AR guiados" in central
+assert "APR, PT, AR e PET guiados" in central
 assert "SstRiskDocKind.values" in screen
 assert "await store.save(" in screen
 assert "_retrySave()" in screen
