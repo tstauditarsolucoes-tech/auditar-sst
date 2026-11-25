@@ -187,8 +187,14 @@ class _SstDocumentSignaturePanelState
           docId != widget.documentId ||
           userId != widget.userId ||
           companyId != widget.companyId ||
-          kind != widget.documentKind ||
-          !controller.isNotEmpty) return;
+          kind != widget.documentKind) return;
+      if (!controller.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Desenhe sua assinatura na área branca '
+            'antes de registrar a ciência.'),
+        ));
+        return;
+      }
 
       final png = await controller.toPngBytes();
       if (png == null || png.length < 100 || png.length > 170000) {
