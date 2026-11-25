@@ -19,6 +19,7 @@ import 'manager_reports_screen.dart';
 import 'express_round_screen.dart';
 import 'new_inspection_screen.dart';
 import 'sst_report_center_history_screen.dart';
+import 'sst_accident_investigation_guide.dart';
 
 /// Entrada única, vinculada à empresa atual, sem criar base de dados paralela.
 class SstReportCenterScreen extends StatelessWidget {
@@ -161,6 +162,23 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
   String? error,ownerUser;
   Future<void> pending=Future<void>.value();
   bool get isIncident=>widget.model.kind==SstFieldReportKind.incident;
+  final Map<String, GlobalKey> _incidentKeys = {
+    for (var number = 1; number <= 9; number++)
+      'incident-' + number.toString().padLeft(2, '0'): GlobalKey(),
+  };
+
+  void _jumpToIncidentQuestion(String id) {
+    if (!isIncident || !canEdit) return;
+    final target = _incidentKeys[id]?.currentContext;
+    if (target != null) {
+      Scrollable.ensureVisible(
+        target,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        alignment: 0.1,
+      );
+    }
+  }
   bool get authorized=>ownerUser!=null&&
     ownerUser==AppDatabase.activeUserId.toString()&&
     AuthService.canAccessCompany(widget.company.id);
@@ -522,7 +540,8 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
         SstFieldStatus.notApplicable];
     final needsDetail=answer.status==SstFieldStatus.nonConforming ||
         (isIncident&&answer.status==SstFieldStatus.documented);
-    return Card(child:Padding(padding:const EdgeInsets.all(13),
+    return Card(key:isIncident?_incidentKeys[question.id]:null,
+      child:Padding(padding:const EdgeInsets.all(13),
       child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
         Text(question.group.toUpperCase(),
           style:TextStyle(color:Theme.of(context).colorScheme.primary,
@@ -731,6 +750,10 @@ class _SstFieldReportScreenState extends State<SstFieldReportScreen> {
                   const Text('O PDF será identificado como parcial enquanto '
                     'houver itens não verificados.'),
               ]))),
+            if(isIncident)
+              SstAccidentInvestigationGuide(
+                onOpenQuestion:_jumpToIncidentQuestion,
+              ),
             for(final question in widget.model.questions)
               _questionCard(question),
             Card(child:Padding(padding:const EdgeInsets.all(14),
