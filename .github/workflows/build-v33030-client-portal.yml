@@ -1826,3 +1826,13 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Build debug falhou' }
           if (-not (Test-Path 'build/windows/x64/runner/Debug/auditar_sst.exe')) { throw 'EXE ausente' }
           Pop-Location
+
+
+      - name: Arquivar Windows debug completo sem distribuição
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-Windows-v330129-HOMOLOG-NAO-INSTALAR
+          path: app/Auditar_SST_v1_5_dashboard/build/windows/x64/runner/Debug/**
+          retention-days: 7
+          if-no-files-found: error
