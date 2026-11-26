@@ -1354,3 +1354,13 @@ jobs:
           cd "$APP_DIR"
           flutter build apk --debug
           test -s build/app/outputs/flutter-apk/app-debug.apk
+
+
+      - name: Arquivar APK de homologação sem distribuição
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-Android-v329202-HOMOLOG-NAO-INSTALAR
+          path: app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 7
+          if-no-files-found: error
