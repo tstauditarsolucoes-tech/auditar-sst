@@ -1,0 +1,93 @@
+name: Auditar SST - prova de integracao sobre fontes do app completo
+on:
+  push:
+    branches:
+      - feature/auditar-sst-integracao-real-app-20261126
+    paths:
+      - 'tools/integrate_sst_homologation_v1.py'
+      - 'tools/patch_sst_report_center_v1.py'
+      - 'tools/assemble_v3290.py'
+      - 'tools/test_sst_full_integration_probe_v1.py'
+      - '.github/workflows/sst-full-app-integration-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: sst-full-integration-probe
+  cancel-in-progress: true
+jobs:
+  verify-base:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Montar código completo a partir do arquivo original do repositório
+        run: |
+          set -euo pipefail
+          python3 tools/assemble_v3290.py
+          python3 tools/test_sst_full_integration_probe_v1.py app/Auditar_SST_v1_5_dashboard baseline
+      - name: Documentar versão do projeto gerado
+        run: grep '^version:' app/Auditar_SST_v1_5_dashboard/pubspec.yaml
+  integration-android:
+    needs: verify-base
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Montar base integral na cópia da CI
+        run: python3 tools/assemble_v3290.py
+      - name: Integrar módulos SST mantendo núcleo protegido
+        run: |
+          set -euo pipefail
+          python3 tools/integrate_sst_homologation_v1.py app/Auditar_SST_v1_5_dashboard android
+          python3 tools/test_sst_full_integration_probe_v1.py app/Auditar_SST_v1_5_dashboard integrated
+      - name: Testar base completa Android e APR/PT/AR/PET
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          set -euo pipefail
+          flutter create --no-pub --platforms=android --org br.com.auditar --project-name auditar_sst .
+          flutter pub get
+          flutter analyze --no-fatal-warnings --no-fatal-infos
+          flutter test --reporter expanded test/sst_scope_key_test.dart test/sst_risk_documents_test.dart test/sst_pet_nr33_test.dart test/sst_activity_guide_test.dart test/sst_document_signature_test.dart
+          flutter build apk --debug --no-pub
+      - name: Nunca distribuir build antiga como app oficial
+        run: echo 'Prova técnica de compatibilidade; sem deploy nem publicação'
+  integration-windows:
+    needs: verify-base
+    runs-on: windows-latest
+    timeout-minutes: 75
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Montar e integrar código integral Windows em cópia isolada
+        run: |
+          python tools/assemble_v3290.py
+          if ($LASTEXITCODE -ne 0) { throw 'Falha em montagem original' }
+          python tools/integrate_sst_homologation_v1.py app/Auditar_SST_v1_5_dashboard windows
+          if ($LASTEXITCODE -ne 0) { throw 'Integracao bloqueada' }
+          python tools/test_sst_full_integration_probe_v1.py app/Auditar_SST_v1_5_dashboard integrated
+          if ($LASTEXITCODE -ne 0) { throw 'Validacao protegida falhou' }
+      - name: Compilar e testar fonte integral Windows
+        working-directory: app/Auditar_SST_v1_5_dashboard
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --no-pub --platforms=windows --org br.com.auditar --project-name auditar_sst .
+          if ($LASTEXITCODE -ne 0) { throw 'Flutter create falhou' }
+          flutter pub get
+          if ($LASTEXITCODE -ne 0) { throw 'Flutter pub get falhou' }
+          flutter analyze --no-fatal-warnings --no-fatal-infos
+          if ($LASTEXITCODE -ne 0) { throw 'Flutter analyze falhou' }
+          flutter test test/sst_scope_key_test.dart test/sst_risk_documents_test.dart test/sst_pet_nr33_test.dart test/sst_activity_guide_test.dart test/sst_document_signature_test.dart
+          if ($LASTEXITCODE -ne 0) { throw 'Flutter tests falharam' }
+          flutter build windows --debug --no-pub
+          if ($LASTEXITCODE -ne 0) { throw 'Flutter Windows debug falhou' }
