@@ -1362,11 +1362,31 @@ jobs:
           flutter test
           grep -Fq 'version: 3.29.203+345' pubspec.yaml
 
+      # The Android lint parser used by image_picker_android calls List.removeLast,
+      # available since JDK 21. Keep earlier tests on their proven Java 17 setup.
+      # Do not disable lint or change the camera plugin just to pass CI.
+      - name: Preparar Java 21 para lint e Release Android
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
       - name: Compilar Release isolado para teste visual e desempenho sem conexao configurada
         run: |
           set -euo pipefail
           cd "$APP_DIR"
+          java -version
+          flutter config --jdk-dir="$JAVA_HOME"
+          (cd android && ./gradlew --stop && ./gradlew --version)
           flutter build apk --release --dart-define=AUDITAR_APPS_SCRIPT_URL= --dart-define=AUDITAR_SYNC_KEY=
+          # Verify the independent package, not just the existence of an APK.
+          APK=build/app/outputs/flutter-apk/app-release.apk
+          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -1)"
+          test -x "$AAPT"
+          "$AAPT" dump badging "$APK" > /tmp/auditar-apk-badging.txt
+          grep -Fq "package: name='br.com.auditar.auditar_sst.homolog'" /tmp/auditar-apk-badging.txt
+          grep -Fq "versionName='3.29.203'" /tmp/auditar-apk-badging.txt
+          if grep -q '^application-debuggable' /tmp/auditar-apk-badging.txt; then exit 1; fi
           test -s build/app/outputs/flutter-apk/app-release.apk
 
       - name: Arquivar somente candidato de testes offline (nao e distribuicao)
