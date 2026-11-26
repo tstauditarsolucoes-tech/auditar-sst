@@ -113,12 +113,10 @@ missing = [name for name in needed if not (root / name).is_file()]
 if missing:
     raise SystemExit("INTEGRACAO_INCOMPLETA: " + ", ".join(missing))
 if platform == "android":
+    # Os dois patches Android são sequenciais e já numeram a versão:
+    # 3.29.200 -> 3.29.201 -> 3.29.202. Não sobrescrever essa numeração.
     source = pub.read_text(encoding="utf-8")
-    if source.count("version: " + expected) != 1:
-        raise SystemExit("Versão alterada inesperadamente durante os patches.")
-    pub.write_text(
-        source.replace("version: " + expected, "version: 3.29.202+344", 1),
-        encoding="utf-8",
-    )
+    if source.count("version: 3.29.202+344") != 1:
+        raise SystemExit("Versão pós-patches inesperada; não distribuir.")
 print("SST_FONTE_RECENTE_INTEGRADA", platform, "PASSOU_NUCLEO_PROTEGIDO",
       flush=True)
