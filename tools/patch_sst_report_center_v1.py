@@ -66,8 +66,8 @@ files={
         app/"lib/services/sst_scope_key.dart",
     "feature_sources/sst_scope_key_test_v1.dart":
         app/"test/sst_scope_key_test.dart",
-    "feature_sources/sst_risk_docs_widget_smoke_test_v1.dart":
-        app/"test/sst_risk_docs_widget_smoke_test.dart",
+    # Smoke de widgets pressupõe AuthService e banco fictícios;
+    # manter SOMENTE na fixture isolada, não na suíte do app real.
     "feature_sources/sst_risk_docs_pdf_smoke_test_v1.dart":
         app/"test/sst_risk_docs_pdf_smoke_test.dart",
     "feature_sources/sst_document_signature_models_v1.dart":
