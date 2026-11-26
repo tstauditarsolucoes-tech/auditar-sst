@@ -22,91 +22,11 @@ void main() {
     expect(a.isCurrent(testFingerprint('{"atividade":"B","status":"rascunho"}')), isFalse);
   });
 
-  test('registro guarda só fingerprint SHA-256, nunca documento completo', () {
-    final value = mark('dados sensíveis de teste');
-    expect(value.documentSnapshot.length, 64);
-    expect(value.documentSnapshot, matches(RegExp(r'^[a-f0-9]{64}
-    final restored = SstHandwrittenMark.fromJson(mark('versao-1').toJson());
-    expect(restored.declaredName, 'Pessoa de Teste');
-    expect(restored.roleCode, 'author');
-    expect(base64Decode(restored.pngBase64).length, greaterThan(100));
-  });
-
-  test('PNG inválido ou imagem vazia são rejeitados', () {
-    final json = mark('versao-1').toJson();
-    json['pngBase64'] = base64Encode(utf8.encode('arquivo falso'));
-    expect(() => SstHandwrittenMark.fromJson(json), throwsFormatException);
-  });
-
-  test('assinaturas isoladas por usuário empresa tipo e id', () {
-    expect(SstHandwrittenSignatureStore.key('u1','e1','apr','d1'),
-      isNot(SstHandwrittenSignatureStore.key('u2','e1','apr','d1')));
-    expect(SstHandwrittenSignatureStore.key('u1','e1','apr','d1'),
-      isNot(SstHandwrittenSignatureStore.key('u1','e2','apr','d1')));
-    expect(SstHandwrittenSignatureStore.key('u1','e1','apr','d1'),
-      isNot(SstHandwrittenSignatureStore.key('u1','e1','pet','d1')));
-    expect(SstHandwrittenSignatureStore.key('u1','e1','apr','d1'),
-      isNot(SstHandwrittenSignatureStore.key('u1','e1','apr','d2')));
-  });
-
-  test('salvar não mistura empresas nem documentos; versão alterada excluída', () async {
-    final settings = <String,String>{};
-    final store = SstHandwrittenSignatureStore(
-      read: (k) async => settings[k] ?? '',
-      write: (k,v) async { settings[k] = v; },
-    );
-    await store.save(
-      user: 'u1', company: 'e1', kind: 'risk_apr', id: 'doc-1',
-      allowedRoles: {'author','reviewer'}, mark: mark('estado-1'),
-    );
-    expect((await store.validForDocument(
-      user: 'u1', company: 'e1', kind: 'risk_apr', id: 'doc-1',
-      snapshot: testFingerprint('estado-1'))).length, 1);
-    expect(await store.validForDocument(
-      user: 'u1', company: 'e1', kind: 'risk_apr', id: 'doc-1',
-      snapshot: testFingerprint('estado-2')), isEmpty);
-    expect(await store.load(
-      user: 'u2', company: 'e1', kind: 'risk_apr', id: 'doc-1'), isEmpty);
-    expect(await store.load(
-      user: 'u1', company: 'e2', kind: 'risk_apr', id: 'doc-1'), isEmpty);
-    expect(await store.load(
-      user: 'u1', company: 'e1', kind: 'risk_pt', id: 'doc-1'), isEmpty);
-  });
-
-  test('função não permitida é rejeitada', () async {
-    final store = SstHandwrittenSignatureStore(
-      read: (_) async => '',
-      write: (_,__) async {},
-    );
-    await expectLater(store.save(
-      user: 'u1', company: 'e1', kind: 'pet_nr33', id: 'doc-1',
-      allowedRoles: {'supervisor_ack','attendant_ack'},
-      mark: mark('versao', role: 'author'),
-    ), throwsStateError);
-  });
-
-  test('nova rubrica da mesma função substitui só a anterior', () async {
-    final settings = <String,String>{};
-    final store = SstHandwrittenSignatureStore(
-      read: (k) async => settings[k] ?? '',
-      write: (k,v) async { settings[k] = v; },
-    );
-    for (final m in [mark('v1'), mark('v1',role:'reviewer'),mark('v2')]) {
-      await store.save(
-        user: 'u1', company: 'e1', kind: 'risk_ar', id: 'doc-1',
-        allowedRoles: {'author','reviewer'}, mark: m);
-    }
-    final all = await store.load(
-      user:'u1',company:'e1',kind:'risk_ar',id:'doc-1');
-    expect(all.length, 2);
-    expect(all.firstWhere((e) => e.roleCode=='author').documentSnapshot,
-      testFingerprint('v2'));
-    expect(all.firstWhere((e) => e.roleCode=='reviewer').documentSnapshot,
-      testFingerprint('v1'));
-  });
-}
-)));
-    expect(value.toJson().toString(), isNot(contains('dados sensíveis de teste')));
+  test('assinatura guarda somente SHA-256, sem repetir texto SST', () {
+    final stored = mark('exemplo sensível');
+    expect(stored.documentSnapshot.length, 64);
+    expect(stored.documentSnapshot, matches(RegExp(r'^[a-f0-9]{64}$')));
+    expect(stored.toJson().toString(), isNot(contains('exemplo sensível')));
   });
 
   test('metadados da assinatura e PNG sobrevivem ao JSON', () {
