@@ -110,13 +110,7 @@ in_method_replace(
 
 round_file.write_text(s,encoding="utf-8",newline="\n")
 shutil.copyfile(repo/"feature_sources/auditar_unified_conclusion_v1.dart",service)
-shutil.copyfile(repo/"feature_sources/auditar_unified_conclusion_test_v1.dart",test)
-test_source=test.read_text(encoding="utf-8")
-old_import="import 'auditar_unified_conclusion_v1.dart';"
-assert test_source.count(old_import)==1, "Import de teste da conclusão inesperado"
-test.write_text(test_source.replace(old_import,
-    "import '../lib/services/auditar_unified_conclusion.dart';",1),
-    encoding="utf-8",newline="\n")
+shutil.copyfile(repo/"feature_sources/auditar_unified_conclusion_flutter_test_v1.dart",test)
 pub_text=pub.read_text(encoding="utf-8")
 assert pub_text.count("version: 3.29.201+343")==1
 pub.write_text(pub_text.replace("version: 3.29.201+343",
