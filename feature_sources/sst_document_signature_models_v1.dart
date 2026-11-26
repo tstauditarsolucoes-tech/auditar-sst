@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
+import 'sst_scope_key.dart';
 
 /// Impressão da versão do documento, sem copiar os campos SST para o
 /// registro de assinatura; não é certificação digital.
@@ -79,9 +80,7 @@ class SstHandwrittenSignatureStore {
   final Future<void> Function(String, String) write;
 
   static String key(String user, String company, String kind, String id) =>
-      'sst_hand_sign_v1_' + Uri.encodeComponent(user) + '_' +
-      Uri.encodeComponent(company) + '_' + Uri.encodeComponent(kind) + '_' +
-      Uri.encodeComponent(id);
+      sstScopedKey('sst_hand_sign_v2', [user, company, kind, id]);
 
   Future<List<SstHandwrittenMark>> load({
     required String user,
