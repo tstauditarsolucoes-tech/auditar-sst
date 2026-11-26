@@ -487,7 +487,7 @@ class _SstRiskDocEditorScreenState extends State<SstRiskDocEditorScreen> {
         company: widget.company.id,
         kind: 'risk_' + widget.kind.name,
         id: value.id,
-        snapshot: jsonEncode(value.toJson()),
+        snapshot: sstDocumentFingerprint(value.toJson()),
       );
       if (!mounted || !authorized) return;
       final pdf = await SstRiskDocumentPdf.generate(
@@ -722,7 +722,7 @@ class _SstRiskDocEditorScreenState extends State<SstRiskDocEditorScreen> {
               userId: userId!,
               documentKind: 'risk_' + widget.kind.name,
               documentId: value.id,
-              snapshot: jsonEncode(value.toJson()),
+              snapshot: sstDocumentFingerprint(value.toJson()),
               roles: widget.kind == SstRiskDocKind.pt
                   ? const {
                       'author': 'Elaborador — ciência e revisão',
