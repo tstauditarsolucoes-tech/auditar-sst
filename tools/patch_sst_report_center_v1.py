@@ -68,6 +68,8 @@ files={
         app/"test/sst_scope_key_test.dart",
     "feature_sources/sst_risk_docs_widget_smoke_test_v1.dart":
         app/"test/sst_risk_docs_widget_smoke_test.dart",
+    "feature_sources/sst_risk_docs_pdf_smoke_test_v1.dart":
+        app/"test/sst_risk_docs_pdf_smoke_test.dart",
     "feature_sources/sst_document_signature_models_v1.dart":
         app/"lib/services/sst_document_signature_models.dart",
     "feature_sources/sst_document_signature_panel_v1.dart":
