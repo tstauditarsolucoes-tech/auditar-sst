@@ -6,6 +6,7 @@ substitui banco, autenticação e modelos da empresa por STUBS. Não há
 conexão com servidor, banco de clientes, telefone ou apps instalados.
 """
 from pathlib import Path
+import os
 import tempfile
 import sys
 
@@ -19,8 +20,14 @@ if not pubspec.is_file() or "name: auditar_sst" not in pubspec.read_text():
     raise SystemExit("Projeto Flutter de teste inválido")
 if not (app / "lib").is_dir() or not (app / "test").is_dir():
     raise SystemExit("Estrutura Flutter de teste incompleta")
-temp_root = Path(tempfile.gettempdir()).resolve()
-if temp_root not in app.parents:
+# Windows GitHub runner usa RUNNER_TEMP (D:\\a\\_temp), que pode
+# divergir de tempfile.gettempdir() (C:\\Users\\...\\Temp).
+# Validar os dois diretórios; recusar qualquer caminho fora deles.
+temp_roots = [Path(tempfile.gettempdir()).resolve()]
+runner_temp = os.environ.get("RUNNER_TEMP", "").strip()
+if runner_temp:
+    temp_roots.append(Path(runner_temp).resolve())
+if not any(root == app or root in app.parents for root in temp_roots):
     raise SystemExit("Somente diretórios temporários são permitidos")
 
 raw = pubspec.read_text(encoding="utf-8")
