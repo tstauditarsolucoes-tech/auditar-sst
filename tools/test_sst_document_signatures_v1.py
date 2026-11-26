@@ -44,8 +44,10 @@ assert "SstDocumentSignaturePanel(" in risk_ui
 assert "SstDocumentSignaturePanel(" in pet_ui
 assert "signatureStore.validForDocument(" in risk_ui
 assert "signatureStore.validForDocument(" in pet_ui
-assert "snapshot: jsonEncode(value.toJson())" in risk_ui
-assert "snapshot: jsonEncode(source.toJson())" in pet_ui
+assert "snapshot: sstDocumentFingerprint(value.toJson())" in risk_ui
+assert "snapshot: sstDocumentFingerprint(source.toJson())" in pet_ui
+assert "sha256.convert(utf8.encode(jsonEncode(fields)))" in model
+assert "field('documentSnapshot', 64)" in model
 assert "kind: 'pet_nr33'" in pet_ui
 assert "kind: 'risk_' + widget.kind.name" in risk_ui
 assert "'supervisor_ack'" in pet_ui and "'attendant_ack'" in pet_ui
