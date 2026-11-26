@@ -1,4 +1,5 @@
 name: SST android - montagem integral sem producao
+# Revisão CI 26/11: importar conclusão instalada e testar Company sem const
 
 on:
   push:
