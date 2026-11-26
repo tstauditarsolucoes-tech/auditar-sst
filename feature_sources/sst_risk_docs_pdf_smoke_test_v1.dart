@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -84,7 +83,7 @@ void main() {
     for (final kind in SstRiskDocKind.values) {
       final draft = riskDraft(kind);
       expect(draft.canExportDraft, isTrue);
-      final snapshot = jsonEncode(draft.toJson());
+      final snapshot = sstDocumentFingerprint(draft.toJson());
       final bytes = await SstRiskDocumentPdf.generate(
         companyName: 'Empresa fictícia',
         companyId: 'empresa-teste',
