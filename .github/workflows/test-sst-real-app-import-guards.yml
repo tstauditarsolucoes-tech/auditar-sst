@@ -1,0 +1,21 @@
+name: SST - regressão curta de integração
+on:
+  push:
+    branches:
+      - feature/auditar-sst-integracao-completa-final-20261126
+    paths:
+      - 'tools/test_sst_real_app_import_guards_v1.py'
+      - '.github/workflows/test-sst-real-app-import-guards.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fast-guards:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validar sintaxe do patch e reprodução de imports
+        run: |
+          python3 -m py_compile tools/patch_android_standard_conclusion_v1.py tools/test_sst_real_app_import_guards_v1.py
+          python3 tools/test_sst_real_app_import_guards_v1.py

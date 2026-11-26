@@ -1,0 +1,24 @@
+name: Auditar SST - compatibilidade gerencial formato Dart
+on:
+  push:
+    branches:
+      - feature/auditar-sst-integracao-completa-final-20261126
+    paths:
+      - 'tools/test_sst_report_center_initstate_formats_v1.py'
+      - 'tools/patch_sst_report_center_v1.py'
+      - '.github/workflows/test-sst-report-center-formats.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test-gerencial-formatado:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checar sintaxe do patch e dos testes
+        run: python3 -m py_compile tools/patch_sst_report_center_v1.py tools/test_sst_report_center_initstate_formats_v1.py
+      - name: Testar formato inline e Dart formatado no relatório gerencial
+        run: python3 tools/test_sst_report_center_initstate_formats_v1.py
+      - name: Regressão original da Central SST sem dados reais
+        run: python3 tools/test_sst_report_center_patch_v1.py

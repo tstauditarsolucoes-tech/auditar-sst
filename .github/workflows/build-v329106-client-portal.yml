@@ -1,10 +1,13 @@
 name: SST android - montagem integral sem producao
+# Revisão CI 26/11: importar conclusão instalada e testar Company sem const
+# Revisão 2: testes Flutter reais separados da fixture de autenticação
 
 on:
   push:
-    branches: ['feature/sst-montagem-integral-sem-producao-20261126']
+    branches: ['feature/auditar-sst-integracao-completa-final-20261126']
     paths:
       - '.github/workflows/build-v329106-client-portal.yml'
+      - 'tools/integrate_sst_recent_base_v1.py'
   pull_request:
     branches: ['feature/auditar-sst-integracao-real-app-20261126']
     types: [opened, synchronize, reopened]
@@ -23,7 +26,7 @@ env:
 
 jobs:
   android:
-    if: github.event_name != 'pull_request' || github.head_ref == 'feature/sst-montagem-integral-sem-producao-20261126'
+    if: github.event_name != 'pull_request' || github.head_ref == 'feature/auditar-sst-integracao-completa-final-20261126'
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
@@ -1308,7 +1311,7 @@ jobs:
           set -euo pipefail
           grep -Fq 'version: 3.29.200+342' "$APP_DIR/pubspec.yaml"
           python3 tools/test_sst_full_integration_probe_v1.py "$APP_DIR" baseline
-          python3 tools/integrate_sst_homologation_v1.py "$APP_DIR" android
+          python3 tools/integrate_sst_recent_base_v1.py "$APP_DIR" android
           cd "$APP_DIR"
           dart format lib/screens/smart_visit_briefing_screen.dart lib/screens/visit_type_chooser_screen.dart lib/services/visit_intelligence.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
@@ -1353,3 +1356,13 @@ jobs:
           cd "$APP_DIR"
           flutter build apk --debug
           test -s build/app/outputs/flutter-apk/app-debug.apk
+
+
+      - name: Arquivar APK de homologação sem distribuição
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-Android-v329202-HOMOLOG-NAO-INSTALAR
+          path: app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 7
+          if-no-files-found: error
