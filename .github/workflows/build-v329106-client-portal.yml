@@ -5,6 +5,9 @@ on:
     branches: ['feature/sst-montagem-integral-sem-producao-20261126']
     paths:
       - '.github/workflows/build-v329106-client-portal.yml'
+  pull_request:
+    branches: ['feature/auditar-sst-integracao-real-app-20261126']
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 concurrency:
@@ -20,6 +23,7 @@ env:
 
 jobs:
   android:
+    if: github.event_name != 'pull_request' || github.head_ref == 'feature/sst-montagem-integral-sem-producao-20261126'
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
