@@ -2,9 +2,10 @@ name: SST windows - montagem integral sem producao
 
 on:
   push:
-    branches: ['feature/sst-montagem-integral-sem-producao-20261126']
+    branches: ['feature/auditar-sst-integracao-completa-final-20261126']
     paths:
       - '.github/workflows/build-v33030-client-portal.yml'
+      - 'tools/integrate_sst_recent_base_v1.py'
   pull_request:
     branches: ['feature/auditar-sst-integracao-real-app-20261126']
     types: [opened, synchronize, reopened]
@@ -23,7 +24,7 @@ env:
 
 jobs:
   windows:
-    if: github.event_name != 'pull_request' || github.head_ref == 'feature/sst-montagem-integral-sem-producao-20261126'
+    if: github.event_name != 'pull_request' || github.head_ref == 'feature/auditar-sst-integracao-completa-final-20261126'
     runs-on: windows-latest
     timeout-minutes: 210
     steps:
@@ -1743,7 +1744,7 @@ jobs:
           if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch 'version: 3.30.128+315' -Quiet)) { throw 'Base incorreta' }
           python tools/test_sst_full_integration_probe_v1.py "$env:APP_DIR" baseline
           if ($LASTEXITCODE -ne 0) { throw 'Base incompleta' }
-          python tools/integrate_sst_homologation_v1.py "$env:APP_DIR" windows
+          python tools/integrate_sst_recent_base_v1.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Integracao Windows recusada; instalador nao sera gerado.' }
           $pub="$env:APP_DIR/pubspec.yaml"
           $actual=[System.IO.File]::ReadAllText((Resolve-Path $pub).Path)
