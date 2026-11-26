@@ -137,7 +137,17 @@ init_matches=list(re.finditer(r"\bvoid\s+initState\s*\(\s*\)\s*\{",g))
 if len(init_matches)!=1:
     raise RuntimeError("initState inesperado no relatório gerencial: "+str(len(init_matches)))
 init=init_matches[0]
-window=g[init.end():init.end()+800]
+depth=1
+end=init.end()
+while end<len(g) and depth:
+    if g[end]=="{":
+        depth+=1
+    elif g[end]=="}":
+        depth-=1
+    end+=1
+if depth:
+    raise RuntimeError("initState do gerencial não encerrou corretamente")
+window=g[init.end():end-1]
 super_calls=list(re.finditer(r"super\.initState\s*\(\s*\)\s*;",window))
 load_calls=list(re.finditer(r"\b_load\s*\(\s*\)\s*;",window))
 if len(super_calls)!=1 or len(load_calls)!=1 or load_calls[0].start()<super_calls[0].end():
