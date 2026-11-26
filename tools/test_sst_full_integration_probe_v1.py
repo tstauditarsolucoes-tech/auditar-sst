@@ -15,6 +15,21 @@ if not app.is_dir():
 pub = (app / "pubspec.yaml").read_text(encoding="utf-8")
 version = next((x for x in pub.splitlines() if x.startswith("version:")), "")
 assert version
+# O arquivo ZIP disponível na raiz do repositório recompõe v3.29.0.
+# Não prosseguir à integração de tela/relatório com essa fonte desatualizada.
+# No Android operacional a base informada é v3.29.195, no Windows v3.30.123.
+import re
+m = re.match(r"version:\\s*(\\d+)\\.(\\d+)\\.(\\d+)", version)
+if m is None:
+    raise SystemExit("BLOQUEADO: versão do fonte não identificável: " + version)
+built = tuple(int(x) for x in m.groups())
+if built < (3, 29, 195):
+    raise SystemExit(
+        "BASE_DESATUALIZADA_BLOQUEADA: projeto montado em " + version +
+        "; o Android operacional é v3.29.195 e o Windows v3.30.123. "
+        "Faltam telas e dependências atuais. Exigida fonte integral recente "
+        "para atualizar com segurança. Nenhum binário deve ser publicado."
+    )
 base = [
     "lib/main.dart", "lib/models.dart", "lib/database.dart",
     "lib/services/auth_service.dart",
