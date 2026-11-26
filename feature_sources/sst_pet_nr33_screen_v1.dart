@@ -412,7 +412,7 @@ class _SstPetNr33ScreenState extends State<SstPetNr33Screen> {
         company: widget.company.id,
         kind: 'pet_nr33',
         id: source.id,
-        snapshot: jsonEncode(source.toJson()),
+        snapshot: sstDocumentFingerprint(source.toJson()),
       );
       if (!mounted || !authorized) return;
       final bytes = await SstPetNr33Pdf.generate(
@@ -728,7 +728,7 @@ class _SstPetNr33ScreenState extends State<SstPetNr33Screen> {
               userId: ownerUser!,
               documentKind: 'pet_nr33',
               documentId: d.id,
-              snapshot: jsonEncode(d.toJson()),
+              snapshot: sstDocumentFingerprint(d.toJson()),
               roles: const {
                 'supervisor_ack': 'Supervisor de entrada — ciência',
                 'attendant_ack': 'Vigia — ciência',
