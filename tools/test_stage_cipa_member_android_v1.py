@@ -30,7 +30,7 @@ with tempfile.TemporaryDirectory(prefix="cipa-member-android-") as tmp:
     assert "String.fromEnvironment('AUDITAR_SYNC_KEY'" not in all_code
     assert "String.fromEnvironment(\n    'AUDITAR_MEMBER_ENDPOINT'" in all_code
     assert "android.permission.INTERNET" in manifest.read_text()
-    assert "Minha CIPA - Auditar" in manifest.read_text()
+    assert 'android:label="Minha CIPA"' in manifest.read_text()
     assert "package:auditar_cipa_membro" in (
       app/"test/cipa_member_portal_screen_test.dart").read_text()
     assert "Recusa itens de empresa" in (

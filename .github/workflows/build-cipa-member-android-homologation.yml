@@ -3,8 +3,14 @@ on:
   push:
     branches:
       - feature/android-cipa-member-portal-v1-20261105
+      - feature/minha-cipa-homologacao-integrada-20261118
     paths:
       - 'feature_sources/cipa_member_app_main_v1.dart'
+      - 'feature_sources/cipa_member_demo_main_v1.dart'
+      - 'feature_sources/cipa_member_demo_widget_test_v1.dart'
+      - 'feature_sources/cipa_member_*'
+      - 'feature_sources/cipa_*'
+      - 'feature_sources/Cipa*.gs'
       - 'feature_sources/cipa_member_api_v1.dart'
       - 'feature_sources/cipa_member_api_test_v1.dart'
       - 'feature_sources/cipa_member_portal_*'
@@ -13,6 +19,9 @@ on:
       - 'tools/stage_cipa_member_android_v1.py'
       - 'tools/test_stage_cipa_member_android_v1.py'
       - '.github/workflows/build-cipa-member-android-homologation.yml'
+  pull_request:
+    branches:
+      - feature/minha-cipa-seis-melhorias-integradas-20261113
   workflow_dispatch:
 permissions:
   contents: read
@@ -35,6 +44,8 @@ jobs:
           set -euo pipefail
           python3 -m py_compile tools/stage_cipa_member_android_v1.py tools/test_stage_cipa_member_android_v1.py
           python3 tools/test_stage_cipa_member_android_v1.py
+          # Não alterar o app dos técnicos nem incluir credenciais operacionais.
+          test ! -f /tmp/auditar_cipa_membro/lib/services/device_sync_service.dart || exit 2
           flutter create --platforms=android --project-name auditar_cipa_membro --org br.com.auditar /tmp/auditar_cipa_membro
           python3 tools/stage_cipa_member_android_v1.py /tmp/auditar_cipa_membro
       - name: Formatar, analisar e executar testes Flutter sem tocar no app de técnicos
@@ -51,9 +62,37 @@ jobs:
           cd /tmp/auditar_cipa_membro
           flutter build apk --debug --dart-define=AUDITAR_MEMBER_ENDPOINT=
           test -f build/app/outputs/flutter-apk/app-debug.apk
-      - name: Publicar somente o APK de teste sem Central habilitada
+          cp build/app/outputs/flutter-apk/app-debug.apk /tmp/minha-cipa-sem-login.apk
+      - name: Compilar APK DEMO independente com empresa fictícia
+        run: |
+          set -euo pipefail
+          cd /tmp/auditar_cipa_membro
+          flutter build apk --debug --target=lib/demo_main.dart --dart-define=AUDITAR_MEMBER_ENDPOINT=
+          test -f build/app/outputs/flutter-apk/app-debug.apk
+          cp build/app/outputs/flutter-apk/app-debug.apk /tmp/minha-cipa-demo.apk
+      - name: Verificar integridade dos APKs de homologação
+        run: |
+          set -euo pipefail
+          cd /tmp
+          sha256sum minha-cipa-sem-login.apk > minha-cipa-sem-login.sha256.txt
+          sha256sum minha-cipa-demo.apk > minha-cipa-demo.sha256.txt
+          sha256sum -c minha-cipa-sem-login.sha256.txt
+          sha256sum -c minha-cipa-demo.sha256.txt
+      - name: Publicar APK de teste sem Central habilitada
         uses: actions/upload-artifact@v4
         with:
           name: Minha-CIPA-Android-Homologacao-Sem-Login
-          path: /tmp/auditar_cipa_membro/build/app/outputs/flutter-apk/app-debug.apk
-          retention-days: 7
+          path: |
+            /tmp/minha-cipa-sem-login.apk
+            /tmp/minha-cipa-sem-login.sha256.txt
+          if-no-files-found: error
+          retention-days: 30
+      - name: Publicar DEMO fictícia sem conexão e sem autenticação real
+        uses: actions/upload-artifact@v4
+        with:
+          name: Minha-CIPA-Android-Demo-Ficticia
+          path: |
+            /tmp/minha-cipa-demo.apk
+            /tmp/minha-cipa-demo.sha256.txt
+          if-no-files-found: error
+          retention-days: 30
