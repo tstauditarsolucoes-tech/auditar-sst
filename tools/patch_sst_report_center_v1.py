@@ -130,13 +130,22 @@ g=once(g,"  final Company company;\n  const ManagerReportsScreen({super.key, req
 g=once(g,"  ManagerReportKind kind = ManagerReportKind.pending;",
     "  late ManagerReportKind kind;",
     "Tipo gerencial inicial")
-g=once(g,"  void initState() { super.initState(); _load(); }",
-    "  void initState() {\n"
-    "    super.initState();\n"
-    "    kind=widget.initialKind;\n"
-    "    _load();\n"
-    "  }",
-    "Carregar relatório mensal como padrão da central")
+# A CI formata a tela existente em múltiplas linhas. Não reconstruir
+# o método inteiro: inserir somente a seleção inicial após super.initState,
+# mantendo quaisquer outras inicializações atuais.
+init_matches=list(re.finditer(r"\\bvoid\\s+initState\\s*\\(\\s*\\)\\s*\\{",g))
+if len(init_matches)!=1:
+    raise RuntimeError("initState inesperado no relatório gerencial: "+str(len(init_matches)))
+init=init_matches[0]
+window=g[init.end():init.end()+800]
+super_calls=list(re.finditer(r"super\\.initState\\s*\\(\\s*\\)\\s*;",window))
+load_calls=list(re.finditer(r"\\b_load\\s*\\(\\s*\\)\\s*;",window))
+if len(super_calls)!=1 or len(load_calls)!=1 or load_calls[0].start()<super_calls[0].end():
+    raise RuntimeError("initState do gerencial divergente; manter versão original")
+if "kind=widget.initialKind" in window or "kind = widget.initialKind" in window:
+    raise RuntimeError("Relatório gerencial já inicializado; não duplicar")
+insert_at=init.end()+super_calls[0].end()
+g=g[:insert_at]+"\n    kind=widget.initialKind;"+g[insert_at:]
 
 # Somente depois de validar TODOS os anchors copiamos os arquivos.
 for source,target in files.items():
