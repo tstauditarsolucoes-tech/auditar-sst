@@ -1,5 +1,6 @@
 name: SST android - montagem integral sem producao
 # Revisão CI 26/11: importar conclusão instalada e testar Company sem const
+# Revisão 2: testes Flutter reais separados da fixture de autenticação
 
 on:
   push:
