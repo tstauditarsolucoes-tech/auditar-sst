@@ -36,6 +36,7 @@ assert raw.count(anchor) == 1
 raw = raw.replace(anchor, anchor + """  pdf: ^3.11.1
   printing: ^5.13.4
   signature: ^5.5.0
+  crypto: ^3.0.6
 """, 1)
 pubspec.write_text(raw, encoding="utf-8")
 
