@@ -70,15 +70,29 @@ jobs:
           flutter build apk --debug --target=lib/demo_main.dart --dart-define=AUDITAR_MEMBER_ENDPOINT=
           test -f build/app/outputs/flutter-apk/app-debug.apk
           cp build/app/outputs/flutter-apk/app-debug.apk /tmp/minha-cipa-demo.apk
+      - name: Verificar integridade dos APKs de homologação
+        run: |
+          set -euo pipefail
+          cd /tmp
+          sha256sum minha-cipa-sem-login.apk > minha-cipa-sem-login.sha256.txt
+          sha256sum minha-cipa-demo.apk > minha-cipa-demo.sha256.txt
+          sha256sum -c minha-cipa-sem-login.sha256.txt
+          sha256sum -c minha-cipa-demo.sha256.txt
       - name: Publicar APK de teste sem Central habilitada
         uses: actions/upload-artifact@v4
         with:
           name: Minha-CIPA-Android-Homologacao-Sem-Login
-          path: /tmp/minha-cipa-sem-login.apk
-          retention-days: 7
+          path: |
+            /tmp/minha-cipa-sem-login.apk
+            /tmp/minha-cipa-sem-login.sha256.txt
+          if-no-files-found: error
+          retention-days: 30
       - name: Publicar DEMO fictícia sem conexão e sem autenticação real
         uses: actions/upload-artifact@v4
         with:
           name: Minha-CIPA-Android-Demo-Ficticia
-          path: /tmp/minha-cipa-demo.apk
-          retention-days: 7
+          path: |
+            /tmp/minha-cipa-demo.apk
+            /tmp/minha-cipa-demo.sha256.txt
+          if-no-files-found: error
+          retention-days: 30
