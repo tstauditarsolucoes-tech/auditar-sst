@@ -1,0 +1,141 @@
+name: Auditar SST - homologação Flutter APR AR PT PET e assinaturas
+
+on:
+  push:
+    branches:
+      - feature/auditar-sst-homologacao-flutter-isolamento-20261125
+    paths:
+      - 'feature_sources/sst_*'
+      - 'tools/stage_sst_risk_docs_fixture_v1.py'
+      - 'tools/patch_sst_report_center_v1.py'
+      - 'tools/test_sst_*'
+      - '.github/workflows/test-sst-risk-docs-flutter.yml'
+  pull_request:
+    branches:
+      - feature/auditar-sst-assinatura-formularios-20261125
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Evitar várias compilações simultâneas para commits intermediários.
+concurrency:
+  group: sst-risk-homologation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificação de sintaxe e pré-condições
+        run: |
+          set -euo pipefail
+          python3 -m py_compile \
+            tools/patch_sst_report_center_v1.py \
+            tools/stage_sst_risk_docs_fixture_v1.py \
+            tools/test_sst_apr_pt_ar_v1.py \
+            tools/test_sst_pet_nr33_v1.py \
+            tools/test_sst_activity_guide_v1.py \
+            tools/test_sst_document_signatures_v1.py
+          python3 tools/test_sst_apr_pt_ar_v1.py
+          python3 tools/test_sst_pet_nr33_v1.py
+          python3 tools/test_sst_activity_guide_v1.py
+          python3 tools/test_sst_document_signatures_v1.py
+          python3 tools/test_sst_report_center_patch_v1.py
+          python3 tools/test_integrate_sst_homologation_v1.py
+
+  flutter-fixture:
+    needs: static-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Montar app Flutter isolado (sem banco real nem Apps Script)
+        run: |
+          set -euo pipefail
+          flutter create --platforms=android --project-name auditar_sst \
+            /tmp/auditar_risk_docs_homologacao
+          python3 tools/stage_sst_risk_docs_fixture_v1.py \
+            /tmp/auditar_risk_docs_homologacao
+      - name: Instalar dependências do Flutter
+        working-directory: /tmp/auditar_risk_docs_homologacao
+        run: flutter pub get
+      - name: Formatar somente cópias temporárias para análise
+        working-directory: /tmp/auditar_risk_docs_homologacao
+        run: dart format lib test
+      - name: Análise de erros de compilação em serviços, PDFs e telas
+        working-directory: /tmp/auditar_risk_docs_homologacao
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Testes reais dos modelos e segregação
+        working-directory: /tmp/auditar_risk_docs_homologacao
+        run: |
+          flutter test --reporter expanded \
+            test/sst_scope_key_test.dart \
+            test/sst_risk_documents_test.dart \
+            test/sst_pet_nr33_test.dart \
+            test/sst_activity_guide_test.dart \
+            test/sst_document_signature_test.dart \
+            test/sst_risk_docs_widget_smoke_test.dart \
+            test/sst_risk_docs_pdf_smoke_test.dart
+      - name: Compilar APK de homologação sem assinar/distribuir
+        working-directory: /tmp/auditar_risk_docs_homologacao
+        run: |
+          flutter build apk --debug --no-pub
+      - name: Confirmar análise/testes isolados
+        run: |
+          echo 'APENAS FIXTURE: não publicar nem instalar o APK.'
+
+
+  windows-flutter:
+    needs: static-check
+    runs-on: windows-latest
+    timeout-minutes: 50
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Montar projeto Flutter Windows com dados fictícios
+        run: |
+          $fixture = Join-Path $env:RUNNER_TEMP 'auditar_sst_windows_fixture'
+          flutter config --enable-windows-desktop
+          flutter create --platforms=windows --project-name auditar_sst $fixture
+          if ($LASTEXITCODE -ne 0) { throw 'Flutter create falhou' }
+          python tools/stage_sst_risk_docs_fixture_v1.py $fixture
+          if ($LASTEXITCODE -ne 0) { throw 'Montagem da fixture falhou' }
+      - name: Analisar e testar serviços e telas no Windows
+        run: |
+          $fixture = Join-Path $env:RUNNER_TEMP 'auditar_sst_windows_fixture'
+          Push-Location $fixture
+          try {
+            flutter pub get
+            if ($LASTEXITCODE -ne 0) { throw 'pub get falhou' }
+            dart format lib test
+            if ($LASTEXITCODE -ne 0) { throw 'dart format falhou' }
+            flutter analyze --no-fatal-infos --no-fatal-warnings
+            if ($LASTEXITCODE -ne 0) { throw 'flutter analyze falhou' }
+            flutter test test/sst_scope_key_test.dart test/sst_risk_documents_test.dart test/sst_pet_nr33_test.dart test/sst_activity_guide_test.dart test/sst_document_signature_test.dart test/sst_risk_docs_widget_smoke_test.dart test/sst_risk_docs_pdf_smoke_test.dart
+            if ($LASTEXITCODE -ne 0) { throw 'flutter test falhou' }
+          } finally {
+            Pop-Location
+          }
+      - name: Compilar Windows debug em ambiente temporário
+        run: |
+          $fixture = Join-Path $env:RUNNER_TEMP 'auditar_sst_windows_fixture'
+          Push-Location $fixture
+          try {
+            flutter build windows --debug --no-pub
+            if ($LASTEXITCODE -ne 0) { throw 'build windows falhou' }
+          } finally {
+            Pop-Location
+          }

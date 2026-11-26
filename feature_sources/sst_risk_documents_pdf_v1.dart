@@ -54,7 +54,7 @@ class SstRiskDocumentPdf {
     if (draft.companyId != companyId || !draft.canExportDraft) {
       throw StateError('Documento incompleto ou empresa divergente.');
     }
-    final snapshot = jsonEncode(draft.toJson());
+    final snapshot = sstDocumentFingerprint(draft.toJson());
     if (signatures.any((m) => !m.isCurrent(snapshot))) {
       throw StateError('Assinatura desatualizada: assine a nova versão');
     }

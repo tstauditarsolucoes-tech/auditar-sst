@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'sst_scope_key.dart';
 
 /// Modelos educacionais; sugestões não demonstram controles implantados.
 class SstActivityRiskHint {
@@ -212,8 +213,7 @@ class SstActivityPlanStore {
   final Future<void> Function(String, String) write;
 
   static String key(String user, String company) =>
-      'sst_activity_plan_v1_' + Uri.encodeComponent(user) + '_' +
-      Uri.encodeComponent(company);
+      sstScopedKey('sst_activity_plan_v2', [user, company]);
 
   Future<SstActivityPlan?> load(String user, String company) async {
     final raw = await read(key(user, company));

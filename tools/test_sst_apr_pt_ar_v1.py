@@ -20,8 +20,8 @@ assert "referenceAr.trim().isNotEmpty" in models
 assert "team.trim().isNotEmpty" in models
 assert "validUntil.trim().isNotEmpty" in models
 assert "SstRiskDocStore" in models
-assert "Uri.encodeComponent(user)" in models
-assert "Uri.encodeComponent(company)" in models
+assert "sstScopedKey(" in models
+assert "sstScopedKey(" in models
 assert "draft.kind" in models
 assert "Documento já arquivado; não sobrescrever" in models
 assert "SstRiskDocsHomeScreen(company:company)" in central

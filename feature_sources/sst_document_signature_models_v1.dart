@@ -1,4 +1,11 @@
 import 'dart:convert';
+import 'package:crypto/crypto.dart';
+import 'sst_scope_key.dart';
+
+/// Impressão da versão do documento, sem copiar os campos SST para o
+/// registro de assinatura; não é certificação digital.
+String sstDocumentFingerprint(Map<String, dynamic> fields) =>
+    sha256.convert(utf8.encode(jsonEncode(fields))).toString();
 
 /// Assinatura desenhada na tela: registro de ciência, NÃO assinatura digital
 /// certificada, identidade verificada nem autorização de PT ou PET.
@@ -41,12 +48,13 @@ class SstHandwrittenMark {
       declaredName: field('declaredName', 160),
       declaredFunction: field('declaredFunction', 160),
       signedAt: field('signedAt', 80),
-      documentSnapshot: field('documentSnapshot', 85000),
+      documentSnapshot: field('documentSnapshot', 64),
       pngBase64: field('pngBase64', 230000),
     );
     if (!RegExp(r'^[a-z][a-z0-9_]{2,60}$').hasMatch(item.roleCode) ||
         item.declaredName.isEmpty || item.declaredFunction.isEmpty ||
-        item.signedAt.isEmpty || item.documentSnapshot.isEmpty ||
+        item.signedAt.isEmpty ||
+        !RegExp(r'^[a-f0-9]{64}$').hasMatch(item.documentSnapshot) ||
         item.pngBase64.isEmpty ||
         !RegExp(r'^[A-Za-z0-9+/]+={0,2}$').hasMatch(item.pngBase64)) {
       throw const FormatException('Assinatura incompleta ou inválida');
@@ -72,9 +80,7 @@ class SstHandwrittenSignatureStore {
   final Future<void> Function(String, String) write;
 
   static String key(String user, String company, String kind, String id) =>
-      'sst_hand_sign_v1_' + Uri.encodeComponent(user) + '_' +
-      Uri.encodeComponent(company) + '_' + Uri.encodeComponent(kind) + '_' +
-      Uri.encodeComponent(id);
+      sstScopedKey('sst_hand_sign_v2', [user, company, kind, id]);
 
   Future<List<SstHandwrittenMark>> load({
     required String user,

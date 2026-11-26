@@ -4,19 +4,29 @@ import '../lib/services/sst_document_signature_models.dart';
 
 const png = 'iVBORw0KGgoAAAANSUhEUgAAAGQAAAAtCAIAAADX11mnAAABmklEQVR4nO2awRKCMAxErf//z3hwZJxCt9kkW8TJO3hwsAnPDVORtm3bo7DxvLqBO1GyCEoWQckiKFkEJYugZBHcXlZrbX9VkyNr73VN013dZb5afAd/7HLBr4KRGmlpyRiqv2SwvrR0VNaoOVHTrbXpyjpfIVm4rfSmTxfcPkhLv8kcQ13To0B9l1vgyy+r62bvNb1pEKjjm7mlO5yycB9ZTVsCJSp9Ss4YTr9kB/ZA4dKJvjyyRgPY8f0+1bEjUPjILF+0LKqww5c7UKC0vTomOobUOUy3GsFAZX1wBCfLOIDgGGoT6wgUqB4PFyHLYer0yG6d9ECBdYK+rLKCZUa+RIECRE7Eec1ynMzRlzRQuLRvHZMs9wB24A9KA5Xiay4rdxNs2ZSJiPuixzB+Vt0K0kDh0qyviaysAezYBa1/0iLiC8lS3/C86pkUty9iDP/peRufr6Es0QD+Dg5fQ1krr7tXwfqajOFVl+FlgBvTR+bXrD829cYeiNv/fZ+CMRAli6BkEZQsgpJFULIIShZBySIoWQQli+AFeGQCTZnCS3cAAAAASUVORK5CYII=';
 
+String testFingerprint(String value) =>
+    sstDocumentFingerprint({'testState': value});
+
 SstHandwrittenMark mark(String snapshot, {String role = 'author'}) =>
     SstHandwrittenMark(
       roleCode: role, roleLabel: 'Elaborador - ciência',
       declaredName: 'Pessoa de Teste', declaredFunction: 'TST',
       signedAt: '2026-11-25T21:00:00Z',
-      documentSnapshot: snapshot, pngBase64: png,
+      documentSnapshot: testFingerprint(snapshot), pngBase64: png,
     );
 
 void main() {
   test('rubrica não certificada é vinculada à versão do formulário', () {
     final a = mark('{"atividade":"A","status":"rascunho"}');
-    expect(a.isCurrent('{"atividade":"A","status":"rascunho"}'), isTrue);
-    expect(a.isCurrent('{"atividade":"B","status":"rascunho"}'), isFalse);
+    expect(a.isCurrent(testFingerprint('{"atividade":"A","status":"rascunho"}')), isTrue);
+    expect(a.isCurrent(testFingerprint('{"atividade":"B","status":"rascunho"}')), isFalse);
+  });
+
+  test('assinatura guarda somente SHA-256, sem repetir texto SST', () {
+    final stored = mark('exemplo sensível');
+    expect(stored.documentSnapshot.length, 64);
+    expect(stored.documentSnapshot, matches(RegExp(r'^[a-f0-9]{64}$')));
+    expect(stored.toJson().toString(), isNot(contains('exemplo sensível')));
   });
 
   test('metadados da assinatura e PNG sobrevivem ao JSON', () {
@@ -55,10 +65,10 @@ void main() {
     );
     expect((await store.validForDocument(
       user: 'u1', company: 'e1', kind: 'risk_apr', id: 'doc-1',
-      snapshot: 'estado-1')).length, 1);
+      snapshot: testFingerprint('estado-1'))).length, 1);
     expect(await store.validForDocument(
       user: 'u1', company: 'e1', kind: 'risk_apr', id: 'doc-1',
-      snapshot: 'estado-2'), isEmpty);
+      snapshot: testFingerprint('estado-2')), isEmpty);
     expect(await store.load(
       user: 'u2', company: 'e1', kind: 'risk_apr', id: 'doc-1'), isEmpty);
     expect(await store.load(
@@ -94,8 +104,8 @@ void main() {
       user:'u1',company:'e1',kind:'risk_ar',id:'doc-1');
     expect(all.length, 2);
     expect(all.firstWhere((e) => e.roleCode=='author').documentSnapshot,
-      'v2');
+      testFingerprint('v2'));
     expect(all.firstWhere((e) => e.roleCode=='reviewer').documentSnapshot,
-      'v1');
+      testFingerprint('v1'));
   });
 }

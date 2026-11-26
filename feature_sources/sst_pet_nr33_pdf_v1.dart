@@ -59,7 +59,7 @@ class SstPetNr33Pdf {
         !draft.readyForReviewPdf) {
       throw StateError('Minuta PET incompleta ou fora desta empresa/conta');
     }
-    final snapshot = jsonEncode(draft.toJson());
+    final snapshot = sstDocumentFingerprint(draft.toJson());
     if (signatures.any((m) => !m.isCurrent(snapshot))) {
       throw StateError('Assinatura desatualizada: revisar nova versão');
     }

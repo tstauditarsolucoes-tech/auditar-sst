@@ -18,10 +18,10 @@ assert "class SstHandwrittenMark" in model
 assert "class SstHandwrittenSignatureStore" in model
 assert "bool isCurrent(String snapshot)" in model
 assert "documentSnapshot == snapshot" in model
-assert "Uri.encodeComponent(user)" in model
-assert "Uri.encodeComponent(company)" in model
-assert "Uri.encodeComponent(kind)" in model
-assert "Uri.encodeComponent(id)" in model
+assert "sstScopedKey(" in model
+assert "sstScopedKey(" in model
+assert "sstScopedKey(" in model
+assert "sstScopedKey(" in model
 assert "allowedRoles.contains(mark.roleCode)" in model
 assert "validForDocument" in model
 assert "m.isCurrent(snapshot)" in model or "mark.isCurrent(snapshot)" in model
@@ -44,8 +44,10 @@ assert "SstDocumentSignaturePanel(" in risk_ui
 assert "SstDocumentSignaturePanel(" in pet_ui
 assert "signatureStore.validForDocument(" in risk_ui
 assert "signatureStore.validForDocument(" in pet_ui
-assert "snapshot: jsonEncode(value.toJson())" in risk_ui
-assert "snapshot: jsonEncode(source.toJson())" in pet_ui
+assert "snapshot: sstDocumentFingerprint(value.toJson())" in risk_ui
+assert "snapshot: sstDocumentFingerprint(source.toJson())" in pet_ui
+assert "sha256.convert(utf8.encode(jsonEncode(fields)))" in model
+assert "field('documentSnapshot', 64)" in model
 assert "kind: 'pet_nr33'" in pet_ui
 assert "kind: 'risk_' + widget.kind.name" in risk_ui
 assert "'supervisor_ack'" in pet_ui and "'attendant_ack'" in pet_ui

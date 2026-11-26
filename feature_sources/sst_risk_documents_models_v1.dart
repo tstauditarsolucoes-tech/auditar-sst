@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import 'sst_scope_key.dart';
 
 /// APR e AR avaliam perigos; PT e uma permissao sujeita a autorizacao real.
 enum SstRiskDocKind { apr, pt, ar }
@@ -200,8 +201,7 @@ class SstRiskDocStore {
   final Future<void> Function(String, String) write;
 
   static String _prefix(String user, String company, SstRiskDocKind kind) =>
-      'risk_doc_v1_' + Uri.encodeComponent(user) + '_' +
-      Uri.encodeComponent(company) + '_' + kind.name;
+      sstScopedKey('risk_doc_v2', [user, company, kind.name]);
 
   static String draftKey(String user, String company, SstRiskDocKind kind) =>
       _prefix(user, company, kind) + '_draft';
