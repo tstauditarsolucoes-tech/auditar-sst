@@ -13,6 +13,11 @@ on:
     branches: ['feature/auditar-sst-integracao-completa-final-20261126']
     types: [opened, synchronize, reopened]
   workflow_dispatch:
+    inputs:
+      connected_homologation:
+        description: 'Gerar candidato conectado APENAS a central de testes configurada no ambiente protegido'
+        type: boolean
+        default: false
 
 concurrency:
   group: auditar-android-${{ github.ref }}
@@ -29,6 +34,7 @@ jobs:
   android:
     if: github.event_name != 'pull_request' || github.head_ref == 'fix/android-homologacao-estabilidade-20261126'
     runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.connected_homologation && 'auditar-connected-homologation' || 'auditar-offline-homologation' }}
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v5
@@ -1362,6 +1368,25 @@ jobs:
           flutter test
           grep -Fq 'version: 3.29.203+345' pubspec.yaml
 
+      - name: Verificar configuracao automatica com dados ficticios sem rede
+        run: |
+          set -euo pipefail
+          cd "$APP_DIR"
+          cat > test/embedded_config_homologation_test.dart <<'DART'
+          import 'package:flutter_test/flutter_test.dart';
+          import '../lib/services/web_service_config.dart';
+
+          void main() {
+            test('URL e chave de homologacao sao lidas automaticamente do build', () {
+              expect(WebServiceConfig.endpoint, 'https://script.google.com/macros/s/AUDITAR_FAKE_TEST_ONLY/exec');
+              expect(WebServiceConfig.syncKey, 'auditar-fake-ci-key-not-real');
+              expect(WebServiceConfig.isEmbedded, isTrue);
+            });
+          }
+          DART
+          flutter test test/embedded_config_homologation_test.dart --dart-define=AUDITAR_APPS_SCRIPT_URL=https://script.google.com/macros/s/AUDITAR_FAKE_TEST_ONLY/exec --dart-define=AUDITAR_SYNC_KEY=auditar-fake-ci-key-not-real
+          rm test/embedded_config_homologation_test.dart
+
       # The Android lint parser used by image_picker_android calls List.removeLast,
       # available since JDK 21. Keep earlier tests on their proven Java 17 setup.
       # Do not disable lint or change the camera plugin just to pass CI.
@@ -1396,4 +1421,61 @@ jobs:
           name: Auditar-SST-Android-v329203-TESTE-OFFLINE-SEM-CREDENCIAIS
           path: app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 7
+          if-no-files-found: error
+
+
+      # Optional, manually requested, with disposable test credentials only.
+      # Configure the named GitHub environment with approval/branch restrictions.
+      # Never fall back to the historic production AUDITAR_SYNC_KEY.
+      - name: Validar configuracao da central isolada de testes
+        if: github.event_name == 'workflow_dispatch' && inputs.connected_homologation
+        env:
+          AUDITAR_HOMOLOG_APPS_SCRIPT_URL: ${{ secrets.AUDITAR_HOMOLOG_APPS_SCRIPT_URL }}
+          AUDITAR_HOMOLOG_SYNC_KEY: ${{ secrets.AUDITAR_HOMOLOG_SYNC_KEY }}
+        run: |
+          set -euo pipefail
+          cd "$APP_DIR"
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          from urllib.parse import urlsplit
+          endpoint = os.environ.get("AUDITAR_HOMOLOG_APPS_SCRIPT_URL", "").strip()
+          key = os.environ.get("AUDITAR_HOMOLOG_SYNC_KEY", "").strip()
+          if not key or not endpoint:
+              raise SystemExit("Central de testes nao configurada; nao compilar conectado.")
+          parsed = urlsplit(endpoint)
+          if parsed.scheme != "https" or parsed.netloc != "script.google.com" or not re.fullmatch(r"/macros/s/[A-Za-z0-9_-]+/exec", parsed.path) or parsed.query or parsed.fragment:
+              raise SystemExit("Endpoint de testes invalido")
+          config = Path("lib/services/web_service_config.dart").read_text()
+          production = re.findall(r"https://script\.google\.com/macros/s/[A-Za-z0-9_-]+/exec", config)
+          if not production:
+              raise SystemExit("Nao foi possivel identificar endpoint padrao para comparar; bloquear")
+          if endpoint in production:
+              raise SystemExit("Endpoint padrao de producao proibido nesta homologacao")
+          print("Configuracao de testes presente; valores omitidos.")
+          PY
+
+      - name: Compilar candidato conectado somente a central de testes
+        if: github.event_name == 'workflow_dispatch' && inputs.connected_homologation
+        env:
+          AUDITAR_HOMOLOG_APPS_SCRIPT_URL: ${{ secrets.AUDITAR_HOMOLOG_APPS_SCRIPT_URL }}
+          AUDITAR_HOMOLOG_SYNC_KEY: ${{ secrets.AUDITAR_HOMOLOG_SYNC_KEY }}
+        run: |
+          set -euo pipefail
+          cd "$APP_DIR"
+          flutter build apk --release --dart-define=AUDITAR_APPS_SCRIPT_URL="$AUDITAR_HOMOLOG_APPS_SCRIPT_URL" --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_HOMOLOG_SYNC_KEY"
+          test -s build/app/outputs/flutter-apk/app-release.apk
+          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -1)"
+          "$AAPT" dump badging build/app/outputs/flutter-apk/app-release.apk > /tmp/auditar-connected-badging.txt
+          grep -Fq "package: name='br.com.auditar.auditar_sst.homolog'" /tmp/auditar-connected-badging.txt
+          grep -Fq "versionName='3.29.203'" /tmp/auditar-connected-badging.txt
+          if grep -q '^application-debuggable' /tmp/auditar-connected-badging.txt; then exit 1; fi
+
+      - name: Arquivar candidato conectado com credenciais descartaveis de teste
+        if: success() && github.event_name == 'workflow_dispatch' && inputs.connected_homologation
+        uses: actions/upload-artifact@v4
+        with:
+          name: Auditar-SST-Android-v329203-CENTRAL-TESTE-NAO-PRODUCAO
+          path: app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 3
           if-no-files-found: error
