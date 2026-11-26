@@ -38,6 +38,8 @@ jobs:
           python3 tools/test_sst_pet_nr33_v1.py
           python3 tools/test_sst_activity_guide_v1.py
           python3 tools/test_sst_document_signatures_v1.py
+          python3 tools/test_sst_report_center_patch_v1.py
+          python3 tools/test_integrate_sst_homologation_v1.py
 
   flutter-fixture:
     needs: static-check
