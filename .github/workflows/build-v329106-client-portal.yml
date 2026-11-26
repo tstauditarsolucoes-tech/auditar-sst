@@ -1,23 +1,12 @@
-name: SST Android - correcoes teste fisico v3.29.203
-# Revisão CI 26/11: importar conclusão instalada e testar Company sem const
-# Revisão 2: testes Flutter reais separados da fixture de autenticação
-
+name: SST Android 3.29.204 - candidato conectado protegido
+# Build solicitado para homologação no aparelho. Sem chamadas de rede à central
+# durante CI. Apenas o APK cifrado pode sair do job em repositório público.
 on:
   push:
-    branches: ['fix/android-homologacao-estabilidade-20261126']
+    branches: ['fix/android-conectado-seguro-20261126']
     paths:
       - '.github/workflows/build-v329106-client-portal.yml'
-      - 'tools/integrate_sst_recent_base_v1.py'
-      - 'tools/patch_android_physical_homologation_v329203.py'
-  pull_request:
-    branches: ['feature/auditar-sst-integracao-completa-final-20261126']
-    types: [opened, synchronize, reopened]
   workflow_dispatch:
-    inputs:
-      connected_homologation:
-        description: 'Gerar candidato conectado APENAS a central de testes configurada no ambiente protegido'
-        type: boolean
-        default: false
 
 concurrency:
   group: auditar-android-${{ github.ref }}
@@ -32,9 +21,8 @@ env:
 
 jobs:
   android:
-    if: github.event_name != 'pull_request' || github.head_ref == 'fix/android-homologacao-estabilidade-20261126'
+    if: github.repository == 'tstauditarsolucoes-tech/auditar-sst' && github.ref == 'refs/heads/fix/android-conectado-seguro-20261126'
     runs-on: ubuntu-latest
-    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.connected_homologation && 'auditar-connected-homologation' || 'auditar-offline-homologation' }}
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v5
@@ -1396,86 +1384,93 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Compilar Release isolado para teste visual e desempenho sem conexao configurada
+      - name: Compilar APK conectado e cifrar para entrega restrita
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
         run: |
           set -euo pipefail
+          set +x
+          umask 077
           cd "$APP_DIR"
+          test -n "$AUDITAR_SYNC_KEY" || { echo 'Chave original ausente no GitHub Actions; build bloqueado.'; exit 1; }
+          CONFIG="$(mktemp)"
+          export CONFIG
+          GNUPGHOME="$(mktemp -d)"
+          export GNUPGHOME
+          trap 'rm -f "$CONFIG" test/embedded_config_connected_test.dart build/app/outputs/flutter-apk/app-release.apk; rm -rf "$GNUPGHOME"' EXIT
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          key = os.environ["AUDITAR_SYNC_KEY"].strip()
+          if not key:
+              raise SystemExit("Chave vazia; build bloqueado.")
+          # Do not override the original, embedded endpoint with an empty string.
+          Path(os.environ["CONFIG"]).write_text(json.dumps({"AUDITAR_SYNC_KEY": key}))
+          PY
+          unset AUDITAR_SYNC_KEY
+          cat > test/embedded_config_connected_test.dart <<'DART'
+          import 'package:flutter_test/flutter_test.dart';
+          import '../lib/services/web_service_config.dart';
+          void main() {
+            test('configuracao original incorporada sem chamada de rede', () {
+              expect(WebServiceConfig.hasValidEndpoint, isTrue);
+              expect(WebServiceConfig.hasCredentials, isTrue);
+              expect(WebServiceConfig.isEmbedded, isTrue);
+            });
+          }
+          DART
+          flutter test test/embedded_config_connected_test.dart --dart-define-from-file="$CONFIG"
+          rm test/embedded_config_connected_test.dart
           java -version
           flutter config --jdk-dir="$JAVA_HOME"
           (cd android && ./gradlew --stop && ./gradlew --version)
-          flutter build apk --release --dart-define=AUDITAR_APPS_SCRIPT_URL= --dart-define=AUDITAR_SYNC_KEY=
-          # Verify the independent package, not just the existence of an APK.
+          flutter build apk --release --build-name=3.29.204 --build-number=346 --dart-define-from-file="$CONFIG"
           APK=build/app/outputs/flutter-apk/app-release.apk
+          test -s "$APK"
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -1)"
           test -x "$AAPT"
-          "$AAPT" dump badging "$APK" > /tmp/auditar-apk-badging.txt
-          grep -Fq "package: name='br.com.auditar.auditar_sst.homolog'" /tmp/auditar-apk-badging.txt
-          grep -Fq "versionName='3.29.203'" /tmp/auditar-apk-badging.txt
-          if grep -q '^application-debuggable' /tmp/auditar-apk-badging.txt; then exit 1; fi
-          test -s build/app/outputs/flutter-apk/app-release.apk
+          "$AAPT" dump badging "$APK" > /tmp/auditar-connected-badging.txt
+          grep -Fq "package: name='br.com.auditar.auditar_sst.homolog'" /tmp/auditar-connected-badging.txt
+          grep -Fq "versionName='3.29.204'" /tmp/auditar-connected-badging.txt
+          if grep -q '^application-debuggable' /tmp/auditar-connected-badging.txt; then exit 1; fi
+          cat > "$GNUPGHOME/recipient.asc" <<'PGP'
+          -----BEGIN PGP PUBLIC KEY BLOCK-----
+          
+          mQGNBGsIv34BDAC61ig7fbm8Qak3wm47kH/AoilqiYKR2FLVOu6BXSACasVouZgd
+          NSQem5FY2wQ8uAm03kZlWJ2645X39pXtkL6gDMhruMBRfpOX6I8A6Mkfac5b8av4
+          fBtgcwF+UTkYscOs4HOjtd4YRepP1hhj9bxSf/EoyBOS4LkoTwrOD2DcIpS07bQf
+          RYlPaUSlue7/p5vhDOAbHTFUi1v+EBlNEmArpESzrl7g9X/q+yOijIutRuabjNNc
+          LGfPKiwBMZffnb2ZmQScn0QsY3KP/TQs5JlimbtJ+XX/djTb4fsywjZB/4Z69ReQ
+          CB0tMssZ+C0Gef7gXomZqjRL6XHtWKHDLob69gryzPC3Jnjx3LTrU1iHBhFzS15F
+          vMwTuqrak/Ll9JrUFHMduYUGiHKy+2CJ4LOVYA2h8QehKPWLd37DYywVXJVLxmAr
+          m+iU4biBOBHpxAg+gqQUmFn/1JT+rbQnBM0Y+viDQAaEXUXuI2oWTwx1UkUcpxns
+          kcsxVSc1o5axhLcAEQEAAbQiQXVkaXRhciBTU1QgcHJpdmF0ZSBidWlsZCAyMDI2
+          MTEyNokB1AQTAQoAPhYhBNgvUeQEaRcE/ZxC9QQNtm7QH7f0BQJrCL9+AhsNBQkA
+          CTqABQsJCAcCBhUKCQgLAgQWAgMBAh4BAheAAAoJEAQNtm7QH7f0v+sL/R78Ur6e
+          jZuApF2q66TAyN2zybbr7t8GqDwXvfG9MuGgt2I6xH8Aonyv7tYQtGzdYLM8rEwL
+          i7sKWnWs1XX2QrdS1MDiBEnb8og9mo84lE57NLLZGTqPgOPDd4lIK7lJBUl6Rwp/
+          Nvo1IL1tXriafQIZyexwcr8981A3oVOEVT/9nVUcMbNBoj3dLRCKbqjJ/9NActmt
+          W8Xr1kxw3PZT74ohZ+NJZWzCr+6Et5JDZHAmXuTQZCjB6VynI7r1opnayynjY0Bj
+          r7o1X7X99omiXdjdvLG5qd9IFEizFxrcmwfau5eU6tQjhlJ42dgaYbu9Yu9OBsMQ
+          O06SHWovaubuBsocy67Q/uVg0AC827zVcGghyP4mo0YWH9KExFJ/Qg/qi5SjJoh2
+          coC5lj3XXTcC3P5mxo2bePFOqnBNammxSiaGEQTfN4XMTiFQH+krIrfAt9MQXpvV
+          BYMYsp/20Jsts/QnMwdSVheupuocxIyIWxEEhUNXHBkWwJ+nfzWuU4+zwg==
+          =jiZJ
+          -----END PGP PUBLIC KEY BLOCK-----
+          PGP
+          gpg --batch --import "$GNUPGHOME/recipient.asc"
+          FPR=D82F51E404691704FD9C42F5040DB66ED01FB7F4
+          gpg --batch --with-colons --list-keys "$FPR" | grep -Fq "$FPR"
+          mkdir -p "$GITHUB_WORKSPACE/dist/connected-encrypted"
+          gpg --batch --yes --trust-model always --cipher-algo AES256 --compress-algo none --recipient "$FPR" --output "$GITHUB_WORKSPACE/dist/connected-encrypted/Auditar-SST-3.29.204-Conectado.apk.gpg" --encrypt "$APK"
+          test -s "$GITHUB_WORKSPACE/dist/connected-encrypted/Auditar-SST-3.29.204-Conectado.apk.gpg"
+          rm -f "$APK" "$CONFIG"
 
-      - name: Arquivar somente candidato de testes offline (nao e distribuicao)
+      - name: Arquivar exclusivamente APK cifrado
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-Android-v329203-TESTE-OFFLINE-SEM-CREDENCIAIS
-          path: app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 7
-          if-no-files-found: error
-
-
-      # Optional, manually requested, with disposable test credentials only.
-      # Configure the named GitHub environment with approval/branch restrictions.
-      # Never fall back to the historic production AUDITAR_SYNC_KEY.
-      - name: Validar configuracao da central isolada de testes
-        if: github.event_name == 'workflow_dispatch' && inputs.connected_homologation
-        env:
-          AUDITAR_HOMOLOG_APPS_SCRIPT_URL: ${{ secrets.AUDITAR_HOMOLOG_APPS_SCRIPT_URL }}
-          AUDITAR_HOMOLOG_SYNC_KEY: ${{ secrets.AUDITAR_HOMOLOG_SYNC_KEY }}
-        run: |
-          set -euo pipefail
-          cd "$APP_DIR"
-          python3 - <<'PY'
-          import os, re
-          from pathlib import Path
-          from urllib.parse import urlsplit
-          endpoint = os.environ.get("AUDITAR_HOMOLOG_APPS_SCRIPT_URL", "").strip()
-          key = os.environ.get("AUDITAR_HOMOLOG_SYNC_KEY", "").strip()
-          if not key or not endpoint:
-              raise SystemExit("Central de testes nao configurada; nao compilar conectado.")
-          parsed = urlsplit(endpoint)
-          if parsed.scheme != "https" or parsed.netloc != "script.google.com" or not re.fullmatch(r"/macros/s/[A-Za-z0-9_-]+/exec", parsed.path) or parsed.query or parsed.fragment:
-              raise SystemExit("Endpoint de testes invalido")
-          config = Path("lib/services/web_service_config.dart").read_text()
-          production = re.findall(r"https://script\.google\.com/macros/s/[A-Za-z0-9_-]+/exec", config)
-          if not production:
-              raise SystemExit("Nao foi possivel identificar endpoint padrao para comparar; bloquear")
-          if endpoint in production:
-              raise SystemExit("Endpoint padrao de producao proibido nesta homologacao")
-          print("Configuracao de testes presente; valores omitidos.")
-          PY
-
-      - name: Compilar candidato conectado somente a central de testes
-        if: github.event_name == 'workflow_dispatch' && inputs.connected_homologation
-        env:
-          AUDITAR_HOMOLOG_APPS_SCRIPT_URL: ${{ secrets.AUDITAR_HOMOLOG_APPS_SCRIPT_URL }}
-          AUDITAR_HOMOLOG_SYNC_KEY: ${{ secrets.AUDITAR_HOMOLOG_SYNC_KEY }}
-        run: |
-          set -euo pipefail
-          cd "$APP_DIR"
-          flutter build apk --release --dart-define=AUDITAR_APPS_SCRIPT_URL="$AUDITAR_HOMOLOG_APPS_SCRIPT_URL" --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_HOMOLOG_SYNC_KEY"
-          test -s build/app/outputs/flutter-apk/app-release.apk
-          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -1)"
-          "$AAPT" dump badging build/app/outputs/flutter-apk/app-release.apk > /tmp/auditar-connected-badging.txt
-          grep -Fq "package: name='br.com.auditar.auditar_sst.homolog'" /tmp/auditar-connected-badging.txt
-          grep -Fq "versionName='3.29.203'" /tmp/auditar-connected-badging.txt
-          if grep -q '^application-debuggable' /tmp/auditar-connected-badging.txt; then exit 1; fi
-
-      - name: Arquivar candidato conectado com credenciais descartaveis de teste
-        if: success() && github.event_name == 'workflow_dispatch' && inputs.connected_homologation
-        uses: actions/upload-artifact@v4
-        with:
-          name: Auditar-SST-Android-v329203-CENTRAL-TESTE-NAO-PRODUCAO
-          path: app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-release.apk
+          name: Auditar-SST-Android-v329204-CONECTADO-CIFRADO
+          path: dist/connected-encrypted/Auditar-SST-3.29.204-Conectado.apk.gpg
           retention-days: 3
           if-no-files-found: error
