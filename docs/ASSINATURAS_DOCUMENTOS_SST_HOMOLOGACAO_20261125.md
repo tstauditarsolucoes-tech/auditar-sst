@@ -20,13 +20,15 @@
   de nova tabela/banco neste estágio.
 
 ## Proteção contra documentos alterados
-Cada registro de assinatura armazena cópia textual do JSON do documento
-que estava exibido no instante da rubrica. Se qualquer campo for editado,
-a comparação exata falha: a rubrica antiga é marcada como desatualizada
-e **não entra no novo PDF**. É necessário assinar novamente.
-Isto é apenas bloqueio local de uso indevido, NÃO assinatura criptográfica,
-não garante integridade contra adulteração de banco ou do dispositivo
-e NÃO autentica o signatário.
+O aplicativo calcula a **impressão SHA-256** do JSON do documento exibido
+na assinatura e guarda somente esse hash no registro da rubrica, reduzindo
+a duplicação de dados SST. Se o conteúdo for alterado, o hash muda:
+a rubrica anterior fica desatualizada e **não entra no novo PDF**.
+É necessário revisar e assinar novamente.
+Isto é apenas comparação local de versões, NÃO uma assinatura digital
+certificada. Quem controla o dispositivo ou o armazenamento poderia
+adulterar registros: o hash isolado não comprova a identidade do signatário
+nem a integridade jurídica do documento.
 O histórico arquivado pode continuar exibindo a ciência da versão
 antiga se corresponder ao seu próprio conteúdo.
 
@@ -36,7 +38,8 @@ antiga se corresponder ao seu próprio conteúdo.
 - Aprovação/emissão/revalidação/encerramento efetivo de PT ou PET.
 - Controle de assinatura por supervisor/vigia autenticados individualmente.
 - Retenção obrigatória e acesso permanente ao vigia para PET digital.
-- Sincronização ou validação criptográfica do documento.
+- Sincronização, cadeia de custódia inviolável e validação criptográfica de
+  identidade/assinatura do signatário. O hash local não supre tais requisitos.
 - A rubrica manuscrita pode ter utilidade documental de ciência,
   mas **não equivale a autorização de trabalho nem atende, por si só,
   os requisitos de certificação da PET digital**.
@@ -62,3 +65,11 @@ antiga se corresponder ao seu próprio conteúdo.
 - Analisar requisitos de LGPD, proteção de dados, backup, autenticação
   e eventual integração futura com prestador de assinatura certificada.
 - Não publicar, instalar ou mesclar sem revisão, testes e aprovação.
+
+## Homologação técnica desta etapa
+- Workflow: `.github/workflows/test-sst-risk-docs-flutter.yml`.
+- Testes dos PDFs com rubricas para APR, AR, PT e PET, incluindo bloqueio
+  de assinatura desatualizada e documento fora do cliente.
+- Validação de chaves localmente isoladas por usuário, empresa, tipo e ID.
+- Compilações de fixture Flutter Android/Windows não equivalem a APK/EXE
+  do aplicativo comercial nem a teste em dispositivo real.
