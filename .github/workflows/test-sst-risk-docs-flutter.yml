@@ -18,6 +18,11 @@ on:
 permissions:
   contents: read
 
+# Evitar várias compilações simultâneas para commits intermediários.
+concurrency:
+  group: sst-risk-homologation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   static-check:
     runs-on: ubuntu-latest
