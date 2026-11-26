@@ -3,7 +3,7 @@
 
 Não altera base de dados, sync, auth, fotos, IA, Apps Script ou PDF vigente.
 Usar em cópia integral gerada pela CI, NUNCA em computador do cliente.
-Não reaplicar os patches legados de CIPA/NR12 nem o bloqueio de assinatura
+Usa patch gerencial tolerante a formatação; sem reaplicar os patches legados de CIPA/NR12 nem o bloqueio de assinatura
 antiga: a fonte recente já inclui revisões desses módulos, e sobrescrevê-las
 pode causar regressões e duplicação.
 """
