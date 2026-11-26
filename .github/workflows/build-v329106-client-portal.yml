@@ -2,14 +2,15 @@ name: SST Android 3.29.204 - candidato conectado protegido
 # Build solicitado para homologação no aparelho. Sem chamadas de rede à central
 # durante CI. Apenas o APK cifrado pode sair do job em repositório público.
 on:
-  push:
-    branches: ['fix/android-conectado-seguro-20261126']
+  pull_request:
+    branches: ['fix/android-homologacao-estabilidade-20261126']
+    types: [opened, synchronize, reopened]
     paths:
       - '.github/workflows/build-v329106-client-portal.yml'
   workflow_dispatch:
 
 concurrency:
-  group: auditar-android-${{ github.ref }}
+  group: auditar-android-connected-v329204
   cancel-in-progress: true
 
 permissions:
@@ -21,7 +22,14 @@ env:
 
 jobs:
   android:
-    if: github.repository == 'tstauditarsolucoes-tech/auditar-sst' && github.ref == 'refs/heads/fix/android-conectado-seguro-20261126'
+    if: >-
+      github.repository == 'tstauditarsolucoes-tech/auditar-sst' &&
+      ((github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        github.head_ref == 'fix/android-conectado-seguro-20261126' &&
+        github.base_ref == 'fix/android-homologacao-estabilidade-20261126') ||
+       (github.event_name == 'workflow_dispatch' &&
+        github.ref == 'refs/heads/fix/android-conectado-seguro-20261126'))
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
