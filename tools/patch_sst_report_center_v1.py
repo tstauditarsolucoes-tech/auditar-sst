@@ -133,13 +133,13 @@ g=once(g,"  ManagerReportKind kind = ManagerReportKind.pending;",
 # A CI formata a tela existente em múltiplas linhas. Não reconstruir
 # o método inteiro: inserir somente a seleção inicial após super.initState,
 # mantendo quaisquer outras inicializações atuais.
-init_matches=list(re.finditer(r"\\bvoid\\s+initState\\s*\\(\\s*\\)\\s*\\{",g))
+init_matches=list(re.finditer(r"\bvoid\s+initState\s*\(\s*\)\s*\{",g))
 if len(init_matches)!=1:
     raise RuntimeError("initState inesperado no relatório gerencial: "+str(len(init_matches)))
 init=init_matches[0]
 window=g[init.end():init.end()+800]
-super_calls=list(re.finditer(r"super\\.initState\\s*\\(\\s*\\)\\s*;",window))
-load_calls=list(re.finditer(r"\\b_load\\s*\\(\\s*\\)\\s*;",window))
+super_calls=list(re.finditer(r"super\.initState\s*\(\s*\)\s*;",window))
+load_calls=list(re.finditer(r"\b_load\s*\(\s*\)\s*;",window))
 if len(super_calls)!=1 or len(load_calls)!=1 or load_calls[0].start()<super_calls[0].end():
     raise RuntimeError("initState do gerencial divergente; manter versão original")
 if "kind=widget.initialKind" in window or "kind = widget.initialKind" in window:
