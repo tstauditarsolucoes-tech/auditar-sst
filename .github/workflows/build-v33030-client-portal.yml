@@ -1,371 +1,14 @@
-name: Auditar SST Windows v3.30.129 HOMOLOGACAO
-# Clean rebuild v3.30.64 after protected productivity consolidation
+name: SST windows - montagem integral sem producao
 
 on:
   push:
-    branches: [feature/client-panel-permissions-v329106, feature/auditar-sst-consolidacao-homologacao-20261112, feature/auditar-sst-estabilizacao-ci-20261113, feature/auditar-sst-timeout-ci-compat-20261119, feature/auditar-sst-ci-convergencia-20261119]
+    branches: ['feature/sst-montagem-integral-sem-producao-20261126']
     paths:
-      - 'feature_sources/cipa_participation*'
-      - 'tools/patch_cipa_participation_v1.py'
-      - 'tools/bump_cipa_release_v1.py'
-      - 'tools/patch_client_treatment_inbox_v329182_v330105.py'
-      - 'tools/patch_treatment_outbox_v329185_v330108.py'
-      - 'tools/patch_treatment_conversation_v329186_v330109.py'
-      - 'tools/patch_nr18_field_v329187_v330110.py'
-      - 'tools/audit_navigation_inventory_v1.py'
-      - 'tools/audit_navigation_destinations_v1.py'
-      - 'tools/patch_nr18_action_plan_v329191_v330114.py'
-      - 'tools/patch_field_recurrence_v329192_v330115.py'
-      - 'tools/patch_field_visual_v329193_v330116.py'
-      - 'tools/patch_windows_desktop_ux_v330118.py'
-      - 'tools/patch_windows_home_productivity_v330119.py'
-      - 'tools/patch_windows_recent_loading_v1.py'
-      - 'tools/test_windows_recent_loading_v1.py'
-      - 'tools/patch_windows_admin_supervision_v330120.py'
-      - 'tools/test_windows_admin_supervision_v330120.py'
-      - 'feature_sources/admin_technician_supervision_screen_v330120.dart'
-      - 'feature_sources/admin_operational_hub_screen_v330122.dart'
-      - 'feature_sources/technician_agenda_screen_v330123.dart'
-      - 'tools/patch_windows_agenda_v330123.py'
-      - 'tools/test_windows_agenda_v330123.py'
-      - 'tools/test_agenda_session_cache_v1.py'
-      - 'tools/patch_sst_library_v1.py'
-      - 'tools/patch_sst_deep_catalog_v2.py'
-      - 'tools/bump_polish_release_version_v1.py'
-      - 'tools/patch_nc_friendly_titles_v1.py'
-      - 'tools/patch_tutorial_v32930.py'
-      - 'tools/test_tutorial_optional_v1.py'
-      - 'build_sources/v3.29.30-tutorial/**'
-      - 'feature_sources/nc_title_store_v1.dart'
-      - 'feature_sources/nc_title_store_test_v1.dart'
-      - 'feature_sources/offline_sst_deep_catalog_v2.dart'
-      - 'feature_sources/offline_sst_deep_catalog_test_v2.dart'
-      - 'feature_sources/offline_sst_expanded_catalog_v1.dart'
-      - 'feature_sources/offline_sst_expanded_catalog_test_v1.dart'
-      - 'tools/patch_report_pdf_emphasis_v1.py'
-      - 'feature_sources/report_pdf_emphasis_scope_v1.dart'
-      - 'feature_sources/report_pdf_emphasis_scope_test_v1.dart'
-      - 'tools/patch_offline_conclusion_v329160_v33079.py'
-      - 'feature_sources/TechnicianSupervisionCloud_v1.gs'
-      - 'tools/test_windows_home_productivity_v330119.py'
-      - 'tools/test_windows_desktop_ux_v330118.py'
-      - 'tools/test_screenshot_ux_v1.py'
-      - 'feature_sources/field_recurrence_preview_v1.dart'
-      - 'feature_sources/correction_recurrence_detector_v329192.dart'
-      - 'feature_sources/correction_recurrence_detector_test_v329192.dart'
-      - 'tools/test_patch_nr18_action_plan_v329191_v330114.py'
-      - 'tools/regression_nr18_action_plan_v329191_v330114.py'
-      - 'tools/test_audit_navigation_destinations_v1.py'
-      - 'tools/patch_worksite_diary_archive_v329189_v330112.py'
-      - 'tools/patch_worksite_diary_export_v329190_v330113.py'
-      - 'tools/regression_worksite_diary_export_v329190_v330113.py'
-      - 'feature_sources/worksite_diary_export_test_v329190.dart'
-      - 'tools/regression_worksite_diary_archive_v329189_v330112.py'
-      - 'feature_sources/worksite_diary_archive_test_v329189.dart'
-      - 'tools/patch_visit_navigation_v329188_v330111.py'
-      - 'tools/regression_visit_navigation_v329188_v330111.py'
-      - 'tools/test_regression_visit_navigation_v329188_v330111.py'
-      - 'feature_sources/visit_navigation_test_v329188.dart'
-      - 'tools/test_navigation_inventory_v1.py'
-      - 'tools/regression_nr18_field_v329187_v330110.py'
-      - 'feature_sources/nr18_field_checklist_screen_v329187.dart'
-      - 'feature_sources/nr18_field_checklist_test_v329187.dart'
-      - 'tools/regression_treatment_conversation_v329186_v330109.py'
-      - 'feature_sources/client_treatment_inbox_screen_v329186.dart'
-      - 'feature_sources/treatment_outbox_test_v329186.dart'
-      - 'feature_sources/client_treatment_inbox_screen_v329185.dart'
-      - 'feature_sources/treatment_outbox_v1.dart'
-      - 'feature_sources/treatment_outbox_store_v1.dart'
-      - 'feature_sources/treatment_outbox_test_v1.dart'
-      - 'tools/patch_fast_capture_v329184_v330107.py'
-      - 'tools/patch_offline_reasoning_v329175_v33098.py'
-      - 'feature_sources/offline_reasoning_v329175.dart'
-      - 'feature_sources/offline_report_inline_suggestions_v329175.dart'
-      - 'feature_sources/offline_report_inline_suggestions_field_test_v329192.dart'
-      - 'feature_sources/offline_reasoning_test_v329175.dart'
-      - 'tools/patch_quick_visit_v329174_v33097.py'
-      - 'feature_sources/quick_visit_screen_v329174_v33097.dart'
-      - 'feature_sources/quick_visit_test_v329174_v33097.dart'
       - '.github/workflows/build-v33030-client-portal.yml'
-      - 'tools/integrate_sst_homologation_v1.py'
-      - 'tools/patch_windows_smart_visit_v1.py'
-      - 'feature_sources/visit_intelligence_v1.dart'
-      - 'feature_sources/sst_report_center_pdf_v1.dart'
-      - 'feature_sources/company_organization_v329173_v33096.dart'
-      - 'feature_sources/company_organization_test_v329173_v33096.dart'
-      - 'feature_sources/CompanyGroupsSync_v1.gs'
-      - 'tools/patch_company_groups_shared_v329173_v33096.py'
-      - 'tools/test_company_groups_sync_v1.js'
-      - 'feature_sources/company_organization_v329172_v33095.dart'
-      - 'feature_sources/company_organization_test_v329172_v33095.dart'
-      - 'tools/patch_company_organization_v329172_v33095.py'
-      - 'feature_sources/company_client_access_section_v329133.dart'
-      - 'tools/patch_company_client_access_v329133.py'
-      - 'tools/regression_company_client_access_v329133.py'
-      - 'tools/patch_company_client_access_version_v329133.py'
-      - 'tools/patch_client_portal_login_premium_v329134.py'
-      - 'tools/regression_client_portal_login_premium_v329134.py'
-      - 'tools/patch_client_portal_login_premium_version_v329134.py'
-      - 'feature_sources/manager_reports_module_v329135.dart'
-      - 'feature_sources/manager_reports_module_test_v329135.dart'
-      - 'tools/patch_manager_reports_v329135_v33054.py'
-      - 'tools/regression_manager_reports_v329135_v33054.py'
-      - 'tools/patch_manager_reports_version_v329135_v33054.py'
-      - 'feature_sources/company_multi_client_access_v329136.dart'
-      - 'feature_sources/company_multi_client_access_test_v329136.dart'
-      - 'tools/patch_client_multi_access_v329136_v33055.py'
-      - 'tools/regression_client_multi_access_v329136_v33055.py'
-      - 'tools/patch_client_multi_access_version_v329136_v33055.py'
-      - 'tools/test_client_multi_access_v329136.cjs'
-      - 'feature_sources/admin_access_policy_v329137.dart'
-      - 'feature_sources/admin_center_screen_v329137.dart'
-      - 'feature_sources/admin_client_panel_access_screen_v1.dart'
-      - 'feature_sources/admin_access_policy_test_v329137.dart'
-      - 'tools/patch_admin_authority_v329137_v33056.py'
-      - 'tools/regression_admin_authority_v329137_v33056.py'
-      - 'tools/patch_admin_authority_version_v329137_v33056.py'
-      - 'feature_sources/extinguisher_monthly_inspection_v329138.dart'
-      - 'feature_sources/extinguisher_inspection_pdf_service_v329138.dart'
-      - 'feature_sources/auditar_technical_inspection_pdf_service_v329138.dart'
-      - 'tools/patch_extinguisher_monthly_default_report_v329138_v33057.py'
-      - 'tools/regression_extinguisher_monthly_default_report_v329138_v33057.py'
-      - 'tools/patch_extinguisher_monthly_version_v329138_v33057.py'
-      - 'tools/patch_ronda_ai_restore_v329139_v33058.py'
-      - 'tools/patch_ronda_text_fast_v329140_v33059.py'
-      - 'tools/patch_ronda_ai_report_busy_v329141_v33060.py'
-      - 'tools/patch_report_busy_exclusive_v329142_v33061.py'
-      - 'tools/patch_ai_photo_speed_v329145_v33064.py'
-      - 'tools/patch_checklist_builder_reliability_v329200_v330128.py'
-      - 'tools/regression_checklist_builder_reliability_v329200_v330128.py'
-      - 'tools/regression_ai_photo_speed_v329145_v33064.py'
-      - 'tools/patch_report_progress_v329146_v33065.py'
-      - 'tools/regression_report_progress_v329146_v33065.py'
-      - 'feature_sources/correction_recurrence_detector_v329147.dart'
-      - 'feature_sources/correction_recurrence_detector_test_v329147.dart'
-      - 'feature_sources/correction_evidence_center_v329147.dart'
-      - 'tools/patch_correction_evidence_v329147_v33066.py'
-      - 'tools/regression_correction_evidence_v329147_v33066.py'
-      - 'tools/patch_training_history_filters_v329148_v33067.py'
-      - 'tools/regression_training_history_filters_v329148_v33067.py'
-      - 'feature_sources/training_activity_center_v329149.dart'
-      - 'tools/patch_operational_finish_v329149_v33068.py'
-      - 'tools/regression_operational_finish_v329149_v33068.py'
-      - 'tools/patch_visual_polish_v329150_v33069.py'
-      - 'tools/regression_visual_polish_v329150_v33069.py'
-      - 'tools/patch_ronda_ai_connection_recovery_v329151_v33070.py'
-      - 'tools/regression_ronda_ai_connection_recovery_v329151_v33070.py'
-      - 'feature_sources/auditar_standard3_pdf_service_v329152.dart'
-      - 'tools/patch_standard3_report_v329152_v33071.py'
-      - 'tools/regression_standard3_report_v329152_v33071.py'
-      - 'tools/patch_ronda_ui_report_v329153_v33072.py'
-      - 'tools/regression_ronda_ui_report_v329153_v33072.py'
-      - 'feature_sources/ronda_standard3_pdf_service_v329154.dart'
-      - 'tools/patch_ronda_standard3_visual_parity_v329154_v33073.py'
-      - 'tools/regression_ronda_standard3_visual_parity_v329154_v33073.py'
-      - 'feature_sources/ronda_standard3_pdf_service_v329155.dart'
-      - 'tools/patch_ronda_standard3_full_review_v329155_v33074.py'
-      - 'tools/regression_ronda_standard3_full_review_v329155_v33074.py'
-      - 'feature_sources/offline_report_knowledge_service_v329156.dart.gz.b64'
-      - 'feature_sources/offline_report_template_picker_v329156.dart.gz.b64'
-      - 'feature_sources/offline_report_knowledge_test_v329156.dart'
-      - 'tools/patch_offline_report_knowledge_v329156_v33075.py'
-      - 'tools/regression_offline_report_knowledge_v329156_v33075.py'
-      - 'feature_sources/offline_report_inline_suggestions_v329157.dart'
-      - 'feature_sources/offline_report_inline_suggestions_test_v329157.dart'
-      - 'tools/patch_offline_inline_suggestions_v329157_v33076.py'
-      - 'tools/regression_offline_inline_suggestions_v329157_v33076.py'
-      - 'tools/patch_ronda_offline_suggestions_v329158_v33077.py'
-      - 'tools/regression_ronda_offline_suggestions_v329158_v33077.py'
-      - 'tools/patch_checklist_summary_clean_v329159_v33078.py'
-      - 'tools/regression_checklist_summary_clean_v329159_v33078.py'
-      - 'tools/patch_offline_conclusion_v329160_v33079.py'
-      - 'tools/regression_offline_conclusion_v329160_v33079.py'
-      - 'feature_sources/offline_field_rules_service_v329161.dart'
-      - 'feature_sources/offline_field_assistant_dialog_v329161.dart'
-      - 'feature_sources/offline_field_rules_test_v329161.dart'
-      - 'tools/patch_offline_field_assistant_v329161_v33080.py'
-      - 'tools/patch_android_offline_login_fallback_v329162_v33081.py'
-      - 'tools/regression_android_offline_login_fallback_v329162_v33081.py'
-      - 'feature_sources/field_operational_priority_service_v329163.dart'
-      - 'feature_sources/field_operational_priority_test_v329163.dart'
-      - 'feature_sources/field_connectivity_badge_v329163.dart'
-      - 'feature_sources/field_operational_control_screen_v329163.dart'
-      - 'tools/patch_field_operational_control_v329163_v33082.py'
-      - 'tools/regression_field_operational_control_v329163_v33082.py'
-      - 'feature_sources/offline_report_inline_suggestions_v329164.dart'
-      - 'feature_sources/offline_report_inline_suggestions_test_v329164.dart'
-      - 'tools/patch_ronda_suggestion_relevance_v329164_v33083.py'
-      - 'tools/regression_ronda_suggestion_relevance_v329164_v33083.py'
-      - 'feature_sources/offline_report_inline_suggestions_v329166.dart'
-      - 'feature_sources/offline_report_inline_suggestions_test_v329166.dart'
-      - 'tools/patch_premium_report_accelerator_v329166_v33085.py'
-      - 'tools/regression_premium_report_accelerator_v329166_v33085.py'
-      - 'feature_sources/offline_report_inline_suggestions_v329167.dart'
-      - 'feature_sources/offline_report_inline_suggestions_test_v329167.dart'
-      - 'tools/patch_polish_performance_v329167_v33086.py'
-      - 'tools/regression_polish_performance_v329167_v33086.py'
-      - 'feature_sources/manager_reports_module_v329168.dart'
-      - 'feature_sources/manager_reports_module_test_v329168.dart'
-      - 'feature_sources/training_activity_center_v329168.dart'
-      - 'feature_sources/cipa_management_screen_v329168.dart'
-      - 'tools/patch_management_training_cipa_ux_v329168_v33087.py'
-      - 'tools/regression_management_training_cipa_ux_v329168_v33087.py'
-      - 'feature_sources/manager_reports_module_v329169.dart'
-      - 'feature_sources/training_activity_center_v329169.dart'
-      - 'tools/patch_release_baseline_v329169_v33088.py'
-      - 'tools/regression_release_baseline_v329169_v33088.py'
-      - 'tools/patch_mobile_360_412_v329170_v33089.py'
-      - 'tools/regression_mobile_360_412_v329170_v33089.py'
-      - 'feature_sources/field_operational_control_screen_v33090.dart'
-      - 'tools/patch_windows_management_center_v33090.py'
-      - 'tools/regression_windows_management_center_v33090.py'
-      - 'feature_sources/executive_dashboard_screen_v33091.dart'
-      - 'feature_sources/field_operational_control_screen_v33091.dart'
-      - 'tools/patch_windows_executive_dashboard_v33091.py'
-      - 'tools/regression_windows_executive_dashboard_v33091.py'
-      - 'tools/patch_windows_home_executive_v33092.py'
-      - 'tools/regression_windows_home_executive_v33092.py'
-      - 'feature_sources/company_portfolio_management_screen_v33093.dart'
-      - 'tools/patch_windows_multicompany_management_v33093.py'
-      - 'tools/regression_windows_multicompany_management_v33093.py'
-      - 'feature_sources/admin_company_deletion_service_v329171_v33094.dart'
-      - 'tools/patch_admin_company_permanent_delete_v329171_v33094.py'
-      - 'tools/regression_admin_company_permanent_delete_v329171_v33094.py'
-      - 'docs/HOMOLOGACAO_RELEASE_AUDITAR_SST.md'
-      - 'feature_sources/offline_report_inline_suggestions_v329165.dart'
-      - 'feature_sources/offline_report_inline_suggestions_test_v329165.dart'
-      - 'feature_sources/offline_field_rules_service_v329165.dart'
-      - 'feature_sources/offline_field_rules_test_v329165.dart'
-      - 'feature_sources/offline_field_assistant_dialog_v329165.dart'
-      - 'tools/patch_offline_sst_complete_v329165_v33084.py'
-      - 'tools/regression_offline_sst_complete_v329165_v33084.py'
-      - 'tools/regression_offline_field_assistant_v329161_v33080.py'
-      - 'feature_sources/field_intelligence_center_v329143.dart'
-      - 'tools/patch_field_intelligence_v329143_v33062.py'
-      - 'tools/regression_field_intelligence_v329143_v33062.py'
-      - 'feature_sources/company_timeline_screen_v329144.dart'
-      - 'tools/patch_field_refinements_v329144_v33063.py'
-      - 'tools/regression_field_refinements_v329144_v33063.py'
-      - 'tools/regression_report_busy_exclusive_v329142_v33061.py'
-      - 'tools/patch_report_preview_preflight_v329124.py'
-      - 'tools/regression_report_preview_preflight_v329124.py'
-      - 'tools/regression_report_preview_windows_format_v33047.py'
-      - 'tools/patch_ronda_pdf_quality_v329125.py'
-      - 'tools/regression_ronda_pdf_quality_v329125.py'
-      - 'tools/patch_paper_attendance_v329126.py'
-      - 'tools/regression_paper_attendance_v329126.py'
-      - 'tools/patch_paper_attendance_ai_v329127.py'
-      - 'tools/patch_paper_ai_windows_http_compat_v33047.py'
-      - 'tools/regression_paper_attendance_ai_v329127.py'
-      - 'tools/patch_paper_attendance_ai_windows_version_v33047.py'
-      - 'tools/patch_signature_batch_v329128_v33048.py'
-      - 'feature_sources/express_round_draft_storage_v329129.dart'
-      - 'feature_sources/express_round_draft_storage_test_v329129.dart'
-      - 'tools/patch_round_draft_v329129_v33049.py'
-      - 'feature_sources/express_round_cloud_draft_v329130.dart'
-      - 'tools/patch_round_cloud_draft_v329130_v33050.py'
-      - 'tools/regression_round_cloud_draft_v329130_v33050.py'
-      - 'tools/patch_round_cloud_draft_version_v329130_v33050.py'
-      - 'tools/regression_round_draft_v329129_v33049.py'
-      - 'tools/patch_round_draft_version_v329129_v33049.py'
-      - 'tools/regression_signature_batch_v329128_v33048.py'
-      - 'tools/patch_signature_batch_version_v329128_v33048.py'
-      - 'tools/patch_client_portal_v329106.py'
-      - 'build_sources/v3.29.106-client-portal/ClientPortal.gs'
-      - 'build_sources/v3.29.106-client-portal/ClientPortal.html'
-      - 'tools/test_client_portal_evidence_readability_v1.cjs'
-      - 'tools/test_client_portal_review_reason_v1.cjs'
-      - 'tools/regression_client_portal_executive_compact_v329137.py'
-      - 'tools/patch_client_portal_admin_v329131.py'
-      - 'tools/patch_client_portal_login_brand_v329132.py'
-      - 'tools/regression_client_portal_login_brand_v329132.py'
-      - 'tools/patch_client_portal_login_brand_version_v329132.py'
-      - 'tools/test_client_portal_admin_v329131.cjs'
-      - 'tools/patch_client_accounts_ui_v329106.py'
-      - 'tools/patch_hide_home_sync_card_v329107.py'
-      - 'tools/patch_ronda_media_report_v329108.py'
-      - 'tools/patch_ronda_evidence_protection_v329108.py'
-      - 'tools/patch_ronda_media_backup_report_v329108.py'
-      - 'tools/patch_improvement_kind_v329109.py'
-      - 'tools/patch_field_ux_v329110.py'
-      - 'tools/patch_training_client_entry_v329110.py'
-      - 'tools/patch_report_policy_v329111.py'
-      - 'tools/patch_report_models_branding_v329112.py'
-      - 'tools/auditar_standard2_pdf_service_v329112.dart'
-      - 'tools/report_logo_service_v329112.dart'
-      - 'tools/report_logo_smoke_test_v329112.dart'
-      - 'tools/regression_report_models_v329112.py'
-      - 'tools/patch_company_logo_recovery_v329113.py'
-      - 'tools/patch_expand_inspection_text_v329113.py'
-      - 'tools/expand_text_button_v329113.dart'
-      - 'tools/regression_logo_text_v329113.py'
-      - 'tools/patch_remove_fine_ui_v329113.py'
-      - 'tools/patch_report_public_titles_v329114.py'
-      - 'tools/patch_document_center_v329115.py'
-      - 'feature_sources/**'
-      - 'tools/regression_report_public_titles_v329114.py'
-      - 'tools/install_report_editor_document_center_v329116.py'
-      - 'tools/patch_ronda_edit_fast_ai_v329117.py'
-      - 'tools/install_ronda_ui_v329118.py'
-      - 'tools/patch_ronda_report_v329118.py'
-      - 'tools/patch_report_optional_logo_v329118.py'
-      - 'tools/patch_ronda_pdf_2_fotos_v329118.py'
-      - 'tools/patch_ronda_pdf_second_photo_v329118.py'
-      - 'tools/patch_ronda_release_version_v329118.py'
-      - 'tools/patch_evidence_backup_v329119.py'
-      - 'tools/patch_multi_report_recipients_v329120.py'
-      - 'tools/patch_signature_field_dds_v329121.py'
-      - 'tools/patch_signature_training_v329121.py'
-      - 'tools/patch_template_ai_timeout_v329122.py'
-      - 'tools/regression_template_ai_timeout_v329122.py'
-      - 'feature_sources/large_signature_capture.dart'
-      - 'feature_sources/report_recipients_v329120.dart'
-      - 'feature_sources/report_recipients_test_v329120.dart'
-      - 'feature_sources/evidence_backup_screen.dart'
-      - 'feature_sources/evidence_backup_status_test.dart'
-      - 'build_sources/v3.29.118-ronda-reports/**'
-      - 'tools/patch_report_editor_v329115.py'
-      - 'tools/regression_report_editor_v329115.py'
-      - 'build_sources/v3.29.115-report-editor/**'
-      - 'tools/patch_document_dispatch_v329115.py'
-      - 'tools/regression_document_dispatch_v329116.py'
-      - 'build_sources/v3.29.115-document-dispatch/**'
-      - 'tools/sst_green_official.png'
-      - 'tools/sst_green_logo.b64'
-      - 'tools/patch_report_email_v329111.py'
-      - 'tools/patch_report_branding_auditar2_v329112.py'
-      - 'tools/patch_report_branding_fix_v329112.py'
-      - 'tools/sst_green_logo.b64'
-      - 'tools/regression_report_delivery_v329111.py'
-      - 'tools/patch_panel_list_ux_v329110.py'
-      - 'tools/regression_client_portal_v329106.py'
-      - 'tools/test_client_portal_v329106.cjs'
-      - 'build_sources/v3.29.108-client-portal/**'
-      - '.github/workflows/build-v33029-security-stress.yml'
-      - 'tools/patch_report_scale_security_v329105.py'
-      - 'build_sources/v3.29.105-commercial-audit/**'
-      - 'tools/patch_operational_media_v329104.py'
-      - 'tools/patch_operational_home_v329104.py'
-      - 'tools/patch_checklist_field_capture_v329104.py'
-      - 'build_sources/v3.29.104-field-speed/**'
-      - 'tools/patch_ronda_checklist_models_v329103.py'
-      - 'build_sources/v3.29.103-ronda-models/**'
-      - 'tools/patch_dual_ai_v329102.py'
-      - 'tools/regression_dual_ai_v329102.py'
-      - 'build_sources/v3.29.102-dual-ai/**'
-      - 'tools/patch_ronda_pdf_pagination_v329101.py'
-      - 'tools/patch_ronda_pdf_pagination_windows_v33025.py'
-      - 'build_sources/v3.29.101-ronda-pdf/**'
-      - 'tools/patch_windows_receive_first_v33024.py'
-      - 'tools/patch_home_immediate_sync_v32993_v33020.py'
-      - 'tools/regression_home_immediate_sync_v32993.py'
-      - 'tools/restore_fast_home_sync_windows_v33023.py'
-      - 'tools/patch_checklist_ai_stable_v32992_v33019.py'
-      - 'tools/regression_checklist_ai_stable_v32992.py'
-      - 'tools/patch_workers_manual_registration_v32994_v33021.py'
-      - 'tools/regression_workers_manual_registration_v32994.py'
-      - 'tools/patch_workers_windows_load_compat_v33021.py'
-      - 'tools/patch_worker_ai_central_endpoint_v32995_v33022.py'
+  pull_request:
+    branches: ['feature/auditar-sst-integracao-real-app-20261126']
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
 
 concurrency:
   group: auditar-windows-${{ github.ref }}
@@ -380,6 +23,7 @@ env:
 
 jobs:
   windows:
+    if: github.event_name != 'pull_request' || github.head_ref == 'feature/sst-montagem-integral-sem-producao-20261126'
     runs-on: windows-latest
     timeout-minutes: 210
     steps:
@@ -684,18 +328,6 @@ jobs:
                   print('WINDOWS_PDF_STRESS_OK',name,d.page_count,len(img))
           '@ | python -
           if ($LASTEXITCODE -ne 0) { throw 'Falha na inspeção Windows PDF' }
-
-      - name: Teste real da rota robusta de foto
-        working-directory: ${{ env.APP_DIR }}
-        shell: pwsh
-        env:
-          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
-        run: |
-          if ([string]::IsNullOrWhiteSpace($env:AUDITAR_SYNC_KEY)) { throw 'AUDITAR_SYNC_KEY ausente' }
-          New-Item -ItemType Directory -Force tool | Out-Null
-          Copy-Item '..\..\tools\live_ronda_ai_probe_v3304_windows.dart' 'tool\live_checklist_ai_probe.dart' -Force
-          dart run --define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY" tool/live_checklist_ai_probe.dart
-          if ($LASTEXITCODE -ne 0) { throw 'Teste real da rota robusta falhou' }
 
       - name: Integrar Padrao Auditar 2 e Performance
         shell: pwsh
@@ -2108,6 +1740,9 @@ jobs:
       - name: Consolidar módulos Windows (candidato de homologação)
         shell: pwsh
         run: |
+          if (-not (Select-String -Path "$env:APP_DIR/pubspec.yaml" -SimpleMatch 'version: 3.30.128+315' -Quiet)) { throw 'Base incorreta' }
+          python tools/test_sst_full_integration_probe_v1.py "$env:APP_DIR" baseline
+          if ($LASTEXITCODE -ne 0) { throw 'Base incompleta' }
           python tools/integrate_sst_homologation_v1.py "$env:APP_DIR" windows
           if ($LASTEXITCODE -ne 0) { throw 'Integracao Windows recusada; instalador nao sera gerado.' }
           $pub="$env:APP_DIR/pubspec.yaml"
@@ -2180,78 +1815,13 @@ jobs:
           if-no-files-found: ignore
           retention-days: 30
 
-      - name: Compilar Windows release
-        working-directory: ${{ env.APP_DIR }}
-        shell: pwsh
-        env:
-          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
-        run: |
-          flutter build windows --release --dart-define=AUDITAR_SYNC_KEY="$env:AUDITAR_SYNC_KEY"
-          if ($LASTEXITCODE -ne 0) { throw 'Build Windows falhou' }
-
-      - name: Empacotar portatil
+      - name: Confirmar modulos integrados e compilar debug sem credenciais
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force dist/windows | Out-Null
-          Copy-Item "$env:APP_DIR/painel_web_google_apps_script/CompanyGroupsSync.gs" 'dist/windows/CompanyGroupsSync.gs.txt' -Force
-          Copy-Item "$env:APP_DIR/painel_web_google_apps_script/OfflineKnowledgeCloud.gs" 'dist/windows/OfflineKnowledgeCloud.gs.txt' -Force
-          Copy-Item 'docs/GRUPOS_COMPARTILHADOS_IMPLANTACAO.md' 'dist/windows/Grupos-Compartilhados-Instrucoes.md' -Force
-          Copy-Item "$env:GITHUB_WORKSPACE/docs/HOMOLOGACAO_RELEASE_AUDITAR_SST.md" 'dist/windows/HOMOLOGACAO_RELEASE.md' -Force
-          New-Item -ItemType Directory -Force dist/windows/Central-Painel-Cliente | Out-Null
-          # Include every required Apps Script module in the Windows handoff.
-          # Omitting ReportEmail.gs breaks the new explicit PDF delivery route.
-          foreach ($name in @('Code.gs','MultiUser.gs','EpiSync.gs','ClientPortal.gs','ClientPortal.html','ReportEmail.gs','Index.html','OfflineKnowledgeCloud.gs','WorksiteFollowupCloud.gs','ClientPortalTreatments.gs')) {
-            $source = "$env:APP_DIR/painel_web_google_apps_script/$name"
-            if (-not (Test-Path $source)) { throw "Arquivo da Central ausente: $name" }
-            Copy-Item $source "dist/windows/Central-Painel-Cliente/$name" -Force
-          }
-          $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          Compress-Archive "$release/*" 'dist/windows/Auditar-SST-Windows-v3.30.129-HOMOLOGACAO-PORTATIL.zip' -Force
-          Get-FileHash 'dist/windows/Auditar-SST-Windows-v3.30.129-HOMOLOGACAO-PORTATIL.zip' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Windows-v3.30.129-HOMOLOGACAO-PORTATIL.sha256.txt'
-
-      - name: Gerar instalador
-        shell: pwsh
-        run: |
-          $iscc='C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
-          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
-          if (-not (Test-Path $iscc)) { throw 'Inno Setup nao disponivel' }
-          $release=(Resolve-Path "$env:APP_DIR/build/windows/x64/runner/Release").Path
-          $output=(Resolve-Path 'dist/windows').Path
-          $issPath="$env:RUNNER_TEMP\auditar-v33021.iss"
-          $lines=@(
-            '[Setup]',
-            'AppId={{9CEB751A-475C-471F-A3A4-3FC375693E54}',
-            'AppName=Auditar SST - Homologacao',
-            'AppVersion=3.30.129',
-            'AppPublisher=Auditar Solucoes',
-            'DefaultDirName={autopf}\Auditar SST Homologacao',
-            'DefaultGroupName=Auditar SST Homologacao',
-            "OutputDir=$output",
-            'OutputBaseFilename=Auditar-SST-Setup-v3.30.129-HOMOLOGACAO',
-            'Compression=lzma2',
-            'SolidCompression=yes',
-            'WizardStyle=modern',
-            'ArchitecturesAllowed=x64compatible',
-            'ArchitecturesInstallIn64BitMode=x64compatible',
-            '[Files]',
-            ('Source: "' + $release + '\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs'),
-            '[Icons]',
-            'Name: "{autoprograms}\Auditar SST Homologacao"; Filename: "{app}\auditar_sst.exe"',
-            'Name: "{autodesktop}\Auditar SST Homologacao"; Filename: "{app}\auditar_sst.exe"',
-            '[Run]',
-            'Filename: "{app}\auditar_sst.exe"; Description: "Abrir Auditar SST"; Flags: nowait postinstall skipifsilent'
-          )
-          Set-Content $issPath $lines -Encoding UTF8
-          & $iscc $issPath
-          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falhou' }
-          Get-FileHash 'dist/windows/Auditar-SST-Setup-v3.30.129-HOMOLOGACAO.exe' -Algorithm SHA256 | Format-List | Out-File 'dist/windows/Auditar-SST-Setup-v3.30.129-HOMOLOGACAO.sha256.txt'
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Auditar-SST-v3.30.129-Windows-HOMOLOGACAO
-          path: dist/windows/*
-          retention-days: 30
-
-# retry-ronda-final-20261003
-
-
+          python tools/test_sst_full_integration_probe_v1.py "$env:APP_DIR" integrated
+          if ($LASTEXITCODE -ne 0) { throw 'Modulos incompletos' }
+          Push-Location "$env:APP_DIR"
+          flutter build windows --debug
+          if ($LASTEXITCODE -ne 0) { throw 'Build debug falhou' }
+          if (-not (Test-Path 'build/windows/x64/runner/Debug/auditar_sst.exe')) { throw 'EXE ausente' }
+          Pop-Location
