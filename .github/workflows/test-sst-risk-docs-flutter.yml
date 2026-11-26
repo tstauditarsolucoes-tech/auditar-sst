@@ -74,7 +74,8 @@ jobs:
             test/sst_pet_nr33_test.dart \
             test/sst_activity_guide_test.dart \
             test/sst_document_signature_test.dart \
-            test/sst_risk_docs_widget_smoke_test.dart
+            test/sst_risk_docs_widget_smoke_test.dart \
+            test/sst_risk_docs_pdf_smoke_test.dart
       - name: Compilar APK de homologação sem assinar/distribuir
         working-directory: /tmp/auditar_risk_docs_homologacao
         run: |
