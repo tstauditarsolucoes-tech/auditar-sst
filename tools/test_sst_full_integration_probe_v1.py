@@ -19,7 +19,7 @@ assert version
 # Não prosseguir à integração de tela/relatório com essa fonte desatualizada.
 # No Android operacional a base informada é v3.29.195, no Windows v3.30.123.
 import re
-m = re.match(r"version:\\s*(\\d+)\\.(\\d+)\\.(\\d+)", version)
+m = re.match(r"version:\s*(\d+)\.(\d+)\.(\d+)", version)
 if m is None:
     raise SystemExit("BLOQUEADO: versão do fonte não identificável: " + version)
 built = tuple(int(x) for x in m.groups())
