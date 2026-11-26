@@ -114,7 +114,7 @@ void main() {
       companyId: 'empresa-teste',
       userId: 'tecnico-teste',
       draft: draft,
-      signatures: [signature(jsonEncode(draft.toJson()), 'attendant_ack')],
+      signatures: [signature(sstDocumentFingerprint(draft.toJson()), 'attendant_ack')],
     );
     validatePdf(bytes);
   });
