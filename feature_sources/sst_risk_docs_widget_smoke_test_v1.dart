@@ -6,10 +6,10 @@ import '../lib/screens/sst_risk_documents_screen.dart';
 import '../lib/screens/sst_document_signature_panel.dart';
 
 void main() {
-  const company = Company(id: 'company-A', name: 'Empresa fictícia');
+  final company = Company(id: 'company-A', name: 'Empresa fictícia');
 
   testWidgets('Central permite encontrar APR, AR, PT e PET', (tester) async {
-    await tester.pumpWidget(const MaterialApp(
+    await tester.pumpWidget(MaterialApp(
       home: SstRiskDocsHomeScreen(company: company),
     ));
     expect(find.text('APR, PT, AR e PET'), findsOneWidget);
@@ -22,7 +22,7 @@ void main() {
   });
 
   testWidgets('PET abre em modo minuta não autorizada', (tester) async {
-    await tester.pumpWidget(const MaterialApp(
+    await tester.pumpWidget(MaterialApp(
       home: SstRiskDocsHomeScreen(company: company),
     ));
     final item = find.text('PET - Permissão de Entrada e Trabalho');
