@@ -1,26 +1,16 @@
-name: SST Android - correcoes teste fisico v3.29.203
-# Revisão CI 26/11: importar conclusão instalada e testar Company sem const
-# Revisão 2: testes Flutter reais separados da fixture de autenticação
-
+name: SST Android 3.29.205 - CIPA visivel e conectado
+# Build solicitado para homologação no aparelho. Sem chamadas de rede à central
+# durante CI. Apenas o APK cifrado pode sair do job em repositório público.
 on:
-  push:
+  pull_request:
     branches: ['fix/android-homologacao-estabilidade-20261126']
+    types: [opened, synchronize, reopened]
     paths:
       - '.github/workflows/build-v329106-client-portal.yml'
-      - 'tools/integrate_sst_recent_base_v1.py'
-      - 'tools/patch_android_physical_homologation_v329203.py'
-  pull_request:
-    branches: ['feature/auditar-sst-integracao-completa-final-20261126']
-    types: [opened, synchronize, reopened]
   workflow_dispatch:
-    inputs:
-      connected_homologation:
-        description: 'Gerar candidato conectado APENAS a central de testes configurada no ambiente protegido'
-        type: boolean
-        default: false
 
 concurrency:
-  group: auditar-android-${{ github.ref }}
+  group: auditar-android-connected-v329205
   cancel-in-progress: true
 
 permissions:
@@ -32,9 +22,15 @@ env:
 
 jobs:
   android:
-    if: github.event_name != 'pull_request' || github.head_ref == 'fix/android-homologacao-estabilidade-20261126'
+    if: >-
+      github.repository == 'tstauditarsolucoes-tech/auditar-sst' &&
+      ((github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        github.head_ref == 'fix/android-conectado-seguro-20261126' &&
+        github.base_ref == 'fix/android-homologacao-estabilidade-20261126') ||
+       (github.event_name == 'workflow_dispatch' &&
+        github.ref == 'refs/heads/fix/android-conectado-seguro-20261126'))
     runs-on: ubuntu-latest
-    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.connected_homologation && 'auditar-connected-homologation' || 'auditar-offline-homologation' }}
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v5
@@ -1368,6 +1364,16 @@ jobs:
           flutter test
           grep -Fq 'version: 3.29.203+345' pubspec.yaml
 
+      - name: Central inicial da CIPA com atalhos visiveis e teste de toque
+        run: |
+          set -euo pipefail
+          python3 tools/patch_android_cipa_start_v1.py "$APP_DIR"
+          cd "$APP_DIR"
+          dart format lib/screens/cipa_management_screen.dart lib/screens/cipa_participation_screen.dart lib/screens/cipa_start_panel.dart test/cipa_start_panel_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/cipa_start_panel_test.dart
+          flutter test
+
       - name: Verificar configuracao automatica com dados ficticios sem rede
         run: |
           set -euo pipefail
@@ -1396,86 +1402,93 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Compilar Release isolado para teste visual e desempenho sem conexao configurada
+      - name: Compilar APK conectado e cifrar para entrega restrita
+        env:
+          AUDITAR_SYNC_KEY: ${{ secrets.AUDITAR_SYNC_KEY }}
         run: |
           set -euo pipefail
+          set +x
+          umask 077
           cd "$APP_DIR"
+          test -n "$AUDITAR_SYNC_KEY" || { echo 'Chave original ausente no GitHub Actions; build bloqueado.'; exit 1; }
+          CONFIG="$(mktemp)"
+          export CONFIG
+          GNUPGHOME="$(mktemp -d)"
+          export GNUPGHOME
+          trap 'rm -f "$CONFIG" test/embedded_config_connected_test.dart build/app/outputs/flutter-apk/app-release.apk; rm -rf "$GNUPGHOME"' EXIT
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          key = os.environ["AUDITAR_SYNC_KEY"].strip()
+          if not key:
+              raise SystemExit("Chave vazia; build bloqueado.")
+          # Do not override the original, embedded endpoint with an empty string.
+          Path(os.environ["CONFIG"]).write_text(json.dumps({"AUDITAR_SYNC_KEY": key}))
+          PY
+          unset AUDITAR_SYNC_KEY
+          cat > test/embedded_config_connected_test.dart <<'DART'
+          import 'package:flutter_test/flutter_test.dart';
+          import '../lib/services/web_service_config.dart';
+          void main() {
+            test('configuracao original incorporada sem chamada de rede', () {
+              expect(WebServiceConfig.hasValidEndpoint, isTrue);
+              expect(WebServiceConfig.hasCredentials, isTrue);
+              expect(WebServiceConfig.isEmbedded, isTrue);
+            });
+          }
+          DART
+          flutter test test/embedded_config_connected_test.dart --dart-define-from-file="$CONFIG"
+          rm test/embedded_config_connected_test.dart
           java -version
           flutter config --jdk-dir="$JAVA_HOME"
           (cd android && ./gradlew --stop && ./gradlew --version)
-          flutter build apk --release --dart-define=AUDITAR_APPS_SCRIPT_URL= --dart-define=AUDITAR_SYNC_KEY=
-          # Verify the independent package, not just the existence of an APK.
+          flutter build apk --release --build-name=3.29.205 --build-number=347 --dart-define-from-file="$CONFIG"
           APK=build/app/outputs/flutter-apk/app-release.apk
+          test -s "$APK"
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -1)"
           test -x "$AAPT"
-          "$AAPT" dump badging "$APK" > /tmp/auditar-apk-badging.txt
-          grep -Fq "package: name='br.com.auditar.auditar_sst.homolog'" /tmp/auditar-apk-badging.txt
-          grep -Fq "versionName='3.29.203'" /tmp/auditar-apk-badging.txt
-          if grep -q '^application-debuggable' /tmp/auditar-apk-badging.txt; then exit 1; fi
-          test -s build/app/outputs/flutter-apk/app-release.apk
+          "$AAPT" dump badging "$APK" > /tmp/auditar-connected-badging.txt
+          grep -Fq "package: name='br.com.auditar.auditar_sst.homolog'" /tmp/auditar-connected-badging.txt
+          grep -Fq "versionName='3.29.205'" /tmp/auditar-connected-badging.txt
+          if grep -q '^application-debuggable' /tmp/auditar-connected-badging.txt; then exit 1; fi
+          cat > "$GNUPGHOME/recipient.asc" <<'PGP'
+          -----BEGIN PGP PUBLIC KEY BLOCK-----
+          
+          mQGNBGsJScUBDACwixaNKk6b00fbRUdo07WB4rYc8ekN/4LYqUWJM49SJ7+Kt32M
+          aYqMQU0khtvWasg+tXG2WL48DSpbWARQ46U4Te3VEKxNYXL4SGHjNwihdG0ir8lX
+          plZ8xQ2Ec2VfyuNxGHZuDMmsMhSY9IpjTPYFgQVDuH+vSbJUoBTp3B2E+QSqcNoL
+          HE+DH4yeD0OOqW3c/u/iRUjk8vQDHaXMrEMznAnoKnBaWcRh460YNYR5pSf6POI0
+          ZQK3c6bgLXPtFSZj3cFw3ovMkMBPJJxJ7AQ2K0M9cwedAbwaV4pYY6gKHBIBQ7Z7
+          hDGnVa8ksAcQv8lR38IoYK0FzF7KdKlNLibvIVz5Co2Rm6v6E1b5MOb61rFd+/lI
+          QPlsj3vgHPIgcZkd7712yUBKCElbJo+EDBKaDziIyg6n6qQP4tP8tEn3OZbwH5Is
+          EX3vUuY/n+80jT5OkJO21duqz7DUcFxMLYtum98/pho/0wtaTb1njZd/fNr7lv8O
+          rhr80gHc7NrzGEEAEQEAAbQnQXVkaXRhciBTU1QgZW50cmVnYSByZXN0cml0YSAy
+          MDI2LTExLTI3iQHUBBMBCgA+FiEE4kwGf/oFWywWk2ZE2LWxLHNs15kFAmsJScUC
+          Gw0FCQASdQAFCwkIBwIGFQoJCAsCBBYCAwECHgECF4AACgkQ2LWxLHNs15kg8Qv/
+          ZmovNx19HXxmC+vtn5i86HxQwI2MgjJzAEQu2ARVQu0uK8NpNjZoNxAWlp9PEvJ7
+          TfE2QkA5a0KsLAir6qUcEalmDg5UXN7HjT6edVMfvLCwSWqL0I4QfxUp2kDr91oB
+          kCTCfP9ypCRdxS20PwV8Szyw3e+lvLSOvIDIIdgW/1DGc8YRnBvpwLG5lHXufrJE
+          ldb3VvfjA7LcxwUOOPdVPlWKjS5wEN9+G+tjKJCkp3xpb/hFDSNqg2ds/BwJeIaO
+          PufOxQ8Buw1fLAt7OH/IuWuSqDA04XQJ8EGWU7HTJ3NiRaZmkQS7CPVm8nh66F4Q
+          uQaaZwhaZPRXO5Y6dRUXby+LJzzLAon549p75/u2DD73gAMkAfTKOiYtkMwK47zO
+          30tCWEA2/+o5u55jwf2ApWpSi3V4hX+m4Zk66fi/wGTXJE6nxWr/aA4kJWu/VqKR
+          98FAX+trNqTI75prg0bczjA0OVehbJ7Zi4htm0m+SHaI4u8N0Zf5qGZhd0uFVE0s
+          =vKPv
+          -----END PGP PUBLIC KEY BLOCK-----
+          PGP
+          gpg --batch --import "$GNUPGHOME/recipient.asc"
+          FPR=E24C067FFA055B2C16936644D8B5B12C736CD799
+          gpg --batch --with-colons --list-keys "$FPR" | grep -Fq "$FPR"
+          mkdir -p "$GITHUB_WORKSPACE/dist/connected-encrypted"
+          gpg --batch --yes --trust-model always --cipher-algo AES256 --compress-algo none --recipient "$FPR" --output "$GITHUB_WORKSPACE/dist/connected-encrypted/Auditar-SST-3.29.205-Conectado.apk.gpg" --encrypt "$APK"
+          test -s "$GITHUB_WORKSPACE/dist/connected-encrypted/Auditar-SST-3.29.205-Conectado.apk.gpg"
+          rm -f "$APK" "$CONFIG"
 
-      - name: Arquivar somente candidato de testes offline (nao e distribuicao)
+      - name: Arquivar exclusivamente APK cifrado
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-Android-v329203-TESTE-OFFLINE-SEM-CREDENCIAIS
-          path: app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 7
-          if-no-files-found: error
-
-
-      # Optional, manually requested, with disposable test credentials only.
-      # Configure the named GitHub environment with approval/branch restrictions.
-      # Never fall back to the historic production AUDITAR_SYNC_KEY.
-      - name: Validar configuracao da central isolada de testes
-        if: github.event_name == 'workflow_dispatch' && inputs.connected_homologation
-        env:
-          AUDITAR_HOMOLOG_APPS_SCRIPT_URL: ${{ secrets.AUDITAR_HOMOLOG_APPS_SCRIPT_URL }}
-          AUDITAR_HOMOLOG_SYNC_KEY: ${{ secrets.AUDITAR_HOMOLOG_SYNC_KEY }}
-        run: |
-          set -euo pipefail
-          cd "$APP_DIR"
-          python3 - <<'PY'
-          import os, re
-          from pathlib import Path
-          from urllib.parse import urlsplit
-          endpoint = os.environ.get("AUDITAR_HOMOLOG_APPS_SCRIPT_URL", "").strip()
-          key = os.environ.get("AUDITAR_HOMOLOG_SYNC_KEY", "").strip()
-          if not key or not endpoint:
-              raise SystemExit("Central de testes nao configurada; nao compilar conectado.")
-          parsed = urlsplit(endpoint)
-          if parsed.scheme != "https" or parsed.netloc != "script.google.com" or not re.fullmatch(r"/macros/s/[A-Za-z0-9_-]+/exec", parsed.path) or parsed.query or parsed.fragment:
-              raise SystemExit("Endpoint de testes invalido")
-          config = Path("lib/services/web_service_config.dart").read_text()
-          production = re.findall(r"https://script\.google\.com/macros/s/[A-Za-z0-9_-]+/exec", config)
-          if not production:
-              raise SystemExit("Nao foi possivel identificar endpoint padrao para comparar; bloquear")
-          if endpoint in production:
-              raise SystemExit("Endpoint padrao de producao proibido nesta homologacao")
-          print("Configuracao de testes presente; valores omitidos.")
-          PY
-
-      - name: Compilar candidato conectado somente a central de testes
-        if: github.event_name == 'workflow_dispatch' && inputs.connected_homologation
-        env:
-          AUDITAR_HOMOLOG_APPS_SCRIPT_URL: ${{ secrets.AUDITAR_HOMOLOG_APPS_SCRIPT_URL }}
-          AUDITAR_HOMOLOG_SYNC_KEY: ${{ secrets.AUDITAR_HOMOLOG_SYNC_KEY }}
-        run: |
-          set -euo pipefail
-          cd "$APP_DIR"
-          flutter build apk --release --dart-define=AUDITAR_APPS_SCRIPT_URL="$AUDITAR_HOMOLOG_APPS_SCRIPT_URL" --dart-define=AUDITAR_SYNC_KEY="$AUDITAR_HOMOLOG_SYNC_KEY"
-          test -s build/app/outputs/flutter-apk/app-release.apk
-          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -1)"
-          "$AAPT" dump badging build/app/outputs/flutter-apk/app-release.apk > /tmp/auditar-connected-badging.txt
-          grep -Fq "package: name='br.com.auditar.auditar_sst.homolog'" /tmp/auditar-connected-badging.txt
-          grep -Fq "versionName='3.29.203'" /tmp/auditar-connected-badging.txt
-          if grep -q '^application-debuggable' /tmp/auditar-connected-badging.txt; then exit 1; fi
-
-      - name: Arquivar candidato conectado com credenciais descartaveis de teste
-        if: success() && github.event_name == 'workflow_dispatch' && inputs.connected_homologation
-        uses: actions/upload-artifact@v4
-        with:
-          name: Auditar-SST-Android-v329203-CENTRAL-TESTE-NAO-PRODUCAO
-          path: app/Auditar_SST_v1_5_dashboard/build/app/outputs/flutter-apk/app-release.apk
+          name: Auditar-SST-Android-v329205-CONECTADO-CIFRADO
+          path: dist/connected-encrypted/Auditar-SST-3.29.205-Conectado.apk.gpg
           retention-days: 3
           if-no-files-found: error
