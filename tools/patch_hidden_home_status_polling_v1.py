@@ -23,8 +23,14 @@ def transform(source):
         raise ValueError("Chamadas de status divergentes; revisar fonte")
     if source.count(EVENT) != 1 or source.count(REFRESH) != 1:
         raise ValueError("Gatilhos automaticos divergentes; revisar fonte")
-    if "DeviceSyncService.events.listen" not in source or "_syncImmediatelyOnHomeEntry()" not in source:
-        raise ValueError("Fluxo de sync esperado ausente")
+    # Since v3.29.100 the coordinator owns the initial pull; the Home force-pull
+    # was intentionally removed by patch_sync_singleflight_v329100.py.
+    if source.count("DeviceSyncService.events.listen") != 1 or "_syncImmediatelyOnHomeEntry" in source or "_homeEntrySyncStarted" in source:
+        raise ValueError("Fluxo de sync da Home divergente da base singleflight")
+    if "DeviceSyncService.sendPendingMediaNow()" not in source or "await _refreshSyncStatus();" not in source:
+        raise ValueError("Acao manual de evidencias ausente")
+    if not re.search(r"_refresh\s*\(\s*showLoading:\s*false\s*\)", source):
+        raise ValueError("Atualizacao local apos sync ausente")
     # Do not remove the method or manual retry path; just the two known
     # automatic calls that feed the no-longer-rendered card.
     updated = source.replace(EVENT, "", 1).replace(REFRESH, "", 1)
@@ -48,9 +54,6 @@ FIXTURE = """  Widget _syncQueueCard() { return Card(); }
       await DeviceSyncService.sendPendingMediaNow();
       await _refreshSyncStatus();
   }
-  Future<void> _syncImmediatelyOnHomeEntry() async {
-      await DeviceSyncService.synchronize(force: true);
-  }
   void listen() {
     _deviceSyncSubscription = DeviceSyncService.events.listen((result) {
       if (!mounted) return;
@@ -68,10 +71,20 @@ class Tests(unittest.TestCase):
     def test_exact_change(self):
         updated = transform(FIXTURE)
         self.assertEqual(updated, FIXTURE.replace(EVENT, "").replace(REFRESH, ""))
-        self.assertIn("DeviceSyncService.synchronize(force: true)", updated)
+        self.assertNotIn("_syncImmediatelyOnHomeEntry", updated)
+        self.assertIn("DeviceSyncService.events.listen", updated)
         self.assertIn("DeviceSyncService.sendPendingMediaNow()", updated)
         self.assertIn("unawaited(_refresh(showLoading: false))", updated)
         self.assertIn("await _refreshSyncStatus();", updated)
+    def test_old_duplicate_force_pull_blocks(self):
+        with self.assertRaises(ValueError):
+            transform(FIXTURE + "\n_syncImmediatelyOnHomeEntry();")
+    def test_missing_listener_blocks(self):
+        with self.assertRaises(ValueError):
+            transform(FIXTURE.replace("DeviceSyncService.events.listen", "other.listen"))
+    def test_missing_refresh_blocks(self):
+        with self.assertRaises(ValueError):
+            transform(FIXTURE.replace("_refresh(showLoading: false)", "other()"))
     def test_visible_card_blocks(self):
         with self.assertRaises(ValueError):
             transform(FIXTURE + "\n_syncQueueCard();")
