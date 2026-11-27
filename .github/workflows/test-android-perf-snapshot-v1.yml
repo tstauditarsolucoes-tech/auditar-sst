@@ -4,6 +4,7 @@ on:
     branches: ['fix/android-conectado-seguro-20261126']
     paths:
       - 'tools/android_perf_snapshot_v1.py'
+      - 'tools/patch_hidden_home_status_polling_v1.py'
       - '.github/workflows/test-android-perf-snapshot-v1.yml'
 permissions:
   contents: read
@@ -17,3 +18,5 @@ jobs:
           persist-credentials: false
       - name: Testes sem ADB, credenciais ou rede da Central
         run: python3 tools/android_perf_snapshot_v1.py --self-test
+      - name: Testar patch protegido da Home
+        run: python3 tools/patch_hidden_home_status_polling_v1.py --self-test
