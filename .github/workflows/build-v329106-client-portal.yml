@@ -1444,31 +1444,31 @@ jobs:
           cat > "$GNUPGHOME/recipient.asc" <<'PGP'
           -----BEGIN PGP PUBLIC KEY BLOCK-----
           
-          mQGNBGsIzKUBDACi9DBkzfJjQ40sxRSpQ5CP0NABD0lwMAUBjDHAoexiWCgDeZ82
-          AiksCLwfZkK4aqJg1Mvz1IQph/qbxNlrDhllqARAaMx2Sz2CN39zxzeQySrm1OSj
-          MEn4pkis03GqBiIc8OAJha3RebsHM+Rp5tZja2mHXw/UfGHbWPU/Bkj+FqKuPeXP
-          SsY8xqvLK1VwvODSYnXTC6ILxwSiqObayNKdjJUu1Hj0tT7uZmH4lPT8FAJlbAcA
-          T+ppZSHKyCgAIgN8pFbb8xIBF5qhoQbawNYZbcSu+RN62vLdGt5x+5HRDk4qBjTL
-          5uQu4x8r8yyfRZRJYdqOEz90gjai9RHtuf/HbdpPuI+2N7wAc7vZfY7a9w5TB7Z5
-          oN2V7LyyvhIwmsyHCBMiBxPpauLFXyeIdztJSJa1T/U1+09neY8pMjInHeqixGJE
-          NKHeGgZQfau7dCUkHkm+GU8RhImoJNhxSD83SzL3rMRV6+N2Kb8wzBj+llLHVTg2
-          k36XgMCLTh4MH/EAEQEAAbQuQXVkaXRhciBTU1QgcmVzdHJpY3RlZCBBUEsgZGVs
-          aXZlcnkgMjAyNi0xMS0yNokB1AQTAQoAPhYhBHxKdkXmQ37LTwL2N1STS7SnLEQI
-          BQJrCMylAhsNBQkACTqABQsJCAcCBhUKCQgLAgQWAgMBAh4BAheAAAoJEFSTS7Sn
-          LEQILQsL/07gOqzadsTr+4IiUmWeUuZwGUFcR1qEvDmhiRItt9arD66G+WDdZaaF
-          GRJM7cU8R4NezJb4gqNau2ONYZqQW/j+aqbd4jKb5H38ISi1F7ewpeR2v664NS9n
-          yjXt0yE7LMzWuL+7URrzmj26mDMVn1Bd4Bpgul3m9THfxCWQmGkcFP3JwR4A7TuI
-          mjeurt4jvYd/EPxG1Dt6EPKc/sirFwXb5WyQGp3iDPB9My1qgx5MJXDdniZF5Rnu
-          6yA9LvR0nWUN0BtMsbFQnyp38zAestCncsB8SJcYnoXu2tJQVwblaKd/CXGdXY2M
-          /ys0hNH1QAO5hnXqWHhtmYTgYCcW0Vn7utzGQt4uLz7jn80/M0fYvwskBoGUqmdr
-          lH88LRQPzAruby7wuA2ZQeaavmx1EsB3grl8fVnlZlObdSh5eaIi98Zm8WEhmz4h
-          TOdCvdqQNFWAHFYznhKvjjArDPAKxCEsm9uWQbbEu7nb4aIG5jHOzNG3iVryzfnV
-          VCtz4drIaw==
-          =+9rx
+          mQGNBGsI40oBDACldSSeVlWW0aM8gKaPnqWKcf+kZZFVUy1ZQ5R0pxBywGbp61cQ
+          BeLWttrH0Y95Wxl5hG0nbFHbI83PSfeQX0vuppT4AQTPCaMI3cq8j62ohuHSkwB2
+          ZbA4YE54UQ5EhUfIa1kNkuHHDJixousgjDX45/hzEftIgrcFNW1wLI8eXeik0OVB
+          y0hkflMRel1/IF3oAY74ZJSHHg+i8bUopNRDnelWUorCaTD50guhQTNAmp9/IHzk
+          wGNvrOKr+fk6CxGHw16yxWoogvMiFJ9JpLTBb4x+sZ8+rZx8IZIod5+Je2YOJzoJ
+          d+oLtBH8t1upmIfbfnAIpYfRPSX46TJtGFkmt+tkz4Hce4EyVy03LyJJNJB4MQ06
+          hMI74odAwP49AlaUAMlP6nlTauX65GCVsiz6OgvmyAEpTm/5iV6dZPXkRSRKwi+Z
+          1nZL1rMtuWnQCOaf/sQHfeHXVu3NNN7LdIOueVBG5eiRBjCSyxcRQxEATfsCyigO
+          qHX+KcaG2QzhipkAEQEAAbQoQXVkaXRhciBBUEsgcmVzdHJpY3RlZCBkZWxpdmVy
+          eSAyMDI2MTEyNokB1AQTAQoAPhYhBIuaD0gg2KCBR4qEOtp4hYzyHMVvBQJrCONK
+          AhsNBQkACTqABQsJCAcCBhUKCQgLAgQWAgMBAh4BAheAAAoJENp4hYzyHMVvITIL
+          /RH8VAehelAeinx91CM7Pj77i2bF9EejKAJYVlalO6vzu0mu42eJmONvhavx1+/v
+          gwAnN+mVk2nSbCCoBhwLDksB3DSD2L7Yr1XMkHbOUn7X/3RwNqZiiJutLZF5t1SW
+          IRIVO/anjHlAJ8PQ7sfzEYBe470zQ3HYdRJN3+MjraB1ljIGNSeLpiQU5oJ4RKre
+          V7wH69Bt1tI7cwDwYzjrRyZGDKastWdsdvqOuzzjXZ7u38PDOB/9W0emlRhT9NTd
+          9phcueJFSXpalOteednCpJj4vJ4pQMYEVwMWFCKGnpJtfnKgVS6cYXppCkLhWmNP
+          UhFDR9X+o5wic4Qj/ObV5rsDxhDJl4eNKG4NOwEq45IAVfq/h/xlfgg6rJVWke46
+          oXdZ2dIEiESVS4l6jrN7NuFFT4s2H4KDQBKjDhm2j1Y5lI4t8U5mS8FCXKfamyro
+          BqujBXuMfmzAi9zjIOGU1+IJJ4tI0lPU5ZqBvbbyARlptNrmpRj/1m9YHJkyDdoT
+          QA==
+          =4HbG
           -----END PGP PUBLIC KEY BLOCK-----
           PGP
           gpg --batch --import "$GNUPGHOME/recipient.asc"
-          FPR=7C4A7645E6437ECB4F02F63754934BB4A72C4408
+          FPR=8B9A0F4820D8A081478A843ADA78858CF21CC56F
           gpg --batch --with-colons --list-keys "$FPR" | grep -Fq "$FPR"
           mkdir -p "$GITHUB_WORKSPACE/dist/connected-encrypted"
           gpg --batch --yes --trust-model always --cipher-algo AES256 --compress-algo none --recipient "$FPR" --output "$GITHUB_WORKSPACE/dist/connected-encrypted/Auditar-SST-3.29.204-Conectado.apk.gpg" --encrypt "$APK"
