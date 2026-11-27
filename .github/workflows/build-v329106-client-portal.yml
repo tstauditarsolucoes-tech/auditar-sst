@@ -1,4 +1,4 @@
-name: SST Android 3.29.204 - candidato conectado protegido
+name: SST Android 3.29.205 - CIPA visivel e conectado
 # Build solicitado para homologação no aparelho. Sem chamadas de rede à central
 # durante CI. Apenas o APK cifrado pode sair do job em repositório público.
 on:
@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: auditar-android-connected-v329204
+  group: auditar-android-connected-v329205
   cancel-in-progress: true
 
 permissions:
@@ -1364,6 +1364,16 @@ jobs:
           flutter test
           grep -Fq 'version: 3.29.203+345' pubspec.yaml
 
+      - name: Central inicial da CIPA com atalhos visiveis e teste de toque
+        run: |
+          set -euo pipefail
+          python3 tools/patch_android_cipa_start_v1.py "$APP_DIR"
+          cd "$APP_DIR"
+          dart format lib/screens/cipa_management_screen.dart lib/screens/cipa_participation_screen.dart lib/screens/cipa_start_panel.dart test/cipa_start_panel_test.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test test/cipa_start_panel_test.dart
+          flutter test
+
       - name: Verificar configuracao automatica com dados ficticios sem rede
         run: |
           set -euo pipefail
@@ -1432,14 +1442,14 @@ jobs:
           java -version
           flutter config --jdk-dir="$JAVA_HOME"
           (cd android && ./gradlew --stop && ./gradlew --version)
-          flutter build apk --release --build-name=3.29.204 --build-number=346 --dart-define-from-file="$CONFIG"
+          flutter build apk --release --build-name=3.29.205 --build-number=347 --dart-define-from-file="$CONFIG"
           APK=build/app/outputs/flutter-apk/app-release.apk
           test -s "$APK"
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -1)"
           test -x "$AAPT"
           "$AAPT" dump badging "$APK" > /tmp/auditar-connected-badging.txt
           grep -Fq "package: name='br.com.auditar.auditar_sst.homolog'" /tmp/auditar-connected-badging.txt
-          grep -Fq "versionName='3.29.204'" /tmp/auditar-connected-badging.txt
+          grep -Fq "versionName='3.29.205'" /tmp/auditar-connected-badging.txt
           if grep -q '^application-debuggable' /tmp/auditar-connected-badging.txt; then exit 1; fi
           cat > "$GNUPGHOME/recipient.asc" <<'PGP'
           -----BEGIN PGP PUBLIC KEY BLOCK-----
@@ -1470,15 +1480,15 @@ jobs:
           FPR=E24C067FFA055B2C16936644D8B5B12C736CD799
           gpg --batch --with-colons --list-keys "$FPR" | grep -Fq "$FPR"
           mkdir -p "$GITHUB_WORKSPACE/dist/connected-encrypted"
-          gpg --batch --yes --trust-model always --cipher-algo AES256 --compress-algo none --recipient "$FPR" --output "$GITHUB_WORKSPACE/dist/connected-encrypted/Auditar-SST-3.29.204-Conectado.apk.gpg" --encrypt "$APK"
-          test -s "$GITHUB_WORKSPACE/dist/connected-encrypted/Auditar-SST-3.29.204-Conectado.apk.gpg"
+          gpg --batch --yes --trust-model always --cipher-algo AES256 --compress-algo none --recipient "$FPR" --output "$GITHUB_WORKSPACE/dist/connected-encrypted/Auditar-SST-3.29.205-Conectado.apk.gpg" --encrypt "$APK"
+          test -s "$GITHUB_WORKSPACE/dist/connected-encrypted/Auditar-SST-3.29.205-Conectado.apk.gpg"
           rm -f "$APK" "$CONFIG"
 
       - name: Arquivar exclusivamente APK cifrado
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Auditar-SST-Android-v329204-CONECTADO-CIFRADO
-          path: dist/connected-encrypted/Auditar-SST-3.29.204-Conectado.apk.gpg
+          name: Auditar-SST-Android-v329205-CONECTADO-CIFRADO
+          path: dist/connected-encrypted/Auditar-SST-3.29.205-Conectado.apk.gpg
           retention-days: 3
           if-no-files-found: error
