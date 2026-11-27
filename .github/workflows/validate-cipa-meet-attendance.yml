@@ -1,0 +1,19 @@
+name: Validar Minha CIPA - presenca Meet
+on:
+  pull_request:
+    branches: ['feature/minha-cipa-homologacao-integrada-20261118']
+    paths: ['web_cipa_meet/**', '.github/workflows/validate-cipa-meet-attendance.yml']
+  push:
+    branches: ['feature/minha-cipa-meet-presenca-20261127']
+    paths: ['web_cipa_meet/**', '.github/workflows/validate-cipa-meet-attendance.yml']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test web_cipa_meet/*.test.mjs
